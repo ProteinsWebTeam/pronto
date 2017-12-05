@@ -1,0 +1,374 @@
+@media screen and (min-width: 1384px){
+    .ui.container {
+        max-width: 1344px;
+        width: 1344px;
+    }
+}
+
+body > .ui.menu {
+    box-shadow: none;
+    margin: 0;
+}
+
+.ui.segment.masthead {
+    padding: 3rem 0;
+    background-color: #F5F5F5;
+}
+
+.ui.very.small.table {
+    font-size: .825em;
+}
+
+#dimmer {
+    z-index: 5000;
+}
+
+#messages.hidden {
+    display: none;
+}
+
+h1, h2, h3, h4, h5, h6, .ui.header {
+    font-weight: 400;
+}
+
+/* Method prediction */
+
+.ui.label.type-R {
+    background-color: #f2711c;
+    border-color: #f2711c;
+    color: #fff;
+}
+
+.ui.label.type-H {
+    background-color: #1678c2;
+    border-color: #1678c2;
+    color: #fff;
+}
+
+.ui.label.type-D {
+    background-color: #21ba45;
+    border-color: #21ba45;
+    color: #fff;
+}
+
+.ui.label.type-F {
+    background-color: #db2828;
+    border-color: #db2828;
+    color: #fff;
+}
+
+.ui.label.type-C, .ui.label.type-B, .ui.label.type-A, .ui.label.type-P {
+    background-color: #a333c8;
+    border-color: #a333c8;
+    color: #fff;
+}
+
+
+/* Hidden sidebar for (methods and prediction) */
+.ui.hidden.sticky {
+    display: none;
+}
+
+/* Highlighted row (prediction and matches) */
+.ui.table tr.selected {
+    /*background: rgba(0,0,0,.15);*/
+    /*color: rgba(0,0,0,.85);*/
+    background-color: #C8E6C9;
+}
+
+/* Prevent line breaks */
+.ui.table td.nowrap, .ui.table th.nowrap {
+    white-space: nowrap;
+}
+
+/* Keep the icon on the same line */
+.ui.comments .ui.header > .icon, #matches .ui.header > .icon {
+    display: inline-block;
+    padding: 0;
+    margin-right: .75rem;
+}
+
+/* Hide sub sections (when a view has multiple sections) */
+section.ui.container.hidden, section.ui.container > .hidden {
+    display: none;
+}
+
+/* Matches */
+.segment > .pagination.menu:last-child {
+    margin-bottom: 1em;
+}
+
+
+#matches .segments .segment .ui.sub.header {
+    margin-top: 1em;
+}
+
+/*
+    Taxonomy
+    override pointer-events:none for the first column header of definition tables
+*/
+#taxonomy .ui.definition.table thead th:first-child {
+    pointer-events: auto;
+}
+
+/* GO */
+#go thead .ui.compact.icon.button {
+    padding: .2em;
+    font-size: 1.5em;
+}
+
+.ui.label.aspect-P {
+    background-color: #B388FF;
+    border-color: #B388FF;
+    color: #fff;
+}
+
+.ui.label.aspect-F {
+    background-color: #CDDC39;
+    border-color: #CDDC39;
+    color: #fff;
+}
+
+.ui.label.aspect-C {
+    background-color: #FF9E80;
+    border-color: #FF9E80;
+    color: #fff;
+}
+
+/* SVG (matches) */
+
+svg.matches line {
+    stroke-width: 1px;
+    stroke: #888;
+}
+
+svg.matches > text {
+    fill: #888;
+    fill-opacity: 0.5;
+    font-size: 10px;
+    dominant-baseline: central;
+    text-anchor: start;
+}
+
+svg.matches:hover > text {
+    fill: #555555;
+    fill-opacity: 1;
+}
+
+svg.matches g text {
+    font-size: 10px;
+    fill: #555555;
+    fill-opacity: 0;
+    text-anchor: middle;
+}
+
+svg.matches g:hover text {
+    fill-opacity: 1;
+}
+
+#go-references-modal ol.ui.list {
+    margin-left: 3rem;
+}
+
+
+#go-references-modal ol.ui.list > .item::before {
+    margin-left: -3rem;
+}
+
+
+/* Index */
+.ui.feed > .event > .label  {
+    margin-top: .5em;
+}
+
+.ui.feed > .event > .label + .content {
+    margin-left: 0;
+}
+
+.ui.feed > .event > .content .extra {
+    margin: 0;
+}
+
+.ui.feed > .event > .content .summary {
+    font-weight: normal;
+}
+
+.ui.feed abbr {
+    text-decoration: none;
+}
+
+.ui.feed abbr:hover {
+    cursor: pointer;
+}
+
+/* Entry */
+#entry .ui.statistics .statistic > .label {
+    font-weight: 400;
+    font-size: .8em;
+}
+
+#entry .ui.statistics .statistic > .value {
+    font-weight: 300;
+    text-transform: none;
+}
+
+#entry h1.ui.header i.icon {
+    display: inline;
+    font-size: .75em;
+}
+
+#entry .ui.sticky {
+    padding-top: .75em;
+}
+
+.ui.statistics .statistic > a.value {
+    color: #4183c4;
+}
+
+.ui.statistics .statistic > a.value:hover {
+    color: #1e70bf;
+}
+
+dt, dd {
+    line-height: 1.5em;
+}
+
+dd {
+    margin-left: 2em;
+}
+
+dl > dd + dt {
+    margin-top: 1em;
+}
+
+dd .ui.link.list > a.item, dd .ui.link.list > a.item > i.icon {
+    color: #4183c4;
+}
+
+dd .ui.link.list > a.item:hover, dd .ui.link.list > a.item:hover > i.icon {
+    color: #1e70bf;
+}
+
+.ui.list > li > .ui.horizontal.list {
+    display: block;
+}
+
+.ui.segment.type-R:not(.inverted) {
+    border-top: 2px solid #f2711c;
+}
+
+.ui.segment.type-H:not(.inverted) {
+    border-top: 2px solid #1678c2;
+}
+
+.ui.segment.type-D:not(.inverted) {
+    border-top: 2px solid #21ba45;
+}
+
+.ui.segment.type-F:not(.inverted) {
+    border-top: 2px solid #db2828;
+}
+
+.ui.segment.type-C:not(.inverted), .ui.segment.type-B:not(.inverted), .ui.segment.type-A:not(.inverted), .ui.segment.type-P:not(.inverted) {
+    border-top: 2px solid #a333c8;
+}
+
+
+/* Protein */
+#protein h1.ui.header i.icon {
+    display: inline;
+    font-size: .75em;
+}
+
+#protein .ui.statistics .statistic > .label {
+    font-weight: 400;
+    font-size: .8em;
+}
+
+#protein .ui.statistics .statistic > .value {
+    font-weight: 300;
+    text-transform: none;
+}
+
+g.ticks line {
+    stroke-dasharray: 2, 2;
+    stroke-width: 0.5;
+    stroke: #000;
+}
+
+g.ticks text {
+    dominant-baseline: hanging;
+    text-anchor: middle;
+    font-size: 10px;
+}
+
+#protein svg > text {
+    dominant-baseline: central;
+    font-size: 14px;
+}
+
+#protein svg rect.match {
+    opacity: .5;
+}
+
+#protein svg rect.match:hover {
+    opacity: 1;
+    cursor: pointer;
+}
+
+#protein svg text a {
+    fill: #4a4a4a;
+}
+
+#protein svg text a:hover {
+    fill: #1a1a1a;
+}
+
+#protein svg text tspan {
+    font-family: Icons;
+}
+
+#protein .ui.sticky {
+    padding-top: .75em;
+}
+
+.ui.tooltip {
+    background-color: #fff;
+    border-radius: 5px;
+    -webkit-box-shadow: 0 2px 3px rgba(10,10,10,.1),0 0 0 1px rgba(10,10,10,.1);
+    box-shadow: 0 2px 3px rgba(10,10,10,.1),0 0 0 1px rgba(10,10,10,.1);
+    padding: .7em;
+    width: 275px;
+    position: absolute;
+    z-index: 9999;
+    display: none;
+}
+
+.ui.tooltip .header {
+    font-size: 1.25em;
+}
+
+.ui.tooltip .meta {
+    font-size: .8em;
+    color: rgba(0,0,0,.5);
+    line-height: 1;
+}
+
+.ui.tooltip .description {
+    margin-top: .5rem;
+    font-size: 1em;
+    color: rgba(0,0,0,.7);
+}
+
+.ui.tooltip > .close.icon {
+    cursor: pointer;
+    position: absolute;
+    margin: 0;
+    top: .5em;
+    right: .5em;
+    opacity: .7;
+}
+
+.ui.tooltip > .close.icon:hover {
+    opacity: 1;
+}

@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Log in to Pronto</title>
+    <link rel="stylesheet" href="/static/vendor/semantic.min.css" />
+    <style type="text/css">
+        body {
+            background-color: #CFD8DC;
+        }
+
+        body > .grid {
+            height: 100%;
+        }
+
+        .column {
+            max-width: 400px;
+        }
+
+        .ui.header {
+            color: #607D8B;
+        }
+
+        .ui.button {
+            color: #fff;
+            background-color: #607D8B;
+        }
+
+        .ui.button:hover {
+            color: #fff;
+            background-color: #37474F;
+        }
+    </style>
+</head>
+<body>
+
+<div class="ui middle aligned center aligned grid">
+    <div class="column">
+        <h1 class="ui header">
+            Log in to Pronto
+        </h1>
+        <div class="ui raised segment">
+            <form class="ui form" method="post" action="/login">
+                {% if error %}
+                <div class="ui visible error message">{{ error|safe }}</div>
+                {% endif %}
+
+                <div class="field">
+                    <div class="ui left icon input">
+                        {% if username %}
+                        <input name="username" placeholder="Username" type="text" required="required" value="{{ username }}">
+                        {% else %}
+                        <input name="username" placeholder="Username" type="text" required="required">
+                        {% endif %}
+                        <i class="user icon"></i>
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="ui left icon input">
+                        <input name="password" placeholder="Password" type="password" required="required">
+                        <i class="lock icon"></i>
+                    </div>
+                </div>
+                <button class="ui fluid button" type="submit">
+                    <i class="sign in icon"></i>
+                    Log in
+                </button>
+            </form>
+        </div>
+
+    </div>
+</div>
+
+<script src="/static/vendor/jquery.min.js"></script>
+<script src="/static/vendor/semantic.min.js"></script>
+</body>
+</html>

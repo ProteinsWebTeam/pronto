@@ -1,0 +1,579 @@
+{% include 'header.html' %}
+
+<section id="index" class="ui container basic vertical hidden segment">
+    <h1 class="ui header">
+        <i class="database icon"></i>Member databases
+    </h1>
+    <div class="ui divided grid">
+        <div class="row">
+            <div class="twelve wide column">
+                <table class="ui compact table">
+                    <thead>
+                    <tr>
+                        <th></th>
+                        <th>Signatures</th>
+                        <th>Integrated</th>
+                        <th>Unintegrated</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="four wide column">
+
+                <h3 class="ui header">
+                    <i class="feed icon"></i>Latest entries
+                </h3>
+
+                <div class="ui feed">
+
+                </div>
+            </div>
+        </div>
+
+    </div>
+</section>
+
+<section id="comparison" class="ui container basic vertical hidden segment">
+    <h1 class="ui header">
+        Signature comparison
+    </h1>
+
+    <div class="methods">
+        <div class="ui segment">
+            <h4>Signatures to compare</h4>
+            <div class="ui grid">
+                <div class="four wide column">
+                    <div class="ui fluid input">
+                        <input placeholder="Add signatures&hellip;" type="text">
+                    </div>
+                </div>
+
+                <div class="twelve wide column">
+
+                </div>
+            </div>
+        </div>
+
+        <div class="ui secondary pointing menu links">
+            <a data-page="matches" class="item">Overlapping proteins</a>
+            <a data-page="taxonomy" class="item">Taxonomic origin</a>
+            <a data-page="descriptions" class="item">UniProt descriptions</a>
+            <a data-page="comments" class="item">Swiss-Prot comments</a>
+            <a data-page="go" class="item">GO terms</a>
+            <a data-page="matrices" class="item">Match matrices</a>
+        </div>
+    </div>
+
+    {% include 'matches.html' %}
+
+    {% include 'taxonomy.html' %}
+
+    {% include 'descriptions.html' %}
+
+    {% include 'swissprot_comments.html' %}
+
+    {% include 'go.html' %}
+
+    {% include 'matrices.html' %}
+
+    <div id="proteins-modal" class="ui modal">
+        <i class="close icon"></i>
+        <div class="ui header"></div>
+        <div class="scrolling content">
+            <table class="ui compact celled very small table">
+                <thead>
+                <tr>
+                    <th colspan="4">
+                        <div class="ui secondary menu">
+                            <span class="item"></span>
+                            <div class="right menu">
+                                <div class="item">
+                                    <div class="ui icon input">
+                                        <input placeholder="Search&hellip;" type="text">
+                                        <i class="search link icon"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </th>
+                </tr>
+                <tr>
+                    <th>Accession</th>
+                    <th>Name</th>
+                    <th>Organism</th>
+                    <th>Matches</th>
+                </tr>
+                </thead>
+                <tbody></tbody>
+                <tfoot>
+                <tr>
+                    <th colspan="4">
+                        <div class="ui right floated pagination menu"></div>
+                    </th>
+                </tr>
+                </tfoot>
+            </table>
+        </div>
+        <div class="actions">
+            <a href="#" class="ui secondary button">
+                Overlapping proteins
+            </a>
+        </div>
+    </div>
+
+    <div id="descriptions-modal" class="ui modal">
+        <i class="close icon"></i>
+        <div class="ui header"></div>
+        <div class="scrolling content">
+            <table class="ui very basic compact table">
+                <thead>
+                <tr>
+                    <th>Accession</th>
+                    <th>Short name</th>
+                    <th>Organism</th>
+                </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+</section>
+
+<section id="method" class="ui container basic vertical hidden segment">
+    <h1 class="ui header">
+        Signature prediction
+        <div class="sub header"></div>
+    </h1>
+
+    <div class="ui segment methods">
+        <h4>Signatures to compare</h4>
+        <div class="ui grid">
+            <div class="four wide column">
+                <div class="ui fluid input">
+                    <input placeholder="Add signatures&hellip;" type="text">
+                </div>
+            </div>
+
+            <div class="twelve wide column">
+
+            </div>
+        </div>
+        <div class="ui hidden divider"></div>
+        <div class="ui horizontal divided link list links">
+            <div class="active item">Compare by</div>
+            <a data-page="matches" class="item">Overlapping proteins</a>
+            <a data-page="taxonomy" class="item">Taxonomic origin</a>
+            <a data-page="descriptions" class="item">UniProt descriptions</a>
+            <a data-page="comments" class="item">Swiss-Prot comments</a>
+            <a data-page="go" class="item">GO terms</a>
+            <a data-page="matrices" class="item">Match matrices</a>
+        </div>
+    </div>
+
+    <div class="ui grid">
+        <div class="twelve wide column">
+            <table class="ui very compact celled structured small table">
+                <thead>
+                <tr>
+                    <th rowspan="2">Prediction</th>
+                    <th class="center aligned" colspan="3">Candidate</th>
+                    <th class="center aligned" colspan="2">Overlap</th>
+                    <th class="center aligned" colspan="4">Integration</th>
+                </tr>
+                <tr>
+                    <th>Accession</th>
+                    {#                    <th>Database</th>#}
+                    <th class="nowrap">
+                        Prot.&nbsp;
+                        <i class="help circle icon" data-content="Number of proteins matching candidate signature" data-variation="tiny"></i>
+                    </th>
+                    <th class="nowrap">
+                        Hits&nbsp;
+                        <i class="help circle icon" data-content="Number of BLOBS found for candidate signature" data-variation="tiny"></i>
+                    </th>
+
+                    <th class="nowrap">
+                        Prot.&nbsp;
+                        <i class="help circle icon" data-content="Count of proteins where both query and candidate signature overlap" data-variation="tiny"></i>
+                    </th>
+                    <th class="nowrap">
+                        Hits&nbsp;
+                        <i class="help circle icon" data-content="Number of overlapping blobs with query and candidate signature" data-variation="tiny"></i>
+                    </th>
+
+                    <th>Accession</th>
+                    <th>Name</th>
+                    <th></th>
+                    <th>Curated</th>
+                </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="four wide column">
+            <div class="ui hidden sticky">
+                {% include 'user_comments.html' %}
+                <div class="ui vertical segment heatmap" data-colors="#6ca75d,#9372c6,#bf823b,#cc556f" data-size="5">
+                    <h3 class="ui header">Overlap colour keys</h3>
+                    <svg version="1.1" xmlns="http://www.w3.org/2000/svg"></svg>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="methods" class="ui container basic vertical hidden segment">
+    <div class="ui error message hidden">
+        <i class="close icon"></i>
+        <div class="content"></div>
+    </div>
+
+    <div id="methods-all" class="hidden">
+        <h1 class="ui header"></h1>
+        <div class="ui grid">
+            <div class="twelve wide column">
+                <table class="ui very compact celled structured table">
+                    <thead>
+                    <tr>
+                        <th colspan="7">
+                            <div class="ui secondary menu">
+                                <span class="item"></span>
+                                <div class="right menu">
+                                    <div class="item">
+                                        <div class="ui icon input">
+                                            <input placeholder="Search&hellip;" type="text">
+                                            <i class="search link icon"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </th>
+                    </tr>
+                    <tr>
+                        <th rowspan="2">Accession</th>
+                        <th colspan="2" class="center aligned">InterPro</th>
+                        <th colspan="3" class="center aligned">Changes</th>
+                        <th rowspan="2">Comments</th>
+                    </tr>
+                    <tr>
+                        <th>Integrated</th>
+                        <th></th>
+                        <th>Now</th>
+                        <th>Then</th>
+                        <th>&percnt;</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                    <tfoot>
+                    <tr>
+                        <th colspan="7">
+                            <div class="ui right floated pagination menu"></div>
+                        </th>
+                    </tr>
+                    </tfoot>
+                </table>
+            </div>
+            <div class="four wide column">
+                <div class="ui hidden sticky">
+                    {% include 'user_comments.html' %}
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div id="methods-unintegrated" class="hidden">
+        <h1 class="ui header"></h1>
+        <table class="ui very compact celled structured table">
+            <thead>
+            <tr>
+                <th colspan="4">
+                    <div class="ui secondary menu">
+                        <span class="item"></span>
+                        <div class="right menu">
+                            <div class="item">
+                                <div class="ui icon input">
+                                    <input placeholder="Search&hellip;" type="text">
+                                    <i class="search link icon"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </th>
+            </tr>
+            <tr>
+                <th>Signature</th>
+                <th>Add to</th>
+                <th>Parent</th>
+                <th>Children</th>
+            </tr>
+            </thead>
+            <tbody>
+            </tbody>
+            <tfoot>
+            <tr>
+                <th colspan="4">
+                    <div class="ui right floated pagination menu"></div>
+                </th>
+            </tr>
+            </tfoot>
+        </table>
+
+    </div>
+</section>
+
+<section id="entry" class="ui container basic vertical hidden segment">
+    <h1 class="ui header"></h1>
+    <div class="ui segment">
+        <div class="ui five tiny statistics">
+            <div class="statistic">
+                <div class="label">
+                    UniProtKB Matches
+                </div>
+                <div data-stats="proteins" class="value"></div>
+
+            </div>
+            <div class="statistic">
+                <div class="label">
+                    Type
+                </div>
+                <div data-stats="type" class="value"></div>
+
+            </div>
+            <div class="statistic">
+                <div class="label">
+                    Signatures
+                </div>
+                <a data-stats="methods" href="#signatures" class="value"></a>
+
+            </div>
+            <div class="statistic">
+                <div class="label">
+                    GO terms
+                </div>
+                <a data-stats="terms" href="#go-terms" class="value"></a>
+
+            </div>
+            <div class="statistic">
+                <div class="label">
+                    References
+                </div>
+                <a data-stats="references" href="#references" class="value"></a>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="ui grid">
+        <div class="four wide column">
+            <div class="ui sticky">
+                <div class="ui fluid vertical menu">
+                    <a href="#curation" class="active item">
+                        Curation
+                    </a>
+                    <a href="#description" class="item">
+                        Description
+                    </a>
+                    <a href="#signatures" class="item">
+                        Signatures
+                        <div data-stats="methods" class="ui label"></div>
+                    </a>
+                    <a href="#relationships" class="item">
+                        Relationships
+                        <div data-stats="relationships" class="ui label"></div>
+                    </a>
+                    <a href="#go-terms" class="item">
+                        GO terms
+                        <div data-stats="terms" class="ui label"></div>
+                    </a>
+                    <a href="#references" class="item">
+                        References
+                        <div data-stats="references" class="ui label"></div>
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="twelve wide column">
+            <div class="ui vertical segment">
+                <h2 id="curation" class="ui header">Curation</h2>
+
+                <dl>
+                    <dt>Public website</dt>
+                    <dd><a target="_blank" data-external="http://www.ebi.ac.uk/interpro/entry/" href="">Entry&nbsp;<i class="external icon"></i></a></dd>
+
+                    <dt>Signature comparison</dt>
+                    <dd>
+                        <div class="ui bulleted horizontal link list">
+                            <a data-internal="matches" class="item">
+                                Overlapping proteins
+                            </a>
+                            <a data-internal="taxonomy" class="item">
+                                Taxonomy
+                            </a>
+                            <a data-internal="descriptions" class="item">
+                                UniProt descriptions
+                            </a>
+                            <a data-internal="comments" class="item">
+                                Swiss-Prot comments
+                            </a>
+                            <a data-internal="go" class="item">
+                                GO terms
+                            </a>
+                            <a data-internal="matrices" class="item">
+                                Match matrices
+                            </a>
+                        </div>
+                    </dd>
+
+                    <dt>Talisman</dt>
+                    <dd>
+                        <div class="ui bulleted horizontal link list">
+                            <a target="_blank" data-external="http://www.ebi.ac.uk/talisman/Create?page=ipr_commabs/annot_entry.xml&url=ipro&ac=" class="item">
+                                Abstract
+                                <i class="external icon"></i>
+                            </a>
+                            <a target="_blank" data-external="http://www.ebi.ac.uk/talisman/Create?page=ipr_interpro2go/interpro2go.xml&url=IPRO&ac=" class="item">
+                                InterPro2GO
+                                <i class="external icon"></i>
+                            </a>
+                            <a target="_blank" data-external="http://www.ebi.ac.uk/talisman/Create?page=ipr_entry/merge.xml&url=IPRO&ac=" class="item">
+                                Merge
+                                <i class="external icon"></i>
+                            </a>
+                            <a target="_blank" data-external="http://www.ebi.ac.uk/talisman/Create?page=ipr_reference/ref_manager.xml&url=IPRO&ac=" class="item">
+                                References
+                                <i class="external icon"></i>
+                            </a>
+                            <a target="_blank" data-external="http://www.ebi.ac.uk/talisman/Create?page=ipr_entry/new_relation.xml&url=IPRO&ac=" class="item">
+                                Relationship
+                                <i class="external icon"></i>
+                            </a>
+                            <a target="_blank" data-external="http://www.ebi.ac.uk/talisman/Create?page=ipr_entry/split2.xml&url=IPRO&ac=" class="item">
+                                Split
+                                <i class="external icon"></i>
+                            </a>
+                        </div>
+                    </dd>
+                </dl>
+            </div>
+            <div class="ui vertical segment">
+                <h2 id="description" class="ui header">Description</h2>
+                <div></div>
+            </div>
+            <div class="ui vertical segment">
+                <h2 id="signatures" class="ui header">Signatures</h2>
+                <table class="ui selectable table">
+                    <thead>
+                    <tr>
+                        <th>Accession</th>
+                        <th>Member database</th>
+                        <th>Name</th>
+                        <th>Protein count</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+            <div class="ui vertical segment">
+                <h2 id="relationships" class="ui header">InterPro relationships</h2>
+                <div></div>
+            </div>
+            <div class="ui vertical segment">
+                <h2 id="go-terms" class="ui header">GO terms</h2>
+                <dl></dl>
+            </div>
+            <div class="ui vertical segment">
+                <h2 id="references" class="ui header">References</h2>
+                <div></div>
+                <h2 id="supp-references" class="ui header">Supplementary references</h2>
+                <div></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="protein" class="ui container basic vertical hidden segment">
+    <h1 class="ui header"></h1>
+    <div class="ui segment">
+        <div class="ui three tiny statistics">
+            <div class="statistic">
+                <div class="label">
+                    Reviewed
+                </div>
+                <div data-stats="reviewed" class="value"></div>
+
+            </div>
+            <div class="statistic">
+                <div class="label">
+                    Organism
+                </div>
+                <div data-stats="organism" class="value"></div>
+
+            </div>
+            <div class="statistic">
+                <div class="label">
+                    Length
+                </div>
+                <div data-stats="length" class="value"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="ui grid">
+        <div class="four wide column">
+            <div class="ui sticky">
+                <div class="ui fluid vertical menu">
+                    <a href="#families" class="active item">
+                        Protein family
+                    </a>
+                    <a href="#superfamilies" class="item">
+                        Homologuous superfamilies
+                    </a>
+                    <a href="#domains-repeats" class="item">
+                        Domain and repeats
+                    </a>
+                    <a href="#detailed" class="item">
+                        Detailed signatures matches
+                    </a>
+                    <a href="#structures" class="item">
+                        Structural features and predictions
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="twelve wide column">
+            <div class="ui vertical segment">
+                <h2 id="families" class="ui header">Protein family</h2>
+                <div></div>
+            </div>
+            <div class="ui vertical segment">
+                <h2 id="superfamilies" class="ui header">Homologuous superfamilies</h2>
+                <div></div>
+            </div>
+            <div class="ui vertical segment">
+                <h2 id="domains-repeats" class="ui header">Domain and repeats</h2>
+                <div></div>
+            </div>
+            <div class="ui vertical segment">
+                <h2 id="detailed" class="ui header">Detailed signatures matches</h2>
+                <div></div>
+            </div>
+            <div class="ui vertical segment">
+                <h2 id="structures" class="ui header">Structural features and predictions</h2>
+                <div></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+{% include 'footer.html' %}
