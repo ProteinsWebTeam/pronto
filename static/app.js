@@ -989,9 +989,9 @@ function ComparisonViews(methodsIds) {
 
                 data.results.forEach(protein => {
                     if (protein.isReviewed)
-                        html += '<tr><td class="nowrap"><a href="/protein/'+ protein.id +'"><i class="star icon"></i>'+ protein.id +'</a></td>';
+                        html += '<tr><td class="nowrap"><a target="_blank" href="'+ protein.link +'"><i class="star icon"></i>'+ protein.id +'</a></td>';
                     else
-                        html += '<tr><td><a href="/protein/'+ protein.id +'">'+ protein.id +'</a></td>';
+                        html += '<tr><td><a target="_blank" href="'+ protein.link +'">'+ protein.id +'</a></td>';
 
                     html += '<td>'+ protein.name +'</td><td>'+ protein.taxon.fullName +'</td>';
 

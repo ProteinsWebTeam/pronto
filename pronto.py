@@ -2267,6 +2267,7 @@ def api_method_proteins(method_ac):
         except KeyError:
             proteins[protein_ac] = {
                 'id': protein_ac,
+                'link': ('http://sp.isb-sib.ch/uniprot/' if row[1] == 'S' else 'http://www.uniprot.org/uniprot/') + protein_ac,
                 'isReviewed': row[1] == 'S',
                 'length': row[2],
                 'name': row[3],
