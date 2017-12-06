@@ -1981,7 +1981,7 @@ def api_entry(entry_ac):
     try:
         entry = get_entry(entry_ac)
     except:
-        r['status'] = 'An error occurred while searching for <strong>{}</strong>.'.format(entry_ac)
+        r['error'] = 'An error occurred while searching for <strong>{}</strong>.'.format(entry_ac)
     else:
         if entry:
             r.update({
