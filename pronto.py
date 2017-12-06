@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import re
+import time
 from datetime import timedelta
 
 import cx_Oracle
@@ -145,7 +146,8 @@ def get_topics():
     return topics
 
 
-def build_method2protein_sql(methods, taxon, **kwargs):
+def build_method2protein_sql(methods, **kwargs):
+    taxon = kwargs.get('taxon')
     db = kwargs.get('db')
     desc_id = kwargs.get('description')
     topic_id = kwargs.get('topic')
@@ -168,8 +170,6 @@ def build_method2protein_sql(methods, taxon, **kwargs):
     # Get the list of all proteins matched by the methods (and passing the filters)
     can_cond = ','.join([':can' + str(i) for i in range(len(can + must))])
     params = {'can' + str(i): method for i, method in enumerate(can + must)}
-    params['ln'] = int(taxon['leftNumber'])
-    params['rn'] = int(taxon['rightNumber'])
 
     # Retrieve proteins that MUST match a set of given signatures
     if must:
@@ -260,6 +260,13 @@ def build_method2protein_sql(methods, taxon, **kwargs):
     else:
         name_cond = ''
 
+    if taxon:
+        tax_cond = 'AND LEFT_NUMBER BETWEEN :ln AND :rn'
+        params['ln'] = int(taxon['leftNumber'])
+        params['rn'] = int(taxon['rightNumber'])
+    else:
+        tax_cond = ''
+
     sql = """
         SELECT
             MIN(LEFT_NUMBER) AS LEFT_NUMBER,
@@ -275,7 +282,7 @@ def build_method2protein_sql(methods, taxon, **kwargs):
         {}
         {}
         WHERE FEATURE_ID IN ({})
-        AND LEFT_NUMBER BETWEEN :ln AND :rn
+        {}
         {}
         {}
         {}
@@ -298,20 +305,21 @@ def build_method2protein_sql(methods, taxon, **kwargs):
         comment_cond,
         desc_cond,
         db_cond,
-        name_cond
+        name_cond,
+        tax_cond
     )
 
     return sql, params
 
 
-def get_overlapping_proteins(methods, taxon, **kwargs):
+def get_overlapping_proteins(methods, **kwargs):
     """
     Returns the protein matched by one or more signatures.
     """
     page = kwargs.get('page', 1)
     page_size = kwargs.get('page_size', 10)
 
-    sql, params = build_method2protein_sql(methods, taxon, **kwargs)
+    sql, params = build_method2protein_sql(methods, **kwargs)
 
     cur = get_db().cursor()
     cur.execute(
@@ -738,18 +746,24 @@ def get_go_terms(methods, aspects=list()):
 
     sql = """
         SELECT
-          F.FEATURE_ID,
-          F.SEQ_ID,
           T.GO_ID,
           T.NAME,
-          T.CATEGORY
+          T.CATEGORY,
+          F.FEATURE_ID,
+          F.SEQ_ID,
+          P2G.REF_DB_ID
         FROM (
-          SELECT FEATURE_ID, TERM_GROUP_ID, SEQ_ID, DB
+          SELECT DISTINCT FEATURE_ID, TERM_GROUP_ID, SEQ_ID
           FROM {0}.FEATURE2PROTEIN
           WHERE FEATURE_ID IN ({1})
         ) F
-        INNER JOIN {0}.TERM_GROUP2TERM G ON F.TERM_GROUP_ID = G.TERM_GROUP_ID
-        INNER JOIN {0}.TERMS T ON G.GO_ID = T.GO_ID
+        INNER JOIN {0}.TERM_GROUP2TERM G2T ON F.TERM_GROUP_ID = G2T.TERM_GROUP_ID
+        INNER JOIN {0}.TERMS T ON G2T.GO_ID = T.GO_ID
+        LEFT OUTER JOIN (
+          SELECT PROTEIN_AC, GO_ID, REF_DB_ID
+          FROM {0}.PROTEIN2GO_MANUAL
+          WHERE REF_DB_CODE = 'PMID'
+        ) P2G ON F.SEQ_ID = P2G.PROTEIN_AC AND G2T.GO_ID = P2G.GO_ID
     """.format(app.config['DB_SCHEMA'], fmt)
 
     if aspects and isinstance(aspects,(list, tuple)):
@@ -758,9 +772,9 @@ def get_go_terms(methods, aspects=list()):
 
     cur.execute(sql, params)
 
-    methods = {}  # count the number of reviewed/unreviewed proteins for each signature
     terms = {}
-    for method_ac, protein_ac, go_id, term, aspect in cur:
+    methods = {}  # count the total number of proteins for each signature
+    for go_id, term, aspect, method_ac, protein_ac, ref_id in cur:
         try:
             terms[go_id]
         except KeyError:
@@ -768,8 +782,7 @@ def get_go_terms(methods, aspects=list()):
                 'id': go_id,
                 'value': term,
                 'methods': {},
-                'aspect': aspect,
-                'nReferences': 0
+                'aspect': aspect
             }
         finally:
             d = terms[go_id]['methods']
@@ -777,9 +790,14 @@ def get_go_terms(methods, aspects=list()):
         try:
             d[method_ac]
         except KeyError:
-            d[method_ac] = set()
+            d[method_ac] = {
+                'proteins': set(),
+                'references': set()
+            }
         finally:
-            d[method_ac].add(protein_ac)
+            d[method_ac]['proteins'].add(protein_ac)
+            if ref_id:
+                d[method_ac]['references'].add(ref_id)
 
         try:
             methods[method_ac]
@@ -788,39 +806,15 @@ def get_go_terms(methods, aspects=list()):
         finally:
             methods[method_ac].add(protein_ac)
 
-    for go_id in terms:
-        terms[go_id]['methods'] = {method_ac: len(proteins) for method_ac, proteins in terms[go_id]['methods'].items()}
-
-    sql = """
-        SELECT
-          A.GO_ID, A.N_REF
-        FROM (
-          SELECT DISTINCT TERM_GROUP_ID
-          FROM {0}.FEATURE2PROTEIN
-          WHERE FEATURE_ID IN ({1})
-        ) F
-        INNER JOIN {0}.TERM_GROUP2TERM G ON F.TERM_GROUP_ID = G.TERM_GROUP_ID
-        LEFT OUTER JOIN  (
-          SELECT GO_ID, COUNT(DISTINCT REF_DB_ID) N_REF
-          FROM {0}.PROTEIN2GO_MANUAL
-          WHERE EVIDENCE = 'TAS' AND REF_DB_CODE = 'PMID'
-          GROUP BY GO_ID
-        ) A ON G.GO_ID = A.GO_ID
-    """.format(app.config['DB_SCHEMA'], fmt)
-
-    if aspects and isinstance(aspects,(list, tuple)):
-        sql += "WHERE G.CATEGORY IN ({})".format(','.join([':aspect' + str(i) for i in range(len(aspects))]))
-
-    cur.execute(sql, params)
-
-    for go_id, n_ref in cur:
-        if n_ref:
-            terms[go_id]['nReferences'] = n_ref
+    for term in terms.values():
+        for method in term['methods'].values():
+            method['proteins'] = len(method['proteins'])
+            method['references'] = len(method['references'])
 
     cur.close()
 
     return (
-        sorted(terms.values(), key=lambda x: -sum(x['methods'].values())),
+        sorted(terms.values(), key=lambda t: -sum(m['proteins'] for m in t['methods'].values())),
         {method_ac: len(proteins) for method_ac, proteins in methods.items()}
     )
 
@@ -2109,6 +2103,63 @@ def api_method_comments(method_ac):
     })
 
 
+@app.route('/api/method/<method_ac>/references/<go_id>')
+def api_method_references(method_ac, go_id):
+    references = []
+
+    cur = get_db().cursor()
+
+    # cur.execute(
+    #     """
+    #     SELECT DISTINCT P2G.REF_DB_ID
+    #     FROM (
+    #       SELECT DISTINCT TERM_GROUP_ID, SEQ_ID
+    #       FROM INTERPRO_ANALYSIS.FEATURE2PROTEIN
+    #       WHERE FEATURE_ID = :1
+    #     ) F2P
+    #     INNER JOIN INTERPRO_ANALYSIS.TERM_GROUP2TERM G2T ON F2P.TERM_GROUP_ID = G2T.TERM_GROUP_ID
+    #     INNER JOIN INTERPRO_ANALYSIS.PROTEIN2GO_MANUAL P2G ON G2T.GO_ID = P2G.GO_ID AND F2P.SEQ_ID = P2G.PROTEIN_AC
+    #     WHERE P2G.GO_ID = :2 AND P2G.REF_DB_CODE = 'PMID'
+    #     ORDER BY P2G.REF_DB_ID
+    #     """,
+    #     (method_ac, go_id)
+    # )
+    #
+    # references = [{'id': row[0]} for row in cur]
+
+    cur.execute(
+        """
+        SELECT DISTINCT PUB.ID, PUB.TITLE, PUB.FIRST_PUBLISH_DATE
+        FROM (
+          SELECT DISTINCT TERM_GROUP_ID, SEQ_ID
+          FROM INTERPRO_ANALYSIS.FEATURE2PROTEIN
+          WHERE FEATURE_ID = :1
+        ) F2P
+        INNER JOIN INTERPRO_ANALYSIS.TERM_GROUP2TERM G2T ON F2P.TERM_GROUP_ID = G2T.TERM_GROUP_ID
+        INNER JOIN INTERPRO_ANALYSIS.PROTEIN2GO_MANUAL P2G ON G2T.GO_ID = P2G.GO_ID AND F2P.SEQ_ID = P2G.PROTEIN_AC
+        INNER JOIN GO.PUBLICATIONS@GOAPRO PUB ON PUB.ID = P2G.REF_DB_ID
+        WHERE P2G.GO_ID = :2 AND P2G.REF_DB_CODE = 'PMID'
+        ORDER BY PUB.FIRST_PUBLISH_DATE
+        """,
+        (method_ac, go_id)
+    )
+
+    references = []
+    for row in cur:
+        references.append({
+            'id': row[0],
+            'title': row[1],
+            'date': row[2].strftime('%d %b %Y')
+        })
+
+    cur.close()
+
+    return jsonify({
+        'count': len(references),
+        'results': references
+    })
+
+
 @app.route('/api/method/<method_ac>/proteins/')
 def api_method_proteins(method_ac):
     try:
@@ -2202,7 +2253,7 @@ def api_method_proteins(method_ac):
         INNER JOIN {0}.MATCH_SUMMARY MS ON PI.PROTEIN_AC = MS.SEQ_ID
         WHERE MS.FEATURE_ID = :method_ac
         ORDER BY P.PROTEIN_AC
-        """.format(app.config['DB_SCHEMA'] ,sql),
+        """.format(app.config['DB_SCHEMA'], sql),
         params
     )
 

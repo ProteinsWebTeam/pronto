@@ -1260,26 +1260,27 @@ function ComparisonViews(methodsIds) {
     this.renderGoTerms = function (data) {
         this.toggle('go');
         let html = '<thead><tr>' +
-            '<th>'+ data.results.length +' terms</th><th></th>' +
+            '<th>'+ data.results.length +' terms</th>' +
             '<th class="center aligned"><button class="ui fluid very compact blue icon button"><i class="sitemap icon"></i></button></th>';
-        this.methods.forEach(methodId => { html += '<th>' + methodId + '</th>'; });
+        this.methods.forEach(methodId => { html += '<th colspan="2" class="center aligned">' + methodId + '</th>'; });
         html += '</thead><tbody>';
 
         data.results.forEach(term => {
-            html += '<tr data-filter="'+ term.id +'" data-search="?term=' + term.id + '"><td class="nowrap">' +
+            html += '<tr data-filter="'+ term.id +'" data-search="?term=' + term.id + '">' +
+                '<td class="nowrap">' +
                 '<span class="ui circular small label aspect-'+ term.aspect +'">'+ term.aspect +'</span>' +
-                '<a target="_blank" href="https://www.ebi.ac.uk/QuickGO/term/'+ term.id +'">'+ term.id + ':&nbsp;' + term.value +'&nbsp;<i class="external icon"></i></a></td>';
-
-            html += '<td class="collapsing"><a data-id="'+ term.id +'" class="ui basic label"><i class="book icon"></i>&nbsp;'+ term.nReferences +'</a></td>' +
+                '<a target="_blank" href="https://www.ebi.ac.uk/QuickGO/term/'+ term.id +'">'+ term.id + ':&nbsp;' + term.value +'&nbsp;<i class="external icon"></i></a></td>' +
                 '<td class="collapsing center aligned">'+ renderCheckbox(term.id, false) +'</td>';
 
             this.methods.forEach(methodId => {
                 if (term.methods.hasOwnProperty(methodId) && data.methods.hasOwnProperty(methodId)) {
-                    const i = Math.floor(term.methods[methodId] / data.methods[methodId] * _colors.length);
+                    const method = term.methods[methodId];
+                    const i = Math.floor(method.proteins / data.methods[methodId] * _colors.length);
                     const color = _colors[Math.min(i, _colors.length - 1)];
-                    html += '<td style="background-color: '+ color +'"><a href="#" data-method="'+ methodId +'">' + term.methods[methodId] + '</a></td>';
+                    html += '<td style="background-color: '+ color +';"><a href="#" data-method="'+ methodId +'">' + method.proteins + '</a></td>' +
+                        '<td class="collapsing"><a data-term="'+ term.id +'" data-method2="'+ methodId +'" class="ui basic label"><i class="book icon"></i>&nbsp;'+ method.references +'</a></td>';
                 } else
-                    html += '<td></td>';
+                    html += '<td colspan="2"></td>';
 
             });
 
@@ -1300,26 +1301,26 @@ function ComparisonViews(methodsIds) {
             this.proteinList.open(methodId, search, header);
         });
 
-        Array.from(div.querySelectorAll('a[data-id]')).forEach(element => {
+        Array.from(div.querySelectorAll('a[data-term][data-method2]')).forEach(element => {
             element.addEventListener('click', e => {
                 e.preventDefault();
-                const goId = e.target.getAttribute('data-id');
+                const goId = e.target.getAttribute('data-term');
+                const methodId = e.target.getAttribute('data-method2');
                 showDimmer(true);
-                getJSON('/api/go/' + goId, (data, status) => {
+                getJSON('/api/method/' + methodId + '/references/' + goId, (data, status) => {
                     const modal = document.getElementById('go-references-modal');
                     let html = '';
 
                     if (data.count) {
                         data.results.forEach(ref => {
                             html += '<li class="item">' +
-                                '<div class="header"><a target="_blank" href="http://europepmc.org/abstract/MED/'+ ref.id +'">'+ ref.id +'&nbsp;<i class="external icon"></i></a></div>';
-                            '<div class="description">'+ nvl(ref.title, '') + ' ' + nvl(ref.date, '') +'</div></li>';
+                                '<div class="header"><a target="_blank" href="http://europepmc.org/abstract/MED/'+ ref.id +'">'+ ref.id +'&nbsp;<i class="external icon"></i></a></div><div class="description">'+ nvl(ref.title, '') + ' ' + nvl(ref.date, '') +'</div></li>';
                         });
                     } else {
                         html = '<div class="ui negative message"><div class="header">No references found</div><p>This entry does not have any references in the literature.</p></div>';
                     }
 
-                    modal.querySelector('.ui.header').innerHTML = '<i class="book icon"></i>' + goId;
+                    modal.querySelector('.ui.header').innerHTML = '<i class="book icon"></i>' + goId + ' / ' + methodId;
                     modal.querySelector('.content ol').innerHTML = html;
                     modal.querySelector('.actions a').setAttribute('href', 'https://www.ebi.ac.uk/QuickGO/term/' + goId);
                     showDimmer(false);
@@ -2089,8 +2090,8 @@ function PredictionView() {
                 // '<td>'+ m.dbShort +'</td>' +
                 '<td>'+ m.nProts +'</td>' +
                 '<td>'+ m.nBlobs +'</td>' +
-                '<td style="background-color: '+ c1 +'">'+ m.nProtsCand +'</td>' +
-                '<td style="background-color: '+ c2 +'">'+ m.nBlobsCand +'</td>';
+                '<td style="background-color: '+ c1 +'; color: #fff;">'+ m.nProtsCand +'</td>' +
+                '<td style="background-color: '+ c2 +'; color: #fff;">'+ m.nBlobsCand +'</td>';
 
             if (m.entryId) {
                 html += '<td class="nowrap">' +
@@ -2101,8 +2102,7 @@ function PredictionView() {
                 html += '<td></td>';
 
             html += '<td>'+ nvl(m.entryName, '') +'</td>' +
-                '<td>'+ renderCheckbox(m.entryId, m.isChecked) +'</td>' +
-                '<td>'+ nvl(m.curatedRelation, '') +'</td></tr>';
+                '<td>'+ renderCheckbox(m.entryId, m.isChecked) +'</td>';
         });
 
         this.section.querySelector('tbody').innerHTML = html;
