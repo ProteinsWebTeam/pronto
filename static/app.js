@@ -2154,9 +2154,9 @@ function IndexView() {
             this.renderDatabases(data);
         });
 
-        getJSON('/api/feed?n=10', (data, status) => {
-            this.renderFeed(data);
-        });
+        // getJSON('/api/feed?n=10', (data, status) => {
+        //     this.renderFeed(data);
+        // });
     };
 
     this.renderDatabases = function (data) {
