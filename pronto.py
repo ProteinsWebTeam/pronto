@@ -1795,7 +1795,7 @@ def index():
     return render_template('main.html', user=get_user())
 
 
-@app.route('/login', methods=['GET', 'POST'])
+@app.route('/login/', methods=['GET', 'POST'])
 def log_in():
     """Login page. Display a form on GET, and test the credentials on POST."""
     if get_user():
@@ -1822,14 +1822,14 @@ def log_in():
             return redirect(request.args.get('next', url_for('index')))
 
 
-@app.route('/logout')
+@app.route('/logout/')
 def log_out():
     """Clear the cookie, which logs the user out."""
     session.clear()
     return redirect(url_for('index'))
 
 
-@app.route('/db/<dbshort>')
+@app.route('/db/<dbshort>/')
 def view_db(dbshort):
     return render_template('main.html', user=get_user())
 
@@ -1994,7 +1994,7 @@ def api_entry(entry_ac):
         return jsonify(r)
 
 
-@app.route('/api/entry/<entry_ac>/check/', methods=['POST'])
+@app.route('/api/entry/<entry_ac>/check/', strict_slashes=False, methods=['POST'])
 def api_check_entry(entry_ac):
     user = get_user()
 
@@ -2053,7 +2053,7 @@ def api_prediction(method_ac):
     })
 
 
-@app.route('/api/method/<method_ac>/comment/', methods=['POST'])
+@app.route('/api/method/<method_ac>/comment/', strict_slashes=False, methods=['POST'])
 def api_method_comment(method_ac):
     """
 
