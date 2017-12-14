@@ -556,6 +556,7 @@ def get_overlapping_entries(method):
 
             # InterPro entry info
             'entryId': row[3],
+            'entryHierarchy': [],
             'isChecked': row[4] == 'Y',
             'entryType': row[5],
             'entryName': row[6],
@@ -575,7 +576,27 @@ def get_overlapping_entries(method):
             'curatedRelation': row[16]  # existing curated relationship
         })
 
+    cur.execute(
+        """
+        SELECT ENTRY_AC, PARENT_AC
+        FROM INTERPRO.ENTRY2ENTRY
+        """,
+    )
+
+    parent_of = dict(cur.fetchall())
     cur.close()
+
+    for m in methods:
+        entry_ac = m['entryId']
+
+        if entry_ac:
+            hierarchy = []
+
+            while entry_ac in parent_of:
+                entry_ac = parent_of[entry_ac]
+                hierarchy.append(entry_ac)
+
+            m['entryHierarchy'] = hierarchy[::-1]
 
     return methods
 

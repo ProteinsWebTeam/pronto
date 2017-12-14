@@ -2114,10 +2114,13 @@ function PredictionView() {
                 '<td style="background-color: '+ c2 +'; color: #fff;">'+ m.nBlobsCand +'</td>';
 
             if (m.entryId) {
-                html += '<td class="nowrap">' +
-                    '<span class="ui circular small label type-'+ m.entryType +'">'+ m.entryType +'</span>' +
-                    '<a href="/entry/'+ m.entryId +'">' + m.entryId + '</a>' +
-                    '</td>';
+                html += '<td class="nowrap"><div class="ui list">';
+
+                m.entryHierarchy.forEach(e => {
+                     html += '<div class="item"><i class="angle down icon"></i><div class="content"><a href="/entry/'+ e +'">' + e + '</a></div></div>';
+                });
+
+                html += '<div class="item"><span class="ui circular mini label type-'+ m.entryType +'">'+ m.entryType +'</span><div class="content"><a href="/entry/'+ m.entryId +'">' + m.entryId + '</a></div></div></td>';
             } else
                 html += '<td></td>';
 
