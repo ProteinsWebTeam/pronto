@@ -343,11 +343,25 @@ function ProteinView() {
 
         const protein = data.result;
 
-        this.section.querySelector('h1.header').innerHTML = '<a target="_blank" href="'+ protein.link +'">' + protein.id  + '&nbsp;<i class="external icon"></i></a><div class="sub header">'+ protein.name +'</div>';
+        this.section.querySelector('h1.header').innerHTML = protein.name + '<div class="sub header"><a target="_blank" href="'+ protein.link +'">' + (protein.isReviewed ? '<i class="star icon"></i>' : '') + protein.id  + '&nbsp;<i class="external icon"></i></a></div>';
 
-        this.section.querySelector('[data-stats=reviewed]').innerHTML = protein.isReviewed ? '<i class="checkmark icon"></i>' : '&nbsp;';
-        this.section.querySelector('[data-stats=organism]').innerHTML = protein.taxon.fullName;
+        const arr = protein.taxon.scientificName.split(' ');
+        let nEntries = 0;
+        let nMatches = 0;
+
+        protein.entries.forEach(e => {
+            if (e.id !== null)
+                nEntries++;
+
+            e.methods.forEach(m => {
+                nMatches += m.matches.length;
+            });
+        });
+
+        this.section.querySelector('[data-stats=organism]').innerHTML = arr[0].charAt(0) + '. ' + arr[1];
         this.section.querySelector('[data-stats=length]').innerHTML = protein.length.toLocaleString();
+        this.section.querySelector('[data-stats=entries]').innerHTML = nEntries.toLocaleString();
+        this.section.querySelector('[data-stats=matches]').innerHTML = nMatches.toLocaleString();
 
         const families = [];
         const superfamilies = [];
@@ -552,50 +566,55 @@ function ProteinView() {
         document.querySelector('#detailed + div').innerHTML = html;
 
         // Structural features and predictions
-        const structures = {};
-        let h = 15;
+        if (protein.structures.length) {
+            const structures = {};
+            let h = 15;
 
-        protein.structures.forEach(struct => {
-            const dbName = struct.db.name;
+            protein.structures.forEach(struct => {
+                const dbName = struct.db.name;
 
-            if (! structures.hasOwnProperty(dbName)) {
-                structures[dbName] = [];
-                h += 15;
-            }
+                if (! structures.hasOwnProperty(dbName)) {
+                    structures[dbName] = [];
+                    h += 15;
+                }
 
-            structures[dbName].push(struct);
-        });
+                structures[dbName].push(struct);
+            });
 
-        html = '<svg width="' + svgWidth + '" height="'+ h +'" version="1.1" baseProfile="full" xmlns="http://www.w3.org/2000/svg">';
-        html += initSvg(step, protein.length, width, h);
+            html = '<svg width="' + svgWidth + '" height="'+ h +'" version="1.1" baseProfile="full" xmlns="http://www.w3.org/2000/svg">';
+            html += initSvg(step, protein.length, width, h);
 
-        let i = 0;
-        let dbName;
-        for (dbName in structures) {
-            if (structures.hasOwnProperty(dbName)) {
-                const y = 5 + i * 15;
+            let i = 0;
+            let dbName;
+            for (dbName in structures) {
+                if (structures.hasOwnProperty(dbName)) {
+                    const y = 5 + i * 15;
 
-                structures[dbName].forEach(struct => {
-                    struct.matches.forEach(match => {
-                        const x = Math.round(match.start * width / protein.length);
-                        const w = Math.round((match.end - match.start) * width / protein.length);
-                        html += '<rect data-id="'+ index +'" class="match" x="'+ x +'" y="' + y + '" width="' + w + '" height="10" rx="1" ry="1" style="fill: '+ struct.db.color +'"/>';
-                        allMatches[index++] = {
-                            id: struct.id,
-                            name: null,
-                            db: struct.db,
-                            match: match
-                        };
+                    structures[dbName].forEach(struct => {
+                        struct.matches.forEach(match => {
+                            const x = Math.round(match.start * width / protein.length);
+                            const w = Math.round((match.end - match.start) * width / protein.length);
+                            html += '<rect data-id="'+ index +'" class="match" x="'+ x +'" y="' + y + '" width="' + w + '" height="10" rx="1" ry="1" style="fill: '+ struct.db.color +'"/>';
+                            allMatches[index++] = {
+                                id: struct.id,
+                                name: null,
+                                db: struct.db,
+                                match: match
+                            };
+                        });
                     });
-                });
 
 
-                html += '<text x="' + (width + 10) + '" y="' + (y + 5) + '"><a target="_blank" href="' + structures[dbName][0].db.home +'">'+ dbName +'&nbsp;<tspan>&#xf08e;</tspan></a></text>';
-                ++i;
+                    html += '<text x="' + (width + 10) + '" y="' + (y + 5) + '"><a target="_blank" href="' + structures[dbName][0].db.home +'">'+ dbName +'&nbsp;<tspan>&#xf08e;</tspan></a></text>';
+                    ++i;
+                }
             }
-        }
 
-        document.querySelector('#structures + div').innerHTML = html + '</svg>';
+            html += '</svg>';
+        } else
+            html = 'None.';
+
+        document.querySelector('#structures + div').innerHTML = html;
 
         $(this.section.querySelector('.ui.sticky')).sticky({
             context: this.section.querySelector('.twelve.column')
@@ -660,6 +679,7 @@ function EntryView() {
 
         const entry = data.result;
         this.section.querySelector('h1.header').innerHTML = entry.id + (entry.isChecked ? '<i class="checkmark icon"></i>' : '') + '<div class="sub header">'+ entry.name +'</div>';
+        this.section.querySelector('h1.header').innerHTML = entry.name + '<div class="sub header">'+ (entry.isChecked ? '<i class="checkmark icon"></i>' : '') + entry.id + '</div>';
         this.section.querySelector('.ui.segment').className = 'ui segment type-' + entry.typeCode;
 
         const stats = [{
