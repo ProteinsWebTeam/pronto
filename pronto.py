@@ -433,9 +433,9 @@ def get_overlapping_proteins(methods, **kwargs):
     cur.execute(
         """
         SELECT PROTEIN_AC, METHOD_AC, POS_FROM, POS_TO
-        FROM INTERPRO.MATCH
+        FROM {}.MATCH
         WHERE PROTEIN_AC IN ({})
-        """.format(proteins_cond),
+        """.format(app.config['DB_SCHEMA'], proteins_cond),
         params
     )
     for protein_ac, method_ac, pos_from, pos_to in cur:
@@ -1577,13 +1577,13 @@ def get_protein(protein_ac):
           MA.DBCODE,
           MA.POS_FROM,
           MA.POS_TO
-        FROM INTERPRO.MATCH MA
+        FROM {}.MATCH MA
         INNER JOIN INTERPRO.METHOD ME ON MA.METHOD_AC = ME.METHOD_AC
         LEFT OUTER JOIN INTERPRO.ENTRY2METHOD E2M ON MA.METHOD_AC = E2M.METHOD_AC
         LEFT OUTER JOIN INTERPRO.ENTRY E ON E2M.ENTRY_AC = E.ENTRY_AC
         LEFT OUTER JOIN INTERPRO.CV_ENTRY_TYPE CET ON CET.CODE = E.ENTRY_TYPE
         WHERE MA.PROTEIN_AC = :1
-        """,
+        """.format(app.config['DB_SCHEMA']),
         (protein_ac, )
     )
 
@@ -2132,15 +2132,15 @@ def api_method_references(method_ac, go_id):
         SELECT DISTINCT PUB.ID, PUB.TITLE, PUB.FIRST_PUBLISH_DATE
         FROM (
           SELECT DISTINCT TERM_GROUP_ID, SEQ_ID
-          FROM INTERPRO_ANALYSIS.FEATURE2PROTEIN
+          FROM {0}.FEATURE2PROTEIN
           WHERE FEATURE_ID = :1
         ) F2P
-        INNER JOIN INTERPRO_ANALYSIS.TERM_GROUP2TERM G2T ON F2P.TERM_GROUP_ID = G2T.TERM_GROUP_ID
-        INNER JOIN INTERPRO_ANALYSIS.PROTEIN2GO_MANUAL P2G ON G2T.GO_ID = P2G.GO_ID AND F2P.SEQ_ID = P2G.PROTEIN_AC
+        INNER JOIN {0}.TERM_GROUP2TERM G2T ON F2P.TERM_GROUP_ID = G2T.TERM_GROUP_ID
+        INNER JOIN {0}.PROTEIN2GO_MANUAL P2G ON G2T.GO_ID = P2G.GO_ID AND F2P.SEQ_ID = P2G.PROTEIN_AC
         INNER JOIN GO.PUBLICATIONS@GOAPRO PUB ON PUB.ID = P2G.REF_DB_ID
         WHERE P2G.GO_ID = :2 AND P2G.REF_DB_CODE = 'PMID'
         ORDER BY PUB.FIRST_PUBLISH_DATE
-        """,
+        """.format(app.config['DB_SCHEMA']),
         (method_ac, go_id)
     )
 
