@@ -1654,12 +1654,17 @@ function ComparisonViews(methodsIds) {
         const page = data.pageInfo.page;
         const pageSize = data.pageInfo.pageSize;
         const lastPage = Math.ceil(data.count / pageSize);
-        const baseUrl = location.pathname;
+        const baseUrl = getPathName(history.state.url);
+        const params = getParams(history.state.url);
+
+        const genLink = function(page) {
+            return baseUrl + encodeParams(extendObj(params, {page: page, pageSize: pageSize}))
+        };
 
         if (page === 1)
             html += '<a class="icon disabled item"><i class="left chevron icon"></i></a><a class="active item">1</a>';
         else
-            html += '<a class="icon item" href="'+ baseUrl + '?page=' + (page - 1) + '&pageSize=' + pageSize  +'"><i class="left chevron icon"></i></a><a class="item" href="'+ baseUrl + '?page=1&pageSize=' + pageSize  +'">1</a>';
+            html += '<a class="icon item" href="'+ genLink(page-1)  +'"><i class="left chevron icon"></i></a><a class="item" href="'+ genLink(1)  +'">1</a>';
 
         let ellipsisBefore = false;
         let ellipsisAfter = false;
@@ -1667,7 +1672,7 @@ function ComparisonViews(methodsIds) {
             if (i === page)
                 html += '<a class="active item">'+ i +'</a>';
             else if (Math.abs(i - page) === 1)
-                html += '<a class="item" href="'+ baseUrl + '?page=' + i + '&pageSize=' + pageSize  +'">'+ i +'</a>';
+                html += '<a class="item" href="'+ genLink(i) +'">'+ i +'</a>';
             else if (i < page && !ellipsisBefore) {
                 html += '<div class="disabled item">&hellip;</div>';
                 ellipsisBefore = true;
@@ -1681,14 +1686,14 @@ function ComparisonViews(methodsIds) {
             if (page === lastPage)
                 html += '<a class="active item">'+ lastPage +'</a>';
             else
-                html += '<a class="item" href="'+ baseUrl + '?page=' + lastPage + '&pageSize=' + pageSize  +'">'+ lastPage +'</a>'
+                html += '<a class="item" href="'+ genLink(lastPage) +'">'+ lastPage +'</a>'
         }
 
 
         if (page === lastPage || !lastPage)
             html += '<a class="icon disabled item"><i class="right chevron icon"></i></a>';
         else
-            html += '<a class="icon item" href="'+ baseUrl + '?page=' + (page + 1) + '&pageSize=' + pageSize  +'"><i class="right chevron icon"></i></a>';
+            html += '<a class="icon item" href="'+ genLink(page + 1) +'"><i class="right chevron icon"></i></a>';
 
         const pagination = div.querySelector('.pagination');
         pagination.innerHTML = html;
