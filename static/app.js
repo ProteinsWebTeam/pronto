@@ -2069,7 +2069,11 @@ function PredictionView() {
 
         showDimmer(true);
         getJSON('/api' + getPathName(location.pathname) + '/prediction?' + location.search, (data, status) => {
-            history.replaceState({data: data, page: 'method', methodId: methodId, url: url}, '', url);
+            try {
+                history.replaceState({page: 'method', data: data, methodId: methodId, url: url}, '', url);
+            } catch (err) {
+                history.replaceState({page: 'method', data: null, methodId: methodId, url: url}, '', url);
+            }
             this.render(methodId, data);
             showDimmer(false);
         });
