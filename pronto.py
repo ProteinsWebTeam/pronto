@@ -1810,7 +1810,7 @@ def index():
     return render_template('main.html', user=get_user())
 
 
-@app.route('/login/', methods=['GET', 'POST'])
+@app.route('/login', methods=['GET', 'POST'])
 def log_in():
     """Login page. Display a form on GET, and test the credentials on POST."""
     if get_user():
