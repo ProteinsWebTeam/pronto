@@ -1906,20 +1906,30 @@ function DatabaseView() {
             for (let i = 0; i < elements.length; ++i) {
                 elements[i].addEventListener('change', e => {
                     const cbox = e.target;
+                    const modal = document.getElementById('confirm-modal');
 
-                    postXhr('/api/entry/' + cbox.name + '/check', {
-                        checked: cbox.checked ? 1 : 0
-                    }, data => {
-                        if (data.status) {
-                            const cboxes = section.querySelectorAll('tbody input[type=checkbox][name="'+ cbox.name +'"]');
-                            for (let i = 0; i < cboxes.length; ++i)
-                                cboxes[i].checked = cbox.checked;
-                        } else {
-                            const modal = document.getElementById('error-modal');
-                            modal.querySelector('.content p').innerHTML = data.message;
-                            $(modal).modal('show');
+                    modal.querySelector('.content').innerHTML = '<p>' + (cbox.checked ? 'Check' : 'Uncheck') + ' entry <strong>'+ cbox.name +'</strong>?';
+
+                    $(modal).modal({
+                        onApprove: function () {
+                            postXhr('/api/entry/' + cbox.name + '/check', {
+                                checked: cbox.checked ? 1 : 0
+                            }, data => {
+                                if (data.status) {
+                                    const cboxes = section.querySelectorAll('tbody input[type=checkbox][name="'+ cbox.name +'"]');
+                                    for (let i = 0; i < cboxes.length; ++i)
+                                        cboxes[i].checked = cbox.checked;
+                                } else {
+                                    const modal = document.getElementById('error-modal');
+                                    modal.querySelector('.content p').innerHTML = data.message;
+                                    $(modal).modal('show');
+                                }
+                            });
+                        },
+                        onDeny: function () {
+                            cbox.checked = !cbox.checked;
                         }
-                    });
+                    }).modal('show');
                 });
             }
         })();
@@ -2127,7 +2137,7 @@ function PredictionView() {
                 html += '<td class="nowrap"><div class="ui list">';
 
                 m.entryHierarchy.forEach(e => {
-                     html += '<div class="item"><i class="angle down icon"></i><div class="content"><a href="/entry/'+ e +'">' + e + '</a></div></div>';
+                    html += '<div class="item"><i class="angle down icon"></i><div class="content"><a href="/entry/'+ e +'">' + e + '</a></div></div>';
                 });
 
                 html += '<div class="item"><span class="ui circular mini label type-'+ m.entryType +'">'+ m.entryType +'</span><div class="content"><a href="/entry/'+ m.entryId +'">' + m.entryId + '</a></div></div></td>';
@@ -2146,20 +2156,30 @@ function PredictionView() {
             for (let i = 0; i < elements.length; ++i) {
                 elements[i].addEventListener('change', e => {
                     const cbox = e.target;
+                    const modal = document.getElementById('confirm-modal');
 
-                    postXhr('/api/entry/' + cbox.name + '/check', {
-                        checked: cbox.checked ? 1 : 0
-                    }, data => {
-                        if (data.status) {
-                            const cboxes = self.section.querySelectorAll('tbody input[type=checkbox][name="'+ cbox.name +'"]');
-                            for (let i = 0; i < cboxes.length; ++i)
-                                cboxes[i].checked = cbox.checked;
-                        } else {
-                            const modal = document.getElementById('error-modal');
-                            modal.querySelector('.content p').innerHTML = data.message;
-                            $(modal).modal('show');
+                    modal.querySelector('.content').innerHTML = '<p>' + (cbox.checked ? 'Check' : 'Uncheck') + ' entry <strong>'+ cbox.name +'</strong>?';
+
+                    $(modal).modal({
+                        onApprove: function () {
+                            postXhr('/api/entry/' + cbox.name + '/check', {
+                                checked: cbox.checked ? 1 : 0
+                            }, data => {
+                                if (data.status) {
+                                    const cboxes = self.section.querySelectorAll('tbody input[type=checkbox][name="'+ cbox.name +'"]');
+                                    for (let i = 0; i < cboxes.length; ++i)
+                                        cboxes[i].checked = cbox.checked;
+                                } else {
+                                    const modal = document.getElementById('error-modal');
+                                    modal.querySelector('.content p').innerHTML = data.message;
+                                    $(modal).modal('show');
+                                }
+                            });
+                        },
+                        onDeny: function () {
+                            cbox.checked = !cbox.checked;
                         }
-                    });
+                    }).modal('show');
                 });
             }
         })();
