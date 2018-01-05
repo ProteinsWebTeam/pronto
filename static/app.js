@@ -23,7 +23,7 @@ function setClass(element, className, active) {
     const hasClass = classes.indexOf(className) !== -1;
 
     if (active && !hasClass)
-        element.className = classes.join(' ') + ' ' +className;
+        element.className = classes.join(' ') + ' ' + className;
     else if (!active && hasClass) {
         let newClasses = [];
         for (let i = 0; i < classes.length; ++i) {
@@ -1137,6 +1137,15 @@ function ComparisonViews(methodsIds) {
             });
         });
 
+        Array.from(document.querySelectorAll('#taxonomy .tabular.menu .item')).forEach(item => {
+            item.addEventListener('click', e => {
+                const baseUrl = getPathName(history.state.url);
+                const params = extendObj(getParams(history.state.url), {rank: item.getAttribute('data-rank')});
+                history.pushState({}, '', baseUrl + encodeParams(params));
+                self.getTaxonomy();
+            });
+        });
+
         self.proteinList.init();
 
         self.methods.forEach(id => {
@@ -1526,17 +1535,22 @@ function ComparisonViews(methodsIds) {
         const div = document.getElementById('taxonomy');
         this.toggle('taxonomy');
 
-        const dropdown = div.querySelector('.ui.dropdown');
-        setSelected(dropdown, data.rank);
-
-        $(dropdown).dropdown({
-            onChange: function(value, text, $selectedItem) {
-                const baseUrl = getPathName(history.state.url);
-                const params = extendObj(getParams(history.state.url), {rank: value});
-                history.pushState({}, '', baseUrl + encodeParams(params));
-                self.getTaxonomy();
-            }
+        const items = Array.from(document.querySelectorAll('#taxonomy .tabular.menu .item'));
+        items.forEach(item => {
+            setClass(item, 'active', item.getAttribute('data-rank') === data.rank);
         });
+
+        // const dropdown = div.querySelector('.ui.dropdown');
+        // setSelected(dropdown, data.rank);
+        //
+        // $(dropdown).dropdown({
+        //     onChange: function(value, text, $selectedItem) {
+        //         const baseUrl = getPathName(history.state.url);
+        //         const params = extendObj(getParams(history.state.url), {rank: value});
+        //         history.pushState({}, '', baseUrl + encodeParams(params));
+        //         self.getTaxonomy();
+        //     }
+        // });
 
         let html = '';
         if (data.taxon.id === 1)
