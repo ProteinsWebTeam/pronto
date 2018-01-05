@@ -2266,8 +2266,13 @@ def api_method_proteins(method_ac):
     )
 
     cur = get_db().cursor()
-    cur.execute('SELECT COUNT(*) FROM ({})'.format(sql), params)
-    count = cur.fetchone()[0]
+    # cur.execute('SELECT COUNT(*) FROM ({})'.format(sql), params)
+    # count = cur.fetchone()[0]
+    # proteins_all = []
+
+    cur.execute('SELECT SEQ_ID FROM ({})'.format(sql), params)
+    proteins_all = [row[0] for row in cur]
+    count = len(proteins_all)
 
     params['i_start'] = 1 + (page - 1) * page_size
     params['i_end'] = page * page_size
@@ -2326,6 +2331,7 @@ def api_method_proteins(method_ac):
 
     cur.close()
     return jsonify({
+        'list': sorted(proteins_all),
         'results': sorted(proteins.values(), key=lambda x: x['id']),
         'maxLength': max_length,
         'count': count,

@@ -957,6 +957,7 @@ function ComparisonViews(methodsIds) {
         id: null,
         url: null,
         search: null,
+        list: null,
 
         modal: document.getElementById('proteins-modal'),
 
@@ -985,8 +986,28 @@ function ComparisonViews(methodsIds) {
                 e.preventDefault();
                 const url = e.target.getAttribute('href');
                 $(this.modal).modal('hide');
-                history.pushState({}, '', url);
+                history.pushState({}, '', url);  // todo: do not store an empty object as going backwards will do nothing
                 self.getMatches();
+            });
+
+            const button = this.modal.querySelector('.actions button');
+            button.addEventListener('click', e => {
+                const input = document.createElement('input');
+                input.value = this.list.join(' ');
+                input.style = 'position: absolute; left: -1000px; top: -1000px';
+                document.body.appendChild(input);
+
+                try {
+                    input.select();
+                    document.execCommand('copy');
+                    setClass(button, 'green', true);
+                    button.innerHTML = '<i class="smile icon"></i>&nbsp;Copied!';
+                } catch (err) {
+                    setClass(button, 'red', true);
+                    button.innerHTML = '<i class="frown icon"></i>&nbsp;Could not copy.';
+                } finally {
+                    document.body.removeChild(input);
+                }
             });
         },
 
@@ -1006,6 +1027,8 @@ function ComparisonViews(methodsIds) {
             getJSON(this.url, data => {
                 const svgWidth = 400;
                 let html = '';
+
+                this.list = data.list;
 
                 data.results.forEach(protein => {
                     if (protein.isReviewed)
@@ -1100,6 +1123,12 @@ function ComparisonViews(methodsIds) {
                     )
                 );
                 observeLink(actionLink);
+
+                // Reset copy button
+                const copyBtn = this.modal.querySelector('.actions button');
+                copyBtn.innerHTML = '<i class="copy icon"></i>&nbsp;Copy proteins';
+                setClass(copyBtn, 'green', false);
+                setClass(copyBtn, 'red', false);
 
                 showDimmer(false);
                 $(this.modal).modal('show');
