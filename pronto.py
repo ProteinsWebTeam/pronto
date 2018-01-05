@@ -791,7 +791,7 @@ def get_go_terms(methods, aspects=list()):
     """.format(app.config['DB_SCHEMA'], fmt)
 
     if aspects and isinstance(aspects,(list, tuple)):
-        sql += "WHERE G.CATEGORY IN ({})".format(','.join([':aspect' + str(i) for i in range(len(aspects))]))
+        sql += "WHERE T.CATEGORY IN ({})".format(','.join([':aspect' + str(i) for i in range(len(aspects))]))
         params.update({'aspect' + str(i): aspect for i, aspect in enumerate(aspects)})
 
     cur.execute(sql, params)
