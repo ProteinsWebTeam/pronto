@@ -1057,18 +1057,14 @@ def get_unintegrated(dbcode, mode='newint', search=None):
     return methods
 
 
-def get_methods(dbcode, search=None):
+def get_methods(dbcode, search=None, integrated=None, checked=None, commented=None):
     """
     Get signatures from a given member database with their InterPro entry and the most recent comment (if any)
     """
 
     cur = get_db().cursor()
 
-    if search is not None:
-        search += '%'
-
-    cur.execute(
-        """
+    sql = """
         SELECT
           M.METHOD_AC,
           EM.ENTRY_AC,
@@ -1093,11 +1089,31 @@ def get_methods(dbcode, search=None):
             FROM INTERPRO.METHOD_COMMENT C
             INNER JOIN INTERPRO.USER_PRONTO P ON C.USERNAME = P.USERNAME
         ) C ON (M.METHOD_AC = C.METHOD_AC AND C.R = 1)
-        WHERE M.DBCODE = :1 AND (:2 IS NULL OR M.METHOD_AC LIKE :2)
-        ORDER BY M.METHOD_AC
-        """,
-        (dbcode, search)
-    )
+        WHERE M.DBCODE = :1
+    """
+
+    params = [dbcode]
+
+    if search is not None:
+        sql += " AND M.METHOD_AC LIKE :2"
+        params.append(search + '%')
+
+    if integrated:
+        sql += " AND EM.ENTRY_AC IS NOT NULL"
+    elif integrated is False:
+        sql += " AND EM.ENTRY_AC IS NULL"
+
+    if checked:
+        sql += " AND E.CHECKED = 'Y'"
+    elif checked is False:
+        sql += " AND E.CHECKED = 'N'"
+
+    if commented:
+        sql += " AND C.VALUE IS NOT NULL"
+    elif commented is False:
+        sql += " AND C.VALUE IS NULL"
+
+    cur.execute(sql, params)
 
     methods = []
     for row in cur:
@@ -2723,7 +2739,22 @@ def api_db_methods(dbshort):
     if request.args.get('unintegrated') == 'newint':
         methods = get_unintegrated(dbcode, mode='newint', search=search)
     else:
-        methods = get_methods(dbcode, search=search)
+        try:
+            integrated = bool(int(request.args['integrated']))
+        except (KeyError, ValueError):
+            integrated = None
+
+        try:
+            checked = bool(int(request.args['checked']))
+        except (KeyError, ValueError):
+            checked = None
+
+        try:
+            commented = bool(int(request.args['commented']))
+        except (KeyError, ValueError):
+            commented = None
+
+        methods = get_methods(dbcode, search=search, integrated=integrated, checked=checked, commented=commented)
 
     return jsonify({
         'pageInfo': {

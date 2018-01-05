@@ -398,3 +398,11 @@ g.ticks text {
 .ui.tooltip > .close.icon:hover {
     opacity: 1;
 }
+
+#methods-all .ui.form > .inline.fields {
+    margin-bottom: .5em;
+}
+
+#methods-all .ui.form > .inline.fields > label {
+    min-width: 200px;
+}

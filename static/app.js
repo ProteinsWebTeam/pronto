@@ -1793,6 +1793,17 @@ function DatabaseView() {
                 }
             });
         });
+
+        Array.from(document.querySelectorAll('#methods-all input[type=radio]')).forEach(radio => {
+            radio.addEventListener('change', e => {
+                const obj = {};
+                obj[radio.name] = radio.value;
+                const baseUrl = getPathName(history.state.url);
+                const params = extendObj(getParams(history.state.url), obj);
+                history.pushState({}, '', baseUrl + encodeParams(params));
+                self.get();
+            });
+        });
     })();
 
     this.get = function () {
