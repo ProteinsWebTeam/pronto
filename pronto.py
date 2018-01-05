@@ -1703,7 +1703,7 @@ def get_db():
     if not hasattr(g, 'oracle_db'):
         user = get_user()
         try:
-            credentials = user['db_user'] + '/' + user['password']
+            credentials = user['dbuser'] + '/' + user['password']
         except (TypeError, KeyError):
             credentials = app.config['DATABASE_USER']
         finally:
