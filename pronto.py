@@ -1126,6 +1126,7 @@ def get_curator_comments(method_ac):
         FROM INTERPRO.METHOD_COMMENT C
         INNER JOIN INTERPRO.USER_PRONTO U ON C.USERNAME = U.USERNAME
         WHERE C.METHOD_AC = :1
+        ORDER BY C.CREATED_ON DESC
         """,
         (method_ac, )
     )
