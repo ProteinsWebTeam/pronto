@@ -548,11 +548,14 @@ def get_overlapping_entries(method):
 
     methods = []
     for row in cur:
+        db = xref.find_ref(row[1], row[0])
+
         methods.append({
             # method and member database
             'id': row[0],
             'dbCode': row[1],
             'dbShort': row[2],
+            'dbLink': db.gen_link() if db else None,
 
             # InterPro entry info
             'entryId': row[3],

@@ -2116,6 +2116,7 @@ function PredictionView() {
             html += '<tr '+ (m.id === methodId ? 'class="selected"' : '') +'>' +
                 '<td>'+ nvl(m.relation, '') +'</td>' +
                 '<td><a href="#">' + m.id + '</a></td>' +
+                '<td class="collapsing">'+ (m.dbLink ? '&nbsp;<a target="_blank" href="'+ m.dbLink +'"><i class="external icon"></i></a>' : '') +'</td>' +
                 // '<td>'+ m.dbShort +'</td>' +
                 '<td>'+ m.nProts +'</td>' +
                 '<td>'+ m.nBlobs +'</td>' +
