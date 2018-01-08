@@ -129,6 +129,10 @@ section.ui.container.hidden, section.ui.container > .hidden {
     margin-top: 1em;
 }
 
+.ui.statistic + .ui.message {
+    margin-top: 0;
+}
+
 /*
     Taxonomy
     override pointer-events:none for the first column header of definition tables
