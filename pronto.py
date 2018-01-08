@@ -973,6 +973,7 @@ def get_db_info(dbshort):
 
 
 def get_unintegrated(dbcode, mode='newint', search=None):
+    # mode in ('newint', 'exist', 'norel')
     cur = get_db().cursor()
 
     if search is not None:
@@ -1016,15 +1017,28 @@ def get_unintegrated(dbcode, mode='newint', search=None):
 
     cur.close()
 
-    methods = sorted([m for m in methods.values()], key=lambda x: x['id'])
-
     # Filter methods
-    if mode == 'newint':
-        # The method must have at least one prediction that is an unintegrated candidate signature
-        _methods = []
+    if mode == 'norel':
+        # Method mustn't have any non-null relation
+        def test_method(m):
+            return not len([p for p in m['predictions'] if p['relation'] is not None])
+    elif mode == 'exist':
+        # Method must have at least one InterPro prediction
+        def test_method(m):
+            return len([p for p in m['predictions'] if p['relation'] == 'ADDTO' and p['entryId'] is not None])
+    elif mode == 'newint':
+        # Method must have at least one prediction that is an unintegrated candidate signature
+        def test_method(m):
+            return len([p for p in m['predictions'] if p['relation'] == 'ADDTO' and p['entryId'] is None and p['methodIsCandidate']])
+    else:
+        # Invalid mode
+        def test_method(m):
+            return False
 
-        for m in methods:
-            valid = False
+    _methods = []
+    for m in sorted([m for m in methods.values()], key=lambda x: x['id']):
+
+        if test_method(m):
             add_to = []
             parents = []
             children = []
@@ -1035,26 +1049,19 @@ def get_unintegrated(dbcode, mode='newint', search=None):
 
                 if p['relation'] == 'ADDTO':
                     add_to.append(feature)
-
-                    if p['entryId'] is None and p['methodIsCandidate']:
-                        valid = True
-
                 elif p['relation'] == 'PARENT_OF':
                     parents.append(feature)
                 elif p['relation'] == 'CHILD_OF':
                     children.append(feature)
 
-            if valid:
-                _methods.append({
-                    'id': m['id'],
-                    'addTo': add_to,
-                    'parents': parents,
-                    'children': children
-                })
+            _methods.append({
+                'id': m['id'],
+                'addTo': add_to,
+                'parents': parents,
+                'children': children
+            })
 
-        return _methods
-
-    return methods
+    return _methods
 
 
 def get_methods(dbcode, search=None, integrated=None, checked=None, commented=None):
@@ -2742,8 +2749,10 @@ def api_db_methods(dbshort):
             'database': None
         })
 
-    if request.args.get('unintegrated') == 'newint':
-        methods = get_unintegrated(dbcode, mode='newint', search=search)
+    unint_mode = request.args.get('unintegrated')
+
+    if unint_mode:
+        methods = get_unintegrated(dbcode, mode=unint_mode, search=search)
     else:
         try:
             integrated = bool(int(request.args['integrated']))

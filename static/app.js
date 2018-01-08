@@ -1833,6 +1833,17 @@ function DatabaseView() {
                 self.get();
             });
         });
+
+        Array.from(document.querySelectorAll('#methods-unintegrated input[type=radio]')).forEach(radio => {
+            radio.addEventListener('change', e => {
+                const obj = {};
+                obj[radio.name] = radio.value;
+                const baseUrl = getPathName(history.state.url);
+                const params = extendObj(getParams(history.state.url), obj);
+                history.pushState({}, '', baseUrl + encodeParams(params));
+                self.get();
+            });
+        });
     })();
 
     this.get = function () {
@@ -1840,7 +1851,8 @@ function DatabaseView() {
 
         showDimmer(true);
         getJSON('/api' + url, (data, status) => {
-            history.replaceState({data: data, page: 'methods', url: url}, '', url);
+            const params = getParams(url);
+            history.replaceState({data: data, page: 'methods', url: url, unintegrated: params.unintegrated}, '', url);
 
             const message = this.section.querySelector('.ui.message');
 
@@ -1853,7 +1865,7 @@ function DatabaseView() {
 
             setClass(message, 'hidden', true);
 
-            if (getParams(url).unintegrated !== undefined) {
+            if (params.unintegrated !== undefined) {
                 this.renderUnintegratedMethods(data);
             } else {
                 this.renderMethods(data);
@@ -2275,7 +2287,7 @@ function IndexView() {
                     '<td><a href="'+ db.home +'" target="_blank">'+ db.name +'&nbsp;'+ db.version +'&nbsp;<i class="external icon"></i></a></td>',
                     '<td><a href="/db/'+ db.shortName +'">'+ db.count.toLocaleString() +'</a></td>',
                     '<td>'+ db.countIntegrated +'</td>',
-                    '<td><a href="/db/'+ db.shortName +'?unintegrated=newint">'+ db.countUnintegrated.toLocaleString() +'</a></td>',
+                    '<td><a href="/db/'+ db.shortName +'?unintegrated=exist">'+ db.countUnintegrated.toLocaleString() +'</a></td>',
                     '</tr>'
                 ].join('')
             );
@@ -2491,6 +2503,15 @@ window.onpopstate = function(event) {
                 views.methods.renderGoTerms(state.data);
             else
                 views.methods.renderMatrices(state.data);
+        } else if (state.page === 'methods') {
+            if (!views.db)
+                views.db = new DatabaseView();
+
+            if (state.unintegrated !== undefined) {
+                views.db.renderUnintegratedMethods(state.data);
+            } else {
+                views.db.renderMethods(state.data);
+            }
         }
 
         if (section) {

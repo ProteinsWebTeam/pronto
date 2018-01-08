@@ -338,6 +338,31 @@
 
     <div id="methods-unintegrated" class="hidden">
         <h1 class="ui header"></h1>
+
+                <div class="ui form">
+            <div class="grouped fields">
+                <label>Predicted:</label>
+                <div class="field">
+                    <div class="ui radio checkbox">
+                        <input name="unintegrated" value="exist" checked="checked" type="radio">
+                        <label>Integrate with existing entry</label>
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="ui radio checkbox">
+                        <input name="unintegrated" value="newint" type="radio">
+                        <label>Integrate with unintegrated candidate signatures</label>
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="ui radio checkbox">
+                        <input name="unintegrated" value="norel" type="radio">
+                        <label>No relations</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <table class="ui very compact celled structured table">
             <thead>
             <tr>
