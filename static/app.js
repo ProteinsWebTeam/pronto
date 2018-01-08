@@ -47,23 +47,6 @@ function showDimmer(show) {
     const dimmer = document.getElementById('dimmer');
     if (show) {
         dimmer.children[0].innerHTML = 'Loading';
-
-        // setTimeout(function () {
-        //     dimmer.children[0].innerHTML = "It's slow&hellip;";
-        // }, 5000);
-        //
-        // setTimeout(function () {
-        //     dimmer.children[0].innerHTML = "For Christ's sake! Load, already!";
-        // }, 8000);
-        //
-        // setTimeout(function () {
-        //     dimmer.children[0].innerHTML = "Nope. I'm outta here. Bye.";
-        // }, 11000);
-        //
-        // setTimeout(function () {
-        //     dimmer.children[0].innerHTML = "&lt;The loading message has quit&gt;";
-        // }, 13000);
-
         setClass(dimmer, 'active', true);
     } else {
         setClass(dimmer, 'active', false);
