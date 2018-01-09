@@ -2008,7 +2008,20 @@ function DatabaseView() {
             data.results.forEach(m => {
                 html += '<tr>' +
                     '<td><a href="/method/'+ m.id +'">'+ m.id +'</a></td>' +
-                    '<td>'+ m.addTo.join(', ') +'</td>' +
+                    '<td class="nowrap"><div class="ui list">';
+
+                m.addTo.forEach(pred => {
+                    html += '<div class="item">';
+
+                    if (pred.type !== null)
+                        html += '<span class="ui circular mini label type-'+ pred.type +'">'+ pred.type +'</span>' +
+                            '<div class="content"><a href="/entry/'+ pred.id +'">'+ pred.id +'</a></div></div>';
+                    else
+                        html += '<span class="ui circular mini label">&nbsp;</span>' +
+                            '<div class="content"><a href="/method/'+ pred.id +'">'+ pred.id +'</a></div></div>';
+                });
+
+                html += '</div></td>' +
                     '<td>'+ m.parents.join(', ') +'</td>' +
                     '<td>'+ m.children.join(', ') +'</td></tr>';
             });

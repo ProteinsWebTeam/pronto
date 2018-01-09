@@ -982,38 +982,41 @@ def get_unintegrated(dbcode, mode='newint', search=None):
     cur.execute(
         """
         SELECT DISTINCT
-            FS.FEATURE_ID,
-            EM2.ENTRY_AC,
+            P.FEATURE_ID1,
             P.FEATURE_ID2,
             M.CANDIDATE,
-            P.RELATION
+            P.RELATION,
+            EM2.ENTRY_AC,
+            E.ENTRY_TYPE
         FROM {0}.FEATURE_SUMMARY FS
-        LEFT OUTER JOIN {0}.PREDICTION P ON (FS.FEATURE_ID = P.FEATURE_ID1)
+        LEFT OUTER JOIN {0}.PREDICTION P ON (FS.FEATURE_ID = P.FEATURE_ID1 AND P.FEATURE_ID1 != P.FEATURE_ID2)
         LEFT OUTER JOIN {0}.METHOD M ON P.FEATURE_ID2 = M.METHOD_AC
-        LEFT OUTER JOIN {0}.ENTRY2METHOD EM1 ON FS.FEATURE_ID = EM1.METHOD_AC
+        LEFT OUTER JOIN {0}.ENTRY2METHOD EM1 ON P.FEATURE_ID1 = EM1.METHOD_AC
         LEFT OUTER JOIN {0}.ENTRY2METHOD EM2 ON P.FEATURE_ID2 = EM2.METHOD_AC
+        LEFT OUTER JOIN {0}.ENTRY E ON EM2.ENTRY_AC = E.ENTRY_AC
         WHERE FS.DBCODE = :1 AND EM1.ENTRY_AC IS NULL AND (:2 IS NULL OR FS.FEATURE_ID LIKE :2)
         """.format(app.config['DB_SCHEMA']),
         (dbcode, search)
     )
 
     methods = {}
-    for method_ac, pred_entry, pred_method, pred_is_candidate, pred_rel in cur:
-        try:
-            methods[method_ac]
-        except KeyError:
-            methods[method_ac] = {
-                'id': method_ac,
+    for m1_ac, m2_ac, m2_is_candidate, rel, e_ac, e_type in cur:
+        if m1_ac is None:
+            continue
+        elif m1_ac in methods:
+            m = methods[m1_ac]
+        else:
+            m = methods[m1_ac] = {
+                'id': m1_ac,
                 'predictions': []
             }
-        finally:
-            m = methods[method_ac]
-            m['predictions'].append({
-                'entryId': pred_entry,
-                'methodId': pred_method,
-                'methodIsCandidate': pred_is_candidate == 'Y',
-                'relation': pred_rel
-            })
+
+        m['predictions'].append({
+            'id': e_ac if e_ac is not None else m2_ac,
+            'type': e_type if e_ac is not None else None,
+            'isCandidate': m2_ac == 'Y',
+            'relation': rel
+        })
 
     cur.close()
 
@@ -1025,11 +1028,11 @@ def get_unintegrated(dbcode, mode='newint', search=None):
     elif mode == 'exist':
         # Method must have at least one InterPro prediction
         def test_method(m):
-            return len([p for p in m['predictions'] if p['relation'] == 'ADDTO' and p['entryId'] is not None])
+            return len([p for p in m['predictions'] if p['relation'] == 'ADDTO' and p['type'] is not None])
     elif mode == 'newint':
         # Method must have at least one prediction that is an unintegrated candidate signature
         def test_method(m):
-            return len([p for p in m['predictions'] if p['relation'] == 'ADDTO' and p['entryId'] is None and p['methodIsCandidate']])
+            return len([p for p in m['predictions'] if p['relation'] == 'ADDTO' and p['type'] is None and p['isCandidate']])
     else:
         # Invalid mode
         def test_method(m):
@@ -1039,26 +1042,27 @@ def get_unintegrated(dbcode, mode='newint', search=None):
     for m in sorted([m for m in methods.values()], key=lambda x: x['id']):
 
         if test_method(m):
-            add_to = []
-            parents = []
-            children = []
+            add_to = {}
+            parents = set()
+            children = set()
 
             for p in m['predictions']:
 
-                feature = p['methodId'] if p['entryId'] is None else p['entryId']
+                feature = p['id']
+                e_type = p['type']
 
                 if p['relation'] == 'ADDTO':
-                    add_to.append(feature)
+                    add_to[feature] = e_type
                 elif p['relation'] == 'PARENT_OF':
-                    parents.append(feature)
+                    parents.add(feature)
                 elif p['relation'] == 'CHILD_OF':
-                    children.append(feature)
+                    children.add(feature)
 
             _methods.append({
                 'id': m['id'],
-                'addTo': add_to,
-                'parents': parents,
-                'children': children
+                'addTo': [{'id': k, 'type': add_to[k]} for k in sorted(add_to)],
+                'parents': list(sorted(parents)),
+                'children': list(sorted(children))
             })
 
     return _methods
