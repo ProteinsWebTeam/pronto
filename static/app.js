@@ -326,6 +326,7 @@ function ProteinView() {
 
         const protein = data.result;
 
+        document.title = protein.name + '(' + protein.id + ') | Pronto';
         this.section.querySelector('h1.header').innerHTML = protein.name + '<div class="sub header"><a target="_blank" href="'+ protein.link +'">' + (protein.isReviewed ? '<i class="star icon"></i>' : '') + protein.id  + '&nbsp;<i class="external icon"></i></a></div>';
 
         const arr = protein.taxon.scientificName.split(' ');
@@ -661,8 +662,9 @@ function EntryView() {
         setGlobalError(null);
 
         const entry = data.result;
+        document.title = entry.name + ' (' + entry.id + ') | Pronto';
         this.section.querySelector('h1.header').innerHTML = entry.id + (entry.isChecked ? '<i class="checkmark icon"></i>' : '') + '<div class="sub header">'+ entry.name +'</div>';
-        this.section.querySelector('h1.header').innerHTML = entry.name + '<div class="sub header">'+ (entry.isChecked ? '<i class="checkmark icon"></i>' : '') + entry.id + '</div>';
+        this.section.querySelector('h1.header').innerHTML = entry.name + '<div class="sub header">'+ (entry.isChecked ? '<i class="checkmark icon"></i>' : '') + entry.shortName + ' (' + entry.id + ')</div>';
         this.section.querySelector('.ui.segment').className = 'ui segment type-' + entry.typeCode;
 
         const stats = [{
@@ -1199,6 +1201,7 @@ function ComparisonViews(methodsIds) {
 
     this.renderMatrices = function (data) {
         this.toggle('matrices');
+        document.title = 'Match matrices (' + this.methods.join(', ') + ') | Pronto';
 
         let html1 = '<thead><tr><th></th>';
         let html2 = '<thead><tr><th></th>';
@@ -1300,6 +1303,8 @@ function ComparisonViews(methodsIds) {
 
     this.renderGoTerms = function (data) {
         this.toggle('go');
+        document.title = 'GO terms (' + this.methods.join(', ') + ') | Pronto';
+
         let html = '<thead><tr>' +
             '<th>'+ data.results.length +' terms</th>' +
             '<th class="center aligned"><button class="ui fluid very compact blue icon button"><i class="sitemap icon"></i></button></th>';
@@ -1405,6 +1410,8 @@ function ComparisonViews(methodsIds) {
 
     this.renderSwissProtComments = function (data) {
         this.toggle('comments');
+        document.title = 'Swiss-Prot comments (' + this.methods.join(', ') + ') | Pronto';
+
         const div = document.getElementById('comments');
         const dropdown = div.querySelector('.ui.dropdown');
         setSelected(dropdown, data.topic.id.toString());
@@ -1466,6 +1473,7 @@ function ComparisonViews(methodsIds) {
 
     this.renderDescriptions = function (data) {
         this.toggle('descriptions');
+        document.title = 'UniProt descriptions (' + this.methods.join(', ') + ') | Pronto';
 
         let html = '<thead><tr><th>'+ data.results.length +' descriptions</th>';
         this.methods.forEach(methodAc => { html += '<th>' + methodAc + '</th>'; });
@@ -1546,6 +1554,7 @@ function ComparisonViews(methodsIds) {
     this.renderTaxonomy = function (data) {
         const div = document.getElementById('taxonomy');
         this.toggle('taxonomy');
+        document.title = 'Taxonomic origin (' + this.methods.join(', ') + ') | Pronto';
 
         const items = Array.from(document.querySelectorAll('#taxonomy .tabular.menu .item'));
         items.forEach(item => {
@@ -1625,6 +1634,8 @@ function ComparisonViews(methodsIds) {
     this.renderMatches = function (data) {
         const div = document.getElementById('matches');
         this.toggle('matches');
+        document.title = 'Overlapping proteins (' + this.methods.join(', ') + ') | Pronto';
+
         div.querySelector('.statistic .value').innerHTML = data.count.toLocaleString();
         const svgWidth = 700;
 
@@ -1920,8 +1931,9 @@ function DatabaseView() {
 
     this.renderMethods = function (data) {
         const section = document.getElementById('methods-all');
-
-        section.querySelector('h1.header').innerHTML = data.database.name + ' (' + data.database.version + ') signatures';
+        const title = data.database.name + ' (' + data.database.version + ') signatures';
+        document.title = title + ' | Pronto';
+        section.querySelector('h1.header').innerHTML = title;
 
         let html = '';
         if (data.results.length) {
@@ -2001,7 +2013,9 @@ function DatabaseView() {
     this.renderUnintegratedMethods = function (data) {
         const section = document.getElementById('methods-unintegrated');
 
-        section.querySelector('h1.header').innerHTML = data.database.name + ' (' + data.database.version + ') unintegrated signatures';
+        const title = data.database.name + ' (' + data.database.version + ') unintegrated signatures';
+        document.title = title + ' | Pronto';
+        section.querySelector('h1.header').innerHTML = title;
 
         let html = '';
         if (data.results.length) {
@@ -2162,6 +2176,7 @@ function PredictionView() {
 
     this.render = function(methodId, data) {
         this.section.querySelector('h1.header .sub.header').innerHTML = methodId;
+        document.title = methodId + ' prediction | Pronto';
 
         let html = '';
         data.results.forEach(m => {
