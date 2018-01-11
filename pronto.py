@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import re
-import time
 from datetime import timedelta
 
 import cx_Oracle
