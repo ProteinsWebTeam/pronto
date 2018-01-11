@@ -342,7 +342,7 @@ function ProteinView() {
             });
         });
 
-        this.section.querySelector('[data-stats=organism]').innerHTML = arr[0].charAt(0) + '. ' + arr[1];
+        this.section.querySelector('[data-stats=organism]').innerHTML = '<abbr title="'+ protein.taxon.scientificName +'">'+ arr[0].charAt(0) + '. ' + arr[1] +'</abbr>';
         this.section.querySelector('[data-stats=length]').innerHTML = protein.length.toLocaleString();
         this.section.querySelector('[data-stats=entries]').innerHTML = nEntries.toLocaleString();
         this.section.querySelector('[data-stats=matches]').innerHTML = nMatches.toLocaleString();
