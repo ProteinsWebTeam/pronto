@@ -715,14 +715,14 @@ def get_descriptions(methods, db=None):
                 'id': desc_id,
                 'value': desc,
                 'methods': {},
-                'count': count_max
+                'max': count_max
             }
         finally:
             descriptions[desc_id]['methods'][method_ac] = count
 
     cur.close()
 
-    return sorted(descriptions.values(), key=lambda x: -sum([cnt for cnt in x['methods'].values()]))
+    return sorted(descriptions.values(), key=lambda x: -x['max'])
 
 
 def get_description(desc_id):
@@ -896,7 +896,7 @@ def get_swissprot_comments(methods, topic_id):
 
     cur.close()
 
-    return sorted(comments.values(), key=lambda x: -sum(x['methods'].values()))
+    return sorted(comments.values(), key=lambda x: -x['max'])
 
 
 def get_match_matrix(methods):

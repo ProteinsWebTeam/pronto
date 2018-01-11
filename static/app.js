@@ -1425,13 +1425,15 @@ function ComparisonViews(methodsIds) {
             }
         });
 
-        let html = '<thead><tr><th>'+ data.results.length +' comments</th>';
+        let html = '<thead><tr><th colspan="2">'+ data.results.length +' comments</th>';
         this.methods.forEach(methodId => { html += '<th>' + methodId + '</th>'; });
 
         html += '</thead><tbody>';
 
         data.results.forEach(comment => {
-            html += '<tr data-filter="'+ comment.value +'" data-search="?comment=' + comment.id + '&topic='+ data.topic.id +'"><td>'+ comment.value +'</td>';
+            html += '<tr data-filter="'+ comment.value +'" data-search="?comment=' + comment.id + '&topic='+ data.topic.id +'">' +
+                '<td>'+ comment.value +'</td>' +
+                '<td>'+ comment.max +'</td>';
 
             this.methods.forEach(methodId => {
                 if (comment.methods.hasOwnProperty(methodId)) {
@@ -1475,19 +1477,19 @@ function ComparisonViews(methodsIds) {
         this.toggle('descriptions');
         document.title = 'UniProt descriptions (' + this.methods.join(', ') + ') | Pronto';
 
-        let html = '<thead><tr><th>'+ data.results.length +' descriptions</th>';
+        let html = '<thead><tr><th colspan="2">'+ data.results.length +' descriptions</th>';
         this.methods.forEach(methodAc => { html += '<th>' + methodAc + '</th>'; });
 
         html += '</thead><tbody>';
 
         data.results.forEach(desc => {
             html += '<tr data-filter="'+ desc.value +'" data-search="?description=' + desc.id + '&db='+ data.database +'">' +
-                '<td>'+ desc.value +'</td>';
-            //'<td><a href="#" data-id="'+ desc.id +'">'+ desc.value +'</a></td>';
+                '<td>'+ desc.value +'</td>' +
+                '<td>' + desc.max + '</td>';
 
             this.methods.forEach(methodId => {
                 if (desc.methods.hasOwnProperty(methodId)) {
-                    const i = Math.floor(desc.methods[methodId] / desc.count * _colors.length);
+                    const i = Math.floor(desc.methods[methodId] / desc.max * _colors.length);
                     const color = _colors[Math.min(i, _colors.length - 1)];
                     html += '<td style="background-color: '+ color +'"><a href="#" data-method="'+ methodId +'">' + desc.methods[methodId] + '</a></td>';
                 } else
