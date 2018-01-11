@@ -322,34 +322,49 @@ def get_overlapping_proteins(methods, **kwargs):
     sql, params = build_method2protein_sql(methods, **kwargs)
 
     cur = get_db().cursor()
-    cur.execute(
-        """
-        SELECT
-            SEQ_ID,
-            LEFT_NUMBER,
-            DESCRIPTION_ID,
-            DB,
-            LENGTH
-        FROM (
+
+    if kwargs.get('code'):
+        params['code'] = kwargs['code']
+
+        cur.execute(
+            """
             SELECT
-                LEFT_NUMBER,
-                GLOBAL AS CODE,
                 SEQ_ID,
-                DESCRIPTION_ID,
-                DB,
-                COUNT(*) OVER (PARTITION BY GLOBAL) AS SEQ_CT,
-                LENGTH,
-                ROW_NUMBER() OVER (PARTITION BY GLOBAL ORDER BY LENGTH) AS RN
+                GLOBAL
             FROM (
                 {}
             )
+            WHERE GLOBAL = :code
+            ORDER BY SEQ_ID
+            """.format(sql),
+            params
         )
-        WHERE RN = 1
-        ORDER BY SEQ_CT DESC
-        """.format(sql),
-        params
-    )
-    proteins = [row[0] for row in cur]
+
+        proteins = [(row[0], row[1], 1) for row in cur]
+    else:
+        cur.execute(
+            """
+            SELECT
+                SEQ_ID,
+                CODE,
+                SEQ_CT
+            FROM (
+                SELECT
+                    SEQ_ID,
+                    GLOBAL AS CODE,
+                    COUNT(*) OVER (PARTITION BY GLOBAL) AS SEQ_CT,
+                    ROW_NUMBER() OVER (PARTITION BY GLOBAL ORDER BY LENGTH) AS RN
+                FROM (
+                    {}
+                )
+            )
+            WHERE RN = 1
+            ORDER BY SEQ_CT DESC, SEQ_ID
+            """.format(sql),
+            params
+        )
+        proteins = [row for row in cur]
+
     count = len(proteins)
 
     if not count:
@@ -358,8 +373,12 @@ def get_overlapping_proteins(methods, **kwargs):
     # Select requested page
     proteins = proteins[(page - 1) * page_size:page * page_size]
 
+    # Creat list of protein accessions and a dictionary of info for condensed proteins
+    protein_acs = [p[0] for p in proteins]
+    protein_codes = {p_ac: {'code': p_code, 'count': int(p_ct)} for p_ac, p_code, p_ct in proteins}
+
     # Get info on proteins (description, taxon, etc.)
-    proteins_cond = ','.join([':' + str(i+1) for i in range(len(proteins))])
+    proteins_cond = ','.join([':' + str(i+1) for i in range(len(protein_acs))])
     cur.execute(
         """
         SELECT P.PROTEIN_AC, P.DBCODE, P.LEN, PI.DESCRIPTION, E.FULL_NAME
@@ -368,26 +387,30 @@ def get_overlapping_proteins(methods, **kwargs):
         INNER JOIN {0}.ETAXI E ON P.TAX_ID = E.TAX_ID
         WHERE P.PROTEIN_AC IN ({1})
         """.format(app.config['DB_SCHEMA'], proteins_cond),
-        proteins
+        protein_acs
     )
 
     max_len = 0
     protein_info = {}
     for row in cur:
-        protein_info[row[0]] = {
-            'id': row[0],
+        p_ac = row[0]
+        
+        protein_info[p_ac] = {
+            'id': p_ac,
             'isReviewed': row[1] == 'S',
             'length': row[2],
             'description': row[3],
             'organism': row[4],
-            'link': ('http://sp.isb-sib.ch/uniprot/' if row[1] == 'S' else 'http://www.uniprot.org/uniprot/') + row[0]
+            'link': ('http://sp.isb-sib.ch/uniprot/' if row[1] == 'S' else 'http://www.uniprot.org/uniprot/') + p_ac,
+            'code': protein_codes[p_ac]['code'],
+            'count': protein_codes[p_ac]['count']
         }
 
         if row[2] > max_len:
             max_len = row[2]
 
-    proteins_cond = ','.join([':prot' + str(i) for i in range(len(proteins))])
-    params = {'prot' + str(i): protein for i, protein in enumerate(proteins)}
+    proteins_cond = ','.join([':prot' + str(i) for i in range(len(protein_acs))])
+    params = {'prot' + str(i): p_ac for i, p_ac in enumerate(protein_acs)}
     cur.execute(
         """
         SELECT F2P.SEQ_ID, F2P.FEATURE_ID, FS.NAME, M.DBCODE, M.CANDIDATE, E2M.ENTRY_AC
@@ -462,7 +485,7 @@ def get_overlapping_proteins(methods, **kwargs):
                 methods.append(m)
         protein_info[p_ac]['methods'] = methods
 
-    return [protein_info[p_ac] for p_ac in proteins], count, max_len
+    return [protein_info[p_ac] for p_ac in protein_acs], count, max_len
 
 
 def get_overlapping_entries(method):
@@ -2408,6 +2431,7 @@ def api_methods_matches(methods):
     else:
         db = db if db in ('S', 'T') else None
 
+    code = request.args.get('code')
     force = request.args.get('force', '').split(',')
     exclude = request.args.get('exclude', '').split(',')
 
@@ -2433,6 +2457,7 @@ def api_methods_matches(methods):
         comment=comment_id,
         term=go_id,
         db=db,
+        code=code
     )
 
     return jsonify({

@@ -1641,13 +1641,27 @@ function ComparisonViews(methodsIds) {
         div.querySelector('.statistic .value').innerHTML = data.count.toLocaleString();
         const svgWidth = 700;
 
+        const baseUrl = getPathName(history.state.url);
+        const params = getParams(history.state.url);
+
         let html = '';
         data.proteins.forEach((protein, i) => {
             html += '<div class="ui segment">' +
                 '<span class="ui red ribbon label">' + (protein.isReviewed ? '<i class="star icon"></i>&nbsp;' : '') + protein.id + '</a></span>' +
                 '<a target="_blank" href="'+ protein.link +'">'+ protein.description +'&nbsp;<i class="external icon"></i></a>';
 
-            html += '<div class="ui sub header">Organism</div><em>'+ protein.organism +'</em>';
+            html += '<div><div class="ui horizontal list">' +
+                '<div class="item">' +
+                '<div class="content">' +
+                '<div class="ui sub header">Proteins</div><a href="'+ (baseUrl + encodeParams(extendObj(params, {code: protein.code}))) +'" ">'+ protein.count.toLocaleString() +'</a>' +
+                '</div>' +
+                '</div>' +
+                '<div class="item">' +
+                '<div class="content">' +
+                '<div class="ui sub header">Organism</div><em>'+ protein.organism +'</em>' +
+                '</div>' +
+                '</div>' +
+                '</div></div>';
 
             html += '<table class="ui very basic compact table"><tbody>';
 
@@ -1693,8 +1707,6 @@ function ComparisonViews(methodsIds) {
         const page = data.pageInfo.page;
         const pageSize = data.pageInfo.pageSize;
         const lastPage = Math.ceil(data.count / pageSize);
-        const baseUrl = getPathName(history.state.url);
-        const params = getParams(history.state.url);
 
         const genLink = function(page) {
             return baseUrl + encodeParams(extendObj(params, {page: page, pageSize: pageSize}))
