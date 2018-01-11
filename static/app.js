@@ -196,12 +196,13 @@ function encodeParams(params, requiresValue) {
 }
 
 function extendObj(original, options) {
+    const obj = Object.assign({}, original);
     for (let prop in options) {
         if (options.hasOwnProperty(prop))
-            original[prop] = options[prop];
+            obj[prop] = options[prop];
     }
 
-    return original;
+    return obj;
 }
 
 function observeLink(element) {
@@ -1650,10 +1651,12 @@ function ComparisonViews(methodsIds) {
                 '<span class="ui red ribbon label">' + (protein.isReviewed ? '<i class="star icon"></i>&nbsp;' : '') + protein.id + '</a></span>' +
                 '<a target="_blank" href="'+ protein.link +'">'+ protein.description +'&nbsp;<i class="external icon"></i></a>';
 
+            const uncondensedURL = baseUrl + encodeParams(extendObj(params, {code: protein.code, page: null, pageSize: null}), true);
+
             html += '<div><div class="ui horizontal list">' +
                 '<div class="item">' +
                 '<div class="content">' +
-                '<div class="ui sub header">Proteins</div><a href="'+ (baseUrl + encodeParams(extendObj(params, {code: protein.code}))) +'" ">'+ protein.count.toLocaleString() +'</a>' +
+                '<div class="ui sub header">Proteins</div><a href="'+ uncondensedURL +'" ">'+ protein.count.toLocaleString() +'</a>' +
                 '</div>' +
                 '</div>' +
                 '<div class="item">' +
@@ -1694,11 +1697,10 @@ function ComparisonViews(methodsIds) {
                 html += '</svg></td></tr>';
             });
 
-
-
             html += '</tbody></table></div>';
-
         });
+
+        console.log(params);
 
         div.querySelector('.segments').innerHTML = html;
 
