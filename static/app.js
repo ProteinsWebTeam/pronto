@@ -66,19 +66,24 @@ function setGlobalError(msg) {
 }
 
 
-function getMethodComments(methodId, div, callback) {
+function getMethodComments(methodId, div, size, callback) {
 
-    getJSON('/api/method/' + methodId + '/comments', data => {
+    getJSON('/api/method/' + methodId + '/comments' + encodeParams({size: size}), data => {
         // Sub header
         div.querySelector('.ui.header .sub').innerHTML = methodId;
 
         let html = '';
-        data.results.forEach(comment => {
+        data.results.forEach((comment, i, array) => {
             html += '<div class="comment">' +
                 '<div class="content">' +
                 '<a class="author">'+ comment.author +'</a>' +
                 '<div class="metadata"><span class="date">'+ comment.date +'</span></div>' +
-                '<div class="text">'+ comment.text +'</div></div></div>';
+                '<div class="text">'+ comment.text +'</div>';
+
+            if (array.length < data.count && i + 1 === array.length)
+                html += '<div class="actions"><a>View more comments</a></div>';
+
+            html += '</div></div>';
         });
 
         div.querySelector('.comments-content').innerHTML = html;
@@ -89,6 +94,14 @@ function getMethodComments(methodId, div, callback) {
         const textarea = form.querySelector('textarea');
         setClass(textarea.parentNode, 'error', false);
         textarea.value = null;
+
+        const action = div.querySelector('.comments-content .actions a');
+        if (action) {
+            action.addEventListener('click', e => {
+                e.preventDefault();
+                getMethodComments(methodId, div, null, callback);
+            });
+        }
 
         const sticky = div.closest('.sticky');
         if (sticky) {
@@ -655,9 +668,8 @@ function EntryView() {
                     const modal = document.getElementById('error-modal');
                     modal.querySelector('.content p').innerHTML = data.message;
                     $(modal).modal('show');
-                } else {
-                    self.getComments(entryId);
-                }
+                } else
+                    self.getComments(entryId, 2);
             });
         });
     })();
@@ -684,9 +696,6 @@ function EntryView() {
         setGlobalError(null);
 
         const entry = data.result;
-
-        this.getComments(entry.id);
-
         document.title = entry.name + ' (' + entry.id + ') | Pronto';
         this.section.querySelector('h1.header').innerHTML = entry.id + (entry.isChecked ? '<i class="checkmark icon"></i>' : '') + '<div class="sub header">'+ entry.name +'</div>';
         this.section.querySelector('h1.header').innerHTML = entry.name + '<div class="sub header">'+ (entry.isChecked ? '<i class="checkmark icon"></i>' : '') + entry.shortName + ' (' + entry.id + ')</div>';
@@ -876,22 +885,25 @@ function EntryView() {
         content += '<dt>Cellular Component</dt>' + (goTerms['C'].length ? goTerms['C'] : '<dd>No terms assigned in this category.</dd>');
         document.querySelector('#go-terms + dl').innerHTML = content;
 
-        $(this.section.querySelector('.ui.sticky')).sticky({
-            context: this.section.querySelector('.twelve.column')
-        })
+        this.getComments(entry.id, 2);
     };
 
-    this.getComments = function (entryId) {
-        getJSON('/api/entry/' + entryId + '/comments', (data, status) => {
+    this.getComments = function (entryId, size) {
+        getJSON('/api/entry/' + entryId + '/comments' + encodeParams({size: size}), (data, status) => {
             const div = this.section.querySelector('.comments');
 
             let html = '';
-            data.results.forEach(comment => {
+            data.results.forEach((comment, i, array) => {
                 html += '<div class="comment">' +
                     '<div class="content">' +
                     '<a class="author">'+ comment.author +'</a>' +
                     '<div class="metadata"><span class="date">'+ comment.date +'</span></div>' +
-                    '<div class="text">'+ comment.text +'</div></div></div>';
+                    '<div class="text">'+ comment.text +'</div>';
+
+                if (array.length < data.count && i + 1 === array.length)
+                    html += '<div class="actions"><a>View more comments</a></div>';
+
+                html += '</div></div>';
             });
 
             div.querySelector('.comments-content').innerHTML = html;
@@ -902,6 +914,19 @@ function EntryView() {
             const textarea = form.querySelector('textarea');
             setClass(textarea.parentNode, 'error', false);
             textarea.value = null;
+
+            const action = div.querySelector('.comments-content .actions a');
+            if (action) {
+                action.addEventListener('click', e => {
+                    e.preventDefault();
+                    this.getComments(entryId, null);
+                });
+            }
+
+            // Update sticky here, as it needs to be updated again if the user display more comments
+            $(this.section.querySelector('.ui.sticky')).sticky({
+                context: this.section.querySelector('.twelve.column')
+            });
         });
     };
 }
@@ -1874,7 +1899,7 @@ function DatabaseView() {
                     $(modal).modal('show');
                 } else {
                     self.get();  // need this to get the latest comment in the table
-                    getMethodComments(methodId, form.closest('.ui.comments'));
+                    getMethodComments(methodId, form.closest('.ui.comments'), 2);
                 }
             });
         });
@@ -2064,7 +2089,7 @@ function DatabaseView() {
             for (let i  = 0; i < elements.length; ++i) {
                 elements[i].addEventListener('click', e => {
                     const methodId = e.target.closest('tr').getAttribute('data-id');
-                    getMethodComments(methodId, section.querySelector('.ui.segment.comments'));
+                    getMethodComments(methodId, section.querySelector('.ui.segment.comments'), 2);
                 });
             }
         })();
@@ -2173,7 +2198,7 @@ function PredictionView() {
                     modal.querySelector('.content p').innerHTML = data.message;
                     $(modal).modal('show');
                 } else {
-                    getMethodComments(methodId, form.closest('.ui.comments'));
+                    getMethodComments(methodId, form.closest('.ui.comments'), 2);
                 }
             });
         });
@@ -2333,7 +2358,7 @@ function PredictionView() {
             }
         })();
 
-        getMethodComments(methodId, this.section.querySelector('.ui.segment.comments'), () => {this.draw()});
+        getMethodComments(methodId, this.section.querySelector('.ui.segment.comments'), 2, () => {this.draw()});
     };
 }
 

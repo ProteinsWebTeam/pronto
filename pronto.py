@@ -2310,15 +2310,18 @@ def api_method_comment(method_ac):
 
 @app.route('/api/method/<method_ac>/comments/')
 def api_method_comments(method_ac):
-    """
-
-    Example:
-    ---
-
-    """
     comments = get_method_comments(method_ac)
+    count = len(comments)
+
+    try:
+        size = int(request.args['size'])
+    except (KeyError, ValueError):
+        pass
+    else:
+        comments = comments[:size]
+
     return jsonify({
-        'count': len(comments),
+        'count': count,
         'results': comments
     })
 
