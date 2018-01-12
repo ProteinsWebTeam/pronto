@@ -1934,7 +1934,7 @@ def log_in():
 def log_out():
     """Clear the cookie, which logs the user out."""
     session.clear()
-    return redirect(url_for('index'))
+    return redirect(request.referrer)
 
 
 @app.route('/db/<dbshort>/')
