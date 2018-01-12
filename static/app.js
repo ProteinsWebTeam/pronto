@@ -2401,8 +2401,9 @@ function SearchView() {
             return;
         }
 
+        const noDirectHit = !html.length;
         message.querySelector('.list').innerHTML = html;
-        setClass(message, 'hidden', !html.length);
+        setClass(message, 'hidden', noDirectHit);
 
         const table = this.section.querySelector('table');
         const ebiSearch = data.ebiSearch;
@@ -2469,6 +2470,11 @@ function SearchView() {
             setClass(table, 'hidden', false);
         } else
             setClass(table, 'hidden', true);
+
+        if (noDirectHit && !ebiSearch.hitCount)
+            setGlobalError('Your search returned no matches.');
+        else
+            setGlobalError(null);
     }
 }
 
