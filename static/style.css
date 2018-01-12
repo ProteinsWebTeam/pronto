@@ -410,3 +410,29 @@ g.ticks text {
 #methods-all .ui.form > .inline.fields > label {
     min-width: 200px;
 }
+
+.ui.comments .comment .metadata a {
+    cursor: pointer;
+    display: inline-block;
+    color: rgba(0,0,0,.4);
+    position: absolute;
+    top: 0;
+    right: 0;
+    opacity: 0;
+}
+
+.ui.comments .comment .metadata a i {
+    margin: 0;
+}
+
+.ui.comments .comment .metadata a:active, .ui.comments .comment .metadata a:hover {
+    color: rgba(0,0,0,.8);
+}
+
+.ui.comments .comment > .content:hover > .metadata a {
+    opacity: 1;
+}
+
+.ui.comments .negative.comment {
+    background: #fff6f6;
+}

@@ -1174,7 +1174,7 @@ def get_method_comments(method_ac):
     cur = get_db().cursor()
     cur.execute(
         """
-        SELECT C.VALUE, C.CREATED_ON, U.NAME
+        SELECT C.ID, C.VALUE, C.CREATED_ON, C.STATUS, U.NAME
         FROM INTERPRO.METHOD_COMMENT C
         INNER JOIN INTERPRO.USER_PRONTO U ON C.USERNAME = U.USERNAME
         WHERE C.METHOD_AC = :1
@@ -1186,9 +1186,11 @@ def get_method_comments(method_ac):
     comments = []
     for row in cur:
         comments.append({
-            'text': row[0],
-            'date': row[1].strftime('%Y-%m-%d %H:%M:%S'),
-            'author': row[2],
+            'id': row[0],
+            'text': row[1],
+            'date': row[2].strftime('%Y-%m-%d %H:%M:%S'),
+            'status': row[3] == 'Y',
+            'author': row[4],
         })
 
     cur.close()
@@ -1203,7 +1205,7 @@ def get_entry_comments(entry_ac):
     cur = get_db().cursor()
     cur.execute(
         """
-        SELECT C.VALUE, C.CREATED_ON, U.NAME
+        SELECT C.ID, C.VALUE, C.CREATED_ON, C.STATUS, U.NAME
         FROM INTERPRO.ENTRY_COMMENT C
         INNER JOIN INTERPRO.USER_PRONTO U ON C.USERNAME = U.USERNAME
         WHERE C.ENTRY_AC = :1
@@ -1215,9 +1217,11 @@ def get_entry_comments(entry_ac):
     comments = []
     for row in cur:
         comments.append({
-            'text': row[0],
-            'date': row[1].strftime('%Y-%m-%d %H:%M:%S'),
-            'author': row[2],
+            'id': row[0],
+            'text': row[1],
+            'date': row[2].strftime('%Y-%m-%d %H:%M:%S'),
+            'status': row[3] == 'Y',
+            'author': row[4],
         })
 
     cur.close()
@@ -2101,6 +2105,60 @@ def api_search():
         r['error'] = 'Your search returned no matches.'
 
     return jsonify(r)
+
+
+@app.route('/api/comment/<comment_type>/<comment_id>/',  strict_slashes=False, methods=['POST'])
+def api_flag_comment(comment_type, comment_id):
+    user = get_user()
+
+    if not user:
+        return jsonify({
+            'status': False,
+            'message': 'Please log in to perform this action.'
+        }), 401
+
+    if comment_type == 'entry':
+        table_name = 'ENTRY_COMMENT'
+    elif comment_type == 'method':
+        table_name = 'METHOD_COMMENT'
+    else:
+        return jsonify({
+            'status': False,
+            'message': 'Invalid or missing parameters.'
+        }), 400
+
+    try:
+        comment_id = int(comment_id)
+        status = 'Y' if bool(int(request.form['status'])) else 'N'
+    except (KeyError, ValueError):
+        return jsonify({
+            'status': False,
+            'message': 'Invalid or missing parameters.'
+        }), 400
+
+    con = get_db()
+    cur = con.cursor()
+    try:
+        cur.execute(
+            'UPDATE INTERPRO.{} SET STATUS = :1 WHERE ID = :2'.format(table_name),
+            (status, comment_id)
+        )
+    except cx_Oracle.DatabaseError as e:
+        cur.close()
+        return jsonify({
+            'status': False,
+            'message': 'Could not {}flag: {}.'.format(
+                'un' if status else '',
+                e
+            )
+        }), 400
+    else:
+        con.commit()
+        cur.close()
+        return jsonify({
+            'status': True,
+            'message': None
+        })
 
 
 @app.route('/api/protein/<protein_ac>/')

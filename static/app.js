@@ -74,11 +74,24 @@ function getMethodComments(methodId, div, size, callback) {
 
         let html = '';
         data.results.forEach((comment, i, array) => {
-            html += '<div class="comment">' +
-                '<div class="content">' +
-                '<a class="author">'+ comment.author +'</a>' +
-                '<div class="metadata"><span class="date">'+ comment.date +'</span></div>' +
-                '<div class="text">'+ comment.text +'</div>';
+            if (comment.status) {
+                html += '<div class="comment" data-id="'+ comment.id +'">' +
+                    '<div class="content">' +
+                    '<a class="author">'+ comment.author +'</a>' +
+                    '<div class="metadata">' +
+                    '<span class="date">'+ comment.date +'</span>' +
+                    '<a><i class="remove icon"></i>Flag</a>' +
+                    '</div>' +
+                    '<div class="text">'+ comment.text +'</div>';
+            } else {
+                html += '<div class="negative comment" data-id="'+ comment.id +'">' +
+                    '<div class="content">' +
+                    '<a class="author">'+ comment.author +'</a>' +
+                    '<div class="metadata">' +
+                    '<span class="date">'+ comment.date +'</span>' +
+                    '</div>' +
+                    '<div class="text">'+ comment.text +'</div>';
+            }
 
             if (array.length < data.count && i + 1 === array.length)
                 html += '<div class="actions"><a>View more comments</a></div>';
@@ -95,13 +108,42 @@ function getMethodComments(methodId, div, size, callback) {
         setClass(textarea.parentNode, 'error', false);
         textarea.value = null;
 
-        const action = div.querySelector('.comments-content .actions a');
+        const action = div.querySelector('.comment .actions a');
         if (action) {
             action.addEventListener('click', e => {
                 e.preventDefault();
                 getMethodComments(methodId, div, null, callback);
             });
         }
+
+        Array.from(div.querySelectorAll('.comment .metadata a')).forEach(element => {
+            element.addEventListener('click', e => {
+                e.preventDefault();
+
+                const commentId = e.target.closest('.comment').getAttribute('data-id');
+                const commentType = 'method';
+                const modal = document.getElementById('confirm-modal');
+
+                modal.querySelector('.content').innerHTML = '<p>Flag this comment as invalid? This action cannot be undone.</p>';
+
+                $(modal).modal({
+                    onApprove: function () {
+                        postXhr('/api/comment/' + commentType + '/' + commentId, {
+                            status: 0
+                        }, data => {
+                            if (data.status)
+                                getMethodComments(methodId, div, size, callback);
+                            else {
+                                const modal = document.getElementById('error-modal');
+                                modal.querySelector('.content p').innerHTML = data.message;
+                                $(modal).modal('show');
+                            }
+                        });
+                    },
+                    onDeny: function () {}
+                }).modal('show');
+            });
+        });
 
         const sticky = div.closest('.sticky');
         if (sticky) {
@@ -894,11 +936,24 @@ function EntryView() {
 
             let html = '';
             data.results.forEach((comment, i, array) => {
-                html += '<div class="comment">' +
-                    '<div class="content">' +
-                    '<a class="author">'+ comment.author +'</a>' +
-                    '<div class="metadata"><span class="date">'+ comment.date +'</span></div>' +
-                    '<div class="text">'+ comment.text +'</div>';
+                if (comment.status) {
+                    html += '<div class="comment" data-id="'+ comment.id +'">' +
+                        '<div class="content">' +
+                        '<a class="author">'+ comment.author +'</a>' +
+                        '<div class="metadata">' +
+                        '<span class="date">'+ comment.date +'</span>' +
+                        '<a><i class="remove icon"></i>Flag</a>' +
+                        '</div>' +
+                        '<div class="text">'+ comment.text +'</div>';
+                } else {
+                    html += '<div class="negative comment" data-id="'+ comment.id +'">' +
+                        '<div class="content">' +
+                        '<a class="author">'+ comment.author +'</a>' +
+                        '<div class="metadata">' +
+                        '<span class="date">'+ comment.date +'</span>' +
+                        '</div>' +
+                        '<div class="text">'+ comment.text +'</div>';
+                }
 
                 if (array.length < data.count && i + 1 === array.length)
                     html += '<div class="actions"><a>View more comments</a></div>';
@@ -915,13 +970,42 @@ function EntryView() {
             setClass(textarea.parentNode, 'error', false);
             textarea.value = null;
 
-            const action = div.querySelector('.comments-content .actions a');
+            const action = div.querySelector('.comment .actions a');
             if (action) {
                 action.addEventListener('click', e => {
                     e.preventDefault();
                     this.getComments(entryId, null);
                 });
             }
+
+            Array.from(div.querySelectorAll('.comment .metadata a')).forEach(element => {
+                element.addEventListener('click', e => {
+                    e.preventDefault();
+
+                    const commentId = e.target.closest('.comment').getAttribute('data-id');
+                    const commentType = 'entry';
+                    const modal = document.getElementById('confirm-modal');
+
+                    modal.querySelector('.content').innerHTML = '<p>Flag this comment as invalid? This action cannot be undone.</p>';
+
+                    $(modal).modal({
+                        onApprove: function () {
+                            postXhr('/api/comment/' + commentType + '/' + commentId, {
+                                status: 0
+                            }, data => {
+                                if (data.status)
+                                    self.getComments(entryId, size);
+                                else {
+                                    const modal = document.getElementById('error-modal');
+                                    modal.querySelector('.content p').innerHTML = data.message;
+                                    $(modal).modal('show');
+                                }
+                            });
+                        },
+                        onDeny: function () {}
+                    }).modal('show');
+                });
+            });
 
             // Update sticky here, as it needs to be updated again if the user display more comments
             $(this.section.querySelector('.ui.sticky')).sticky({
