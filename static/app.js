@@ -1700,8 +1700,6 @@ function ComparisonViews(methodsIds) {
             html += '</tbody></table></div>';
         });
 
-        console.log(params);
-
         div.querySelector('.segments').innerHTML = html;
 
         // Pagination
@@ -2593,21 +2591,6 @@ $(function () {
         function searchTerm(search) {
             history.pushState({}, '', '/search/?query=' + encodeURIComponent(search));
             initApp();
-
-            return;
-            const url = '/api/search?query=' + encodeURIComponent(search);
-            getJSON(url, (data, status) => {
-                console.log(data);
-                return;
-
-                if (data.status) {
-                    setGlobalError(null);
-                    history.pushState({}, '', data.url);
-                    initApp();
-                } else {
-                    setGlobalError(data.error);
-                }
-            });
         }
 
         input.addEventListener('keyup', e => {
