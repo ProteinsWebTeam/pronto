@@ -1242,8 +1242,6 @@ def add_comment(entry_ac, author, comment, comment_type='entry'):
     max_id = cur.fetchone()[0]
     next_id = max_id + 1 if max_id else 1
 
-    print(next_id)
-
     try:
         cur.execute(
             """
