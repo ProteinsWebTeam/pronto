@@ -396,7 +396,7 @@ def get_overlapping_proteins(methods, **kwargs):
     protein_info = {}
     for row in cur:
         p_ac = row[0]
-        
+
         protein_info[p_ac] = {
             'id': p_ac,
             'isReviewed': row[1] == 'S',
@@ -1918,19 +1918,18 @@ def log_in():
         password = request.form['password'].strip()
         user = verify_user(username, password)
 
-        if user is None:
-            msg = 'User <strong>{}</strong> is not allowed to log in.'.format(username)
-            return render_template('login.html', username=username, error=msg)
-        elif not user['active']:
-            msg = 'User <strong>{}</strong> is not active anymore.'.format(user['username'])
-            return render_template('login.html', username=user['username'], error=msg)
-        elif not user['status']:
-            msg = 'Wrong username or password.'
-            return render_template('login.html', username=user['username'], error=msg)
-        else:
+        if user and user['active'] and user['status']:
             session.permanent = True
             session['user'] = user
             return redirect(request.args.get('next', url_for('index')))
+        else:
+            msg = 'Wrong username or password.'
+            return render_template(
+                'login.html',
+                username=username,
+                error=msg,
+                referrer=request.args.get('next', url_for('index'))
+            )
 
 
 @app.route('/logout/')
