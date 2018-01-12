@@ -2205,7 +2205,11 @@ def api_entry_comments(entry_ac):
         comments = comments[:size]
 
     for c in comments:
-        c['text'] = re.sub(r'#(\d+)', r'<a href="https://github.com/geneontology/go-annotation/issues/\1">#\1</a>', c['text'])
+        c['text'] = re.sub(
+            r'#(\d+)',
+            r'<a href="https://github.com/geneontology/go-annotation/issues/\1">#\1</a>',
+            c['text']
+        )
 
     return jsonify({
         'count': count,
