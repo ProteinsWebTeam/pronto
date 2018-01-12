@@ -339,7 +339,7 @@
     <div id="methods-unintegrated" class="hidden">
         <h1 class="ui header"></h1>
 
-                <div class="ui form">
+        <div class="ui form">
             <div class="grouped fields">
                 <label>Predicted:</label>
                 <div class="field">
@@ -650,5 +650,33 @@
     </div>
 </section>
 
+<section id="search" class="ui container basic vertical hidden segment">
+    <div class="ui info message">
+        <div class="header">
+            Was this what you wanted?
+        </div>
+        <ul class="list"></ul>
+    </div>
+
+    <table class="ui compact selectable table">
+        <thead>
+        <tr>
+            <th colspan="2"></th>
+        </tr>
+        <tr>
+            <th>Accession</th>
+            <th>Name</th>
+        </tr>
+        </thead>
+        <tbody></tbody>
+        <tfoot>
+        <tr>
+            <th colspan="2">
+                <div class="ui right floated pagination menu"></div>
+            </th>
+        </tr>
+        </tfoot>
+    </table>
+</section>
 
 {% include 'footer.html' %}

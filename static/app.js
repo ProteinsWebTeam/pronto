@@ -1046,7 +1046,7 @@ function ComparisonViews(methodsIds) {
                 const pageSize = data.pageInfo.pageSize;
                 const lastPage = Math.ceil(data.count / pageSize);
 
-                this.modal.querySelector('thead span').innerHTML = (data.count ? (page - 1) * pageSize + 1 : 0) + ' - ' + Math.min(page * pageSize, data.count) + ' of ' + data.count + ' entries';
+                this.modal.querySelector('thead span').innerHTML = (data.count ? (page - 1) * pageSize + 1 : 0) + ' - ' + Math.min(page * pageSize, data.count) + ' of ' + data.count.toLocaleString() + ' entries';
 
                 // Pagination
                 html = '';
@@ -1931,7 +1931,7 @@ function DatabaseView() {
 
         const pagination = div.querySelector('.pagination');
         pagination.innerHTML = html;
-        div.querySelector('thead span').innerHTML = (count ? (page - 1) * pageSize + 1 : 0) + ' - ' + Math.min(page * pageSize, count) + ' of ' + count + ' entries';
+        div.querySelector('thead span').innerHTML = (count ? (page - 1) * pageSize + 1 : 0) + ' - ' + Math.min(page * pageSize, count) + ' of ' + count.toLocaleString() + ' entries';
 
         const elements = pagination.querySelectorAll('a[href]');
         for (let i  = 0; i < elements.length; ++i) {
@@ -2356,13 +2356,133 @@ function IndexView() {
 }
 
 
+function SearchView() {
+    this.section = document.getElementById('search');
+
+    this.get = function () {
+        const url = location.pathname + location.search;
+        showDimmer(true);
+
+        getJSON('/api' + url, (data, status) => {
+            history.replaceState({data: data, page: 'search', url: url}, '', url);
+            this.render(data);
+            showDimmer(false);
+        });
+    };
+
+    this.render = function (data) {
+        const message = this.section.querySelector('.message');
+        const urls = [];
+        let html = '';
+
+        [{
+            key: 'entries',
+            label: 'Entries',
+            page: '/entry/'
+        }, {
+            key: 'methods',
+            label: 'Signatures',
+            page: '/method/'
+        }, {
+            key: 'proteins',
+            label: 'Proteins',
+            page: '/protein/'
+        }].forEach(e => {
+            if (data[e.key].length) {
+                if (data[e.key].length === 1)
+                    urls.push(e.page + data[e.key][0]);
+
+                html += '<li>'+ e.label +': ' + data[e.key].map(x => '<a href="'+ e.page + x +'">'+ x +'</a>').join(',') + '</li>';
+            }
+        });
+
+        if (urls.length === 1) {
+            // Auto-redirect
+            history.pushState({}, '', urls);
+            initApp();
+            return;
+        }
+
+        message.querySelector('.list').innerHTML = html;
+        setClass(message, 'hidden', !html.length);
+
+        const table = this.section.querySelector('table');
+        const ebiSearch = data.ebiSearch;
+
+        if (ebiSearch.hitCount) {
+            const page = ebiSearch.page;
+            const pageSize = ebiSearch.pageSize;
+            const lastPage = Math.ceil(ebiSearch.hitCount / pageSize);
+            html = '';
+
+            ebiSearch.hits.forEach(entry => {
+                html += '<tr><td><span class="ui tiny type-'+ entry.type +' circular label">'+ entry.type +'</span>&nbsp;<a href="/entry/'+ entry.id +'">'+ entry.id +'</a></td><td>'+ entry.name +'</td></tr>';
+            });
+
+            table.querySelector('tbody').innerHTML = html;
+            table.querySelector('th').innerHTML = ((page - 1) * pageSize + 1) + ' - ' + Math.min(page * pageSize, ebiSearch.hitCount) + ' of ' + ebiSearch.hitCount.toLocaleString() + ' results';
+
+            // Pagination
+            html = '';
+
+            const baseUrl = getPathName(this.url);
+            const params = getParams(this.url);
+
+            if (page === 1)
+                html += '<a class="icon disabled item"><i class="left chevron icon"></i></a><a class="active item">1</a>';
+            else
+                html += '<a class="icon item" href="'+ (baseUrl + encodeParams(extendObj(params, {page: page - 1}))) +'"><i class="left chevron icon"></i></a><a class="item" href="'+ (baseUrl + encodeParams(extendObj(params, {page: 1}))) +'">1</a>';
+
+            let ellipsisBefore = false;
+            let ellipsisAfter = false;
+            for (let i = 2; i < lastPage; ++i) {
+                if (i === page)
+                    html += '<a class="active item">'+ i +'</a>';
+                else if (Math.abs(i - page) === 1)
+                    html += '<a class="item" href="'+ (baseUrl + encodeParams(extendObj(params, {page: i}))) +'">'+ i +'</a>';
+                else if (i < page && !ellipsisBefore) {
+                    html += '<div class="disabled item">&hellip;</div>';
+                    ellipsisBefore = true;
+                } else if (i > page && !ellipsisAfter) {
+                    html += '<div class="disabled item">&hellip;</div>';
+                    ellipsisAfter = true;
+                }
+            }
+
+            if (lastPage > 1) {
+                if (page === lastPage)
+                    html += '<a class="active item">'+ lastPage +'</a>';
+                else
+                    html += '<a class="item" href="'+ (baseUrl + encodeParams(extendObj(params, {page: lastPage}))) +'">'+ lastPage +'</a>'
+            }
+
+
+            if (page === lastPage || !lastPage)
+                html += '<a class="icon disabled item"><i class="right chevron icon"></i></a>';
+            else
+                html += '<a class="icon item" href="'+ (baseUrl + encodeParams(extendObj(params, {page: page + 1}))) +'"><i class="right chevron icon"></i></a>';
+
+            const pagination = table.querySelector('.pagination');
+            pagination.innerHTML = html;
+            Array.from(pagination.querySelectorAll('a[href]'), element => {
+                observeLink(element);
+            });
+
+            setClass(table, 'hidden', false);
+        } else
+            setClass(table, 'hidden', true);
+    }
+}
+
+
 const views = {
     index: null,
     db: null,
     method: null,
     methods: null,
     entry: null,
-    protein: null
+    protein: null,
+    search: null
 };
 
 function initApp() {
@@ -2444,6 +2564,14 @@ function initApp() {
         views.protein.get(match[1]);
     }
 
+    match = pathName.match(/^\/search/);
+    if (match) {
+        section = 'search';
+        if (!views.search)
+            views.search = new SearchView();
+        views.search.get();
+    }
+
     if (section) {
         Array.from(document.querySelectorAll('section')).forEach(element => {
             setClass(element, 'hidden', element.id !== section);
@@ -2463,8 +2591,15 @@ $(function () {
         const input = inputWrapper.querySelector('input[type=text]');
 
         function searchTerm(search) {
-            const url = '/api/search?s=' + encodeURIComponent(search);
+            history.pushState({}, '', '/search/?query=' + encodeURIComponent(search));
+            initApp();
+
+            return;
+            const url = '/api/search?query=' + encodeURIComponent(search);
             getJSON(url, (data, status) => {
+                console.log(data);
+                return;
+
                 if (data.status) {
                     setGlobalError(null);
                     history.pushState({}, '', data.url);
@@ -2539,6 +2674,11 @@ window.onpopstate = function(event) {
             } else {
                 views.db.renderMethods(state.data);
             }
+        } else if (state.page === 'search') {
+            if (!views.search)
+                views.search = new SearchView();
+
+            views.search.render(state.data);
         }
 
         if (section) {

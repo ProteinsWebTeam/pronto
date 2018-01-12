@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import json
 import re
+import urllib.parse
+import urllib.request
 from datetime import timedelta
 
 import cx_Oracle
@@ -1927,6 +1930,11 @@ def view_compare(methods):
     return render_template('main.html', user=get_user(), topics=get_topics())
 
 
+@app.route('/search/')
+def view_search():
+    return render_template('main.html', user=get_user())
+
+
 @app.route('/api/search/')
 def api_search():
     """
@@ -1934,13 +1942,18 @@ def api_search():
     Can be an InterPro accession ("IPR" is optional), a signature accession, or a protein accession.
     Example:
     ---
-    /search?s=IPR000001
+    /search?query=IPR000001
     """
-    search = request.args.get('s', '')
+    search = request.args.get('query', '')
 
-    entries = []
-    methods = []
-    proteins = []
+    try:
+        page = int(request.args['page'])
+    except (KeyError, ValueError):
+        page = 1
+
+    entry_accs = []
+    methods_accs = []
+    proteins_accs = []
     cur = get_db().cursor()
 
     for term in search.split():
@@ -1954,34 +1967,70 @@ def api_search():
         cur.execute('SELECT ENTRY_AC FROM INTERPRO.ENTRY WHERE ENTRY_AC = :1', (term.upper(),))
         row = cur.fetchone()
         if row:
-            entries.append(row[0])
+            entry_accs.append(row[0])
             continue
 
         cur.execute('SELECT METHOD_AC from INTERPRO.METHOD WHERE UPPER(METHOD_AC) = :1', (term.upper(),))
         row = cur.fetchone()
         if row:
-            methods.append(row[0])
+            methods_accs.append(row[0])
             continue
 
         cur.execute('SELECT PROTEIN_AC from INTERPRO.PROTEIN WHERE PROTEIN_AC = :1', (term.upper(),))
         row = cur.fetchone()
         if row:
-            proteins.append(row[0])
+            proteins_accs.append(row[0])
             continue
+
+    page_size = 20
+    params = urllib.parse.urlencode({
+        'query': search,
+        'format': 'json',
+        'size': page_size,
+        'start': (page - 1) * page_size
+    })
+
+    try:
+        req = urllib.request.urlopen('http://www.ebi.ac.uk/ebisearch/ws/rest/interpro?{}'.format(params))
+        res = json.loads(req.read().decode())
+    except (urllib.error.HTTPError, json.JSONDecodeError):
+        hits = []
+        hit_count = 0
+    else:
+        hit_count = res['hitCount']
+        hits = [e['id'] for e in res['entries']]
+
+    if hits:
+        cur.execute(
+            """
+            SELECT ENTRY_AC, ENTRY_TYPE, NAME
+            FROM INTERPRO.ENTRY
+            WHERE ENTRY_AC IN ({})
+            """.format(','.join([':' + str(i+1) for i in range(len(hits))])),
+            hits
+        )
+
+        names = {entry_ac: (name, entry_type) for entry_ac, entry_type, name in cur}
+        hits = [{'id': entry_ac, 'name': names[entry_ac][0], 'type': names[entry_ac][1]} for entry_ac in hits]
 
     cur.close()
 
-    entries = list(set(entries))
-    methods = list(set(methods))
-    proteins = list(set(proteins))
+    return jsonify({
+        'entries': list(sorted(set(entry_accs))),
+        'methods': list(sorted(set(methods_accs))),
+        'proteins': proteins_accs,
 
-    s = sum([1 if e else 0 for e in (entries, methods, proteins)])
+        'ebiSearch': {
+            'hits': hits,
+            'hitCount': hit_count,
+            'page': page,
+            'pageSize': page_size
+        }
+    })
 
-    r = {
-        'status': False,
-        'error': None,
-        'url': None
-    }
+
+
+
 
     if s == 0:
         # No matches
