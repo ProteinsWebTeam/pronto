@@ -639,6 +639,27 @@ function EntryView() {
                 });
             });
         });
+
+        self.section.querySelector('.ui.comments form button').addEventListener('click', e => {
+            e.preventDefault();
+            const form = e.target.closest('form');
+            const entryId = form.getAttribute('data-id');
+            const textarea = form.querySelector('textarea');
+
+            postXhr('/api/entry/'+ entryId +'/comment/', {
+                comment: textarea.value.trim()
+            }, data => {
+                setClass(textarea.closest('.field'), 'error', !data.status);
+
+                if (!data.status) {
+                    const modal = document.getElementById('error-modal');
+                    modal.querySelector('.content p').innerHTML = data.message;
+                    $(modal).modal('show');
+                } else {
+                    self.getComments(entryId);
+                }
+            });
+        });
     })();
 
     this.get = function(entryId) {
@@ -663,6 +684,9 @@ function EntryView() {
         setGlobalError(null);
 
         const entry = data.result;
+
+        this.getComments(entry.id);
+
         document.title = entry.name + ' (' + entry.id + ') | Pronto';
         this.section.querySelector('h1.header').innerHTML = entry.id + (entry.isChecked ? '<i class="checkmark icon"></i>' : '') + '<div class="sub header">'+ entry.name +'</div>';
         this.section.querySelector('h1.header').innerHTML = entry.name + '<div class="sub header">'+ (entry.isChecked ? '<i class="checkmark icon"></i>' : '') + entry.shortName + ' (' + entry.id + ')</div>';
@@ -855,6 +879,30 @@ function EntryView() {
         $(this.section.querySelector('.ui.sticky')).sticky({
             context: this.section.querySelector('.twelve.column')
         })
+    };
+
+    this.getComments = function (entryId) {
+        getJSON('/api/entry/' + entryId + '/comments', (data, status) => {
+            const div = this.section.querySelector('.comments');
+
+            let html = '';
+            data.results.forEach(comment => {
+                html += '<div class="comment">' +
+                    '<div class="content">' +
+                    '<a class="author">'+ comment.author +'</a>' +
+                    '<div class="metadata"><span class="date">'+ comment.date +'</span></div>' +
+                    '<div class="text">'+ comment.text +'</div></div></div>';
+            });
+
+            div.querySelector('.comments-content').innerHTML = html;
+
+            const form = div.querySelector('form');
+            form.setAttribute('data-id', entryId);
+
+            const textarea = form.querySelector('textarea');
+            setClass(textarea.parentNode, 'error', false);
+            textarea.value = null;
+        });
     };
 }
 
@@ -1825,7 +1873,7 @@ function DatabaseView() {
                     modal.querySelector('.content p').innerHTML = data.message;
                     $(modal).modal('show');
                 } else {
-                    self.get();
+                    self.get();  // need this to get the latest comment in the table
                     getMethodComments(methodId, form.closest('.ui.comments'));
                 }
             });

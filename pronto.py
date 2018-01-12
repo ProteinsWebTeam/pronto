@@ -1167,9 +1167,9 @@ def get_methods(dbcode, search=None, integrated=None, checked=None, commented=No
     return methods
 
 
-def get_curator_comments(method_ac):
+def get_method_comments(method_ac):
     """
-    Get the curator comments associated to a given entry
+    Get the curator comments associated to a given signature
     """
     cur = get_db().cursor()
     cur.execute(
@@ -1196,21 +1196,61 @@ def get_curator_comments(method_ac):
     return comments
 
 
-def add_comment(method_ac, author, comment):
+def get_entry_comments(entry_ac):
+    """
+    Get the curator comments associated to a given entry
+    """
+    cur = get_db().cursor()
+    cur.execute(
+        """
+        SELECT C.VALUE, C.CREATED_ON, U.NAME
+        FROM INTERPRO.ENTRY_COMMENT C
+        INNER JOIN INTERPRO.USER_PRONTO U ON C.USERNAME = U.USERNAME
+        WHERE C.ENTRY_AC = :1
+        ORDER BY C.CREATED_ON DESC
+        """,
+        (entry_ac, )
+    )
+
+    comments = []
+    for row in cur:
+        comments.append({
+            'text': row[0],
+            'date': row[1].strftime('%Y-%m-%d %H:%M:%S'),
+            'author': row[2],
+        })
+
+    cur.close()
+
+    return comments
+
+
+def add_comment(entry_ac, author, comment, comment_type='entry'):
+    if comment_type == 'entry':
+        col_name = 'ENTRY_AC'
+        table_name = 'ENTRY_COMMENT'
+    elif comment_type == 'method':
+        col_name = 'METHOD_AC'
+        table_name = 'METHOD_COMMENT'
+    else:
+        return False
+
     con = get_db()
     cur = con.cursor()
 
-    cur.execute('SELECT MAX(ID) FROM INTERPRO.METHOD_COMMENT')
-    row = cur.fetchone()
-    next_id = row[0] + 1 if row else 1
+    cur.execute('SELECT MAX(ID) FROM INTERPRO.{}'.format(table_name))
+    max_id = cur.fetchone()[0]
+    next_id = max_id + 1 if max_id else 1
+
+    print(next_id)
 
     try:
         cur.execute(
             """
-            INSERT INTO INTERPRO.METHOD_COMMENT (ID, METHOD_AC, USERNAME, VALUE)
+            INSERT INTO INTERPRO.{} (ID, {}, USERNAME, VALUE)
             VALUES (:1, :2, :3, :4)
-            """,
-            (next_id, method_ac, author, comment)
+            """.format(table_name, col_name),
+            (next_id, entry_ac, author, comment)
         )
     except cx_Oracle.IntegrityError:
         status = False
@@ -2155,6 +2195,59 @@ def api_check_entry(entry_ac):
         })
 
 
+@app.route('/api/entry/<entry_ac>/comments/')
+def api_entry_comments(entry_ac):
+    comments = get_entry_comments(entry_ac)
+    count = len(comments)
+
+    try:
+        size = int(request.args['size'])
+    except (KeyError, ValueError):
+        pass
+    else:
+        comments = comments[:size]
+
+    return jsonify({
+        'count': count,
+        'results': comments
+    })
+
+
+@app.route('/api/entry/<entry_ac>/comment/', strict_slashes=False, methods=['POST'])
+def api_entry_comment(entry_ac):
+    user = get_user()
+
+    if not user:
+        return jsonify({
+            'status': False,
+            'message': 'Please log in to add comments.'
+        }), 401
+
+    try:
+        comment = request.form['comment'].strip()
+    except (AttributeError, KeyError):
+        return jsonify({
+            'status': False,
+            'message': 'Invalid or missing parameters.'
+        }), 400
+
+    if len(comment) < 3:
+        return jsonify({
+            'status': False,
+            'message': 'Comment too short (must be at least three characters long).'
+        }), 400
+    elif not add_comment(entry_ac, user['username'], comment, comment_type='entry'):
+        return jsonify({
+            'status': False,
+            'message': 'Could not add comment for signature "{}".'.format(entry_ac)
+        }), 400
+
+    return jsonify({
+        'status': True,
+        'message': None
+    })
+
+
 @app.route('/api/method/<method_ac>/prediction/')
 def api_prediction(method_ac):
     """
@@ -2199,7 +2292,7 @@ def api_method_comment(method_ac):
             'status': False,
             'message': 'Comment too short (must be at least three characters long).'
         }), 400
-    elif not add_comment(method_ac, user['username'], comment):
+    elif not add_comment(method_ac, user['username'], comment, comment_type='method'):
         return jsonify({
             'status': False,
             'message': 'Could not add comment for signature "{}".'.format(method_ac)
@@ -2219,7 +2312,7 @@ def api_method_comments(method_ac):
     ---
 
     """
-    comments = get_curator_comments(method_ac)
+    comments = get_method_comments(method_ac)
     return jsonify({
         'count': len(comments),
         'results': comments
