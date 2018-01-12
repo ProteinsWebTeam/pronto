@@ -1912,7 +1912,7 @@ def log_in():
     if get_user():
         return redirect(url_for('index'))
     elif request.method == 'GET':
-        return render_template('login.html')
+        return render_template('login.html', referrer=request.referrer)
     else:
         username = request.form['username'].strip().lower()
         password = request.form['password'].strip()
