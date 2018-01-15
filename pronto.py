@@ -1562,7 +1562,8 @@ def get_entry(entry_ac):
     for row in cur:
         text = row[0]
 
-        text = re.sub(r'\s{2,}', ' ', text)
+        # # Disabled for not breaking the <pre> tags
+        # text = re.sub(r'\s{2,}', ' ', text)
 
         # Wrap text in paragraph
         # (not that it's better, but some annotations already contain the <p> tag)
