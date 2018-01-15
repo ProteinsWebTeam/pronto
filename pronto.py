@@ -2213,7 +2213,7 @@ def api_check_entry(entry_ac):
     if not user:
         return jsonify({
             'status': False,
-            'message': 'Please log in to check/uncheck entries.'
+            'message': 'Please log in to perform this action.'
         }), 401
 
     try:
@@ -2282,7 +2282,7 @@ def api_entry_comment(entry_ac):
     if not user:
         return jsonify({
             'status': False,
-            'message': 'Please log in to add comments.'
+            'message': 'Please log in to perform this action.'
         }), 401
 
     try:
@@ -2338,7 +2338,7 @@ def api_method_comment(method_ac):
     if not user:
         return jsonify({
             'status': False,
-            'message': 'Please log in to add comments.'
+            'message': 'Please log in to perform this action.'
         }), 401
 
     try:

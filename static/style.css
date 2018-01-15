@@ -433,6 +433,10 @@ g.ticks text {
     opacity: 1;
 }
 
-.ui.comments .negative.comment {
+.ui.comments .negative.comment .content {
     background: #fff6f6;
+}
+
+.ui.comments .negative.comment .content .actions {
+    background-color: #fff;
 }

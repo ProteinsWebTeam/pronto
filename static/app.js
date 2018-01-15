@@ -80,7 +80,7 @@ function getMethodComments(methodId, div, size, callback) {
                     '<a class="author">'+ comment.author +'</a>' +
                     '<div class="metadata">' +
                     '<span class="date">'+ comment.date +'</span>' +
-                    '<a><i class="remove icon"></i>Flag</a>' +
+                    '<a><i class="remove icon"></i></a>' +
                     '</div>' +
                     '<div class="text">'+ comment.text +'</div>';
             } else {
@@ -124,7 +124,7 @@ function getMethodComments(methodId, div, size, callback) {
                 const commentType = 'method';
                 const modal = document.getElementById('confirm-modal');
 
-                modal.querySelector('.content').innerHTML = '<p>Flag this comment as invalid? This action cannot be undone.</p>';
+                modal.querySelector('.content').innerHTML = '<p>Flag this comment as invalid? This action <strong>cannot</strong> be undone.</p>';
 
                 $(modal).modal({
                     onApprove: function () {
@@ -942,7 +942,7 @@ function EntryView() {
                         '<a class="author">'+ comment.author +'</a>' +
                         '<div class="metadata">' +
                         '<span class="date">'+ comment.date +'</span>' +
-                        '<a><i class="remove icon"></i>Flag</a>' +
+                        '<a><i class="remove icon"></i></a>' +
                         '</div>' +
                         '<div class="text">'+ comment.text +'</div>';
                 } else {
@@ -986,7 +986,7 @@ function EntryView() {
                     const commentType = 'entry';
                     const modal = document.getElementById('confirm-modal');
 
-                    modal.querySelector('.content').innerHTML = '<p>Flag this comment as invalid? This action cannot be undone.</p>';
+                    modal.querySelector('.content').innerHTML = '<p>Flag this comment as invalid? This action <strong>cannot</strong> be undone.</p>';
 
                     $(modal).modal({
                         onApprove: function () {
