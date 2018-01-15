@@ -73,8 +73,8 @@ function getMethodComments(methodId, div, size, callback) {
         div.querySelector('.ui.header .sub').innerHTML = methodId;
 
         let html = '';
-        data.results.forEach((comment, i, array) => {
-            if (comment.status) {
+        data.results.forEach(comment => {
+            if (comment.status)
                 html += '<div class="comment" data-id="'+ comment.id +'">' +
                     '<div class="content">' +
                     '<a class="author">'+ comment.author +'</a>' +
@@ -82,22 +82,19 @@ function getMethodComments(methodId, div, size, callback) {
                     '<span class="date">'+ comment.date +'</span>' +
                     '<a><i class="remove icon"></i></a>' +
                     '</div>' +
-                    '<div class="text">'+ comment.text +'</div>';
-            } else {
+                    '<div class="text">'+ comment.text +'</div></div></div>';
+            else
                 html += '<div class="negative comment" data-id="'+ comment.id +'">' +
                     '<div class="content">' +
                     '<a class="author">'+ comment.author +'</a>' +
                     '<div class="metadata">' +
                     '<span class="date">'+ comment.date +'</span>' +
                     '</div>' +
-                    '<div class="text">'+ comment.text +'</div>';
-            }
-
-            if (array.length < data.count && i + 1 === array.length)
-                html += '<div class="actions"><a>View more comments</a></div>';
-
-            html += '</div></div>';
+                    '<div class="text">'+ comment.text +'</div></div></div>';
         });
+
+        if (data.results.length < data.count)
+            html += '<div class="actions"><a>View more comments</a></div>';
 
         div.querySelector('.comments-content').innerHTML = html;
 
@@ -108,7 +105,7 @@ function getMethodComments(methodId, div, size, callback) {
         setClass(textarea.parentNode, 'error', false);
         textarea.value = null;
 
-        const action = div.querySelector('.comment .actions a');
+        const action = div.querySelector('.comments-content .actions a');
         if (action) {
             action.addEventListener('click', e => {
                 e.preventDefault();
@@ -935,8 +932,8 @@ function EntryView() {
             const div = this.section.querySelector('.comments');
 
             let html = '';
-            data.results.forEach((comment, i, array) => {
-                if (comment.status) {
+            data.results.forEach(comment => {
+                if (comment.status)
                     html += '<div class="comment" data-id="'+ comment.id +'">' +
                         '<div class="content">' +
                         '<a class="author">'+ comment.author +'</a>' +
@@ -944,22 +941,19 @@ function EntryView() {
                         '<span class="date">'+ comment.date +'</span>' +
                         '<a><i class="remove icon"></i></a>' +
                         '</div>' +
-                        '<div class="text">'+ comment.text +'</div>';
-                } else {
+                        '<div class="text">'+ comment.text +'</div></div></div>';
+                else
                     html += '<div class="negative comment" data-id="'+ comment.id +'">' +
                         '<div class="content">' +
                         '<a class="author">'+ comment.author +'</a>' +
                         '<div class="metadata">' +
                         '<span class="date">'+ comment.date +'</span>' +
                         '</div>' +
-                        '<div class="text">'+ comment.text +'</div>';
-                }
-
-                if (array.length < data.count && i + 1 === array.length)
-                    html += '<div class="actions"><a>View more comments</a></div>';
-
-                html += '</div></div>';
+                        '<div class="text">'+ comment.text +'</div></div></div>';
             });
+
+            if (data.results.length < data.count)
+                html += '<div class="actions"><a>View more comments</a></div>';
 
             div.querySelector('.comments-content').innerHTML = html;
 
@@ -970,7 +964,7 @@ function EntryView() {
             setClass(textarea.parentNode, 'error', false);
             textarea.value = null;
 
-            const action = div.querySelector('.comment .actions a');
+            const action = div.querySelector('.comments-content .actions a');
             if (action) {
                 action.addEventListener('click', e => {
                     e.preventDefault();

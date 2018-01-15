@@ -434,9 +434,20 @@ g.ticks text {
 }
 
 .ui.comments .negative.comment .content {
-    background: #fff6f6;
+    background: #ffe1e1;
 }
 
 .ui.comments .negative.comment .content .actions {
     background-color: #fff;
+}
+
+/* Give same style for actions inside and outside a .comment */
+.ui.comments .actions a {
+    font-size: .875em;
+    cursor: pointer;
+    color: rgba(0,0,0,.4);
+}
+
+.ui.comments .actions a:active, .ui.comments .actions a:hover {
+    color: rgba(0,0,0,.8);
 }
