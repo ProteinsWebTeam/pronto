@@ -1016,7 +1016,7 @@ def get_unintegrated(dbcode, mode='newint', search=None):
         FROM {0}.FEATURE_SUMMARY FS
         LEFT OUTER JOIN {0}.PREDICTION P ON (FS.FEATURE_ID = P.FEATURE_ID1 AND P.FEATURE_ID1 != P.FEATURE_ID2)
         LEFT OUTER JOIN {0}.METHOD M ON P.FEATURE_ID2 = M.METHOD_AC
-        LEFT OUTER JOIN {0}.ENTRY2METHOD EM1 ON P.FEATURE_ID1 = EM1.METHOD_AC
+        LEFT OUTER JOIN {0}.ENTRY2METHOD EM1 ON FS.FEATURE_ID = EM1.METHOD_AC
         LEFT OUTER JOIN {0}.ENTRY2METHOD EM2 ON P.FEATURE_ID2 = EM2.METHOD_AC
         LEFT OUTER JOIN {0}.ENTRY E ON EM2.ENTRY_AC = E.ENTRY_AC
         WHERE FS.DBCODE = :1 AND EM1.ENTRY_AC IS NULL AND (:2 IS NULL OR FS.FEATURE_ID LIKE :2)
@@ -1026,9 +1026,7 @@ def get_unintegrated(dbcode, mode='newint', search=None):
 
     methods = {}
     for m1_ac, m2_ac, m2_is_candidate, rel, e_ac, e_type in cur:
-        if m1_ac is None:
-            continue
-        elif m1_ac in methods:
+        if m1_ac in methods:
             m = methods[m1_ac]
         else:
             m = methods[m1_ac] = {
