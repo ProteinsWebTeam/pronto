@@ -1007,7 +1007,7 @@ def get_unintegrated(dbcode, mode='newint', search=None):
     cur.execute(
         """
         SELECT DISTINCT
-            P.FEATURE_ID1,
+            FS.FEATURE_ID,
             P.FEATURE_ID2,
             M.CANDIDATE,
             P.RELATION,
@@ -1039,7 +1039,7 @@ def get_unintegrated(dbcode, mode='newint', search=None):
         m['predictions'].append({
             'id': e_ac if e_ac is not None else m2_ac,
             'type': e_type if e_ac is not None else None,
-            'isCandidate': m2_ac == 'Y',
+            'isCandidate': m2_is_candidate == 'Y',
             'relation': rel
         })
 
