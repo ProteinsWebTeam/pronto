@@ -1823,7 +1823,7 @@ function ComparisonViews(methodsIds) {
                 html += method.isSelected ? '<tr class="selected">' : '<tr>';
 
                 if (method.entryId)
-                    html += '<td class="nowrap"><a href="/entry/'+ method.entryId +'">'+ method.entryId +'&nbsp;<i class="external icon"></i></a></td>';
+                    html += '<td class="nowrap"><a href="/entry/'+ method.entryId +'">'+ method.entryId +'</a></td>';
                 else
                     html += '<td></td>';
 
