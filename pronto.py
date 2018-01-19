@@ -22,6 +22,15 @@ def get_db_stats():
     Retrieves the number of signatures (all, integrated into InterPro, and unintegrated) for each member database.
     """
 
+    # Previous SUM statements were:
+    ## SUM(CASE WHEN E2M.ENTRY_AC IS NOT NULL  AND FS.FEATURE_ID IS NOT NULL THEN 1 ELSE 0 END),
+    ## SUM(CASE WHEN M.CANDIDATE != 'N' AND E2M.ENTRY_AC IS NULL AND FS.FEATURE_ID IS NOT NULL THEN 1 ELSE 0 END)
+
+    # Removed the join with FEATURE_SUMMARY:
+    ## LEFT OUTER JOIN {}.FEATURE_SUMMARY FS ON M.METHOD_AC = FS.FEATURE_ID
+    # that can be used to get the number of methods without matches:
+    ## sum(case when m.method_ac is not null and feature_id is null then 1 else 0 end) nomatch,
+
     cur = get_db().cursor()
     cur.execute(
         """
@@ -31,12 +40,11 @@ def get_db_stats():
           MIN(C.DBSHORT),
           MIN(V.VERSION),
           COUNT(M.METHOD_AC),
-          SUM(CASE WHEN ENTRY_AC IS NOT NULL  AND FEATURE_ID IS NOT NULL THEN 1 ELSE 0 END),
-          SUM(CASE WHEN M.CANDIDATE != 'N' AND ENTRY_AC IS NULL AND FEATURE_ID IS NOT NULL THEN 1 ELSE 0 END)
+          SUM(CASE WHEN E2M.ENTRY_AC IS NOT NULL THEN 1 ELSE 0 END),
+          SUM(CASE WHEN E2M.ENTRY_AC IS NULL THEN 1 ELSE 0 END)
         FROM INTERPRO.METHOD M
         LEFT OUTER JOIN INTERPRO.DB_VERSION V ON M.DBCODE = V.DBCODE
         LEFT OUTER JOIN INTERPRO.CV_DATABASE C ON V.DBCODE = C.DBCODE
-        LEFT OUTER JOIN {}.FEATURE_SUMMARY FS ON M.METHOD_AC = FS.FEATURE_ID
         LEFT OUTER JOIN INTERPRO.ENTRY2METHOD E2M ON E2M.METHOD_AC = M.METHOD_AC
         GROUP BY M.DBCODE
         ORDER BY DBNAME
