@@ -192,6 +192,14 @@ svg.matches g text {
     text-anchor: middle;
 }
 
+svg.matches g text:first-of-type {
+    text-anchor: end;
+}
+
+svg.matches g text:last-child {
+    text-anchor: start;
+}
+
 svg.matches g:hover text {
     fill-opacity: 1;
 }

@@ -1175,13 +1175,16 @@ function ComparisonViews(methodsIds) {
 
                     html += '<td>'+ protein.name +'</td><td>'+ protein.taxon.fullName +'</td>';
 
-                    const width = Math.floor(protein.length * (svgWidth - 25) / data.maxLength);  // padding-left: 5px, padding-right: 20
+                    const paddingLeft = 5;
+                    const paddingRight = 20;
+                    const width = Math.floor(protein.length * (svgWidth - (paddingLeft + paddingRight)) / data.maxLength);
+
                     html += '<td><svg class="matches" width="' + svgWidth + '" height="30" version="1.1" baseProfile="full" xmlns="http://www.w3.org/2000/svg">' +
-                        '<line x1="5" y1="20" x2="'+width+'" y2="20" />' +
-                        '<text x="'+ (width + 2) +'" y="20">'+ protein.length +'</text>';
+                        '<line x1="' + paddingLeft + '" y1="20" x2="'+width+'" y2="20" />' +
+                        '<text x="'+ (paddingLeft + width + 2) +'" y="20">'+ protein.length +'</text>';
 
                     protein.matches.forEach(match => {
-                        const x = Math.round(match.start * width / protein.length);
+                        const x = Math.round(match.start * width / protein.length) + paddingLeft;
                         const w = Math.round((match.end - match.start) * width / protein.length);
                         html += '<g><rect x="'+ x +'" y="15" width="'+ w +'" height="10" rx="1" ry="1" style="fill: #607D8B;"/>' +
                             '<text x="'+ x +'" y="10">'+ match.start +'</text>' +
@@ -1831,14 +1834,16 @@ function ComparisonViews(methodsIds) {
                     '<td>'+ method.name + '</td>' +
                     '<td>'+ (method.isCandidate ? '&nbsp;<i class="checkmark box icon"></i>' : '') +'</td>';
 
-                const width = Math.floor(protein.length * (svgWidth - 25) / data.maxLength);  // padding-left: 5px, padding-right: 20
+                const paddingLeft = 5;
+                const paddingRight = 20;
+                const width = Math.floor(protein.length * (svgWidth - (paddingLeft + paddingRight)) / data.maxLength);
 
                 html += '<td><svg class="matches" width="' + svgWidth + '" height="30" version="1.1" baseProfile="full" xmlns="http://www.w3.org/2000/svg">' +
-                    '<line x1="5" y1="20" x2="'+width+'" y2="20" />' +
+                    '<line x1="'+ paddingLeft +'" y1="20" x2="'+width+'" y2="20" />' +
                     '<text x="'+ (width + 2) +'" y="20">'+ protein.length +'</text>';
 
                 method.matches.forEach(match => {
-                    const x = Math.round(match.start * width / protein.length);
+                    const x = Math.round(match.start * width / protein.length) + paddingLeft;
                     const w = Math.round((match.end - match.start) * width / protein.length);
                     html += '<g><rect x="'+ x +'" y="15" width="'+ w +'" height="10" rx="1" ry="1" style="fill: '+ method.db.color +';"/>' +
                         '<text x="'+ x +'" y="10">'+ match.start +'</text>' +
