@@ -1840,7 +1840,7 @@ function ComparisonViews(methodsIds) {
 
                 html += '<td><svg class="matches" width="' + svgWidth + '" height="30" version="1.1" baseProfile="full" xmlns="http://www.w3.org/2000/svg">' +
                     '<line x1="'+ paddingLeft +'" y1="20" x2="'+width+'" y2="20" />' +
-                    '<text x="'+ (width + 2) +'" y="20">'+ protein.length +'</text>';
+                    '<text x="'+ (paddingLeft + width + 2) +'" y="20">'+ protein.length +'</text>';
 
                 method.matches.forEach(match => {
                     const x = Math.round(match.start * width / protein.length) + paddingLeft;
