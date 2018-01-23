@@ -1698,6 +1698,7 @@ def get_protein(protein_ac):
           E.NAME,
           E.ENTRY_TYPE,
           CET.ABBREV,
+          E2E.PARENT_AC,
           MA.METHOD_AC,
           ME.NAME,
           MA.DBCODE,
@@ -1708,6 +1709,7 @@ def get_protein(protein_ac):
         LEFT OUTER JOIN INTERPRO.ENTRY2METHOD E2M ON MA.METHOD_AC = E2M.METHOD_AC
         LEFT OUTER JOIN INTERPRO.ENTRY E ON E2M.ENTRY_AC = E.ENTRY_AC
         LEFT OUTER JOIN INTERPRO.CV_ENTRY_TYPE CET ON CET.CODE = E.ENTRY_TYPE
+        LEFT OUTER JOIN INTERPRO.ENTRY2ENTRY E2E ON E.ENTRY_AC = E2E.ENTRY_AC
         WHERE MA.PROTEIN_AC = :1
         """.format(app.config['DB_SCHEMA']),
         (protein_ac, )
@@ -1725,20 +1727,21 @@ def get_protein(protein_ac):
                 'name': row[1],
                 'typeCode': row[2],
                 'type': row[3],
+                'parent': row[4],
                 'methods': {}
             }
         finally:
             methods = entries[entry_ac]['methods']
 
-        method_ac = row[4]
+        method_ac = row[5]
         try:
             methods[method_ac]
         except KeyError:
-            db = xref.find_ref(dbcode=row[6], ac=method_ac)
+            db = xref.find_ref(dbcode=row[7], ac=method_ac)
 
             methods[method_ac] = {
                 'id': method_ac,
-                'name': row[5],
+                'name': row[6],
                 'db': {
                     'name': db.name,
                     'link': db.gen_link(),
@@ -1747,7 +1750,7 @@ def get_protein(protein_ac):
                 'matches': []
             }
         finally:
-            methods[method_ac]['matches'].append({'start': row[7], 'end': row[8]})
+            methods[method_ac]['matches'].append({'start': row[8], 'end': row[9]})
 
     for entry_ac in entries:
         entries[entry_ac]['methods'] = list(entries[entry_ac]['methods'].values())
@@ -1790,7 +1793,7 @@ def get_protein(protein_ac):
     cur.close()
 
     protein.update({
-        'entries': sorted(entries.values(), key=lambda x: {'H': 0, 'F': 1, 'D': 2, 'R': 3, None: 99}.get(x['typeCode'], 50)),
+        'entries': list(entries.values()),
         'structures': list(structs.values())
     })
 
