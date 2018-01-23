@@ -329,8 +329,8 @@ function ProteinView() {
         update: function (id, name, start, end, dbName, link) {
             let content = '<div class="header">' + start.toLocaleString() + ' - ' + end.toLocaleString() +'</div><div class="meta">' + nvl(name, '') + '</div>';
 
-            if (id.indexOf('IPR') === 0)
-                content += '<div class="description"><a href="/entry/'+ id +'">'+ id +'</a></div>';
+            if (id[0].indexOf('IPR') === 0)  // todo show hierarchy
+                content += '<div class="description"><a href="/entry/'+ id[0] +'">'+ id[0] +'</a></div>';
             else
                 content += '<div class="description"><strong>'+ dbName +'</strong>&nbsp;<a target="_blank" href="'+ link +'">'+ id +'&nbsp;<i class="external icon"></i></div>';
 
@@ -379,7 +379,7 @@ function ProteinView() {
 
         const protein = data.result;
 
-        document.title = protein.name + '(' + protein.id + ') | Pronto';
+        document.title = protein.name + ' (' + protein.id + ') | Pronto';
         this.section.querySelector('h1.header').innerHTML = protein.name + '<div class="sub header"><a target="_blank" href="'+ protein.link +'">' + (protein.isReviewed ? '<i class="star icon"></i>' : '') + protein.id  + '&nbsp;<i class="external icon"></i></a></div>';
 
         const arr = protein.taxon.scientificName.split(' ');
@@ -395,254 +395,418 @@ function ProteinView() {
             });
         });
 
+        const entries = (function (entries) {
+            const arr = [];
+            const obj = {};
+            const children = {};
+
+            entries.forEach(entry => {
+                arr.push(entry.id);
+                obj[entry.id] = entry;
+
+                if (entry.parent !== null) {
+                    if (!children.hasOwnProperty(entry.parent))
+                        children[entry.parent] = [];
+
+                    children[entry.parent].push(entry.id);
+                }
+            });
+
+            const final = [];
+            arr.forEach(id => {
+                const entry = obj[id];
+                entry.children = children.hasOwnProperty(id) ? children[id].map(id => {return obj[id]}) : [];
+
+                if (!entry.parent || !children.hasOwnProperty(entry.parent))
+                    final.push(entry);
+            });
+
+            return final;
+        })(protein.entries);
+
         this.section.querySelector('[data-stats=organism]').innerHTML = '<abbr title="'+ protein.taxon.scientificName +'">'+ arr[0].charAt(0) + '. ' + arr[1] +'</abbr>';
         this.section.querySelector('[data-stats=length]').innerHTML = protein.length.toLocaleString();
         this.section.querySelector('[data-stats=entries]').innerHTML = nEntries.toLocaleString();
         this.section.querySelector('[data-stats=matches]').innerHTML = nMatches.toLocaleString();
 
-        const families = [];
-        const superfamilies = [];
-        const domains = [];
-        const repeats = [];
+        // Global variables for SVG
+        const paddingTop = 10;
+        const paddingBottom = 10;
+        const matchHeight = 10;
+        const matchMarginBottom = 2;
 
-        protein.entries.forEach(e => {
-            switch (e.typeCode) {
-                case 'F':
-                    families.push(e);
-                    break;
-                case 'H':
-                    superfamilies.push(e);
-                    break;
-                case 'D':
-                    domains.push(e);
-                    break;
-                case 'R':
-                    repeats.push(e);
-                    break;
-                default:
-                    break;
+        // Global matche info for tooltip
+        const allMatches = {};
+        let index = 0;
+
+        const sortById = function (a, b) {
+            if (a.id < b.id)
+                return -1;
+            else if (a.id > b.id)
+                return 1;
+            else
+                return 0;
+        };
+
+        const sortByPos = function (a, b) {
+            return a.start !== b.start ? a.start - b.start : a.end - b.end;
+        };
+
+        const flattenMatches = function (entry) {
+            let matches = [];
+
+            entry.methods.forEach(method => {
+                method.matches.forEach(match => {
+                    matches.push({
+                        start: match.start,
+                        end: match.end,
+                        id: [entry.id],
+                        name: entry.name,
+                        db: method.db,
+                    });
+                });
+            });
+
+            entry.children.forEach(child => {
+                matches = matches.concat(flattenMatches(child));
+            });
+
+            return matches;
+        };
+
+        const getLeftmostMatch = function (entry) {
+            return flattenMatches(entry).sort(sortByPos)[0];
+        };
+
+        const sortByLeftmostMatch = function (a, b) {
+            const m1 = getLeftmostMatch(a);
+            const m2 = getLeftmostMatch(b);
+            return m1.start !== m2.start ? m1.start - m2.start : m1.end - m2.end;
+        };
+
+        const mergeMatches = function (entry) {
+            const matches = flattenMatches(entry);
+
+            const oMatches = [];
+            matches
+                .sort(sortByPos)
+                .forEach(match => {
+                    const i = oMatches.length - 1;
+
+                    if (i < 0) {
+                        oMatches.push(match);
+                        return;
+                    }
+
+                    if (match.start <= oMatches[i].end) {
+                        oMatches[i].end = match.end;
+
+                        // Add the entry ID to the match
+                        if (oMatches[i].id.indexOf(match.id[0]) === -1)
+                            oMatches[i].id.push(match.id[0]);
+                    }
+                    else
+                        oMatches.push(match);
+                });
+
+            const getLevel = function(id, e, l) {
+                if (e.id === id)
+                    return l;
+
+                for (let i = 0; i < e.children.length; ++i) {
+                    const cl = getLevel(id, e.children[i], l+1);
+                    if (cl)
+                        return cl;
+                }
+
+                return 0;
+            };
+
+            const findEntry = function (id, e) {
+                if (e.id === id)
+                    return e;
+
+                for (let i = 0; i < e.children.length; ++i) {
+                    const _e = findEntry(id, e.children[i]);
+                    if (_e)
+                        return _e;
+                }
+
+                return e;
+            };
+
+            oMatches.forEach(match => {
+                match.id = match.id.sort((id1, id2) => {
+                    return getLevel(id1, entry, 0) - getLevel(id2, entry, 0);
+                });
+                match.name = findEntry(match.id[0], entry).name;
+            });
+
+            return oMatches;
+        };
+
+        const determineLines = function (entries) {
+            // Determine the position of matches on the SVG
+
+            let matches = [];
+            entries.forEach(entry => {
+                matches = matches.concat(mergeMatches(entry));
+            });
+
+
+            const lines = [];
+            matches
+                .sort(sortByPos)
+                .forEach(match => {
+                    let overlap = true;
+
+                    for (let i = 0; i < lines.length; ++i) {
+                        const j = lines[i].length - 1;
+
+                        if (j < 0 || lines[i][j].end < match.start) {
+                            overlap = false;
+                            lines[i].push(match);
+                            break;
+                        }
+                    }
+
+                    if (overlap)
+                        lines.push([match]);
+                });
+            return lines;
+        };
+
+        const initSVG = function (nLines) {
+            const rectHeight = paddingTop + paddingBottom + nLines * matchHeight + (nLines - 1) * matchMarginBottom;
+            let content = '<svg width="' + svgWidth + '" height="'+ (rectHeight + 10) +'" version="1.1" baseProfile="full" xmlns="http://www.w3.org/2000/svg">';
+            content += '<rect x="0" y="0" height="'+ rectHeight +'" width="'+ width +'" style="fill: #eee;"/>';
+            content += '<g class="ticks">';
+
+            for (let pos = step; pos < protein.length; pos += step) {
+                const x = Math.round(pos * width / protein.length);
+                content += '<line x1="'+ x +'" y1="0" x2="'+ x +'" y2="' + rectHeight + '" />';
+                content += '<text x="' + x + '" y="'+ rectHeight +'">' + pos.toLocaleString() + '</text>';
             }
-        });
+            content += '<line x1="'+ width +'" y1="0" x2="'+ width +'" y2="' + rectHeight + '" />';
+            content += '<text x="' + width + '" y="'+ rectHeight +'">' + protein.length.toLocaleString() + '</text>';
+            return content + '</g>';
+        };
+
+        const renderEntryMatches = function (entry) {
+            let html = '';
+
+            if (entry.id)
+                html += '<h3 class="ui header"><span class="ui tiny type-'+ entry.typeCode +' circular label">'+ entry.typeCode +'</span>&nbsp;<a href="/entry/'+ entry.id +'">'+ entry.id +'</a><div class="sub header">'+ entry.name +'</div></h3>';
+            else
+                html += '<h3 class="ui header">Unintegrated</h3>';
+
+            html += initSVG(entry.methods.length);
+
+            entry.methods.sort(sortById).forEach((method, i) => {
+                const y = paddingTop + i * matchHeight + (i - 1) * matchMarginBottom;
+
+                method.matches.forEach(match => {
+                    const x = Math.round(match.start * width / protein.length);
+                    const w = Math.round((match.end - match.start) * width / protein.length);
+                    html += '<rect data-id="'+ index +'" class="match" x="'+ x +'" y="' + y + '" width="' + w + '" height="'+ matchHeight +'" rx="1" ry="1" style="fill: '+ method.db.color +'"/>';
+                    allMatches[index++] = {
+                        start: match.start,
+                        end: match.end,
+                        id: [entry.id],
+                        name: entry.name,
+                        db: method.db,
+                    };
+                });
+
+                html += '<text x="' + (width + 10) + '" y="'+ (y + matchHeight / 2) +'"><a href="/method/'+ method.id +'">'+ method.id +'</a></text>';
+            });
+
+            html += '</svg>';
+
+            entry.children.forEach(child => {
+                html += renderEntryMatches(child);
+            });
+
+            return html;
+        };
 
         let html = '';
 
         // Protein family membership
+        const families = entries.filter(e => e.typeCode === 'F');
         if (families.length) {
-            families.forEach(e => {
-                html += '<div class="item"><div class="content"><span class="ui tiny type-F circular label">F</span>&nbsp;<a href="/entry/'+ e.id +'">'+ e.id +'</a>&nbsp;'+ e.name +'</div></div>';
+            const renderEntry = function (entry) {
+                let item = '<div class="item"><div class="content"><span class="ui tiny type-F circular label">F</span>&nbsp;<a href="/entry/'+ entry.id +'">'+ entry.id +'</a>&nbsp;'+ entry.name +'</div>';
+
+                if (entry.children.length) {
+                    item += '<div class="list">';
+                    entry.children.sort(sortById).forEach(child => {
+                        item += renderEntry(child);
+                    });
+                    item += '</div>';
+                }
+
+                item += '</div>';
+                return item;
+            };
+
+            families.sort(sortById).forEach(entry => {
+                html += renderEntry(entry);
             });
 
             document.querySelector('#families + div').innerHTML = '<div class="ui list">' + html + '</div>';
         } else
             document.querySelector('#families + div').innerHTML = 'None.';
 
+        // Homologous superfamily matches
+        const superfamilies = entries.filter(e => e.typeCode === 'H');
 
-        // Homologous superfamilies
-        // Height of svg elements: 5 (margin top) + 15 * num of rows + 10
         let div = this.section.querySelector('#superfamilies + div');
         const svgWidth = div.offsetWidth;
         const width = svgWidth - 200;
         const step = Math.pow(10, Math.floor(Math.log(protein.length) / Math.log(10))) / 2;
 
-        const initSvg = function (step, length, width, height) {
-            const h = height - 10;
-            let content = '<rect x="0" y="0" height="'+ h +'" width="'+ width +'" style="fill: #eee;"/>';
-            content += '<g class="ticks">';
-            for (let pos = step; pos < length; pos += step) {
-                const x = Math.round(pos * width / length);
-                content += '<line x1="'+ x +'" y1="0" x2="'+ x +'" y2="' + h + '" />';
-                content += '<text x="' + x + '" y="'+ h +'">' + pos.toLocaleString() + '</text>';
-            }
-            content += '<line x1="'+ width +'" y1="0" x2="'+ width +'" y2="' + h + '" />';
-            content += '<text x="' + width + '" y="'+ h +'">' + length.toLocaleString() + '</text>';
-
-            return content + '</g>';
-        };
-
-        const sortFeatures = function (features) {
-            return features.sort((a, b) => {
-                return (b.match.end - b.match.start) - (a.match.end - a.match.start)
-            });
-        };
-
-        const allMatches = {};
-        let index = 0;
-
         html = '';
         if (superfamilies.length) {
-            html += '<div class="ui list">';
-            superfamilies.forEach(e => {
-                html += '<div class="item"><div class="content"><span class="ui tiny type-H circular label">H</span>&nbsp;<a href="/entry/'+ e.id +'">'+ e.id +'</a>&nbsp;'+ e.name +'</div></div>';
+            const lines = determineLines(superfamilies);
+            html += initSVG(lines.length);
+
+            lines.forEach((line, i) => {
+                const y = paddingTop + i * matchHeight + (i - 1) * matchMarginBottom;
+
+                line.forEach(match => {
+                    const x = Math.round(match.start * width / protein.length);
+                    const w = Math.round((match.end - match.start) * width / protein.length);
+                    html += '<rect data-id="'+ index +'" class="match" x="'+ x +'" y="' + y + '" width="' + w + '" height="'+ matchHeight +'" rx="1" ry="1" style="fill: '+ match.db.color +'"/>';
+                    allMatches[index++] = match;
+                });
+
+                if (!i)
+                    html += '<text x="' + (width + 10) + '" y="'+ (y + matchHeight / 2) +'">Homologous superfamily</text>';
             });
 
-            html += '</div><svg width="' + svgWidth + '" height="30" version="1.1" baseProfile="full" xmlns="http://www.w3.org/2000/svg">';
-            html += initSvg(step, protein.length, width, 30);
-
-            let features = [];
-            superfamilies.forEach(entry => {
-                entry.methods.forEach(method => {
-                    method.matches.forEach(match => {
-                        features.push({
-                            id: entry.id,
-                            name: entry.name,
-                            db: method.db,
-                            match: match
-                        });
-                    });
-                })
-            });
-
-            sortFeatures(features).forEach(f => {
-                const x = Math.round(f.match.start * width / protein.length);
-                const w = Math.round((f.match.end - f.match.start) * width / protein.length);
-                html += '<rect data-id="'+ index +'" class="match" x="'+ x +'" y="5" width="' + w + '" height="10" rx="1" ry="1" style="fill: '+ f.db.color +'"/>';
-                allMatches[index++] = f;
-                //++index;
-            });
-
-            html += '<text x="' + (width + 10) + '" y="10">Homologous superfamily</text></svg>';
+            html += '</svg>';
         } else
             html = 'None.';
+
         div.innerHTML = html;
 
-        // Domain and repeats
+
+        // Domains/repeats
+        const domains = entries.filter(e => e.typeCode === 'D');
+        const repeats = entries.filter(e => e.typeCode === 'R');
+
         html = '';
         if (domains.length || repeats.length) {
-            html += '<div class="ui list">';
-            domains.forEach(e => {
-                html += '<div class="item"><div class="content"><span class="ui tiny type-D circular label">D</span>&nbsp;<a href="/entry/'+ e.id +'">'+ e.id +'</a>&nbsp;'+ e.name +'</div></div>';
+            const domainLines = determineLines(domains);
+            const repeatsLines = determineLines(repeats);
+            html += initSVG(domainLines.length + repeatsLines.length);
+
+            domainLines.forEach((line, i) => {
+                const y = paddingTop + i * matchHeight + (i - 1) * matchMarginBottom;
+
+                line.forEach(match => {
+                    const x = Math.round(match.start * width / protein.length);
+                    const w = Math.round((match.end - match.start) * width / protein.length);
+                    html += '<rect data-id="'+ index +'" class="match" x="'+ x +'" y="' + y + '" width="' + w + '" height="'+ matchHeight +'" rx="1" ry="1" style="fill: '+ match.db.color +'"/>';
+                    allMatches[index++] = match;
+                });
+
+                if (!i)
+                    html += '<text x="' + (width + 10) + '" y="'+ (y + matchHeight / 2) +'">Domain</text>';
             });
 
-            repeats.forEach(e => {
-                html += '<div class="item"><div class="content"><span class="ui tiny type-R circular label">R</span>&nbsp;<a href="/entry/'+ e.id +'">'+ e.id +'</a>&nbsp;'+ e.name +'</div></div>';
-            });
+            const offset = paddingTop + domainLines.length * (matchHeight + matchMarginBottom);
 
-            html += '</div><svg width="' + svgWidth + '" height="45" version="1.1" baseProfile="full" xmlns="http://www.w3.org/2000/svg">';
-            html += initSvg(step, protein.length, width, 45);
+            repeatsLines.forEach((line, i) => {
+                const y = offset + i * matchHeight + (i - 1) * matchMarginBottom;
 
-            let features = [];
-            domains.forEach(entry => {
-                entry.methods.forEach(method => {
-                    method.matches.forEach(match => {
-                        features.push({
-                            id: entry.id,
-                            name: entry.name,
-                            db: method.db,
-                            match: match
-                        });
-                    });
-                })
-            });
+                line.forEach(match => {
+                    const x = Math.round(match.start * width / protein.length);
+                    const w = Math.round((match.end - match.start) * width / protein.length);
+                    html += '<rect data-id="'+ index +'" class="match" x="'+ x +'" y="' + y + '" width="' + w + '" height="'+ matchHeight +'" rx="1" ry="1" style="fill: '+ match.db.color +'"/>';
+                    allMatches[index++] = match;
+                });
 
-            sortFeatures(features).forEach(f => {
-                const x = Math.round(f.match.start * width / protein.length);
-                const w = Math.round((f.match.end - f.match.start) * width / protein.length);
-                html += '<rect data-id="'+ index +'" class="match" x="'+ x +'" y="5" width="' + w + '" height="10" rx="1" ry="1" style="fill: '+ f.db.color +'"/>';
-                allMatches[index++] = f;
+                if (!i)
+                    html += '<text x="' + (width + 10) + '" y="'+ (y + matchHeight / 2) +'">Repeat</text>';
             });
-            html += '<text x="' + (width + 10) + '" y="10">Domain</text>';
-
-            features = [];
-            repeats.forEach(entry => {
-                entry.methods.forEach(method => {
-                    method.matches.forEach(match => {
-                        features.push({
-                            id: entry.id,
-                            name: entry.name,
-                            db: method.db,
-                            match: match
-                        });
-                    });
-                })
-            });
-
-            sortFeatures(features).forEach(f => {
-                const x = Math.round(f.match.start * width / protein.length);
-                const w = Math.round((f.match.end - f.match.start) * width / protein.length);
-                html += '<rect data-id="'+ index +'" class="match" x="'+ x +'" y="20" width="' + w + '" height="10" rx="1" ry="1" style="fill: '+ f.db.color +'"/>';
-                allMatches[index++] = f;
-            });
-            html += '<text x="' + (width + 10) + '" y="25">Repeat</text>';
         } else
             html = 'None.';
 
         document.querySelector('#domains-repeats + div').innerHTML = html;
 
         // Detailed signatures matches
+        const others = entries.filter(e => ['F', 'H', 'D', 'R'].indexOf(e.typeCode) === -1);
         html = '';
-        protein.entries.forEach(entry => {
-            if (entry.id)
-                html += '<h3 class="ui header"><span class="ui tiny type-'+ entry.typeCode +' circular label">'+ entry.typeCode +'</span>&nbsp;<a href="/entry/'+ entry.id +'">'+ entry.id +'</a><div class="sub header">'+ entry.name +'</div></h3>';
-            else
-                html += '<h3 class="ui header">Unintegrated</h3>';
-
-            const h = 5 + entry.methods.length * 15 + 10;
-            html += '<svg width="' + svgWidth + '" height="'+ h +'" version="1.1" baseProfile="full" xmlns="http://www.w3.org/2000/svg">';
-            html += initSvg(step, protein.length, width, h);
-
-            entry.methods.forEach((method, i) => {
-                const y = 5 + i * 15;
-                method.matches.forEach(match => {
-                    const x = Math.round(match.start * width / protein.length);
-                    const w = Math.round((match.end - match.start) * width / protein.length);
-                    html += '<rect  data-id="'+ index +'" class="match" x="'+ x +'" y="' + y + '" width="' + w + '" height="10" rx="1" ry="1" style="fill: '+ method.db.color +'"/>';
-                    allMatches[index++] = {
-                        id: method.id,
-                        name: method.name,
-                        db: method.db,
-                        match: match
-                    };
-                });
-
-                html += '<text x="' + (width + 10) + '" y="' + (y + 5) + '"><a href="/method/'+ method.id +'">'+ method.id +'</a></text>';
-            });
-
-            html += '</svg>';
+        superfamilies.sort(sortByLeftmostMatch).forEach(entry => {
+            html += renderEntryMatches(entry);
         });
+
+        families.sort(sortByLeftmostMatch).forEach(entry => {
+            html += renderEntryMatches(entry);
+        });
+
+        domains.sort(sortByLeftmostMatch).forEach(entry => {
+            html += renderEntryMatches(entry);
+        });
+
+        others
+            .sort((a, b) => {
+                if (a.typeCode === b.typeCode)
+                    return sortByLeftmostMatch(a, b);
+                else if (a.typeCode === null)
+                    return -1;
+                else
+                    return 1;
+            })
+            .forEach(entry => {
+                html += renderEntryMatches(entry);
+            });
 
         document.querySelector('#detailed + div').innerHTML = html;
 
         // Structural features and predictions
         if (protein.structures.length) {
+            // todo
             const structures = {};
-            let h = 15;
+            let nLines = 0;
 
             protein.structures.forEach(struct => {
                 const dbName = struct.db.name;
 
                 if (! structures.hasOwnProperty(dbName)) {
                     structures[dbName] = [];
-                    h += 15;
+                    nLines++;
                 }
 
                 structures[dbName].push(struct);
             });
 
-            html = '<svg width="' + svgWidth + '" height="'+ h +'" version="1.1" baseProfile="full" xmlns="http://www.w3.org/2000/svg">';
-            html += initSvg(step, protein.length, width, h);
+            html = initSVG(nLines);
 
             let i = 0;
             let dbName;
             for (dbName in structures) {
                 if (structures.hasOwnProperty(dbName)) {
-                    const y = 5 + i * 15;
+                    const y = paddingTop + i * matchHeight + (i - 1) * matchMarginBottom;
 
                     structures[dbName].forEach(struct => {
                         struct.matches.forEach(match => {
                             const x = Math.round(match.start * width / protein.length);
                             const w = Math.round((match.end - match.start) * width / protein.length);
-                            html += '<rect data-id="'+ index +'" class="match" x="'+ x +'" y="' + y + '" width="' + w + '" height="10" rx="1" ry="1" style="fill: '+ struct.db.color +'"/>';
+                            html += '<rect data-id="'+ index +'" class="match" x="'+ x +'" y="' + y + '" width="' + w + '" height="'+ matchHeight +'" rx="1" ry="1" style="fill: '+ struct.db.color +'"/>';
                             allMatches[index++] = {
-                                id: struct.id,
+                                start: match.start,
+                                end: match.end,
+                                id: [struct.id],
                                 name: null,
                                 db: struct.db,
-                                match: match
                             };
                         });
                     });
 
-
-                    html += '<text x="' + (width + 10) + '" y="' + (y + 5) + '"><a target="_blank" href="' + structures[dbName][0].db.home +'">'+ dbName +'&nbsp;<tspan>&#xf08e;</tspan></a></text>';
+                    html += '<text x="' + (width + 10) + '" y="'+ (y + matchHeight / 2) +'"><a target="_blank" href="' + structures[dbName][0].db.home +'">'+ dbName +'&nbsp;<tspan>&#xf08e;</tspan></a></text>';
                     ++i;
                 }
             }
@@ -663,9 +827,9 @@ function ProteinView() {
             element.addEventListener('mouseenter', e => {
                 const target = e.target;
                 const id = target.getAttribute('data-id');
-                const f = allMatches[id];
+                const m = allMatches[id];
 
-                self.tooltip.update(f.id, f.name, f.match.start, f.match.end, f.db.name, f.db.link);
+                self.tooltip.update(m.id, m.name, m.start, m.end, m.db.name, m.db.link);
                 self.tooltip.show(target.getBoundingClientRect());
             });
 
@@ -1835,7 +1999,7 @@ function ComparisonViews(methodsIds) {
                     '<td>'+ (method.isCandidate ? '&nbsp;<i class="checkmark box icon"></i>' : '') +'</td>';
 
                 const paddingLeft = 5;
-                const paddingRight = 20;
+                const paddingRight = 30;
                 const width = Math.floor(protein.length * (svgWidth - (paddingLeft + paddingRight)) / data.maxLength);
 
                 html += '<td><svg class="matches" width="' + svgWidth + '" height="30" version="1.1" baseProfile="full" xmlns="http://www.w3.org/2000/svg">' +
