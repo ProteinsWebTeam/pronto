@@ -2714,6 +2714,8 @@ function SearchView() {
             }
         });
 
+        setGlobalError(null);
+
         if (urls.length === 1) {
             // Auto-redirect
             history.pushState({}, '', urls);
@@ -2793,8 +2795,6 @@ function SearchView() {
 
         if (noDirectHit && !ebiSearch.hitCount)
             setGlobalError('Your search returned no matches.');
-        else
-            setGlobalError(null);
     }
 }
 
