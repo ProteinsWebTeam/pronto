@@ -1738,7 +1738,7 @@ function ComparisonViews(methodsIds) {
         $(dropdown).dropdown({
             onChange: function(value, text, $selectedItem) {
                 const baseUrl = getPathName(history.state.url);
-                const params = extendObj(getParams(history.state.url), {rank: value});
+                const params = extendObj(getParams(history.state.url), {topic: value});
                 history.pushState({}, '', baseUrl + encodeParams(params));
                 self.getSwissProtComments();
             }
