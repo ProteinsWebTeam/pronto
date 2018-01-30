@@ -2079,10 +2079,6 @@ def api_search():
         }
     })
 
-
-
-
-
     if s == 0:
         # No matches
         r['error'] = 'Your search returned no matches.'
