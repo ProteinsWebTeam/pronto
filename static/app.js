@@ -2684,7 +2684,6 @@ function SearchView() {
         getJSON('/api' + url, (data, status) => {
             history.replaceState({data: data, page: 'search', url: url}, '', url);
             this.render(data);
-            showDimmer(false);
         });
     };
 
@@ -2722,6 +2721,8 @@ function SearchView() {
             initApp();
             return;
         }
+
+        showDimmer(false);
 
         const noDirectHit = !html.length;
         message.querySelector('.list').innerHTML = html;
