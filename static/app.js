@@ -577,6 +577,16 @@ function ProteinView() {
         };
 
         const initSVG = function (nLines) {
+            // Create a dummy SVG to compute the length of a text element
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg.setAttribute('width', '100px');
+            svg.setAttribute('height', '100px');
+            svg.setAttribute('version', '1.1');
+            svg.innerHTML = '<g class="ticks"><text x="50" y="50">'+ protein.length.toLocaleString() +'</text></g>';
+            document.body.appendChild(svg);
+            const textLength = svg.querySelector('text').getComputedTextLength();
+            document.body.removeChild(svg);
+
             const rectHeight = paddingTop + paddingBottom + nLines * matchHeight + (nLines - 1) * matchMarginBottom;
             let content = '<svg width="' + svgWidth + '" height="'+ (rectHeight + 10) +'" version="1.1" baseProfile="full" xmlns="http://www.w3.org/2000/svg">';
             content += '<rect x="0" y="0" height="'+ rectHeight +'" width="'+ width +'" style="fill: #eee;"/>';
@@ -584,9 +594,14 @@ function ProteinView() {
 
             for (let pos = step; pos < protein.length; pos += step) {
                 const x = Math.round(pos * width / protein.length);
+
+                if (x + textLength / 2 >= width)
+                    break;
+
                 content += '<line x1="'+ x +'" y1="0" x2="'+ x +'" y2="' + rectHeight + '" />';
                 content += '<text x="' + x + '" y="'+ rectHeight +'">' + pos.toLocaleString() + '</text>';
             }
+
             content += '<line x1="'+ width +'" y1="0" x2="'+ width +'" y2="' + rectHeight + '" />';
             content += '<text x="' + width + '" y="'+ rectHeight +'">' + protein.length.toLocaleString() + '</text>';
             return content + '</g>';
