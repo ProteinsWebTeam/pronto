@@ -1471,6 +1471,17 @@ function ComparisonViews(methodsIds) {
             });
         });
 
+        Array.from(document.querySelectorAll('#matches input[type=radio]')).forEach(radio => {
+            radio.addEventListener('change', e => {
+                if (e.target.checked) {
+                    const baseUrl = getPathName(history.state.url);
+                    const params = extendObj(getParams(history.state.url), {db: e.target.value});
+                    history.pushState({}, '', baseUrl + encodeParams(params));
+                    self.getMatches();
+                }
+            });
+        });
+
         Array.from(document.querySelectorAll('#go input[type=checkbox][name=aspect]')).forEach((cbox, i, cboxes) => {
             cbox.addEventListener('change', e => {
                 const aspects = [];
@@ -2095,6 +2106,7 @@ function ComparisonViews(methodsIds) {
             });
         }
 
+        div.querySelector('input[type=radio][value="'+ nvl(data.database, '') +'"]').checked = true;
         setClass(div, 'hidden', false);
         showDimmer(false);
     };

@@ -1,11 +1,4 @@
 <div id="matches" class="ui basic compare hidden segment">
-    <div class="ui horizontal statistic">
-        <div class="value"></div>
-        <div class="label">
-            groups
-        </div>
-    </div>
-
     <div class="ui info icon message">
         <i class="info circle icon"></i>
         <div class="content">
@@ -14,6 +7,37 @@
                 <li>Candidate signatures are identified by a checked box icon (<i class="fitted checkmark box icon"></i>).</li>
                 <li>Hover the pointer over a match to display its start/end locations.</li>
             </ul>
+        </div>
+    </div>
+
+    <div class="ui horizontal statistic">
+        <div class="value"></div>
+        <div class="label">
+            groups
+        </div>
+    </div>
+
+    <div class="ui form">
+        <div class="inline fields">
+            <label>Source</label>
+            <div class="field">
+                <div class="ui radio checkbox">
+                    <input name="db" value="S" type="radio">
+                    <label>Swiss-Prot</label>
+                </div>
+            </div>
+            <div class="field">
+                <div class="ui radio checkbox">
+                    <input name="db" value="T" type="radio">
+                    <label>TrEMBL</label>
+                </div>
+            </div>
+            <div class="field">
+                <div class="ui radio checkbox">
+                    <input name="db" value="U" type="radio">
+                    <label>Any</label>
+                </div>
+            </div>
         </div>
     </div>
 

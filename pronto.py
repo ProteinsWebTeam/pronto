@@ -2677,6 +2677,7 @@ def api_methods_matches(methods):
         'proteins': proteins,
         'maxLength': max_len,
         'taxon': taxon,
+        'database': db,
         'pageInfo': {
             'page': page,
             'pageSize': page_size
