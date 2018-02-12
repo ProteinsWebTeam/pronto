@@ -43,8 +43,8 @@ def get_db_stats():
           SUM(CASE WHEN E2M.ENTRY_AC IS NOT NULL THEN 1 ELSE 0 END),
           SUM(CASE WHEN E2M.ENTRY_AC IS NULL THEN 1 ELSE 0 END)
         FROM INTERPRO.METHOD M
-        LEFT OUTER JOIN INTERPRO.DB_VERSION V ON M.DBCODE = V.DBCODE
-        LEFT OUTER JOIN INTERPRO.CV_DATABASE C ON V.DBCODE = C.DBCODE
+        LEFT OUTER JOIN {0}.DB_VERSION V ON M.DBCODE = V.DBCODE
+        LEFT OUTER JOIN {0}.CV_DATABASE C ON V.DBCODE = C.DBCODE
         LEFT OUTER JOIN INTERPRO.ENTRY2METHOD E2M ON E2M.METHOD_AC = M.METHOD_AC
         GROUP BY M.DBCODE
         ORDER BY DBNAME
@@ -571,7 +571,7 @@ def get_overlapping_entries(method):
         ) F
         LEFT OUTER JOIN {0}.PREDICTION P ON F.FEATURE_ID1 = P.FEATURE_ID1 AND F.FEATURE_ID2 = P.FEATURE_ID2
         LEFT OUTER JOIN INTERPRO.CURATED_RELATIONS R ON F.FEATURE_ID1 = R.FEATURE_ID1 AND F.FEATURE_ID2 = R.FEATURE_ID2
-        LEFT OUTER JOIN INTERPRO.CV_DATABASE CV ON F.DBCODE = CV.DBCODE
+        LEFT OUTER JOIN {0}.CV_DATABASE CV ON F.DBCODE = CV.DBCODE
         LEFT OUTER JOIN INTERPRO.ENTRY2METHOD E2M ON F.FEATURE_ID1 = E2M.METHOD_AC
         LEFT OUTER JOIN INTERPRO.ENTRY E ON E2M.ENTRY_AC = E.ENTRY_AC
         ORDER BY OS_CT_OVER DESC
@@ -987,10 +987,10 @@ def get_db_info(dbshort):
     cur.execute(
         """
         SELECT CV.DBNAME, CV.DBCODE, DB.VERSION
-        FROM INTERPRO.CV_DATABASE CV
+        FROM {}.CV_DATABASE CV
         INNER JOIN INTERPRO.DB_VERSION DB ON CV.DBCODE = DB.DBCODE
         WHERE LOWER(CV.DBSHORT) = :1
-        """,
+        """.format(app.config['DB_SCHEMA']),
         (dbshort.lower(),)
     )
 
@@ -1666,10 +1666,10 @@ def get_protein(protein_ac):
           P.TAX_ID,
           E.FULL_NAME,
           E.SCIENTIFIC_NAME
-        FROM INTERPRO.PROTEIN P
-        LEFT OUTER JOIN INTERPRO.ETAXI E ON P.TAX_ID = E.TAX_ID
+        FROM {0}.PROTEIN P
+        LEFT OUTER JOIN {0}.ETAXI E ON P.TAX_ID = E.TAX_ID
         WHERE PROTEIN_AC = :1
-        """,
+        """.format(app.config['DB_SCHEMA']),
         (protein_ac, )
     )
 
@@ -2027,7 +2027,10 @@ def api_search():
             methods_accs.append(row[0])
             continue
 
-        cur.execute('SELECT PROTEIN_AC from INTERPRO.PROTEIN WHERE PROTEIN_AC = :1', (term.upper(),))
+        cur.execute(
+            'SELECT PROTEIN_AC from {}.PROTEIN WHERE PROTEIN_AC = :1'.format(app.config['DB_SCHEMA']),
+            (term.upper(),)
+        )
         row = cur.fetchone()
         if row:
             proteins_accs.append(row[0])
