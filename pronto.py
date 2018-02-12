@@ -2742,7 +2742,7 @@ def api_methods_descriptions(methods):
     Protein descriptions
     Example:
     ---
-    /descriptions/PF00051/SSF47852?db=S
+    /methods/PF00051/PS50070/SM00130/descriptions/
     """
     try:
         db = request.args['db'].upper()
