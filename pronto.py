@@ -2594,7 +2594,7 @@ def api_methods_matches(methods):
     Overlap condensed proteins
     Example:
     ---
-    /matches/PF00051/PS50070/SM00130?page=1&page_size=5
+    /methods/PF00051/PS50070/SM00130/matches/?page=1&page_size=5
     """
     try:
         taxon_id = int(request.args['taxon'])
