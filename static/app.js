@@ -1212,7 +1212,7 @@ function MethodsSelectionView(root) {
             }
         });
 
-        Array.from(self.root.querySelectorAll('.links a:not([target="_blank"]')).forEach(element => {
+        Array.from(self.root.querySelectorAll('.links a:not([target="_blank"])')).forEach(element => {
             observeLink(element);
         });
     })();
