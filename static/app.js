@@ -1917,7 +1917,7 @@ function ComparisonViews(methodsIds) {
         //     });
         // });
 
-        div.querySelector('input[type=radio][value="'+ nvl(data.database, '') +'"]').checked = true;
+        div.querySelector('input[type=radio][value="'+ nvl(data.database, 'U') +'"]').checked = true;
         setClass(div, 'hidden', false);
     };
 
@@ -2144,7 +2144,8 @@ function ComparisonViews(methodsIds) {
             });
         }
 
-        div.querySelector('input[type=radio][value="'+ nvl(data.database, '') +'"]').checked = true;
+        console.log(data.database);
+        div.querySelector('input[type=radio][value="'+ nvl(data.database, 'U') +'"]').checked = true;
         setClass(div, 'hidden', false);
         showDimmer(false);
     };
