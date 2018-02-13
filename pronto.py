@@ -2450,6 +2450,64 @@ def api_method_references(method_ac, go_id):
     })
 
 
+@app.route('/api/method/<method_ac>/proteins/all/')
+def get_method_proteins(method_ac):
+    try:
+        db = request.args['db'].upper()
+    except KeyError:
+        db = None
+    else:
+        db = db if db in ('S', 'T') else None
+
+    cur = get_db().cursor()
+    cur.execute(
+        """
+        SELECT
+          P.PROTEIN_AC,
+          P.DBCODE,
+          P.LEN,
+          P.NAME,
+          P.TAX_ID,
+          E.FULL_NAME
+        FROM {0}.PROTEIN P
+        INNER JOIN {0}.FEATURE2PROTEIN F2P ON P.PROTEIN_AC = F2P.SEQ_ID AND F2P.FEATURE_ID = :1
+        INNER JOIN {0}.ETAXI E ON P.TAX_ID = E.TAX_ID
+        WHERE P.DBCODE = :2 OR :2 IS NULL
+        ORDER BY P.PROTEIN_AC
+        """.format(app.config['DB_SCHEMA']),
+        (method_ac, db)
+    )
+
+    proteins = []
+    for row in cur:
+        if row[1] == 'S':
+            url = 'http://sp.isb-sib.ch/uniprot/'
+        else:
+            url = 'http://www.uniprot.org/uniprot/'
+
+        proteins.append({
+            'id': row[0],
+            'link': url + row[0],
+            'isReviewed': row[1] == 'S',
+            'length': row[2],
+            'name': row[3],
+            'taxon': {'id': row[4], 'fullName': row[5]},
+            'matches': None
+        })
+
+    cur.close()
+    return jsonify({
+        'list': [p['id'] for p in proteins],
+        'results': proteins,
+        'maxLength': 0,
+        'count': len(proteins),
+        'pageInfo': {
+            'page': 1,
+            'pageSize': len(proteins)
+        }
+    })
+
+
 @app.route('/api/method/<method_ac>/proteins/')
 def api_method_proteins(method_ac):
     try:
@@ -2557,12 +2615,15 @@ def api_method_proteins(method_ac):
     for row in cur:
         protein_ac = row[0]
 
-        try:
-            proteins[protein_ac]
-        except KeyError:
+        if protein_ac not in proteins:
+            if row[1] == 'S':
+                url = 'http://sp.isb-sib.ch/uniprot/'
+            else:
+                url = 'http://www.uniprot.org/uniprot/'
+
             proteins[protein_ac] = {
                 'id': protein_ac,
-                'link': ('http://sp.isb-sib.ch/uniprot/' if row[1] == 'S' else 'http://www.uniprot.org/uniprot/') + protein_ac,
+                'link': url + protein_ac,
                 'isReviewed': row[1] == 'S',
                 'length': row[2],
                 'name': row[3],
@@ -2572,11 +2633,11 @@ def api_method_proteins(method_ac):
 
             if row[2] > max_length:
                 max_length = row[2]
-        finally:
-            proteins[protein_ac]['matches'].append({
-                'start': row[6],
-                'end': row[7]
-            })
+
+        proteins[protein_ac]['matches'].append({
+            'start': row[6],
+            'end': row[7]
+        })
 
     cur.close()
     return jsonify({

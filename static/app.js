@@ -267,7 +267,7 @@ function observeLink(element) {
 }
 
 function observeLinks(div, callback) {
-    const links = div.querySelectorAll('table a[data-method]');
+    const links = div.querySelectorAll('table td a[data-method]');
     for (let i = 0; i < links.length; ++i) {
         links[i].addEventListener('click', e => {
             e.preventDefault();
@@ -1358,19 +1358,22 @@ function ComparisonViews(methodsIds) {
                     const paddingRight = 20;
                     const width = Math.floor(protein.length * (svgWidth - (paddingLeft + paddingRight)) / data.maxLength);
 
-                    html += '<td><svg class="matches" width="' + svgWidth + '" height="30" version="1.1" baseProfile="full" xmlns="http://www.w3.org/2000/svg">' +
-                        '<line x1="' + paddingLeft + '" y1="20" x2="'+width+'" y2="20" />' +
-                        '<text x="'+ (paddingLeft + width + 2) +'" y="20">'+ protein.length +'</text>';
+                    if (protein.matches !== null) {
+                        html += '<td><svg class="matches" width="' + svgWidth + '" height="30" version="1.1" baseProfile="full" xmlns="http://www.w3.org/2000/svg">' +
+                            '<line x1="' + paddingLeft + '" y1="20" x2="'+width+'" y2="20" />' +
+                            '<text x="'+ (paddingLeft + width + 2) +'" y="20">'+ protein.length +'</text>';
 
-                    protein.matches.forEach(match => {
-                        const x = Math.round(match.start * width / protein.length) + paddingLeft;
-                        const w = Math.round((match.end - match.start) * width / protein.length);
-                        html += '<g><rect x="'+ x +'" y="15" width="'+ w +'" height="10" rx="1" ry="1" style="fill: #607D8B;"/>' +
-                            '<text x="'+ x +'" y="10">'+ match.start +'</text>' +
-                            '<text x="'+ (x + w) +'" y="10">'+ match.end +'</text></g>'
-                    });
+                        protein.matches.forEach(match => {
+                            const x = Math.round(match.start * width / protein.length) + paddingLeft;
+                            const w = Math.round((match.end - match.start) * width / protein.length);
+                            html += '<g><rect x="'+ x +'" y="15" width="'+ w +'" height="10" rx="1" ry="1" style="fill: #607D8B;"/>' +
+                                '<text x="'+ x +'" y="10">'+ match.start +'</text>' +
+                                '<text x="'+ (x + w) +'" y="10">'+ match.end +'</text></g>'
+                        });
 
-                    html += '</svg></tr>';
+                        html += '</svg></td></tr>';
+                    } else
+                        html += '<td></td></tr>';
                 });
 
                 this.modal.querySelector('tbody').innerHTML = html;
@@ -1445,7 +1448,7 @@ function ComparisonViews(methodsIds) {
 
                 // Reset copy button
                 const copyBtn = this.modal.querySelector('.actions button');
-                copyBtn.innerHTML = '<i class="copy icon"></i>&nbsp;Copy proteins';
+                copyBtn.innerHTML = '<i class="copy icon"></i>&nbsp;Copy to clipboard';
                 setClass(copyBtn, 'green', false);
                 setClass(copyBtn, 'red', false);
 
@@ -1823,7 +1826,7 @@ function ComparisonViews(methodsIds) {
         document.title = 'UniProt descriptions (' + this.methods.join(', ') + ') | Pronto';
 
         let html = '<thead><tr><th colspan="2">'+ data.results.length +' descriptions</th>';
-        this.methods.forEach(methodAc => { html += '<th>' + methodAc + '</th>'; });
+        this.methods.forEach(methodId => { html += '<th><a href="" data-method="'+ methodId +'">' + methodId + '</a></th>'; });
 
         html += '</thead><tbody>';
 
@@ -1836,7 +1839,7 @@ function ComparisonViews(methodsIds) {
                 if (desc.methods.hasOwnProperty(methodId)) {
                     const i = Math.floor(desc.methods[methodId] / desc.max * _colors.length);
                     const color = _colors[Math.min(i, _colors.length - 1)];
-                    html += '<td style="background-color: '+ color +'"><a href="#" data-method="'+ methodId +'">' + desc.methods[methodId] + '</a></td>';
+                    html += '<td style="background-color: '+ color +'"><a href="" data-method="'+ methodId +'">' + desc.methods[methodId] + '</a></td>';
                 } else
                     html += '<td></td>';
 
@@ -1853,31 +1856,66 @@ function ComparisonViews(methodsIds) {
             this.proteinList.open(methodId, search, header);
         });
 
-        Array.from(div.querySelectorAll('td:first-child a[data-id]')).forEach(element => {
+        Array.from(div.querySelectorAll('table th a[data-method]')).forEach(element => {
             element.addEventListener('click', e => {
                 e.preventDefault();
-                const descId = e.target.getAttribute('data-id');
-                const desc = e.target.closest('tr').getAttribute('data-filter');
-
-                showDimmer(true);
-                getJSON('/api/description/' + descId, (data, status) => {
-                    let html = '';
-
-                    data.results.forEach(protein => {
-                        html += '<tr><td><a href="/protein/'+ protein.id +'">'+ (protein.isReviewed ? '<i class="star icon"></i>&nbsp;' : '') + protein.id +'</a></td><td>'+ protein.shortName +'</td><td>'+ protein.organism +'</td></tr>';
-                    });
-
-                    const modal = document.getElementById('descriptions-modal');
-                    modal.querySelector('.header').innerHTML = data.count + ' proteins<div class="sub header">'+ desc +'</div>';
-                    modal.querySelector('tbody').innerHTML = html;
-                    $(modal).modal('show');
-
-                    showDimmer(false);
-
-                });
-
+                const methodId = e.target.getAttribute('data-method');
+                const header = '<em>' + methodId + '</em> proteins</div>';
+                this.proteinList.open(methodId, '/all?db=' + data.database, header);
             });
         });
+
+        // Array.from(div.querySelectorAll('td:first-child a[data-id]')).forEach(element => {
+        //     element.addEventListener('click', e => {
+        //         e.preventDefault();
+        //         const descId = e.target.getAttribute('data-id');
+        //         const desc = e.target.closest('tr').getAttribute('data-filter');
+        //
+        //         showDimmer(true);
+        //         getJSON('/api/description/' + descId, (data, status) => {
+        //             let html = '';
+        //
+        //             data.results.forEach(protein => {
+        //                 html += '<tr><td><a href="/protein/'+ protein.id +'">'+ (protein.isReviewed ? '<i class="star icon"></i>&nbsp;' : '') + protein.id +'</a></td><td>'+ protein.shortName +'</td><td>'+ protein.organism +'</td></tr>';
+        //             });
+        //
+        //             const modal = document.getElementById('descriptions-modal');
+        //             modal.querySelector('.header').innerHTML = data.count + ' proteins<div class="sub header">'+ desc +'</div>';
+        //             modal.querySelector('tbody').innerHTML = html;
+        //             $(modal).modal('show');
+        //
+        //             showDimmer(false);
+        //
+        //         });
+        //
+        //     });
+        // });
+
+        // Array.from(div.querySelectorAll('td:first-child a[data-id]')).forEach(element => {
+        //     element.addEventListener('click', e => {
+        //         e.preventDefault();
+        //         const descId = e.target.getAttribute('data-id');
+        //         const desc = e.target.closest('tr').getAttribute('data-filter');
+        //
+        //         showDimmer(true);
+        //         getJSON('/api/description/' + descId, (data, status) => {
+        //             let html = '';
+        //
+        //             data.results.forEach(protein => {
+        //                 html += '<tr><td><a href="/protein/'+ protein.id +'">'+ (protein.isReviewed ? '<i class="star icon"></i>&nbsp;' : '') + protein.id +'</a></td><td>'+ protein.shortName +'</td><td>'+ protein.organism +'</td></tr>';
+        //             });
+        //
+        //             const modal = document.getElementById('descriptions-modal');
+        //             modal.querySelector('.header').innerHTML = data.count + ' proteins<div class="sub header">'+ desc +'</div>';
+        //             modal.querySelector('tbody').innerHTML = html;
+        //             $(modal).modal('show');
+        //
+        //             showDimmer(false);
+        //
+        //         });
+        //
+        //     });
+        // });
 
         div.querySelector('input[type=radio][value="'+ nvl(data.database, '') +'"]').checked = true;
         setClass(div, 'hidden', false);
