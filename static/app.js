@@ -2144,7 +2144,6 @@ function ComparisonViews(methodsIds) {
             });
         }
 
-        console.log(data.database);
         div.querySelector('input[type=radio][value="'+ nvl(data.database, 'U') +'"]').checked = true;
         setClass(div, 'hidden', false);
         showDimmer(false);
