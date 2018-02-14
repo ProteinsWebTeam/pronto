@@ -2456,26 +2456,37 @@ def get_method_proteins(method_ac):
         db = request.args['db'].upper()
     except KeyError:
         db = None
+
+    if db in ('S', 'T'):
+        params = (method_ac, db)
+        db_cond = 'AND DB = :2'
     else:
-        db = db if db in ('S', 'T') else None
+        params = (method_ac,)
+        db_cond = ''
 
     cur = get_db().cursor()
     cur.execute(
         """
         SELECT
-          P.PROTEIN_AC,
+          F.SEQ_ID,
           P.DBCODE,
           P.LEN,
           P.NAME,
-          P.TAX_ID,
+          PI.DESCRIPTION,
+          E.TAX_ID,
           E.FULL_NAME
-        FROM {0}.PROTEIN P
-        INNER JOIN {0}.FEATURE2PROTEIN F2P ON P.PROTEIN_AC = F2P.SEQ_ID AND F2P.FEATURE_ID = :1
+        FROM (
+          SELECT SEQ_ID
+          FROM {0}.FEATURE2PROTEIN
+          WHERE FEATURE_ID = :1
+          {1}
+        ) F
+        INNER JOIN {0}.PROTEIN P ON F.SEQ_ID = P.PROTEIN_AC
+        INNER JOIN {0}.PROTEIN_INFO PI ON F.SEQ_ID = PI.PROTEIN_AC
         INNER JOIN {0}.ETAXI E ON P.TAX_ID = E.TAX_ID
-        WHERE P.DBCODE = :2 OR :2 IS NULL
-        ORDER BY P.PROTEIN_AC
-        """.format(app.config['DB_SCHEMA']),
-        (method_ac, db)
+        ORDER BY F.SEQ_ID
+        """.format(app.config['DB_SCHEMA'], db_cond),
+        params
     )
 
     proteins = []
@@ -2490,8 +2501,9 @@ def get_method_proteins(method_ac):
             'link': url + row[0],
             'isReviewed': row[1] == 'S',
             'length': row[2],
-            'name': row[3],
-            'taxon': {'id': row[4], 'fullName': row[5]},
+            'shortName': row[3],
+            'name': row[4],
+            'taxon': {'id': row[5], 'fullName': row[6]},
             'matches': None
         })
 
@@ -2587,7 +2599,7 @@ def api_method_proteins(method_ac):
 
     cur.execute(
         """
-        SELECT P.PROTEIN_AC, P.DBCODE, P.LEN, PI.DESCRIPTION, E.TAX_ID, E.FULL_NAME, MS.POS_FROM, MS.POS_TO
+        SELECT P.PROTEIN_AC, P.DBCODE, P.LEN, P.NAME, PI.DESCRIPTION, E.TAX_ID, E.FULL_NAME, MS.POS_FROM, MS.POS_TO
         FROM {0}.PROTEIN P
         INNER JOIN (
             SELECT *
@@ -2626,8 +2638,9 @@ def api_method_proteins(method_ac):
                 'link': url + protein_ac,
                 'isReviewed': row[1] == 'S',
                 'length': row[2],
-                'name': row[3],
-                'taxon': {'id': row[4], 'fullName': row[5]},
+                'shortName': row[3],
+                'name': row[4],
+                'taxon': {'id': row[5], 'fullName': row[6]},
                 'matches': []
             }
 
@@ -2635,8 +2648,8 @@ def api_method_proteins(method_ac):
                 max_length = row[2]
 
         proteins[protein_ac]['matches'].append({
-            'start': row[6],
-            'end': row[7]
+            'start': row[7],
+            'end': row[8]
         })
 
     cur.close()

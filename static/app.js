@@ -1352,7 +1352,7 @@ function ComparisonViews(methodsIds) {
                     else
                         html += '<tr><td><a target="_blank" href="'+ protein.link +'">'+ protein.id +'</a></td>';
 
-                    html += '<td>'+ protein.name +'</td><td>'+ protein.taxon.fullName +'</td>';
+                    html += '<td>'+ protein.shortName +'</td><td>'+ protein.name +'</td><td>'+ protein.taxon.fullName +'</td>';
 
                     const paddingLeft = 5;
                     const paddingRight = 20;
