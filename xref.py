@@ -279,7 +279,7 @@ def find_xref(dbcode):
         'CAZY': 'http://www.cazy.org/fam/{}.html',
         'COG': 'http://www.ncbi.nlm.nih.gov/COG/new/release/cow.cgi?cog={}',
         'EC': 'http://www.ebi.ac.uk/intenz/query?cmd=SearchEC&ec={}',
-        'GENE3D': 'http://www.cathdb.info/superfamily/{}',
+        'CATHGENE3D': 'http://www.cathdb.info/superfamily/{}',
         'GENPROP': 'http://cmr.jcvi.org/cgi-bin/CMR/shared/GenomePropDefinition.cgi?prop_acc={}',
         'INTERPRO': '/entry/{}',
         'PDBE': 'http://www.ebi.ac.uk/pdbe/entry/pdb/{}',
