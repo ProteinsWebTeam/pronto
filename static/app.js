@@ -2696,7 +2696,7 @@ function IndexView() {
                     '<tr>',
                     '<td><a href="'+ db.home +'" target="_blank">'+ db.name +'&nbsp;'+ db.version +'&nbsp;<i class="external icon"></i></a></td>',
                     '<td><a href="/db/'+ db.shortName +'">'+ db.count.toLocaleString() +'</a></td>',
-                    '<td>'+ db.countIntegrated +'</td>',
+                    '<td>'+ db.countIntegrated.toLocaleString() +'</td>',
                     '<td><a href="/db/'+ db.shortName +'?unintegrated=exist">'+ db.countUnintegrated.toLocaleString() +'</a></td>',
                     '</tr>'
                 ].join('')
