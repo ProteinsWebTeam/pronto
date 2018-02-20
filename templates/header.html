@@ -24,6 +24,10 @@
             </div>
         </div>
 
+        <div class="item">
+            <i class="database icon"></i>  {{ schema.lower() }}
+        </div>
+
         <div class="right menu">
             {% if user %}
                 <div class="item">{{ user['name'] }}</div>

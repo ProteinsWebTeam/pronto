@@ -1915,7 +1915,7 @@ def login_required(f):
 @app.route('/')
 def index():
     """Home page."""
-    return render_template('main.html', user=get_user())
+    return render_template('main.html', user=get_user(), schema=app.config['DB_SCHEMA'])
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -1953,22 +1953,22 @@ def log_out():
 
 @app.route('/db/<dbshort>/')
 def view_db(dbshort):
-    return render_template('main.html', user=get_user())
+    return render_template('main.html', user=get_user(), schema=app.config['DB_SCHEMA'])
 
 
 @app.route('/entry/<entry_ac>/')
 def view_entry(entry_ac):
-    return render_template('main.html', user=get_user())
+    return render_template('main.html', user=get_user(), schema=app.config['DB_SCHEMA'])
 
 
 @app.route('/protein/<protein_ac>/')
 def view_protein(protein_ac):
-    return render_template('main.html', user=get_user())
+    return render_template('main.html', user=get_user(), schema=app.config['DB_SCHEMA'])
 
 
 @app.route('/method/<method_ac>/')
 def view_method(method_ac):
-    return render_template('main.html', user=get_user())
+    return render_template('main.html', user=get_user(), schema=app.config['DB_SCHEMA'])
 
 
 @app.route('/methods/<path:methods>/matches/')
@@ -1978,12 +1978,12 @@ def view_method(method_ac):
 @app.route('/methods/<path:methods>/go/')
 @app.route('/methods/<path:methods>/matrices/')
 def view_compare(methods):
-    return render_template('main.html', user=get_user(), topics=get_topics())
+    return render_template('main.html', user=get_user(), topics=get_topics(), schema=app.config['DB_SCHEMA'])
 
 
 @app.route('/search/')
 def view_search():
-    return render_template('main.html', user=get_user())
+    return render_template('main.html', user=get_user(), schema=app.config['DB_SCHEMA'])
 
 
 @app.route('/api/search/')
