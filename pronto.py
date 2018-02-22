@@ -2070,7 +2070,6 @@ def api_search():
                     'name': names[entry_ac][0],
                     'type': names[entry_ac][1]
                 } for entry_ac in hits if entry_ac in names]
-        hit_count = len(hits)
 
     cur.close()
 
