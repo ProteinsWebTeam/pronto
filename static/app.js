@@ -766,6 +766,10 @@ function ProteinView() {
             html += renderEntryMatches(entry);
         });
 
+        repeats.sort(sortByLeftmostMatch).forEach(entry => {
+            html += renderEntryMatches(entry);
+        });
+
         others
             .sort((a, b) => {
                 if (a.typeCode === b.typeCode)
