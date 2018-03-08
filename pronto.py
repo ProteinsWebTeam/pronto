@@ -2921,96 +2921,96 @@ def has_overlaping_matches(matches1, matches2, min_overlap=0.5):
     return False
 
 
-@app.route('/api/methods/<method_ac1>/<method_ac2>/overlap/')
-def api_methods_overlap(method_ac1, method_ac2):
-    cur = get_db().cursor()
-
-    try:
-        page = int(request.args['page'])
-    except (KeyError, ValueError):
-        page = 1
-    else:
-        if page < 1:
-            page = 1
-
-    try:
-        page_size = int(request.args['pageSize'])
-    except (KeyError, ValueError):
-        page_size = 10
-    else:
-        if page_size < 1:
-            page_size = 10
-
-    cur.execute(
-        """
-        SELECT SEQ_ID, FEATURE_ID, POS_FROM, POS_TO
-        FROM {0}.MATCH_SUMMARY
-        WHERE FEATURE_ID = :1 OR FEATURE_ID = :2
-         """.format(app.config['DB_SCHEMA']),
-        (method_ac1, method_ac2)
-    )
-
-    proteins = {}
-    for protein_ac, method_ac, start, end in cur:
-        try:
-            proteins[protein_ac]
-        except KeyError:
-            proteins[protein_ac] = {
-                'id': protein_ac,
-                'methods': {
-                    method_ac1: [],
-                    method_ac2: []
-                }
-            }
-        finally:
-            proteins[protein_ac]['methods'][method_ac].append((start, end))
-
-    overlapping = []
-    for protein_ac in sorted(proteins):
-        p = proteins[protein_ac]
-        matches1 = p['methods'][method_ac1]
-        matches2 = p['methods'][method_ac2]
-
-        if has_overlaping_matches(matches1, matches2, min_overlap=0.5):
-            overlapping.append(p)
-
-    count = len(overlapping)
-    overlapping = overlapping[(page-1)*page_size:page*page_size]
-
-    if count:
-        cur.execute(
-            """
-            SELECT PROTEIN_AC, NAME, LEN, DBCODE
-            FROM {0}.PROTEIN
-            WHERE PROTEIN_AC IN ({1})
-            """.format(
-                app.config['DB_SCHEMA'],
-                ','.join([':' + str(i+1) for i in range(len(overlapping))])
-            ),
-            [p['id'] for p in overlapping]
-        )
-
-        info = {}
-        for row in cur:
-            info[row[0]] = {
-                'name': row[1],
-                'length': row[2],
-                'isReviewed': row[3] == 'S'
-            }
-
-        for p in overlapping:
-            p.update(info[p['id']])
-
-    cur.close()
-
-    return jsonify({
-        'count': count,
-        'results': overlapping,
-        'pageInfo': {
-            'page': page,
-            'pageSize': page_size
-        }
-    })
+# @app.route('/api/methods/<method_ac1>/<method_ac2>/overlap/')
+# def api_methods_overlap(method_ac1, method_ac2):
+#     cur = get_db().cursor()
+#
+#     try:
+#         page = int(request.args['page'])
+#     except (KeyError, ValueError):
+#         page = 1
+#     else:
+#         if page < 1:
+#             page = 1
+#
+#     try:
+#         page_size = int(request.args['pageSize'])
+#     except (KeyError, ValueError):
+#         page_size = 10
+#     else:
+#         if page_size < 1:
+#             page_size = 10
+#
+#     cur.execute(
+#         """
+#         SELECT SEQ_ID, FEATURE_ID, POS_FROM, POS_TO
+#         FROM {0}.MATCH_SUMMARY
+#         WHERE FEATURE_ID = :1 OR FEATURE_ID = :2
+#          """.format(app.config['DB_SCHEMA']),
+#         (method_ac1, method_ac2)
+#     )
+#
+#     proteins = {}
+#     for protein_ac, method_ac, start, end in cur:
+#         try:
+#             proteins[protein_ac]
+#         except KeyError:
+#             proteins[protein_ac] = {
+#                 'id': protein_ac,
+#                 'methods': {
+#                     method_ac1: [],
+#                     method_ac2: []
+#                 }
+#             }
+#         finally:
+#             proteins[protein_ac]['methods'][method_ac].append((start, end))
+#
+#     overlapping = []
+#     for protein_ac in sorted(proteins):
+#         p = proteins[protein_ac]
+#         matches1 = p['methods'][method_ac1]
+#         matches2 = p['methods'][method_ac2]
+#
+#         if has_overlaping_matches(matches1, matches2, min_overlap=0.5):
+#             overlapping.append(p)
+#
+#     count = len(overlapping)
+#     overlapping = overlapping[(page-1)*page_size:page*page_size]
+#
+#     if count:
+#         cur.execute(
+#             """
+#             SELECT PROTEIN_AC, NAME, LEN, DBCODE
+#             FROM {0}.PROTEIN
+#             WHERE PROTEIN_AC IN ({1})
+#             """.format(
+#                 app.config['DB_SCHEMA'],
+#                 ','.join([':' + str(i+1) for i in range(len(overlapping))])
+#             ),
+#             [p['id'] for p in overlapping]
+#         )
+#
+#         info = {}
+#         for row in cur:
+#             info[row[0]] = {
+#                 'name': row[1],
+#                 'length': row[2],
+#                 'isReviewed': row[3] == 'S'
+#             }
+#
+#         for p in overlapping:
+#             p.update(info[p['id']])
+#
+#     cur.close()
+#
+#     return jsonify({
+#         'count': count,
+#         'results': overlapping,
+#         'pageInfo': {
+#             'page': page,
+#             'pageSize': page_size
+#         }
+#     })
 
 
 @app.route('/api/description/<int:desc_id>/')
