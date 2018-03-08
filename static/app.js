@@ -329,10 +329,10 @@ function ProteinView() {
         update: function (id, name, start, end, dbName, link) {
             let content = '<div class="header">' + start.toLocaleString() + ' - ' + end.toLocaleString() +'</div><div class="meta">' + nvl(name, '') + '</div>';
 
-            if (id[0].indexOf('IPR') === 0)  // todo show hierarchy
-                content += '<div class="description"><a href="/entry/'+ id[0] +'">'+ id[0] +'</a></div>';
-            else
+            if (id[0] === null || id[0].indexOf('IPR'))
                 content += '<div class="description"><strong>'+ dbName +'</strong>&nbsp;<a target="_blank" href="'+ link +'">'+ id +'&nbsp;<i class="external icon"></i></div>';
+            else // todo show hierarchy
+                content += '<div class="description"><a href="/entry/'+ id[0] +'">'+ id[0] +'</a></div>';
 
             this.element.querySelector('.content').innerHTML = content;
         },
