@@ -17,6 +17,11 @@ app.config.from_envvar('PRONTO_CONFIG')
 app.permanent_session_lifetime = timedelta(days=7)
 
 
+# TODO: do not hardcode INTERPRO schema, but use synonyms (e.g. MV_ENTRY2PROTEIN is not a synonym yet)
+# todo: let html = '<h5 class="ui header">Proteins</h5> -> h4
+# todo: refactoring: do not use functions if only called once
+
+
 def get_db_stats():
     """
     Retrieves the number of signatures (all, integrated into InterPro, and unintegrated) for each member database.
@@ -30,22 +35,20 @@ def get_db_stats():
     ## LEFT OUTER JOIN {}.FEATURE_SUMMARY FS ON M.METHOD_AC = FS.FEATURE_ID
     # that can be used to get the number of methods without matches:
     ## sum(case when m.method_ac is not null and feature_id is null then 1 else 0 end) nomatch,
-
     cur = get_db().cursor()
     cur.execute(
         """
         SELECT
           M.DBCODE,
-          MIN(C.DBNAME) DBNAME,
-          MIN(C.DBSHORT),
-          MIN(V.VERSION),
+          MIN(DB.DBNAME) DBNAME,
+          MIN(DB.DBSHORT),
+          MIN(DB.VERSION),
           COUNT(M.METHOD_AC),
           SUM(CASE WHEN E2M.ENTRY_AC IS NOT NULL THEN 1 ELSE 0 END),
           SUM(CASE WHEN E2M.ENTRY_AC IS NULL THEN 1 ELSE 0 END)
         FROM INTERPRO.METHOD M
-        LEFT OUTER JOIN {0}.DB_VERSION V ON M.DBCODE = V.DBCODE
-        LEFT OUTER JOIN {0}.CV_DATABASE C ON V.DBCODE = C.DBCODE
-        LEFT OUTER JOIN INTERPRO.ENTRY2METHOD E2M ON E2M.METHOD_AC = M.METHOD_AC
+        LEFT OUTER JOIN {}.CV_DATABASE DB ON M.DBCODE = DB.DBCODE
+        LEFT OUTER JOIN INTERPRO.ENTRY2METHOD E2M ON M.METHOD_AC = E2M.METHOD_AC
         GROUP BY M.DBCODE
         ORDER BY DBNAME
         """.format(app.config['DB_SCHEMA'])
@@ -112,7 +115,7 @@ def get_topic(topic_id):
     cur.execute(
         """
         SELECT TOPIC
-        FROM {}.PROTEIN_COMMENT_TOPIC
+        FROM {}.CV_COMMENT_TOPIC
         WHERE TOPIC_ID = :1
         """.format(app.config['DB_SCHEMA']),
         (topic_id,))
@@ -144,8 +147,7 @@ def get_topics():
     cur.execute(
         """
         SELECT TOPIC_ID, TOPIC
-        FROM {}.PROTEIN_COMMENT_TOPIC
-        WHERE TOPIC_ID != 0
+        FROM {}.CV_COMMENT_TOPIC
         ORDER BY TOPIC
         """.format(app.config['DB_SCHEMA'])
     )
@@ -157,6 +159,7 @@ def get_topics():
 
 
 def build_method2protein_sql(methods, **kwargs):
+    # TODO
     taxon = kwargs.get('taxon')
     db = kwargs.get('db')
     desc_id = kwargs.get('description')
@@ -326,6 +329,7 @@ def get_overlapping_proteins(methods, **kwargs):
     """
     Returns the protein matched by one or more signatures.
     """
+    # TODO
     page = kwargs.get('page', 1)
     page_size = kwargs.get('page_size', 10)
 
@@ -503,78 +507,52 @@ def get_overlapping_entries(method):
      Returns the overlapping entries for a given signature.
     """
     cur = get_db().cursor()
-
-    """
-    Signature predictions
-
-    Two following join were removed:
-        LEFT JOIN INTERPRO_ANALYSIS.EXTRA_RELATIONS EXC ON EXC.FEATURE_ID1=FSC.FEATURE_ID AND EXC.FEATURE_ID2=FSQ.FEATURE_ID
-        LEFT JOIN INTERPRO_ANALYSIS.EXTRA_RELATIONS EXQ ON EXQ.FEATURE_ID1=FSQ.FEATURE_ID AND EXQ.FEATURE_ID2=FSC.FEATURE_ID
-
-        Which allowed to select:
-            EXC.EXTRA1      number of signatures that the candidate has a relationship with, but the query does not have
-            EXQ.EXTRA1      number of signatures that the query has a relationship with, but the candidate does not have
-
-        LEFT OUTER JOIN INTERPRO_ANALYSIS.ADJACENT_RELATIONS ADJC ON ADJC.FEATURE_ID2=FSC.FEATURE_ID AND ADJC.FEATURE_ID1=FSQ.FEATURE_ID
-        LEFT OUTER JOIN INTERPRO_ANALYSIS.ADJACENT_RELATIONS ADJQ ON ADJQ.FEATURE_ID2=FSQ.FEATURE_ID AND ADJQ.FEATURE_ID1=FSC.FEATURE_ID
-
-        Which allowed to select:
-            ADJC.ADJ2       number of signatures adjacent to the candidate which overlap with the query
-            ADJQ.ADJ2       number of signatures adjacent to the query which overlap with the candidate
-    """
     cur.execute(
         """
         SELECT
-          F.FEATURE_ID1,
-          F.DBCODE,
-          CV.DBSHORT,
+          MO.C_AC,
+          DB.DBCODE,
+          DB.DBSHORT,
 
           E.ENTRY_AC,
           E.CHECKED,
           E.ENTRY_TYPE,
           E.NAME,
 
-          FSC_CT_PROT,
-          FSC_N_BLOB,
+          MO.C_N_PROT,
+          MO.C_N_MATCHES,
 
-          OS_CT_OVER,
-          OS_N_OVER,
-          FSQ_CT_PROT,
-          FSQ_N_BLOB,
+          MO.N_PROT_OVER,
+          MO.N_OVER,
+          MO.Q_N_PROT,
+          MO.Q_N_MATCHES,
 
-          F.LEN1,
-          F.LEN2,
-
-          P.RELATION,
-          R.RELATION CURATED_RELATION
+          MP.RELATION
         FROM (
             SELECT
-                FSC.FEATURE_ID FEATURE_ID1,
-                FSQ.FEATURE_ID FEATURE_ID2,
-                FSC.DBCODE,
-                FSC.CT_PROT FSC_CT_PROT,
-                FSC.N_BLOB FSC_N_BLOB,
-                OS.CT_OVER OS_CT_OVER,
-                OS.N_OVER OS_N_OVER,
-                FSQ.CT_PROT FSQ_CT_PROT,
-                FSQ.N_BLOB FSQ_N_BLOB,
-                OS.LEN1,
-                OS.LEN2
+                MMC.METHOD_AC C_AC,
+                MMC.N_PROT C_N_PROT,
+                MMC.N_MATCHES C_N_MATCHES,
+                MMQ.METHOD_AC Q_AC,
+                MMQ.N_PROT Q_N_PROT,
+                MMQ.N_MATCHES Q_N_MATCHES,
+                MO.N_PROT_OVER,
+                MO.N_OVER
             FROM (
-                SELECT FEATURE_ID1, FEATURE_ID2, CT_OVER, N_OVER, LEN1, LEN2
-                FROM {0}.OVERLAP_SUMMARY
-                WHERE FEATURE_ID2 = :1
-            ) OS
-            INNER JOIN {0}.FEATURE_SUMMARY FSC ON OS.FEATURE_ID1 = FSC.FEATURE_ID
-            INNER JOIN {0}.FEATURE_SUMMARY FSQ ON OS.FEATURE_ID2 = FSQ.FEATURE_ID
-            WHERE ((OS.CT_OVER >= (0.3 * FSC.CT_PROT)) OR (OS.CT_OVER >= (0.3 * FSQ.CT_PROT)))
-        ) F
-        LEFT OUTER JOIN {0}.PREDICTION P ON F.FEATURE_ID1 = P.FEATURE_ID1 AND F.FEATURE_ID2 = P.FEATURE_ID2
-        LEFT OUTER JOIN INTERPRO.CURATED_RELATIONS R ON F.FEATURE_ID1 = R.FEATURE_ID1 AND F.FEATURE_ID2 = R.FEATURE_ID2
-        LEFT OUTER JOIN {0}.CV_DATABASE CV ON F.DBCODE = CV.DBCODE
-        LEFT OUTER JOIN INTERPRO.ENTRY2METHOD E2M ON F.FEATURE_ID1 = E2M.METHOD_AC
-        LEFT OUTER JOIN INTERPRO.ENTRY E ON E2M.ENTRY_AC = E.ENTRY_AC
-        ORDER BY OS_CT_OVER DESC
+                SELECT METHOD_AC1, METHOD_AC2, N_PROT_OVER, N_OVER, AVG_FRAC1, AVG_FRAC2
+                FROM {0}.METHOD_OVERLAP
+                WHERE METHOD_AC2 = :1
+            ) MO
+            INNER JOIN {0}.METHOD_MATCH MMC ON MO.METHOD_AC1 = MMC.METHOD_AC
+            INNER JOIN {0}.METHOD_MATCH MMQ ON MO.METHOD_AC2 = MMQ.METHOD_AC
+            WHERE ((MO.N_PROT_OVER >= (0.3 * MMC.N_PROT)) OR (MO.N_PROT_OVER >= (0.3 * MMQ.N_PROT)))
+        ) MO
+        LEFT OUTER JOIN {0}.METHOD_PREDICTION MP ON MO.C_AC = MP.METHOD_AC1 AND MO.Q_AC = MP.METHOD_AC2
+        LEFT OUTER JOIN {0}.METHOD M ON MO.C_AC = M.METHOD_AC
+        LEFT OUTER JOIN {0}.CV_DATABASE DB ON M.DBCODE = DB.DBCODE
+        LEFT OUTER JOIN {0}.ENTRY2METHOD E2M ON MO.C_AC = E2M.METHOD_AC
+        LEFT OUTER JOIN {0}.ENTRY E ON E2M.ENTRY_AC = E.ENTRY_AC
+        ORDER BY MO.N_PROT_OVER DESC, MO.N_OVER DESC, MO.C_AC
         """.format(app.config['DB_SCHEMA']),
         (method,)
     )
@@ -597,6 +575,7 @@ def get_overlapping_entries(method):
             'entryType': row[5],
             'entryName': row[6],
 
+            # TODO: FIX comments and rename attrs (nProts should be nProtsCand, etc.) and propagate to client
             'nProts': row[7],           # number of proteins where both query and candidate signatures overlap
             'nBlobs': row[8],           # number of overlapping blobs with query and candidate signature
 
@@ -605,18 +584,14 @@ def get_overlapping_entries(method):
             'nProtsQuery': row[11],     # number of proteins in the query signature found
             'nBlobsQuery': row[12],
 
-            'lenCand': row[13],         # average percentage of the overlap length as a fraction of the candidate blob length
-            'lenQuery': row[14],        # average percentage of the overlap length as a fraction of the query blob length
-
-            'relation': row[15],        # predicted relationship
-            'curatedRelation': row[16]  # existing curated relationship
+            'relation': row[13]        # predicted relationship
         })
 
     cur.execute(
         """
         SELECT ENTRY_AC, PARENT_AC
-        FROM INTERPRO.ENTRY2ENTRY
-        """,
+        FROM {}.ENTRY2ENTRY
+        """.format(app.config['DB_SCHEMA'])
     )
 
     parent_of = dict(cur.fetchall())
@@ -641,7 +616,6 @@ def get_taxonomy(methods, taxon, rank):
     """
     Returns the taxonomic origins of one or more signatures.
     """
-
     cur = get_db().cursor()
 
     fmt = ','.join([':meth' + str(i) for i in range(len(methods))])
@@ -650,9 +624,9 @@ def get_taxonomy(methods, taxon, rank):
     max_cnt = 0
     cur.execute(
         """
-        SELECT MAX(CT_PROT)
-        FROM {}.FEATURE_SUMMARY
-        WHERE FEATURE_ID in ({})
+        SELECT MAX(N_PROT)
+        FROM {}.METHOD_MATCH
+        WHERE METHOD_AC in ({})
         """.format(app.config['DB_SCHEMA'], fmt),
         params
     )
@@ -664,44 +638,53 @@ def get_taxonomy(methods, taxon, rank):
     params['right_number'] = taxon['rightNumber']
     params['rank'] = rank
 
+    """
+    TODO:
+    Some signatures can match proteins of organisms that do not have a taxon:
+        to get those, use a LEFT JOIN instead of INNER JOIN
+    """
     cur.execute(
         """
-        SELECT E.TAX_ID, MIN(E.FULL_NAME), F.FEATURE_ID, SUM(F.CNT)
+        SELECT E.TAX_ID, MIN(E.FULL_NAME), M.METHOD_AC, SUM(M.N_PROT)
         FROM (
-          SELECT FEATURE_ID, LEFT_NUMBER, COUNT(SEQ_ID) CNT
-          FROM {0}.FEATURE2PROTEIN
-          WHERE FEATURE_ID IN ({1}) AND LEFT_NUMBER BETWEEN :left_number AND :right_number
-          GROUP BY FEATURE_ID, LEFT_NUMBER
-        ) F
+          SELECT METHOD_AC, LEFT_NUMBER, COUNT(PROTEIN_AC) N_PROT
+          FROM {0}.METHOD2PROTEIN
+          WHERE METHOD_AC IN ({1}) AND LEFT_NUMBER BETWEEN :left_number AND :right_number
+          GROUP BY METHOD_AC, LEFT_NUMBER
+        ) M
         INNER JOIN (
           SELECT TAX_ID, LEFT_NUMBER
-          FROM {0}.TAXONOMY_RANK
-          WHERE LEFT_NUMBER BETWEEN :left_number AND :right_number
-          AND RANK = :rank
-        ) T
-        ON F.LEFT_NUMBER = T.LEFT_NUMBER
-        INNER JOIN {0}.ETAXI E ON T.TAX_ID = E.TAX_ID
-        GROUP BY FEATURE_ID, E.TAX_ID
+          FROM {0}.LINEAGE
+            WHERE LEFT_NUMBER BETWEEN :left_number AND :right_number
+            AND RANK = :rank
+        ) L
+        ON M.LEFT_NUMBER = L.LEFT_NUMBER
+        INNER JOIN {0}.ETAXI E ON L.TAX_ID = E.TAX_ID
+        GROUP BY M.METHOD_AC, E.TAX_ID
         """.format(app.config['DB_SCHEMA'], fmt),
         params
     )
 
     taxons = {}
     for tax_id, full_name, method_ac, count in cur:
-        try:
-            taxons[tax_id]
-        except KeyError:
-            taxons[tax_id] = {
+        if tax_id in taxons:
+            t = taxons[tax_id]
+        else:
+            t = taxons[tax_id] = {
                 'id': tax_id,
-                'fullName': full_name,
+                'fullName': full_name if full_name else 'Others',
                 'methods': {}
             }
-        finally:
-            taxons[tax_id]['methods'][method_ac] = count
+
+        t['methods'][method_ac] = count
 
     cur.close()
 
-    return sorted(taxons.values(), key=lambda x: -sum(x['methods'].values())), max_cnt
+    taxons = sorted(taxons.values(), key=lambda x: -sum(x['methods'].values()))
+    # TODO: Sort taxons by number of proteins (except for "Others", placed at the end)
+    #taxons = sorted(taxons.values(), key=lambda x: (0 if x['id'] else 1, -sum(x['methods'].values())))
+
+    return taxons, max_cnt
 
 
 def get_descriptions(methods, db=None):
@@ -716,25 +699,27 @@ def get_descriptions(methods, db=None):
 
     cur.execute(
         """
-        SELECT F.DESCRIPTION_ID, D.DESCRIPTION, FEATURE_ID, CT, CTMAX
+        SELECT
+          D.DESC_ID, D.TEXT, M.METHOD_AC, M.CT, M.CTMAX
         FROM (
-          SELECT
-            FEATURE_ID,
-            DESCRIPTION_ID,
-            MAX(CT) CT,
-            MAX(CTMAX) CTMAX
-          FROM (
-            SELECT
-              FEATURE_ID,
-              DESCRIPTION_ID,
-              COUNT(*) OVER (PARTITION BY DESCRIPTION_ID, FEATURE_ID) CT ,
-              COUNT(DISTINCT SEQ_ID) OVER (PARTITION BY DESCRIPTION_ID) CTMAX
-            FROM {0}.FEATURE2PROTEIN
-            WHERE FEATURE_ID IN ({1}) AND (DB = :db OR :db IS NULL)
-          )
-          GROUP BY DESCRIPTION_ID, FEATURE_ID
-        ) F
-        INNER JOIN {0}.PROTEIN_DESCRIPTION_VALUE D ON F.DESCRIPTION_ID = D.DESCRIPTION_ID
+               SELECT
+                 METHOD_AC,
+                 DESC_ID,
+                 MAX(CT) CT,
+                 MAX(CTMAX) CTMAX
+               FROM (
+                 SELECT
+                   M2P.METHOD_AC,
+                   PD.DESC_ID,
+                   COUNT(*) OVER (PARTITION BY DESC_ID, METHOD_AC) CT,
+                   COUNT(DISTINCT M2P.PROTEIN_AC) OVER (PARTITION BY DESC_ID) CTMAX
+                 FROM {0}.METHOD2PROTEIN M2P
+                   INNER JOIN {0}.PROTEIN_DESC PD ON M2P.PROTEIN_AC = PD.PROTEIN_AC
+                 WHERE METHOD_AC IN ({1}) AND (DBCODE = :db OR :db IS NULL)
+               )
+               GROUP BY DESC_ID, METHOD_AC
+             ) M
+          INNER JOIN {0}.DESC_VALUE D ON M.DESC_ID = D.DESC_ID
         """.format(app.config['DB_SCHEMA'], fmt),
         params
     )
@@ -762,16 +747,14 @@ def get_description(desc_id):
     """
     Returns proteins associated to a given description.
     """
-
     cur = get_db().cursor()
-
     cur.execute(
         """
         SELECT P.PROTEIN_AC, P.NAME, P.DBCODE, E.FULL_NAME
-        FROM {0}.PROTEIN_DESCRIPTION_CODE C
-        INNER JOIN {0}.PROTEIN P ON C.PROTEIN_AC = P.PROTEIN_AC
-        INNER JOIN {0}.ETAXI E ON P.TAX_ID = E.TAX_ID
-        WHERE C.DESCRIPTION_ID = :desc_id
+        FROM {0}.PROTEIN_DESC D
+          INNER JOIN {0}.PROTEIN P ON D.PROTEIN_AC = P.PROTEIN_AC
+          INNER JOIN {0}.ETAXI E ON P.TAX_ID = E.TAX_ID
+        WHERE D.DESC_ID = :1
         ORDER BY P.PROTEIN_AC
         """.format(app.config['DB_SCHEMA']),
         (desc_id,)
@@ -795,137 +778,107 @@ def get_go_terms(methods, aspects=list()):
     """
     Return the GO terms associated to one or more signatures.
     """
-
     cur = get_db().cursor()
-
     fmt = ','.join([':meth' + str(i) for i in range(len(methods))])
     params = {'meth' + str(i): method for i, method in enumerate(methods)}
 
     sql = """
-        SELECT
-          T.GO_ID,
-          T.NAME,
-          T.CATEGORY,
-          F.FEATURE_ID,
-          F.SEQ_ID,
-          P2G.REF_DB_ID
-        FROM (
-          SELECT DISTINCT FEATURE_ID, TERM_GROUP_ID, SEQ_ID
-          FROM {0}.FEATURE2PROTEIN
-          WHERE FEATURE_ID IN ({1})
-        ) F
-        INNER JOIN {0}.TERM_GROUP2TERM G2T ON F.TERM_GROUP_ID = G2T.TERM_GROUP_ID
-        INNER JOIN {0}.TERMS T ON G2T.GO_ID = T.GO_ID
-        LEFT OUTER JOIN (
-          SELECT PROTEIN_AC, GO_ID, REF_DB_ID
-          FROM {0}.PROTEIN2GO_MANUAL
-          WHERE REF_DB_CODE = 'PMID'
-        ) P2G ON F.SEQ_ID = P2G.PROTEIN_AC AND G2T.GO_ID = P2G.GO_ID
+        SELECT M.METHOD_AC, T.GO_ID, T.NAME, T.CATEGORY, P.PROTEIN_AC, P.REF_DB_CODE, P.REF_DB_ID
+        FROM {0}.METHOD2PROTEIN M
+          INNER JOIN {0}.PROTEIN2GO P ON M.PROTEIN_AC = P.PROTEIN_AC
+          INNER JOIN {0}.TERM T ON P.GO_ID = T.GO_ID
+        WHERE M.METHOD_AC IN ({1})
     """.format(app.config['DB_SCHEMA'], fmt)
 
     if aspects and isinstance(aspects,(list, tuple)):
-        sql += "WHERE T.CATEGORY IN ({})".format(','.join([':aspect' + str(i) for i in range(len(aspects))]))
+        sql += "AND T.CATEGORY IN ({})".format(','.join([':aspect' + str(i) for i in range(len(aspects))]))
         params.update({'aspect' + str(i): aspect for i, aspect in enumerate(aspects)})
 
     cur.execute(sql, params)
 
     terms = {}
-    methods = {}  # count the total number of proteins for each signature
-    for go_id, term, aspect, method_ac, protein_ac, ref_id in cur:
-        try:
-            terms[go_id]
-        except KeyError:
-            terms[go_id] = {
+    for method_ac, go_id, term, aspect, protein_ac, ref_db, ref_id in cur:
+        if go_id in terms:
+            t = terms[go_id]
+        else:
+            t = terms[go_id] = {
                 'id': go_id,
                 'value': term,
                 'methods': {},
                 'aspect': aspect
             }
-        finally:
-            d = terms[go_id]['methods']
 
-        try:
-            d[method_ac]
-        except KeyError:
-            d[method_ac] = {
+        if method_ac in t['methods']:
+            m = t['methods'][method_ac]
+        else:
+            m = t['methods'][method_ac] = {
                 'proteins': set(),
                 'references': set()
             }
-        finally:
-            d[method_ac]['proteins'].add(protein_ac)
-            if ref_id:
-                d[method_ac]['references'].add(ref_id)
 
-        try:
-            methods[method_ac]
-        except KeyError:
-            methods[method_ac] = set()
-        finally:
-            methods[method_ac].add(protein_ac)
-
-    for term in terms.values():
-        for method in term['methods'].values():
-            method['proteins'] = len(method['proteins'])
-            method['references'] = len(method['references'])
+        m['proteins'].add(protein_ac)
+        if ref_db == 'PMID':
+            m['references'].add(ref_id)
 
     cur.close()
 
-    return (
-        sorted(terms.values(), key=lambda t: -sum(m['proteins'] for m in t['methods'].values())),
-        {method_ac: len(proteins) for method_ac, proteins in methods.items()}
-    )
+    for t in terms.values():
+        max_proteins = 0
+
+        for m in t['methods'].values():
+            m['proteins'] = len(m['proteins'])
+            m['references'] = len(m['references'])
+
+            if m['proteins'] > max_proteins:
+                max_proteins = m['proteins']
+
+        t['max'] = max_proteins
+
+    # Sort by sum of proteins counts (desc), and GO ID (asc)
+    return sorted(terms.values(), key=lambda t: (-sum(m['proteins'] for m in t['methods'].values()), t['id']))
 
 
 def get_swissprot_comments(methods, topic_id):
     """
     Returns Swiss-Prot comments of a given topic associated to one or more signatures.
     """
-
     cur = get_db().cursor()
-
     fmt = ','.join([':meth' + str(i) for i in range(len(methods))])
     params = {'meth' + str(i): method for i, method in enumerate(methods)}
     params['topic_id'] = topic_id
 
     cur.execute(
         """
-        SELECT
-          F.FEATURE_ID,
-          C.COMMENT_ID,
-          C.TEXT,
-          COUNT(F.SEQ_ID)
+        SELECT M.METHOD_AC, M.COMMENT_ID, C.TEXT, M.CT
         FROM (
-          SELECT FEATURE_ID, SEQ_ID
-          FROM {0}.FEATURE2PROTEIN
-          WHERE FEATURE_ID IN ({1})
-        ) F
-        INNER JOIN (
-          SELECT C.PROTEIN_AC, C.COMMENT_ID, V.TEXT
-          FROM {0}.PROTEIN_COMMENT_CODE C
-          INNER JOIN {0}.PROTEIN_COMMENT_VALUE V ON C.COMMENT_ID = V.COMMENT_ID
-          WHERE C.TOPIC_ID = :topic_id AND V.TOPIC_ID = :topic_id
-        ) C ON F.SEQ_ID = C.PROTEIN_AC
-        GROUP BY FEATURE_ID, COMMENT_ID, TEXT
+               SELECT PC.COMMENT_ID, M2P.METHOD_AC, COUNT(DISTINCT M2P.PROTEIN_AC) CT
+               FROM {0}.METHOD2PROTEIN M2P
+                 INNER JOIN {0}.PROTEIN_COMMENT PC ON M2P.PROTEIN_AC = PC.PROTEIN_AC
+               WHERE M2P.METHOD_AC IN ({1})
+                     AND PC.TOPIC_ID = :topic_id
+               GROUP BY PC.COMMENT_ID, M2P.METHOD_AC
+             ) M
+          INNER JOIN {0}.COMMENT_VALUE C ON M.COMMENT_ID = C.COMMENT_ID AND C.TOPIC_ID = :topic_id
         """.format(app.config['DB_SCHEMA'], fmt),
         params
     )
 
     comments = {}
     for method_ac, comment_id, comment, count in cur:
-        try:
-            comments[comment_id]
-        except KeyError:
-            comments[comment_id] = {
+        if comment_id in comments:
+            c = comments[comment_id]
+        else:
+            c = comments[comment_id] = {
                 'id': comment_id,
                 'value': comment,
                 'methods': {},
                 'max': 0
             }
-        finally:
-            comments[comment_id]['methods'][method_ac] = count
 
-            if count > comments[comment_id]['max']:
-                comments[comment_id]['max'] = count
+        c['methods'][method_ac] = count
+
+        if count > c['max']:
+            c['max'] = count
 
     cur.close()
 
@@ -936,7 +889,6 @@ def get_match_matrix(methods):
     """
     Returns the overlap match matrix, and the collocation match matrix for overlapping signatures.
     """
-
     cur = get_db().cursor()
 
     fmt = ','.join([':meth' + str(i) for i in range(len(methods))])
@@ -944,37 +896,34 @@ def get_match_matrix(methods):
 
     cur.execute(
         """
-        SELECT F.FEATURE_ID, F.CT_PROT, OS.FEATURE_ID2, OS.CT_COLOC, OS.AVG_OVER, OS.CT_OVER
-        FROM (
-          SELECT FEATURE_ID, COUNT(DISTINCT SEQ_ID) CT_PROT
-          FROM {0}.FEATURE2PROTEIN
-          WHERE FEATURE_ID IN ({1})
-          GROUP BY FEATURE_ID
-        ) F
-        INNER JOIN (
-          SELECT FEATURE_ID1, FEATURE_ID2, CT_COLOC, AVG_OVER, CT_OVER
-          FROM {0}.OVERLAP_SUMMARY
-          WHERE FEATURE_ID1 IN ({1}) AND FEATURE_ID2 IN ({1})
-        ) OS ON F.FEATURE_ID = OS.FEATURE_ID1
+        SELECT MM.METHOD_AC, MM.N_PROT, MO.METHOD_AC2, MO.N_PROT, MO.AVG_OVER, MO.N_PROT_OVER
+        FROM {0}.METHOD_MATCH MM
+          INNER JOIN (
+                       SELECT METHOD_AC1, METHOD_AC2, N_PROT, AVG_OVER, N_PROT_OVER
+                       FROM {0}.METHOD_OVERLAP MO
+                       WHERE METHOD_AC1 IN ({1})
+                             AND METHOD_AC2 IN ({1})
+                     ) MO ON MM.METHOD_AC = MO.METHOD_AC1
+        WHERE METHOD_AC IN ({1})
         """.format(app.config['DB_SCHEMA'], fmt),
         params
     )
 
     matrix = {}
-    for method_ac_1, n_prot, method_ac_2, n_coloc, avg_over, n_overlap in cur:
-        try:
-            matrix[method_ac_1]
-        except KeyError:
-            matrix[method_ac_1] = {
+    for acc_1, n_prot, acc_2, n_coloc, avg_over, n_overlap in cur:
+        if acc_1 in matrix:
+            m = matrix[acc_1]
+        else:
+            m = matrix[acc_1] = {
                 'prot': n_prot,
                 'methods': {}
             }
-        finally:
-            matrix[method_ac_1]['methods'][method_ac_2] = {
-                'coloc': n_coloc,
-                'over': n_overlap,
-                'avgOver': avg_over
-            }
+
+        m['methods'][acc_2] = {
+            'coloc': n_coloc,
+            'over': n_overlap,
+            'avgOver': avg_over
+        }
 
     cur.close()
 
@@ -983,13 +932,11 @@ def get_match_matrix(methods):
 
 def get_db_info(dbshort):
     cur = get_db().cursor()
-
     cur.execute(
         """
-        SELECT CV.DBNAME, CV.DBCODE, DB.VERSION
-        FROM {}.CV_DATABASE CV
-        INNER JOIN INTERPRO.DB_VERSION DB ON CV.DBCODE = DB.DBCODE
-        WHERE LOWER(CV.DBSHORT) = :1
+        SELECT DBNAME, DBCODE, VERSION
+        FROM {}.CV_DATABASE
+        WHERE LOWER(DBSHORT) = :1
         """.format(app.config['DB_SCHEMA']),
         (dbshort.lower(),)
     )
@@ -1015,19 +962,22 @@ def get_unintegrated(dbcode, mode='newint', search=None):
     cur.execute(
         """
         SELECT DISTINCT
-            FS.FEATURE_ID,
-            P.FEATURE_ID2,
-            M.CANDIDATE,
-            P.RELATION,
+            MM.METHOD_AC,
+            MP.METHOD_AC2,
+            M2.CANDIDATE,
+            MP.RELATION,
             EM2.ENTRY_AC,
             E.ENTRY_TYPE
-        FROM {0}.FEATURE_SUMMARY FS
-        LEFT OUTER JOIN {0}.PREDICTION P ON (FS.FEATURE_ID = P.FEATURE_ID1 AND P.FEATURE_ID1 != P.FEATURE_ID2)
-        LEFT OUTER JOIN {0}.METHOD M ON P.FEATURE_ID2 = M.METHOD_AC
-        LEFT OUTER JOIN {0}.ENTRY2METHOD EM1 ON FS.FEATURE_ID = EM1.METHOD_AC
-        LEFT OUTER JOIN {0}.ENTRY2METHOD EM2 ON P.FEATURE_ID2 = EM2.METHOD_AC
+        FROM {0}.METHOD_MATCH MM
+        INNER JOIN {0}.METHOD M1 ON MM.METHOD_AC = M1.METHOD_AC
+        LEFT OUTER JOIN {0}.METHOD_PREDICTION MP ON (MM.METHOD_AC = MP.METHOD_AC1)
+        LEFT OUTER JOIN {0}.METHOD M2 ON MP.METHOD_AC2 = M2.METHOD_AC
+        LEFT OUTER JOIN {0}.ENTRY2METHOD EM1 ON MM.METHOD_AC = EM1.METHOD_AC
+        LEFT OUTER JOIN {0}.ENTRY2METHOD EM2 ON MP.METHOD_AC2 = EM2.METHOD_AC
         LEFT OUTER JOIN {0}.ENTRY E ON EM2.ENTRY_AC = E.ENTRY_AC
-        WHERE FS.DBCODE = :1 AND EM1.ENTRY_AC IS NULL AND (:2 IS NULL OR FS.FEATURE_ID LIKE :2)
+        WHERE M1.DBCODE = :1
+        AND EM1.ENTRY_AC IS NULL
+        AND (:2 IS NULL OR MM.METHOD_AC LIKE :2)
         """.format(app.config['DB_SCHEMA']),
         (dbcode, search)
     )
@@ -1103,9 +1053,7 @@ def get_methods(dbcode, search=None, integrated=None, checked=None, commented=No
     """
     Get signatures from a given member database with their InterPro entry and the most recent comment (if any)
     """
-
     cur = get_db().cursor()
-
     sql = """
         SELECT
           M.METHOD_AC,
@@ -1490,28 +1438,27 @@ def get_entry(entry_ac):
     # GO annotations
     cur.execute(
         """
-        SELECT DISTINCT
-          GT.GO_ID,
-          GT.CATEGORY,
-          GT.NAME
-        FROM GO.TERMS@GOAPRO GT
-        INNER JOIN (
-          SELECT GS.GO_ID
-          FROM INTERPRO.INTERPRO2GO I2G
-          INNER JOIN GO.SECONDARIES@GOAPRO GS ON I2G.GO_ID = GS.SECONDARY_ID
-          WHERE I2G.ENTRY_AC = :1
-          UNION
-          SELECT GT.GO_ID
-          FROM INTERPRO.INTERPRO2GO I2G
-          INNER JOIN GO.TERMS@GOAPRO GT ON I2G.GO_ID = GT.GO_ID
-          WHERE I2G.ENTRY_AC = :1
-        ) GS
-        ON GS.GO_ID = GT.GO_ID
+        SELECT T.GO_ID, T.NAME, T.CATEGORY, T.DEFINITION, T.IS_OBSOLETE, T.REPLACED_BY
+        FROM INTERPRO.INTERPRO2GO I
+          INNER JOIN INTERPRO_ANALYSIS.TERM T ON I.GO_ID = T.GO_ID
+        WHERE I.ENTRY_AC = :1
+        ORDER BY T.GO_ID
         """,
         (entry_ac,)
     )
 
-    entry['go'] = [dict(zip(['id', 'category', 'name'], row)) for row in cur]
+    terms = []
+    for row in cur:
+        terms.append({
+            'id': row[0],
+            'name': row[1],
+            'category': row[2],
+            'definition': row[3],
+            'isObsolete': row[4] == 'Y',
+            'replacedBy': row[5]
+        })
+
+    entry['go'] = terms
 
     # References
     cur.execute(
@@ -2400,40 +2347,21 @@ def api_method_comments(method_ac):
 @app.route('/api/method/<method_ac>/references/<go_id>')
 def api_method_references(method_ac, go_id):
     references = []
-
+    # TODO
     cur = get_db().cursor()
-
-    # cur.execute(
-    #     """
-    #     SELECT DISTINCT P2G.REF_DB_ID
-    #     FROM (
-    #       SELECT DISTINCT TERM_GROUP_ID, SEQ_ID
-    #       FROM INTERPRO_ANALYSIS.FEATURE2PROTEIN
-    #       WHERE FEATURE_ID = :1
-    #     ) F2P
-    #     INNER JOIN INTERPRO_ANALYSIS.TERM_GROUP2TERM G2T ON F2P.TERM_GROUP_ID = G2T.TERM_GROUP_ID
-    #     INNER JOIN INTERPRO_ANALYSIS.PROTEIN2GO_MANUAL P2G ON G2T.GO_ID = P2G.GO_ID AND F2P.SEQ_ID = P2G.PROTEIN_AC
-    #     WHERE P2G.GO_ID = :2 AND P2G.REF_DB_CODE = 'PMID'
-    #     ORDER BY P2G.REF_DB_ID
-    #     """,
-    #     (method_ac, go_id)
-    # )
-    #
-    # references = [{'id': row[0]} for row in cur]
-
     cur.execute(
         """
-        SELECT DISTINCT PUB.ID, PUB.TITLE, PUB.FIRST_PUBLISH_DATE
-        FROM (
-          SELECT DISTINCT TERM_GROUP_ID, SEQ_ID
-          FROM {0}.FEATURE2PROTEIN
-          WHERE FEATURE_ID = :1
-        ) F2P
-        INNER JOIN {0}.TERM_GROUP2TERM G2T ON F2P.TERM_GROUP_ID = G2T.TERM_GROUP_ID
-        INNER JOIN {0}.PROTEIN2GO_MANUAL P2G ON G2T.GO_ID = P2G.GO_ID AND F2P.SEQ_ID = P2G.PROTEIN_AC
-        INNER JOIN GO.PUBLICATIONS@GOAPRO PUB ON PUB.ID = P2G.REF_DB_ID
-        WHERE P2G.GO_ID = :2 AND P2G.REF_DB_CODE = 'PMID'
-        ORDER BY PUB.FIRST_PUBLISH_DATE
+        SELECT ID, TITLE, FIRST_PUBLISHED_DATE
+        FROM {0}.PUBLICATION
+        WHERE ID IN (
+          SELECT REF_DB_ID
+          FROM {0}.PROTEIN2GO P
+            INNER JOIN {0}.METHOD2PROTEIN M ON P.PROTEIN_AC = M.PROTEIN_AC
+          WHERE M.METHOD_AC = :1
+                AND P.GO_ID = :2
+                AND REF_DB_CODE = 'PMID'
+        )
+        ORDER BY FIRST_PUBLISHED_DATE
         """.format(app.config['DB_SCHEMA']),
         (method_ac, go_id)
     )
@@ -2443,7 +2371,7 @@ def api_method_references(method_ac, go_id):
         references.append({
             'id': row[0],
             'title': row[1],
-            'date': row[2].strftime('%d %b %Y')
+            'date': row[2].strftime('%d %b %Y') if row[2] else None
         })
 
     cur.close()
@@ -2456,6 +2384,7 @@ def api_method_references(method_ac, go_id):
 
 @app.route('/api/method/<method_ac>/proteins/all/')
 def get_method_proteins(method_ac):
+    # TODO
     try:
         db = request.args['db'].upper()
     except KeyError:
@@ -2526,6 +2455,7 @@ def get_method_proteins(method_ac):
 
 @app.route('/api/method/<method_ac>/proteins/')
 def api_method_proteins(method_ac):
+    # TODO
     try:
         taxon_id = int(request.args['taxon'])
     except (KeyError, ValueError):
@@ -2860,12 +2790,11 @@ def api_methods_go(methods):
         if not aspects:
             aspects = None
 
-    terms, methods = get_go_terms(methods.split('/'), aspects)
+    terms = get_go_terms(methods.split('/'), aspects)
 
     return jsonify({
         'results': terms,
         'count': len(terms),
-        'methods': methods,
         'aspects': ('C', 'P', 'F') if aspects is None else aspects,
     })
 
@@ -3110,6 +3039,7 @@ def api_db_methods(dbshort):
 
 @app.route('/api/go/<go_id>/')
 def api_go_term(go_id):
+    # TODO
     cur = get_db().cursor()
 
     cur.execute(
