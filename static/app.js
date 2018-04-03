@@ -1671,9 +1671,9 @@ function ComparisonViews(methodsIds) {
                 '<td class="collapsing center aligned">'+ renderCheckbox(term.id, false) +'</td>';
 
             this.methods.forEach(methodId => {
-                if (term.methods.hasOwnProperty(methodId) && data.methods.hasOwnProperty(methodId)) {
+                if (term.methods.hasOwnProperty(methodId)) {
                     const method = term.methods[methodId];
-                    const i = Math.floor(method.proteins / data.methods[methodId] * _colors.length);
+                    const i = Math.floor(method.proteins / term.max * _colors.length);
                     const color = _colors[Math.min(i, _colors.length - 1)];
                     html += '<td style="background-color: '+ color +';"><a href="#" data-method="'+ methodId +'">' + method.proteins + '</a></td>' +
                         '<td class="collapsing"><a data-term="'+ term.id +'" data-method2="'+ methodId +'" class="ui basic label"><i class="book icon"></i>&nbsp;'+ method.references +'</a></td>';
