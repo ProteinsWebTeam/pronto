@@ -2564,6 +2564,59 @@ def api_method_proteins(method_ac):
     })
 
 
+@app.route('/api/methods/<path:methods>/enzymes/')
+def api_methods_enzymes(methods):
+    source_db = request.args.get('db', '').upper()
+    methods = [m.strip() for m in methods.split('/') if m.strip()]
+    variables = [':' + str(i+1) for i in range(len(methods))]
+
+    if source_db in ('S', 'T'):
+        source_cond = 'AND M2P.DBCODE = :' + str(len(methods)+1)
+        methods.append(source_db)
+    else:
+        source_cond = ''
+
+    cur = get_db().cursor()
+    cur.execute(
+        """
+        SELECT
+          M2P.METHOD_AC,
+          EZ.ECNO,
+          COUNT(DISTINCT M2P.PROTEIN_AC),
+          MAX(COUNT(DISTINCT M2P.PROTEIN_AC)) OVER (PARTITION BY EZ.ECNO)
+        FROM {0}.METHOD2PROTEIN M2P
+          INNER JOIN {0}.ENZYME EZ ON M2P.PROTEIN_AC = EZ.PROTEIN_AC
+        WHERE M2P.METHOD_AC IN ({1})
+        {2}
+        GROUP BY M2P.METHOD_AC, EZ.ECNO
+        """.format(
+            app.config['DB_SCHEMA'],
+            ','.join(variables),
+            source_cond
+        ),
+        methods
+    )
+
+    enzymes = {}
+    for acc, ezno, n_prot, max_prot in cur:
+        if ezno in enzymes:
+            e = enzymes[ezno]
+        else:
+            e = enzymes[ezno] = {
+                'id': ezno,
+                'max': max_prot,
+                'methods': {}
+            }
+
+        e['methods'][acc] = n_prot
+
+    cur.close()
+
+    return jsonify({
+        'results': sorted(enzymes.values(), key=lambda e: -e['max'])
+    })
+
+
 @app.route('/api/methods/<path:methods>/matches/')
 def api_methods_matches(methods):
     """
