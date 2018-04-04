@@ -1869,58 +1869,6 @@ function ComparisonViews(methodsIds) {
             });
         });
 
-        // Array.from(div.querySelectorAll('td:first-child a[data-id]')).forEach(element => {
-        //     element.addEventListener('click', e => {
-        //         e.preventDefault();
-        //         const descId = e.target.getAttribute('data-id');
-        //         const desc = e.target.closest('tr').getAttribute('data-filter');
-        //
-        //         showDimmer(true);
-        //         getJSON('/api/description/' + descId, (data, status) => {
-        //             let html = '';
-        //
-        //             data.results.forEach(protein => {
-        //                 html += '<tr><td><a href="/protein/'+ protein.id +'">'+ (protein.isReviewed ? '<i class="star icon"></i>&nbsp;' : '') + protein.id +'</a></td><td>'+ protein.shortName +'</td><td>'+ protein.organism +'</td></tr>';
-        //             });
-        //
-        //             const modal = document.getElementById('descriptions-modal');
-        //             modal.querySelector('.header').innerHTML = data.count + ' proteins<div class="sub header">'+ desc +'</div>';
-        //             modal.querySelector('tbody').innerHTML = html;
-        //             $(modal).modal('show');
-        //
-        //             showDimmer(false);
-        //
-        //         });
-        //
-        //     });
-        // });
-
-        // Array.from(div.querySelectorAll('td:first-child a[data-id]')).forEach(element => {
-        //     element.addEventListener('click', e => {
-        //         e.preventDefault();
-        //         const descId = e.target.getAttribute('data-id');
-        //         const desc = e.target.closest('tr').getAttribute('data-filter');
-        //
-        //         showDimmer(true);
-        //         getJSON('/api/description/' + descId, (data, status) => {
-        //             let html = '';
-        //
-        //             data.results.forEach(protein => {
-        //                 html += '<tr><td><a href="/protein/'+ protein.id +'">'+ (protein.isReviewed ? '<i class="star icon"></i>&nbsp;' : '') + protein.id +'</a></td><td>'+ protein.shortName +'</td><td>'+ protein.organism +'</td></tr>';
-        //             });
-        //
-        //             const modal = document.getElementById('descriptions-modal');
-        //             modal.querySelector('.header').innerHTML = data.count + ' proteins<div class="sub header">'+ desc +'</div>';
-        //             modal.querySelector('tbody').innerHTML = html;
-        //             $(modal).modal('show');
-        //
-        //             showDimmer(false);
-        //
-        //         });
-        //
-        //     });
-        // });
-
         div.querySelector('input[type=radio][value="'+ nvl(data.database, 'U') +'"]').checked = true;
         setClass(div, 'hidden', false);
     };
