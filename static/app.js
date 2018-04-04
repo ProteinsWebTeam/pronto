@@ -1098,14 +1098,41 @@ function EntryView() {
         };
 
         entry.go.forEach(function (term) {
-            if (goTerms.hasOwnProperty(term.category))
-                goTerms[term.category] += '<dd>' + '<a href="http://www.ebi.ac.uk/QuickGO/GTerm?id=' + term.id + '" target="_blank">' + term.id + '&nbsp;<i class="external icon"></i></a>&nbsp;' + term.name + '</dd>';
+            if (goTerms.hasOwnProperty(term.category)) {
+                goTerms[term.category] += '<dd><a href="http://www.ebi.ac.uk/QuickGO/GTerm?id=' + term.id + '" target="_blank">' + term.id + '&nbsp;<i class="external icon"></i></a>&nbsp;' + term.name;
+
+                if (term.isObsolete)
+                    goTerms[term.category] += '&nbsp;<span class="ui tiny red label">Obsolete</span>';
+
+                if (term.replacedBy)
+                    goTerms[term.category] += '&nbsp;<span class="ui tiny yellow label">Secondary</span>';
+
+                goTerms[term.category] += '<i class="right floated plus icon"></i>' +
+                    '<p class="hidden">'+ term.definition +'</p>' +
+                    '</dd>';
+            }
+
         });
 
         content = '<dt>Molecular Function</dt>' + (goTerms['F'].length ? goTerms['F'] : '<dd>No terms assigned in this category.</dd>');
         content += '<dt>Biological Process</dt>' + (goTerms['P'].length ? goTerms['P'] : '<dd>No terms assigned in this category.</dd>');
         content += '<dt>Cellular Component</dt>' + (goTerms['C'].length ? goTerms['C'] : '<dd>No terms assigned in this category.</dd>');
         document.querySelector('#go-terms + dl').innerHTML = content;
+
+        Array.from(document.querySelectorAll('#go-terms + dl i.right.floated')).forEach(elem => {
+            elem.addEventListener('click', e => {
+                const icon = e.target;
+                const block = icon.parentNode.querySelector('p');
+
+                if (block.className === 'hidden') {
+                    block.className = '';
+                    icon.className = 'right floated minus icon';
+                } else {
+                    block.className = 'hidden';
+                    icon.className = 'right floated plus icon';
+                }
+            });
+        });
 
         this.getComments(entry.id, 2);
     };
