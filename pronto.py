@@ -18,7 +18,6 @@ app.permanent_session_lifetime = timedelta(days=7)
 
 
 # TODO: do not hardcode INTERPRO schema, but use synonyms (e.g. MV_ENTRY2PROTEIN is not a synonym yet)
-# todo: let html = '<h5 class="ui header">Proteins</h5> -> h4
 # todo: refactoring: do not use functions if only called once
 
 
@@ -225,8 +224,8 @@ def build_method2protein_sql(methods, **kwargs):
         comment_join = 'INNER JOIN {}.PROTEIN_COMMENT PC ON M2P.PROTEIN_AC = PC.PROTEIN_AC'.format(
             app.config['DB_SCHEMA']
         )
-        comment_cond = 'AND PC.TOPIC_ID = :topic AND PC.COMMENT_ID = :comment_id'
-        params.update({'topic': topic_id, 'comment_id': comment_id})
+        comment_cond = 'AND PC.TOPIC_ID = :topicid AND PC.COMMENT_ID = :commentid'
+        params.update({'topicid': topic_id, 'commentid': comment_id})
     else:
         comment_join = ''
         comment_cond = ''
@@ -236,16 +235,16 @@ def build_method2protein_sql(methods, **kwargs):
         desc_join = 'INNER JOIN {}.PROTEIN_DESC PD ON M2P.PROTEIN_AC = PD.PROTEIN_AC'.format(
             app.config['DB_SCHEMA']
         )
-        desc_cond = 'AND PD.DESC_ID = :desc'
-        params['desc'] = desc_id
+        desc_cond = 'AND PD.DESC_ID = :descid'
+        params['descid'] = desc_id
     else:
         desc_join = ''
         desc_cond = ''
 
     # Exclude proteins that are/aren't reviewed
     if source_db is not None:
-        source_cond = 'AND M2P.DBCODE = :source'
-        params['source'] = source_db
+        source_cond = 'AND M2P.DBCODE = :sourcedb'
+        params['sourcedb'] = source_db
     else:
         source_cond = ''
 
@@ -254,8 +253,8 @@ def build_method2protein_sql(methods, **kwargs):
         go_join = 'INNER JOIN {}.PROTEIN2GO P2G ON M2P.PROTEIN_AC = P2G.PROTEIN_AC'.format(
             app.config['DB_SCHEMA']
         )
-        go_cond = 'AND P2G.GO_ID = :go'
-        params['go'] = go_id
+        go_cond = 'AND P2G.GO_ID = :goid'
+        params['goid'] = go_id
     else:
         go_join = ''
         go_cond = ''
@@ -582,62 +581,6 @@ def get_overlapping_entries(method):
     return methods
 
 
-def get_descriptions(methods, db=None):
-    """
-    Returns the descriptions associated to one or more signatures.
-    """
-    cur = get_db().cursor()
-
-    fmt = ','.join([':meth' + str(i) for i in range(len(methods))])
-    params = {'meth' + str(i): method for i, method in enumerate(methods)}
-    params['db'] = db
-
-    cur.execute(
-        """
-        SELECT
-          D.DESC_ID, D.TEXT, M.METHOD_AC, M.CT, M.CTMAX
-        FROM (
-               SELECT
-                 METHOD_AC,
-                 DESC_ID,
-                 MAX(CT) CT,
-                 MAX(CTMAX) CTMAX
-               FROM (
-                 SELECT
-                   M2P.METHOD_AC,
-                   PD.DESC_ID,
-                   COUNT(*) OVER (PARTITION BY DESC_ID, METHOD_AC) CT,
-                   COUNT(DISTINCT M2P.PROTEIN_AC) OVER (PARTITION BY DESC_ID) CTMAX
-                 FROM {0}.METHOD2PROTEIN M2P
-                   INNER JOIN {0}.PROTEIN_DESC PD ON M2P.PROTEIN_AC = PD.PROTEIN_AC
-                 WHERE METHOD_AC IN ({1}) AND (DBCODE = :db OR :db IS NULL)
-               )
-               GROUP BY DESC_ID, METHOD_AC
-             ) M
-          INNER JOIN {0}.DESC_VALUE D ON M.DESC_ID = D.DESC_ID
-        """.format(app.config['DB_SCHEMA'], fmt),
-        params
-    )
-
-    descriptions = {}
-    for desc_id, desc, method_ac, count, count_max in cur:
-        try:
-            descriptions[desc_id]
-        except KeyError:
-            descriptions[desc_id] = {
-                'id': desc_id,
-                'value': desc,
-                'methods': {},
-                'max': count_max
-            }
-        finally:
-            descriptions[desc_id]['methods'][method_ac] = count
-
-    cur.close()
-
-    return sorted(descriptions.values(), key=lambda x: -x['max'])
-
-
 def get_description(desc_id):
     """
     Returns proteins associated to a given description.
@@ -667,162 +610,6 @@ def get_description(desc_id):
     cur.close()
 
     return proteins
-
-
-def get_go_terms(methods, aspects=list()):
-    """
-    Return the GO terms associated to one or more signatures.
-    """
-    cur = get_db().cursor()
-    fmt = ','.join([':meth' + str(i) for i in range(len(methods))])
-    params = {'meth' + str(i): method for i, method in enumerate(methods)}
-
-    sql = """
-        SELECT M.METHOD_AC, T.GO_ID, T.NAME, T.CATEGORY, P.PROTEIN_AC, P.REF_DB_CODE, P.REF_DB_ID
-        FROM {0}.METHOD2PROTEIN M
-          INNER JOIN {0}.PROTEIN2GO P ON M.PROTEIN_AC = P.PROTEIN_AC
-          INNER JOIN {0}.TERM T ON P.GO_ID = T.GO_ID
-        WHERE M.METHOD_AC IN ({1})
-    """.format(app.config['DB_SCHEMA'], fmt)
-
-    if aspects and isinstance(aspects,(list, tuple)):
-        sql += "AND T.CATEGORY IN ({})".format(','.join([':aspect' + str(i) for i in range(len(aspects))]))
-        params.update({'aspect' + str(i): aspect for i, aspect in enumerate(aspects)})
-
-    cur.execute(sql, params)
-
-    terms = {}
-    for method_ac, go_id, term, aspect, protein_ac, ref_db, ref_id in cur:
-        if go_id in terms:
-            t = terms[go_id]
-        else:
-            t = terms[go_id] = {
-                'id': go_id,
-                'value': term,
-                'methods': {},
-                'aspect': aspect
-            }
-
-        if method_ac in t['methods']:
-            m = t['methods'][method_ac]
-        else:
-            m = t['methods'][method_ac] = {
-                'proteins': set(),
-                'references': set()
-            }
-
-        m['proteins'].add(protein_ac)
-        if ref_db == 'PMID':
-            m['references'].add(ref_id)
-
-    cur.close()
-
-    for t in terms.values():
-        max_proteins = 0
-
-        for m in t['methods'].values():
-            m['proteins'] = len(m['proteins'])
-            m['references'] = len(m['references'])
-
-            if m['proteins'] > max_proteins:
-                max_proteins = m['proteins']
-
-        t['max'] = max_proteins
-
-    # Sort by sum of proteins counts (desc), and GO ID (asc)
-    return sorted(terms.values(), key=lambda t: (-sum(m['proteins'] for m in t['methods'].values()), t['id']))
-
-
-def get_swissprot_comments(methods, topic_id):
-    """
-    Returns Swiss-Prot comments of a given topic associated to one or more signatures.
-    """
-    cur = get_db().cursor()
-    fmt = ','.join([':meth' + str(i) for i in range(len(methods))])
-    params = {'meth' + str(i): method for i, method in enumerate(methods)}
-    params['topic_id'] = topic_id
-
-    cur.execute(
-        """
-        SELECT M.METHOD_AC, M.COMMENT_ID, C.TEXT, M.CT
-        FROM (
-               SELECT PC.COMMENT_ID, M2P.METHOD_AC, COUNT(DISTINCT M2P.PROTEIN_AC) CT
-               FROM {0}.METHOD2PROTEIN M2P
-                 INNER JOIN {0}.PROTEIN_COMMENT PC ON M2P.PROTEIN_AC = PC.PROTEIN_AC
-               WHERE M2P.METHOD_AC IN ({1})
-                     AND PC.TOPIC_ID = :topic_id
-               GROUP BY PC.COMMENT_ID, M2P.METHOD_AC
-             ) M
-          INNER JOIN {0}.COMMENT_VALUE C ON M.COMMENT_ID = C.COMMENT_ID AND C.TOPIC_ID = :topic_id
-        """.format(app.config['DB_SCHEMA'], fmt),
-        params
-    )
-
-    comments = {}
-    for method_ac, comment_id, comment, count in cur:
-        if comment_id in comments:
-            c = comments[comment_id]
-        else:
-            c = comments[comment_id] = {
-                'id': comment_id,
-                'value': comment,
-                'methods': {},
-                'max': 0
-            }
-
-        c['methods'][method_ac] = count
-
-        if count > c['max']:
-            c['max'] = count
-
-    cur.close()
-
-    return sorted(comments.values(), key=lambda x: -x['max'])
-
-
-def get_match_matrix(methods):
-    """
-    Returns the overlap match matrix, and the collocation match matrix for overlapping signatures.
-    """
-    cur = get_db().cursor()
-
-    fmt = ','.join([':meth' + str(i) for i in range(len(methods))])
-    params = {'meth' + str(i): method for i, method in enumerate(methods)}
-
-    cur.execute(
-        """
-        SELECT MM.METHOD_AC, MM.N_PROT, MO.METHOD_AC2, MO.N_PROT, MO.AVG_OVER, MO.N_PROT_OVER
-        FROM {0}.METHOD_MATCH MM
-          INNER JOIN (
-                       SELECT METHOD_AC1, METHOD_AC2, N_PROT, AVG_OVER, N_PROT_OVER
-                       FROM {0}.METHOD_OVERLAP MO
-                       WHERE METHOD_AC1 IN ({1})
-                             AND METHOD_AC2 IN ({1})
-                     ) MO ON MM.METHOD_AC = MO.METHOD_AC1
-        WHERE METHOD_AC IN ({1})
-        """.format(app.config['DB_SCHEMA'], fmt),
-        params
-    )
-
-    matrix = {}
-    for acc_1, n_prot, acc_2, n_coloc, avg_over, n_overlap in cur:
-        if acc_1 in matrix:
-            m = matrix[acc_1]
-        else:
-            m = matrix[acc_1] = {
-                'prot': n_prot,
-                'methods': {}
-            }
-
-        m['methods'][acc_2] = {
-            'coloc': n_coloc,
-            'over': n_overlap,
-            'avgOver': avg_over
-        }
-
-    cur.close()
-
-    return matrix, max([m['prot'] for m in matrix.values()])
 
 
 def get_db_info(dbshort):
@@ -1819,6 +1606,7 @@ def view_method(method_ac):
 @app.route('/methods/<path:methods>/comments/')
 @app.route('/methods/<path:methods>/go/')
 @app.route('/methods/<path:methods>/matrices/')
+@app.route('/methods/<path:methods>/enzymes/')
 def view_compare(methods):
     return render_template('main.html', user=get_user(), topics=get_topics(), schema=app.config['DB_SCHEMA'])
 
@@ -2491,14 +2279,15 @@ def api_method_proteins(method_ac):
 
 @app.route('/api/methods/<path:methods>/enzymes/')
 def api_methods_enzymes(methods):
-    source_db = request.args.get('db', '').upper()
-    methods = [m.strip() for m in methods.split('/') if m.strip()]
-    variables = [':' + str(i+1) for i in range(len(methods))]
+    params = [m.strip() for m in methods.split('/') if m.strip()]
+    meth_var = ','.join([':' + str(i+1) for i in range(len(params))])
+    source_db = request.args.get('db', 'S').upper()
 
     if source_db in ('S', 'T'):
-        source_cond = 'AND M2P.DBCODE = :' + str(len(methods)+1)
-        methods.append(source_db)
+        source_cond = 'AND M2P.DBCODE = :' + str(len(params)+1)
+        params.append(source_db)
     else:
+        source_db = 'U'
         source_cond = ''
 
     cur = get_db().cursor()
@@ -2507,29 +2296,23 @@ def api_methods_enzymes(methods):
         SELECT
           M2P.METHOD_AC,
           EZ.ECNO,
-          COUNT(DISTINCT M2P.PROTEIN_AC),
-          MAX(COUNT(DISTINCT M2P.PROTEIN_AC)) OVER (PARTITION BY EZ.ECNO)
+          COUNT(DISTINCT M2P.PROTEIN_AC)
         FROM {0}.METHOD2PROTEIN M2P
           INNER JOIN {0}.ENZYME EZ ON M2P.PROTEIN_AC = EZ.PROTEIN_AC
         WHERE M2P.METHOD_AC IN ({1})
         {2}
         GROUP BY M2P.METHOD_AC, EZ.ECNO
-        """.format(
-            app.config['DB_SCHEMA'],
-            ','.join(variables),
-            source_cond
-        ),
-        methods
+        """.format(app.config['DB_SCHEMA'], meth_var, source_cond),
+        params
     )
 
     enzymes = {}
-    for acc, ezno, n_prot, max_prot in cur:
+    for acc, ezno, n_prot in cur:
         if ezno in enzymes:
             e = enzymes[ezno]
         else:
             e = enzymes[ezno] = {
                 'id': ezno,
-                'max': max_prot,
                 'methods': {}
             }
 
@@ -2538,7 +2321,8 @@ def api_methods_enzymes(methods):
     cur.close()
 
     return jsonify({
-        'results': sorted(enzymes.values(), key=lambda e: -e['max'])
+        'results': sorted(enzymes.values(), key=lambda e: -max(e['methods'].values())),
+        'database': source_db
     })
 
 
@@ -2732,90 +2516,242 @@ def api_methods_taxonomy(methods):
 @app.route('/api/methods/<path:methods>/descriptions/')
 def api_methods_descriptions(methods):
     """
-    Protein descriptions
+    Returns UniProt descriptions associated to a set of signatures
     Example:
     ---
     /methods/PF00051/PS50070/SM00130/descriptions/
     """
-    try:
-        db = request.args['db'].upper()
-    except KeyError:
-        db = 'S'
-    else:
-        if db == 'U':
-            db = None
-        elif db not in ('S', 'T'):
-            db = 'S'
+    params = [m.strip() for m in methods.split('/') if m.strip()]
+    meth_var = ','.join([':' + str(i+1) for i in range(len(params))])
+    source_db = request.args.get('db', 'S').upper()
 
-    descriptions = get_descriptions(methods=methods.split('/'), db=db)
+    if source_db in ('S', 'T'):
+        source_cond = 'AND M2P.DBCODE = :' + str(len(params)+1)
+        params.append(source_db)
+    else:
+        source_db = 'U'
+        source_cond = ''
+
+    cur = get_db().cursor()
+    cur.execute(
+        """
+        SELECT M.DESC_ID, D.TEXT, M.METHOD_AC, M.N_PROT
+        FROM (
+               SELECT
+                 PD.DESC_ID,
+                 M2P.METHOD_AC,
+                 COUNT(DISTINCT M2P.PROTEIN_AC) N_PROT
+               FROM {0}.METHOD2PROTEIN M2P
+                 INNER JOIN {0}.PROTEIN_DESC PD ON M2P.PROTEIN_AC = PD.PROTEIN_AC
+               WHERE METHOD_AC IN ({1}) {2}
+               GROUP BY M2P.METHOD_AC, PD.DESC_ID
+             ) M
+          INNER JOIN {0}.DESC_VALUE D ON M.DESC_ID = D.DESC_ID
+        """.format(app.config['DB_SCHEMA'], meth_var, source_cond),
+        params
+    )
+
+    descriptions = {}
+    for desc_id, desc, method_ac, n_prot in cur:
+        if desc_id in descriptions:
+            d = descriptions[desc_id]
+        else:
+            d = descriptions[desc_id] = {
+                'id': desc_id,
+                'value': desc,
+                'methods': {}
+            }
+
+        d['methods'][method_ac] = n_prot
+
+    cur.close()
 
     return jsonify({
-        'results': descriptions,
-        'count': len(descriptions),
-        'database': db if db is not None else 'U',
+        'results': sorted(descriptions.values(), key=lambda x: -max(x['methods'].values())),
+        'database': source_db,
     })
 
 
 @app.route('/api/methods/<path:methods>/go/')
 def api_methods_go(methods):
     """
-    GO terms
+    Return the GO terms associated to a set of signatures.
     Example:
     ---
-    /go/MF_00011/PF00709?category=C
+    /api/methods/MF_00011/PF00709/go/?category=C
     """
-    try:
-        aspects = [e for e in request.args['aspect'].upper().split(',') if e in ('C', 'P', 'F')]
-    except (KeyError, ValueError):
-        aspects = None
-    else:
-        if not aspects:
-            aspects = None
+    methods = [m.strip() for m in methods.split('/') if m.strip()]
+    meth_var = ','.join([':meth' + str(i) for i in range(len(methods))])
+    params = {'meth' + str(i): method for i, method in enumerate(methods)}
 
-    terms = get_go_terms(methods.split('/'), aspects)
+    _aspects = ('C', 'P', 'F')
+    aspects = [e for e in request.args.get('aspect', '').upper().split(',') if e in _aspects]
+    if 0 < len(aspects) < 3:
+        aspect_cond = 'AND T.CATEGORY IN ({})'.format(','.join([':aspect' + str(i) for i in range(len(aspects))]))
+        params.update({'aspect' + str(i): aspect for i, aspect in enumerate(aspects)})
+    else:
+        aspects = _aspects
+        aspect_cond = ''
+
+    cur = get_db().cursor()
+    cur.execute(
+        """
+        SELECT M.METHOD_AC, T.GO_ID, T.NAME, T.CATEGORY, P.PROTEIN_AC, P.REF_DB_CODE, P.REF_DB_ID
+        FROM {0}.METHOD2PROTEIN M
+          INNER JOIN {0}.PROTEIN2GO P ON M.PROTEIN_AC = P.PROTEIN_AC
+          INNER JOIN {0}.TERM T ON P.GO_ID = T.GO_ID
+        WHERE M.METHOD_AC IN ({1}) {2}
+        """.format(app.config['DB_SCHEMA'], meth_var, aspect_cond),
+        params
+    )
+
+    terms = {}
+    for method_ac, go_id, term, aspect, protein_ac, ref_db, ref_id in cur:
+        if go_id in terms:
+            t = terms[go_id]
+        else:
+            t = terms[go_id] = {
+                'id': go_id,
+                'value': term,
+                'methods': {},
+                'aspect': aspect
+            }
+
+        if method_ac in t['methods']:
+            m = t['methods'][method_ac]
+        else:
+            m = t['methods'][method_ac] = {
+                'proteins': set(),
+                'references': set()
+            }
+
+        m['proteins'].add(protein_ac)
+        if ref_db == 'PMID':
+            m['references'].add(ref_id)
+
+    cur.close()
+
+    for t in terms.values():
+        for m in t['methods'].values():
+            m['proteins'] = len(m['proteins'])
+            m['references'] = len(m['references'])
 
     return jsonify({
-        'results': terms,
-        'count': len(terms),
-        'aspects': ('C', 'P', 'F') if aspects is None else aspects,
+        # Sort by sum of proteins counts (desc), and GO ID (asc)
+        'results': sorted(terms.values(), key=lambda t: (-max(m['proteins'] for m in t['methods'].values()), t['id'])),
+        'aspects': aspects,
     })
 
 
 @app.route('/api/methods/<path:methods>/comments/')
 def api_methods_comments(methods):
     """
-    Protein comments (Swiss-Prot only)
+    Returns Swiss-Prot comments of a given topic associated to a set of signatures
     Example:
     ---
-    /comments/PTHR11846:SF3/PTHR11846:SF2/TIGR00184
+    /api/methods/PTHR11846:SF3/PTHR11846:SF2/TIGR00184/comments/
     """
+    methods = [m.strip() for m in methods.split('/') if m.strip()]
+    meth_var = ','.join([':meth' + str(i) for i in range(len(methods))])
+    params = {'meth' + str(i): method for i, method in enumerate(methods)}
+
     try:
-        # todo: accept topic title
-        topic_id = int(request.args['topic'])
-    except (KeyError, ValueError):
-        topic_id = 34
+        topic_id = int(request.args.get('topic', 34))
+    except ValueError:
+        topic_id = 34  # Similarity
+    finally:
+        params['topicid'] = topic_id
+
+    cur = get_db().cursor()
+    cur.execute(
+        """
+        SELECT M.METHOD_AC, M.COMMENT_ID, C.TEXT, M.N_PROT
+        FROM (
+               SELECT PC.COMMENT_ID, M2P.METHOD_AC, COUNT(DISTINCT M2P.PROTEIN_AC) N_PROT
+               FROM {0}.METHOD2PROTEIN M2P
+                 INNER JOIN {0}.PROTEIN_COMMENT PC ON M2P.PROTEIN_AC = PC.PROTEIN_AC
+               WHERE M2P.METHOD_AC IN ({1})
+                     AND PC.TOPIC_ID = :topicid
+               GROUP BY PC.COMMENT_ID, M2P.METHOD_AC
+             ) M
+          INNER JOIN {0}.COMMENT_VALUE C ON M.COMMENT_ID = C.COMMENT_ID AND C.TOPIC_ID = :topicid
+        """.format(app.config['DB_SCHEMA'], meth_var),
+        params
+    )
+
+    comments = {}
+    for method_ac, comment_id, comment, n_prot in cur:
+        if comment_id in comments:
+            c = comments[comment_id]
+        else:
+            c = comments[comment_id] = {
+                'id': comment_id,
+                'value': comment,
+                'methods': {}
+            }
+
+        c['methods'][method_ac] = n_prot
+
+    cur.close()
 
     return jsonify({
         'topic': {
             'id': topic_id,
             'value': get_topic(topic_id)
         },
-        'results': get_swissprot_comments(methods.split('/'), topic_id)
+        'results': sorted(comments.values(), key=lambda x: -max(x['methods'].values()))
     })
 
 
 @app.route('/api/methods/<path:methods>/matrices/')
 def api_methods_matrices(methods):
     """
-    Match matrix of overlapping signatures
+    Returns the overlap match matrix, and the collocation match matrix for a set of signatures
     Example:
     ---
-    /matrix/SSF57440/cd00108/PIRSF500183/PTHR19331:SF315/PTHR44106:SF1
+    /api/methods/SSF57440/cd00108/PIRSF500183/PTHR19331:SF315/PTHR44106:SF1/matrices/
     """
-    matrix, max_prot = get_match_matrix(methods.split('/'))
+    methods = [m.strip() for m in methods.split('/') if m.strip()]
+    meth_var = ','.join([':meth' + str(i) for i in range(len(methods))])
+    params = {'meth' + str(i): method for i, method in enumerate(methods)}
+
+    cur = get_db().cursor()
+    cur.execute(
+        """
+        SELECT MM.METHOD_AC, MM.N_PROT, MO.METHOD_AC2, MO.N_PROT, MO.AVG_OVER, MO.N_PROT_OVER
+        FROM {0}.METHOD_MATCH MM
+          INNER JOIN (
+                       SELECT METHOD_AC1, METHOD_AC2, N_PROT, AVG_OVER, N_PROT_OVER
+                       FROM {0}.METHOD_OVERLAP MO
+                       WHERE METHOD_AC1 IN ({1})
+                             AND METHOD_AC2 IN ({1})
+                     ) MO ON MM.METHOD_AC = MO.METHOD_AC1
+        WHERE METHOD_AC IN ({1})
+        """.format(app.config['DB_SCHEMA'], meth_var),
+        params
+    )
+
+    matrix = {}
+    for acc_1, n_prot, acc_2, n_coloc, avg_over, n_overlap in cur:
+        if acc_1 in matrix:
+            m = matrix[acc_1]
+        else:
+            m = matrix[acc_1] = {
+                'prot': n_prot,
+                'methods': {}
+            }
+
+        m['methods'][acc_2] = {
+            'coloc': n_coloc,
+            'over': n_overlap,
+            'avgOver': avg_over
+        }
+
+    cur.close()
+
     return jsonify({
         'matrix': matrix,
-        'max': max_prot
+        'max': max([m['prot'] for m in matrix.values()])
     })
 
 
