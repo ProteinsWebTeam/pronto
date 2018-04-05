@@ -1379,7 +1379,7 @@ function ComparisonViews(methodsIds) {
 
                 data.results.forEach(protein => {
                     if (protein.isReviewed)
-                        html += '<tr><td class="nowrap"><a href="'+ protein.link +'"><i class="star icon"></i>'+ protein.id +'</a></td>';
+                        html += '<tr><td class="nowrap"><a href="/protein/'+ protein.id +'"><i class="star icon"></i>'+ protein.id +'</a></td><td><a href="'+ protein.link +'"><i class="external icon"></i></a></td>';
                     else
                         html += '<tr><td><a href="'+ protein.link +'">'+ protein.id +'</a></td>';
 
@@ -1642,10 +1642,10 @@ function ComparisonViews(methodsIds) {
                 const statsY = data.matrix.hasOwnProperty(methodAcY) && data.matrix[methodAcY].methods.hasOwnProperty(methodAcY) ? data.matrix[methodAcY].methods[methodAcY] : null;
                 const statsXY = data.matrix.hasOwnProperty(methodAcX) && data.matrix[methodAcX].methods.hasOwnProperty(methodAcY) ? data.matrix[methodAcX].methods[methodAcY] : null;
 
-                let html = '<h5 class="ui header">Proteins</h5><table class="ui very basic small compact table"><tbody>';
+                let html = '<h4 class="ui header">Proteins</h4><table class="ui very basic small compact table"><tbody>';
 
                 html += '<tr><td>Overlapping</td><td class="right aligned">'+ (statsXY !== null ? statsXY.over : 0) +'</td></tr>';
-                html += '<tr><td>Average overlap</td><td class="right aligned">'+ (statsXY !== null ? statsXY.avgOver : '') +'</td></tr>';
+                html += '<tr><td>Average overlap</td><td class="right aligned">'+ (statsXY !== null ? Math.floor(statsXY.avgOver) : '') +'</td></tr>';
 
                 if (statsXY !== null)
                     html += '<tr><td>In both signatures</td><td class="right aligned"><a href="/methods/'+ methodAcX + '/' + methodAcY +'/matches?force='+ methodAcX + ',' + methodAcY +'">'+ statsXY.coloc +'</a></td></tr>';
@@ -1660,6 +1660,60 @@ function ComparisonViews(methodsIds) {
 
                 div.querySelector('.column:last-child').innerHTML = html + '</tbody></table>';
             });
+        });
+
+        setClass(div, 'hidden', false);
+    };
+
+    this.getEnzymes = function () {
+        const url = location.pathname + location.search;
+
+        showDimmer(true);
+        getJSON('/api' + url, (data, status) => {
+            try {
+                history.replaceState({page: 'enzymes', data: data, methods: this.methods, url: url}, '', url);
+            } catch (err) {
+                history.replaceState({page: 'enzymes', data: null, methods: this.methods, url: url}, '', url);
+            }
+            this.renderEnzymes(data);
+            showDimmer(false);
+        });
+    };
+
+    this.renderEnzymes = function (data) {
+        this.toggle('enzymes');
+        document.title = 'ENZYMEs (' + this.methods.join(', ') + ') | Pronto';
+
+        let html = '<thead><tr>' +
+            '<th>'+ data.results.length +' EC numbers</th>';
+
+        this.methods.forEach(methodId => { html += '<th>' + methodId + '</th>'; });
+        html += '</thead><tbody>';
+
+        data.results.forEach(ecno => {
+            html += '<tr data-filter="'+ ecno.id +'" data-search="?ec=' + ecno.id + '">' +
+                '<td>' +
+                '<a href="https://enzyme.expasy.org/EC/'+ ecno.id +'">'+ ecno.id + '&nbsp;<i class="external icon"></i></a></td>';
+
+            this.methods.forEach(methodId => {
+                if (ecno.methods.hasOwnProperty(methodId))
+                    html += '<td><a href="#" data-method="'+ methodId +'">' + ecno.methods[methodId] + '</a></td>';
+                else
+                    html += '<td></td>';
+
+            });
+
+            html += '</tr>';
+        });
+        html += '</tbody>';
+
+        const div = document.getElementById('enzymes');
+        const table = div.querySelector('table');
+        table.innerHTML = html;
+
+        observeLinks(div, (methodId, filter, search) => {
+            const header = '<em>' + methodId + '</em> proteins<div class="sub header">EC: <em>'+ filter +'</em></div>';
+            this.proteinList.open(methodId, search, header);
         });
 
         setClass(div, 'hidden', false);
@@ -1700,10 +1754,12 @@ function ComparisonViews(methodsIds) {
             this.methods.forEach(methodId => {
                 if (term.methods.hasOwnProperty(methodId)) {
                     const method = term.methods[methodId];
-                    const i = Math.floor(method.proteins / term.max * _colors.length);
-                    const color = _colors[Math.min(i, _colors.length - 1)];
-                    html += '<td style="background-color: '+ color +';"><a href="#" data-method="'+ methodId +'">' + method.proteins + '</a></td>' +
-                        '<td class="collapsing"><a data-term="'+ term.id +'" data-method2="'+ methodId +'" class="ui basic label"><i class="book icon"></i>&nbsp;'+ method.references +'</a></td>';
+                    html += '<td><a href="#" data-method="'+ methodId +'">' + method.proteins + '</a></td><td class="collapsing">';
+
+                    if (method.references)
+                        html += '<a data-term="'+ term.id +'" data-method2="'+ methodId +'" class="ui basic label"><i class="book icon"></i>&nbsp;'+ method.references +'</a>';
+
+                    html += '</td>';
                 } else
                     html += '<td colspan="2"></td>';
 
@@ -1804,21 +1860,18 @@ function ComparisonViews(methodsIds) {
             }
         });
 
-        let html = '<thead><tr><th colspan="2">'+ data.results.length +' comments</th>';
+        let html = '<thead><tr><th>'+ data.results.length +' comments</th>';
         this.methods.forEach(methodId => { html += '<th>' + methodId + '</th>'; });
 
         html += '</thead><tbody>';
 
         data.results.forEach(comment => {
             html += '<tr data-filter="'+ comment.value +'" data-search="?comment=' + comment.id + '&topic='+ data.topic.id +'">' +
-                '<td>'+ comment.value +'</td>' +
-                '<td>'+ comment.max +'</td>';
+                '<td>'+ comment.value +'</td>';
 
             this.methods.forEach(methodId => {
                 if (comment.methods.hasOwnProperty(methodId)) {
-                    const i = Math.floor(comment.methods[methodId] / comment.max * _colors.length);
-                    const color = _colors[Math.min(i, _colors.length - 1)];
-                    html += '<td style="background-color: '+ color +'"><a href="#" data-method="'+ methodId +'">' + comment.methods[methodId] + '</a></td>';
+                    html += '<td><a href="#" data-method="'+ methodId +'">' + comment.methods[methodId] + '</a></td>';
                 } else
                     html += '<td></td>';
 
@@ -1856,24 +1909,20 @@ function ComparisonViews(methodsIds) {
         this.toggle('descriptions');
         document.title = 'UniProt descriptions (' + this.methods.join(', ') + ') | Pronto';
 
-        let html = '<thead><tr><th colspan="2">'+ data.results.length +' descriptions</th>';
+        let html = '<thead><tr><th>'+ data.results.length +' descriptions</th>';
         this.methods.forEach(methodId => { html += '<th><a href="" data-method="'+ methodId +'">' + methodId + '</a></th>'; });
 
         html += '</thead><tbody>';
 
         data.results.forEach(desc => {
             html += '<tr data-filter="'+ desc.value +'" data-search="?description=' + desc.id + '&db='+ data.database +'">' +
-                '<td>'+ desc.value +'</td>' +
-                '<td>' + desc.max + '</td>';
+                '<td>'+ desc.value +'</td>';
 
             this.methods.forEach(methodId => {
                 if (desc.methods.hasOwnProperty(methodId)) {
-                    const i = Math.floor(desc.methods[methodId] / desc.max * _colors.length);
-                    const color = _colors[Math.min(i, _colors.length - 1)];
-                    html += '<td style="background-color: '+ color +'"><a href="" data-method="'+ methodId +'">' + desc.methods[methodId] + '</a></td>';
+                    html += '<td><a href="" data-method="'+ methodId +'">' + desc.methods[methodId] + '</a></td>';
                 } else
                     html += '<td></td>';
-
             });
 
             html += '</tr>';
@@ -1896,7 +1945,7 @@ function ComparisonViews(methodsIds) {
             });
         });
 
-        div.querySelector('input[type=radio][value="'+ nvl(data.database, 'U') +'"]').checked = true;
+        div.querySelector('input[type=radio][value="'+ data.database +'"]').checked = true;
         setClass(div, 'hidden', false);
     };
 
@@ -2882,7 +2931,7 @@ function initApp() {
         views.method.get(match[1]);
     }
 
-    match = pathName.match(/^\/methods\/(.+)\/((?:matches)|(?:taxonomy)|(?:descriptions)|(?:comments)|(?:go)|(?:matrices))\/?$/);
+    match = pathName.match(/^\/methods\/(.+)\/((?:matches)|(?:taxonomy)|(?:descriptions)|(?:comments)|(?:go)|(?:matrices)|(?:enzymes))\/?$/);
     if (match) {
         section = 'comparison';
         const methods = match[1].trim().split('/');
@@ -2911,6 +2960,9 @@ function initApp() {
                 break;
             case 'matrices':
                 views.methods.getMatrices();
+                break;
+            case 'enzymes':
+                views.methods.getEnzymes();
                 break;
             default:
                 break;
@@ -2991,6 +3043,7 @@ window.onpopstate = function(event) {
     let section = null;
     if (event.state) {
         const state = event.state;
+        const comparisons = ['matches', 'taxonomy', 'descriptions', 'comments', 'go', 'matrices', 'enzymes'];
 
         if (state.page === 'method') {
             section = state.page;
@@ -2999,7 +3052,7 @@ window.onpopstate = function(event) {
                 views.method = new PredictionView();
 
             views.method.render(state.methodId, state.data);
-        } else if (state.page === 'matches' || state.page === 'taxonomy' || state.page === 'descriptions' || state.page === 'comments' || state.page === 'go' || state.page === 'matrices') {
+        } else if (comparisons.indexOf(state.page) !== -1) {
             section = 'comparison';
 
             if (!views.methods)
@@ -3007,18 +3060,28 @@ window.onpopstate = function(event) {
             else
                 views.methods.setMethods(state.methods);
 
-            if (state.page === 'matches')
-                views.methods.renderMatches(state.data);
-            else if (state.page === 'taxonomy')
-                views.methods.renderTaxonomy(state.data);
-            else if (state.page === 'descriptions')
-                views.methods.renderDescriptions(state.data);
-            else if (state.page === 'comments')
-                views.methods.renderSwissProtComments(state.data);
-            else if (state.page === 'go')
-                views.methods.renderGoTerms(state.data);
-            else
-                views.methods.renderMatrices(state.data);
+            switch (state.page) {
+                case 'matches':
+                    views.methods.renderMatches(state.data);
+                    break;
+                case 'taxonomy':
+                    views.methods.renderTaxonomy(state.data);
+                    break;
+                case 'descriptions':
+                    views.methods.renderDescriptions(state.data);
+                    break;
+                case 'comments':
+                    views.methods.renderSwissProtComments(state.data);
+                    break;
+                case 'go':
+                    views.methods.renderGoTerms(state.data);
+                    break;
+                case 'matrices':
+                    views.methods.renderMatrices(state.data);
+                    break;
+                default:
+                    break;
+            }
         } else if (state.page === 'methods') {
             if (!views.db)
                 views.db = new DatabaseView();
