@@ -164,6 +164,7 @@ def build_method2protein_sql(methods, **kwargs):
     topic_id = kwargs.get('topic_id')
     comment_id = kwargs.get('comment_id')
     go_id = kwargs.get('go_id')
+    ecno = kwargs.get('ecno')
     search = kwargs.get('search')
 
     may = []        # Methods that may match the set of returned proteins
@@ -259,6 +260,17 @@ def build_method2protein_sql(methods, **kwargs):
         go_join = ''
         go_cond = ''
 
+    # Exclude proteins that are not associated to the passed EC number
+    if ecno:
+        ec_join = 'INNER JOIN {}.ENZYME EZ ON M2P.PROTEIN_AC = EZ.PROTEIN_AC'.format(
+            app.config['DB_SCHEMA']
+        )
+        ec_cond = 'AND EZ.ECNO = :ecno'
+        params['ecno'] = ecno
+    else:
+        ec_join = ''
+        ec_cond = ''
+
     # Filter by search (on accession only, not name)
     if search:
         search_cond = 'AND M2P.PROTEIN_AC LIKE :search_like'
@@ -282,7 +294,9 @@ def build_method2protein_sql(methods, **kwargs):
         {}
         {}
         {}
+        {}
         WHERE M2P.METHOD_AC IN ({})
+        {}
         {}
         {}
         {}
@@ -296,7 +310,7 @@ def build_method2protein_sql(methods, **kwargs):
         app.config['DB_SCHEMA'],
 
         # filter joins
-        must_join, mustnt_join, comment_join, desc_join, go_join,
+        must_join, mustnt_join, comment_join, desc_join, go_join, ec_join,
 
         # 'WHERE M2P.METHOD_AC IN' statement
         may_cond,
@@ -309,7 +323,8 @@ def build_method2protein_sql(methods, **kwargs):
         go_cond,
         source_cond,
         search_cond,
-        tax_cond
+        tax_cond,
+        ec_cond
     )
 
     return sql, params
@@ -2138,23 +2153,23 @@ def get_method_proteins(method_ac):
 @app.route('/api/method/<method_ac>/proteins/')
 def api_method_proteins(method_ac):
     try:
-        taxon_id = int(request.args['taxon'])
-    except (KeyError, ValueError):
+        taxon_id = int(request.args.get('taxon', 1))
+    except ValueError:
         taxon_id = 1
     finally:
         taxon = get_taxon(taxon_id)
 
     try:
-        page = int(request.args['page'])
-    except (KeyError, ValueError):
+        page = int(request.args.get('page', 1))
+    except ValueError:
         page = 1
     else:
         if page < 1:
             page = 1
 
     try:
-        page_size = int(request.args['pageSize'])
-    except (KeyError, ValueError):
+        page_size = int(request.args.get('pageSize', 25))
+    except ValueError:
         page_size = 25
     else:
         if page_size < 1:
@@ -2172,17 +2187,13 @@ def api_method_proteins(method_ac):
         topic_id = None
         comment_id = None
 
-    try:
-        go_id = request.args['term']
-    except KeyError:
-        go_id = None
+    go_id = request.args.get('term')
 
-    try:
-        dbcode = request.args['db'].upper()
-    except KeyError:
+    source_db = request.args.get('db', '').upper()
+    if source_db not in ('S', 'T'):
         source_db = None
-    else:
-        source_db = dbcode if dbcode in ('S', 'T') else None
+
+    ecno = request.args.get('ec')
 
     search = request.args.get('search', '').strip()
     if not search:
@@ -2196,6 +2207,7 @@ def api_method_proteins(method_ac):
         topic_id=topic_id,
         comment_id=comment_id,
         go_id=go_id,
+        ecno=ecno,
         search=search
     )
 
