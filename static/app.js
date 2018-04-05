@@ -330,7 +330,7 @@ function ProteinView() {
             let content = '<div class="header">' + start.toLocaleString() + ' - ' + end.toLocaleString() +'</div><div class="meta">' + nvl(name, '') + '</div>';
 
             if (id[0] === null || id[0].indexOf('IPR'))
-                content += '<div class="description"><strong>'+ dbName +'</strong>&nbsp;<a target="_blank" href="'+ link +'">'+ id +'&nbsp;<i class="external icon"></i></div>';
+                content += '<div class="description"><strong>'+ dbName +'</strong>&nbsp;<a href="'+ link +'">'+ id +'&nbsp;<i class="external icon"></i></div>';
             else // todo show hierarchy
                 content += '<div class="description"><a href="/entry/'+ id[0] +'">'+ id[0] +'</a></div>';
 
@@ -380,7 +380,7 @@ function ProteinView() {
         const protein = data.result;
 
         document.title = protein.name + ' (' + protein.id + ') | Pronto';
-        this.section.querySelector('h1.header').innerHTML = protein.name + '<div class="sub header"><a target="_blank" href="'+ protein.link +'">' + (protein.isReviewed ? '<i class="star icon"></i>' : '') + protein.id  + '&nbsp;<i class="external icon"></i></a></div>';
+        this.section.querySelector('h1.header').innerHTML = protein.name + '<div class="sub header"><a href="'+ protein.link +'">' + (protein.isReviewed ? '<i class="star icon"></i>' : '') + protein.id  + '&nbsp;<i class="external icon"></i></a></div>';
 
         const arr = protein.taxon.scientificName.split(' ');
         let nEntries = 0;
@@ -825,7 +825,7 @@ function ProteinView() {
                         });
                     });
 
-                    html += '<text x="' + (width + 10) + '" y="'+ (y + matchHeight / 2) +'"><a target="_blank" href="' + structures[dbName][0].db.home +'">'+ dbName +'&nbsp;<tspan>&#xf08e;</tspan></a></text>';
+                    html += '<text x="' + (width + 10) + '" y="'+ (y + matchHeight / 2) +'"><a href="' + structures[dbName][0].db.home +'">'+ dbName +'&nbsp;<tspan>&#xf08e;</tspan></a></text>';
                     ++i;
                 }
             }
@@ -1000,10 +1000,10 @@ function EntryView() {
                 content += '<div class="ui horizontal link list">';
 
                 if (ref.doi)
-                    content += '<a target="_blank" class="item" href="'+ ref.doi +'">View article&nbsp;<i class="external icon"></i></a>';
+                    content += '<a class="item" href="'+ ref.doi +'">View article&nbsp;<i class="external icon"></i></a>';
 
                 if (ref.pmid)
-                    content += '<span class="item">Europe PMC:&nbsp;<a target="_blank" href="http://europepmc.org/abstract/MED/' + ref.pmid + '">'+ ref.pmid +'&nbsp;<i class="external icon"></i></a></span>';
+                    content += '<span class="item">Europe PMC:&nbsp;<a href="http://europepmc.org/abstract/MED/' + ref.pmid + '">'+ ref.pmid +'&nbsp;<i class="external icon"></i></a></span>';
 
                 content += '</div>';
             }
@@ -1026,10 +1026,10 @@ function EntryView() {
                     '<div class="ui horizontal link list">';
 
                 if (references[refID].doi)
-                    content += '<a target="_blank" class="item" href="'+ references[refID].doi +'">View article&nbsp;<i class="external icon"></i></a>';
+                    content += '<a class="item" href="'+ references[refID].doi +'">View article&nbsp;<i class="external icon"></i></a>';
 
                 if (references[refID].pmid)
-                    content += '<span class="item">Europe PMC:&nbsp;<a target="_blank" href="http://europepmc.org/abstract/MED/' + references[refID].pmid + '">'+ references[refID].pmid +'&nbsp;<i class="external icon"></i></a></span>';
+                    content += '<span class="item">Europe PMC:&nbsp;<a href="http://europepmc.org/abstract/MED/' + references[refID].pmid + '">'+ references[refID].pmid +'&nbsp;<i class="external icon"></i></a></span>';
 
                 content += '</div></li>';
             }
@@ -1046,9 +1046,9 @@ function EntryView() {
             content += '<tr><td><a href="/method/'+ method.id +'">'+ method.id +'</a></td>';
 
             if (method.link)
-                content += '<td><a target="_blank" href="'+ method.link +'">'+ method.dbname +'&nbsp;<i class="external icon"></i></a></td>';
+                content += '<td><a href="'+ method.link +'">'+ method.dbname +'&nbsp;<i class="external icon"></i></a></td>';
             else if (method.home)
-                content += '<td><a target="_blank" href="'+ method.home +'">'+ method.dbname +'&nbsp;<i class="external icon"></i></a></td>';
+                content += '<td><a href="'+ method.home +'">'+ method.dbname +'&nbsp;<i class="external icon"></i></a></td>';
             else
                 content += '<td>'+ method.dbname +'</td>';
 
@@ -1379,9 +1379,9 @@ function ComparisonViews(methodsIds) {
 
                 data.results.forEach(protein => {
                     if (protein.isReviewed)
-                        html += '<tr><td class="nowrap"><a target="_blank" href="'+ protein.link +'"><i class="star icon"></i>'+ protein.id +'</a></td>';
+                        html += '<tr><td class="nowrap"><a href="'+ protein.link +'"><i class="star icon"></i>'+ protein.id +'</a></td>';
                     else
-                        html += '<tr><td><a target="_blank" href="'+ protein.link +'">'+ protein.id +'</a></td>';
+                        html += '<tr><td><a href="'+ protein.link +'">'+ protein.id +'</a></td>';
 
                     html += '<td>'+ protein.shortName +'</td><td>'+ protein.name +'</td><td>'+ protein.taxon.fullName +'</td>';
 
@@ -1694,7 +1694,7 @@ function ComparisonViews(methodsIds) {
             html += '<tr data-filter="'+ term.id +'" data-search="?term=' + term.id + '">' +
                 '<td class="nowrap">' +
                 '<span class="ui circular small label aspect-'+ term.aspect +'">'+ term.aspect +'</span>' +
-                '<a target="_blank" href="https://www.ebi.ac.uk/QuickGO/term/'+ term.id +'">'+ term.id + ':&nbsp;' + term.value +'&nbsp;<i class="external icon"></i></a></td>' +
+                '<a href="https://www.ebi.ac.uk/QuickGO/term/'+ term.id +'">'+ term.id + ':&nbsp;' + term.value +'&nbsp;<i class="external icon"></i></a></td>' +
                 '<td class="collapsing center aligned">'+ renderCheckbox(term.id, false) +'</td>';
 
             this.methods.forEach(methodId => {
@@ -1739,7 +1739,7 @@ function ComparisonViews(methodsIds) {
                     if (data.count) {
                         data.results.forEach(ref => {
                             html += '<li class="item">' +
-                                '<div class="header"><a target="_blank" href="http://europepmc.org/abstract/MED/'+ ref.id +'">'+ ref.id +'&nbsp;<i class="external icon"></i></a></div><div class="description">'+ nvl(ref.title, '') + ' ' + nvl(ref.date, '') +'</div></li>';
+                                '<div class="header"><a href="http://europepmc.org/abstract/MED/'+ ref.id +'">'+ ref.id +'&nbsp;<i class="external icon"></i></a></div><div class="description">'+ nvl(ref.title, '') + ' ' + nvl(ref.date, '') +'</div></li>';
                         });
                     } else {
                         html = '<div class="ui negative message"><div class="header">No references found</div><p>This entry does not have any references in the literature.</p></div>';
@@ -1951,9 +1951,9 @@ function ComparisonViews(methodsIds) {
 
             this.methods.forEach(methodId => {
                 if (taxon.methods.hasOwnProperty(methodId)) {
-                    const i = Math.floor(taxon.methods[methodId] / data.max * _colors.length);
-                    const color = _colors[Math.min(i, _colors.length - 1)];
-                    html += '<td style="background-color: '+ color +'"><a href="#" data-method="'+ methodId +'">' + taxon.methods[methodId] + '</a></td>';
+                    //const i = Math.floor(taxon.methods[methodId] / taxon.max * _colors.length);
+                    //const color = _colors[Math.min(i, _colors.length - 1)];
+                    html += '<td><a href="#" data-method="'+ methodId +'">' + taxon.methods[methodId] + '</a></td>';
                 } else
                     html += '<td></td>';
 
@@ -2010,7 +2010,7 @@ function ComparisonViews(methodsIds) {
         data.proteins.forEach((protein, i) => {
             html += '<div class="ui segment">' +
                 '<span class="ui red ribbon label">' + (protein.isReviewed ? '<i class="star icon"></i>&nbsp;' : '') + protein.id + '</a></span>' +
-                '<a target="_blank" href="'+ protein.link +'">'+ protein.description +'&nbsp;<i class="external icon"></i></a>';
+                '<a href="'+ protein.link +'">'+ protein.description +'&nbsp;<i class="external icon"></i></a>';
 
             const uncondensedURL = baseUrl + encodeParams(extendObj(params, {code: protein.code, page: null, pageSize: null}), true);
 
@@ -2037,7 +2037,7 @@ function ComparisonViews(methodsIds) {
                 else
                     html += '<td></td>';
 
-                html += '<td class="nowrap"><a target="_blank" href="'+ method.db.link +'">'+ method.id + '&nbsp;<i class="external icon"></i></a></td>' +
+                html += '<td class="nowrap"><a href="'+ method.db.link +'">'+ method.id + '&nbsp;<i class="external icon"></i></a></td>' +
                     '<td>'+ method.name + '</td>' +
                     '<td>'+ (method.isCandidate ? '&nbsp;<i class="checkmark box icon"></i>' : '') +'</td>';
 
@@ -2581,7 +2581,7 @@ function PredictionView() {
             html += '<tr '+ (m.id === methodId ? 'class="selected"' : '') +'>' +
                 '<td>'+ nvl(m.relation, '') +'</td>' +
                 '<td><a href="#">' + m.id + '</a></td>' +
-                '<td class="collapsing">'+ (m.dbLink ? '&nbsp;<a target="_blank" href="'+ m.dbLink +'"><i class="external icon"></i></a>' : '') +'</td>' +
+                '<td class="collapsing">'+ (m.dbLink ? '&nbsp;<a href="'+ m.dbLink +'"><i class="external icon"></i></a>' : '') +'</td>' +
                 // '<td>'+ m.dbShort +'</td>' +
                 '<td>'+ m.nProts +'</td>' +
                 '<td>'+ m.nBlobs +'</td>' +
