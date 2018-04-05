@@ -1099,7 +1099,7 @@ function EntryView() {
 
         entry.go.forEach(function (term) {
             if (goTerms.hasOwnProperty(term.category)) {
-                goTerms[term.category] += '<dd><a href="http://www.ebi.ac.uk/QuickGO/GTerm?id=' + term.id + '" target="_blank">' + term.id + '&nbsp;<i class="external icon"></i></a>&nbsp;' + term.name;
+                goTerms[term.category] += '<dd><a href="http://www.ebi.ac.uk/QuickGO/GTerm?id=' + term.id + '">' + term.id + '&nbsp;<i class="external icon"></i></a>&nbsp;' + term.name;
 
                 if (term.isObsolete)
                     goTerms[term.category] += '&nbsp;<span class="ui tiny red label">Obsolete</span>';
@@ -2722,7 +2722,7 @@ function IndexView() {
             html.push(
                 [
                     '<tr>',
-                    '<td><a href="'+ db.home +'" target="_blank">'+ db.name +'&nbsp;'+ db.version +'&nbsp;<i class="external icon"></i></a></td>',
+                    '<td><a href="'+ db.home +'">'+ db.name +'&nbsp;'+ db.version +'&nbsp;<i class="external icon"></i></a></td>',
                     '<td><a href="/db/'+ db.shortName +'">'+ db.count.toLocaleString() +'</a></td>',
                     '<td>'+ db.countIntegrated.toLocaleString() +'</td>',
                     '<td><a href="/db/'+ db.shortName +'?unintegrated=exist">'+ db.countUnintegrated.toLocaleString() +'</a></td>',
