@@ -582,81 +582,6 @@ def get_overlapping_entries(method):
     return methods
 
 
-def get_taxonomy(methods, taxon, rank):
-    """
-    Returns the taxonomic origins of one or more signatures.
-    """
-    cur = get_db().cursor()
-
-    fmt = ','.join([':meth' + str(i) for i in range(len(methods))])
-    params = {'meth' + str(i): method for i, method in enumerate(methods)}
-
-    max_cnt = 0
-    cur.execute(
-        """
-        SELECT MAX(N_PROT)
-        FROM {}.METHOD_MATCH
-        WHERE METHOD_AC in ({})
-        """.format(app.config['DB_SCHEMA'], fmt),
-        params
-    )
-    row = cur.fetchone()
-    if row:
-        max_cnt = row[0]
-
-    params['left_number'] = taxon['leftNumber']
-    params['right_number'] = taxon['rightNumber']
-    params['rank'] = rank
-
-    """
-    TODO:
-    Some signatures can match proteins of organisms that do not have a taxon:
-        to get those, use a LEFT JOIN instead of INNER JOIN
-    """
-    cur.execute(
-        """
-        SELECT E.TAX_ID, MIN(E.FULL_NAME), M.METHOD_AC, SUM(M.N_PROT)
-        FROM (
-          SELECT METHOD_AC, LEFT_NUMBER, COUNT(PROTEIN_AC) N_PROT
-          FROM {0}.METHOD2PROTEIN
-          WHERE METHOD_AC IN ({1}) AND LEFT_NUMBER BETWEEN :left_number AND :right_number
-          GROUP BY METHOD_AC, LEFT_NUMBER
-        ) M
-        INNER JOIN (
-          SELECT TAX_ID, LEFT_NUMBER
-          FROM {0}.LINEAGE
-            WHERE LEFT_NUMBER BETWEEN :left_number AND :right_number
-            AND RANK = :rank
-        ) L
-        ON M.LEFT_NUMBER = L.LEFT_NUMBER
-        INNER JOIN {0}.ETAXI E ON L.TAX_ID = E.TAX_ID
-        GROUP BY M.METHOD_AC, E.TAX_ID
-        """.format(app.config['DB_SCHEMA'], fmt),
-        params
-    )
-
-    taxons = {}
-    for tax_id, full_name, method_ac, count in cur:
-        if tax_id in taxons:
-            t = taxons[tax_id]
-        else:
-            t = taxons[tax_id] = {
-                'id': tax_id,
-                'fullName': full_name if full_name else 'Others',
-                'methods': {}
-            }
-
-        t['methods'][method_ac] = count
-
-    cur.close()
-
-    taxons = sorted(taxons.values(), key=lambda x: -sum(x['methods'].values()))
-    # TODO: Sort taxons by number of proteins (except for "Others", placed at the end)
-    #taxons = sorted(taxons.values(), key=lambda x: (0 if x['id'] else 1, -sum(x['methods'].values())))
-
-    return taxons, max_cnt
-
-
 def get_descriptions(methods, db=None):
     """
     Returns the descriptions associated to one or more signatures.
@@ -2720,48 +2645,87 @@ def api_methods_taxonomy(methods):
     Taxonomic origins
     Example:
     ---
-    /taxonomy/MF_00011/PF00709?rank=genus
+    /methods/MF_00011/PF00709/taxonomy/?rank=genus
     """
+    methods = [m.strip() for m in methods.split('/') if m.strip()]
+
     try:
-        taxon_id = int(request.args['taxon'])
-    except (KeyError, ValueError):
+        taxon_id = int(request.args.get('taxon', ''))
+    except ValueError:
         taxon_id = 1
     finally:
         taxon = get_taxon(taxon_id)
 
-    ranks = (
-        'superkingdom', 'kingdom', 'phylum', 'class',
-        'order', 'family', 'genus', 'species'
-    )
+    ranks = ('superkingdom', 'kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species')
     try:
-        i = ranks.index(request.args['rank'].lower())
-    except (KeyError, ValueError):
+        i = ranks.index(request.args.get('rank', 'superkingdom').lower())
+    except ValueError:
         i = 0
     finally:
         rank = ranks[i]
 
-    # try:
-    #     i = ranks.index(taxon['rank'])
-    # except ValueError:
-    #     i = 0
-    # else:
-    #     try:
-    #         ranks[i + 1]
-    #     except IndexError:
-    #         pass
-    #     else:
-    #         i += 1
-    # finally:
-    #     rank = ranks[i]
+    fmt = ','.join([':meth' + str(i) for i in range(len(methods))])
+    params = {'meth' + str(i): method for i, method in enumerate(methods)}
+    params['ln'] = taxon['leftNumber']
+    params['rn'] = taxon['rightNumber']
+    params['rank'] = rank
 
-    taxons, max_cnt = get_taxonomy(methods=methods.split('/'), taxon=taxon, rank=rank)
+    cur = get_db().cursor()
+    """
+    SELECT E.TAX_ID, MIN(E.FULL_NAME), M.METHOD_AC, SUM(M.N_PROT)
+    FROM (
+           SELECT METHOD_AC, LEFT_NUMBER, COUNT(PROTEIN_AC) N_PROT
+           FROM interpro_analysis.METHOD2PROTEIN
+           WHERE METHOD_AC IN ('PTHR15000')
+           GROUP BY METHOD_AC, LEFT_NUMBER
+         ) M
+      LEFT OUTER JOIN (
+                        SELECT TAX_ID, LEFT_NUMBER
+                        FROM interpro_analysis.LINEAGE
+                        WHERE RANK = 'kingdom'
+                      ) L
+        ON M.LEFT_NUMBER = L.LEFT_NUMBER
+      LEFT OUTER JOIN interpro_analysis.ETAXI E ON L.TAX_ID = E.TAX_ID
+    GROUP BY M.METHOD_AC, E.TAX_ID
+    """
+    cur.execute(
+        """
+        SELECT
+          L.TAX_ID,
+          MIN(E.FULL_NAME),
+          M2P.METHOD_AC,
+          COUNT(DISTINCT M2P.PROTEIN_AC)
+        FROM {0}.METHOD2PROTEIN M2P
+          LEFT OUTER JOIN {0}.LINEAGE L ON M2P.LEFT_NUMBER = L.LEFT_NUMBER and L.RANK = :rank
+          LEFT OUTER JOIN {0}.ETAXI E ON L.TAX_ID = E.TAX_ID
+        WHERE M2P.METHOD_AC IN ({1})
+              AND M2P.LEFT_NUMBER BETWEEN :ln AND :rn
+        GROUP BY M2P.METHOD_AC, L.TAX_ID
+        """.format(app.config['DB_SCHEMA'], fmt),
+        params
+    )
+
+    taxons = {}
+    for row in cur:
+        tax_id = row[0]
+
+        if tax_id in taxons:
+            t = taxons[tax_id]
+        else:
+            t = taxons[tax_id] = {
+                'id': tax_id,
+                'fullName': row[1] if tax_id else 'Others',
+                'methods': {}
+            }
+
+        t['methods'][row[2]] = row[3]
+
+    cur.close()
 
     return jsonify({
         'taxon': taxon,
         'rank': rank,
-        'count': len(taxons),
-        'results': taxons,
-        'max': max_cnt
+        'results': sorted(taxons.values(), key=lambda x: (0 if x['id'] else 1, -sum(x['methods'].values())))
     })
 
 
