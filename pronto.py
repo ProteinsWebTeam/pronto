@@ -1458,7 +1458,7 @@ def get_db():
         finally:
             uri = credentials + '@' + app.config['DATABASE_HOST']
 
-        g.oracle_db = cx_Oracle.connect(uri)
+        g.oracle_db = cx_Oracle.connect(uri, encoding='utf-8', nencoding='utf-8')
     return g.oracle_db
 
 
