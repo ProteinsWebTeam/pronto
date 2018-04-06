@@ -71,6 +71,11 @@ h1, h2, h3, h4, h5, h6, .ui.header {
     color: rgba(0,0,0,.8);
 }
 
+input[type=range] {
+    display: block;
+    width: 50%;
+}
+
 /* Make labels behave like icons in lists */
 td > .ui.list > .item > .label {
     display: table-cell;

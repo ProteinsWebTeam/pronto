@@ -486,116 +486,6 @@ def get_overlapping_proteins(methods, **kwargs):
     return _proteins, n_proteins, max_len
 
 
-def get_overlapping_entries(method):
-    """
-     Returns the overlapping entries for a given signature.
-    """
-    cur = get_db().cursor()
-    cur.execute(
-        """
-        SELECT
-          MO.C_AC,
-          DB.DBCODE,
-          DB.DBSHORT,
-
-          E.ENTRY_AC,
-          E.CHECKED,
-          E.ENTRY_TYPE,
-          E.NAME,
-
-          MO.C_N_PROT,
-          MO.C_N_MATCHES,
-
-          MO.N_PROT_OVER,
-          MO.N_OVER,
-          MO.Q_N_PROT,
-          MO.Q_N_MATCHES,
-
-          MP.RELATION
-        FROM (
-            SELECT
-                MMC.METHOD_AC C_AC,
-                MMC.N_PROT C_N_PROT,
-                MMC.N_MATCHES C_N_MATCHES,
-                MMQ.METHOD_AC Q_AC,
-                MMQ.N_PROT Q_N_PROT,
-                MMQ.N_MATCHES Q_N_MATCHES,
-                MO.N_PROT_OVER,
-                MO.N_OVER
-            FROM (
-                SELECT METHOD_AC1, METHOD_AC2, N_PROT_OVER, N_OVER, AVG_FRAC1, AVG_FRAC2
-                FROM {0}.METHOD_OVERLAP
-                WHERE METHOD_AC2 = :1
-            ) MO
-            INNER JOIN {0}.METHOD_MATCH MMC ON MO.METHOD_AC1 = MMC.METHOD_AC
-            INNER JOIN {0}.METHOD_MATCH MMQ ON MO.METHOD_AC2 = MMQ.METHOD_AC
-            WHERE ((MO.N_PROT_OVER >= (0.3 * MMC.N_PROT)) OR (MO.N_PROT_OVER >= (0.3 * MMQ.N_PROT)))
-        ) MO
-        LEFT OUTER JOIN {0}.METHOD_PREDICTION MP ON MO.C_AC = MP.METHOD_AC1 AND MO.Q_AC = MP.METHOD_AC2
-        LEFT OUTER JOIN {0}.METHOD M ON MO.C_AC = M.METHOD_AC
-        LEFT OUTER JOIN {0}.CV_DATABASE DB ON M.DBCODE = DB.DBCODE
-        LEFT OUTER JOIN {0}.ENTRY2METHOD E2M ON MO.C_AC = E2M.METHOD_AC
-        LEFT OUTER JOIN {0}.ENTRY E ON E2M.ENTRY_AC = E.ENTRY_AC
-        ORDER BY MO.N_PROT_OVER DESC, MO.N_OVER DESC, MO.C_AC
-        """.format(app.config['DB_SCHEMA']),
-        (method,)
-    )
-
-    methods = []
-    for row in cur:
-        db = xref.find_ref(row[1], row[0])
-
-        methods.append({
-            # method and member database
-            'id': row[0],
-            'dbCode': row[1],
-            'dbShort': row[2],
-            'dbLink': db.gen_link() if db else None,
-
-            # InterPro entry info
-            'entryId': row[3],
-            'entryHierarchy': [],
-            'isChecked': row[4] == 'Y',
-            'entryType': row[5],
-            'entryName': row[6],
-
-            # TODO: FIX comments and rename attrs (nProts should be nProtsCand, etc.) and propagate to client
-            'nProts': row[7],           # number of proteins where both query and candidate signatures overlap
-            'nBlobs': row[8],           # number of overlapping blobs with query and candidate signature
-
-            'nProtsCand': row[9],       # number of proteins for every candidate signature
-            'nBlobsCand': row[10],
-            'nProtsQuery': row[11],     # number of proteins in the query signature found
-            'nBlobsQuery': row[12],
-
-            'relation': row[13]        # predicted relationship
-        })
-
-    cur.execute(
-        """
-        SELECT ENTRY_AC, PARENT_AC
-        FROM {}.ENTRY2ENTRY
-        """.format(app.config['DB_SCHEMA'])
-    )
-
-    parent_of = dict(cur.fetchall())
-    cur.close()
-
-    for m in methods:
-        entry_ac = m['entryId']
-
-        if entry_ac:
-            hierarchy = []
-
-            while entry_ac in parent_of:
-                entry_ac = parent_of[entry_ac]
-                hierarchy.append(entry_ac)
-
-            m['entryHierarchy'] = hierarchy[::-1]
-
-    return methods
-
-
 def get_description(desc_id):
     """
     Returns proteins associated to a given description.
@@ -1971,12 +1861,120 @@ def api_entry_comment(entry_ac):
 @app.route('/api/method/<method_ac>/prediction/')
 def api_prediction(method_ac):
     """
-    Signature prediction
+    Returns the overlapping entries for a given signature.
     Example:
     ---
-    /method/prediction/PF00051
+    /api/method/PF00051/prediction/
     """
-    methods = get_overlapping_entries(method_ac)
+
+    try:
+        overlap = float(request.args.get('overlap', 0.3))
+    except ValueError:
+        overlap = 0.3
+
+    cur = get_db().cursor()
+    cur.execute(
+        """
+        SELECT
+          MO.C_AC,
+          DB.DBCODE,
+          DB.DBSHORT,
+
+          E.ENTRY_AC,
+          E.CHECKED,
+          E.ENTRY_TYPE,
+          E.NAME,
+
+          MO.C_N_PROT,
+          MO.C_N_MATCHES,
+
+          MO.N_PROT_OVER,
+          MO.N_OVER,
+          MO.Q_N_PROT,
+          MO.Q_N_MATCHES,
+
+          MP.RELATION
+        FROM (
+            SELECT
+                MMC.METHOD_AC C_AC,
+                MMC.N_PROT C_N_PROT,
+                MMC.N_MATCHES C_N_MATCHES,
+                MMQ.METHOD_AC Q_AC,
+                MMQ.N_PROT Q_N_PROT,
+                MMQ.N_MATCHES Q_N_MATCHES,
+                MO.N_PROT_OVER,
+                MO.N_OVER
+            FROM (
+                SELECT METHOD_AC1, METHOD_AC2, N_PROT_OVER, N_OVER, AVG_FRAC1, AVG_FRAC2
+                FROM {0}.METHOD_OVERLAP
+                WHERE METHOD_AC2 = :method
+            ) MO
+            INNER JOIN {0}.METHOD_MATCH MMC ON MO.METHOD_AC1 = MMC.METHOD_AC
+            INNER JOIN {0}.METHOD_MATCH MMQ ON MO.METHOD_AC2 = MMQ.METHOD_AC
+            WHERE ((MO.N_PROT_OVER >= (:overlap * MMC.N_PROT)) OR (MO.N_PROT_OVER >= (:overlap * MMQ.N_PROT)))
+        ) MO
+        LEFT OUTER JOIN {0}.METHOD_PREDICTION MP ON MO.C_AC = MP.METHOD_AC1 AND MO.Q_AC = MP.METHOD_AC2
+        LEFT OUTER JOIN {0}.METHOD M ON MO.C_AC = M.METHOD_AC
+        LEFT OUTER JOIN {0}.CV_DATABASE DB ON M.DBCODE = DB.DBCODE
+        LEFT OUTER JOIN {0}.ENTRY2METHOD E2M ON MO.C_AC = E2M.METHOD_AC
+        LEFT OUTER JOIN {0}.ENTRY E ON E2M.ENTRY_AC = E.ENTRY_AC
+        ORDER BY MO.N_PROT_OVER DESC, MO.N_OVER DESC, MO.C_AC
+        """.format(app.config['DB_SCHEMA']),
+        {'method': method_ac, 'overlap': overlap}
+    )
+
+    methods = []
+    for row in cur:
+        db = xref.find_ref(row[1], row[0])
+
+        methods.append({
+            # method and member database
+            'id': row[0],
+            'dbCode': row[1],
+            'dbShort': row[2],
+            'dbLink': db.gen_link() if db else None,
+
+            # InterPro entry info
+            'entryId': row[3],
+            'entryHierarchy': [],
+            'isChecked': row[4] == 'Y',
+            'entryType': row[5],
+            'entryName': row[6],
+
+            # TODO: FIX comments and rename attrs (nProts should be nProtsCand, etc.) and propagate to client
+            'nProts': row[7],  # number of proteins where both query and candidate signatures overlap
+            'nBlobs': row[8],  # number of overlapping blobs with query and candidate signature
+
+            'nProtsCand': row[9],  # number of proteins for every candidate signature
+            'nBlobsCand': row[10],
+            'nProtsQuery': row[11],  # number of proteins in the query signature found
+            'nBlobsQuery': row[12],
+
+            'relation': row[13]  # predicted relationship
+        })
+
+    cur.execute(
+        """
+        SELECT ENTRY_AC, PARENT_AC
+        FROM {}.ENTRY2ENTRY
+        """.format(app.config['DB_SCHEMA'])
+    )
+
+    parent_of = dict(cur.fetchall())
+    cur.close()
+
+    for m in methods:
+        entry_ac = m['entryId']
+
+        if entry_ac:
+            hierarchy = []
+
+            while entry_ac in parent_of:
+                entry_ac = parent_of[entry_ac]
+                hierarchy.append(entry_ac)
+
+            m['entryHierarchy'] = hierarchy[::-1]
+
     return jsonify({
         'results': methods,
         'count': len(methods)

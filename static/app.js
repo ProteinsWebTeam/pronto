@@ -1471,8 +1471,8 @@ function ComparisonViews(methodsIds) {
                 actionLink.setAttribute(
                     'href',
                     '/methods/' + this.id + '/matches' + encodeParams(
-                        extendObj(getParams(this.url), {search: null, page: 1, pageSize: null}),
-                        true
+                    extendObj(getParams(this.url), {search: null, page: 1, pageSize: null}),
+                    true
                     )
                 );
                 observeLink(actionLink);
@@ -2484,6 +2484,8 @@ function PredictionView() {
     this.sv = new MethodsSelectionView(this.section.querySelector('.methods'));
     this.pixels = null;
     this.nRect = null;
+    this.methodId = null;
+    this.overlapThreshold = null;
     const self = this;
 
     // Init
@@ -2543,7 +2545,21 @@ function PredictionView() {
             });
         });
 
-
+        const slider = document.getElementById('over-range');
+        const span = document.getElementById('over-value');
+        slider.addEventListener('change', evt => {
+            self.overlapThreshold = parseFloat(evt.target.value);
+            span.innerHTML = (self.overlapThreshold * 100).toFixed(0);
+            const pathname = getPathName(history.state.url);
+            const params = extendObj(getParams(history.state.url), {overlap: self.overlapThreshold});
+            history.pushState({}, '', pathname + encodeParams(params));
+            self.get(self.methodId);
+        });
+        slider.addEventListener('input', evt => {
+            span.innerHTML = (parseFloat(evt.target.value) * 100).toFixed(0);
+        });
+        self.overlapThreshold = parseFloat(slider.value);
+        span.innerHTML = (self.overlapThreshold * 100).toFixed(0);
     })();
 
     this.draw = function () {
@@ -2579,9 +2595,10 @@ function PredictionView() {
     this.get = function (methodId) {
         self.sv.clear().add(methodId).render();
         const url = location.pathname + location.search;
+        this.methodId = methodId;
 
         showDimmer(true);
-        getJSON('/api' + getPathName(location.pathname) + '/prediction?' + location.search, (data, status) => {
+        getJSON('/api' + getPathName(location.pathname) + '/prediction' + location.search, (data, status) => {
             try {
                 history.replaceState({page: 'method', data: data, methodId: methodId, url: url}, '', url);
             } catch (err) {
