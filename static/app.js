@@ -2615,8 +2615,8 @@ function PredictionView() {
 
         let html = '';
         data.results.forEach(m => {
-            const qRatio = Math.min(m.nProtsCand / m.nProtsQuery, 1);
-            const cRatio = Math.min(m.nProtsCand / m.nProts, 1);
+            const qRatio = Math.min(m.nProts / m.nProtsQuery, 1);
+            const cRatio = Math.min(m.nProts / m.nProtsCand, 1);
             let x = this.nRect - Math.floor(cRatio * this.nRect);
             let y = this.nRect - Math.floor(qRatio * this.nRect);
 
@@ -2625,8 +2625,8 @@ function PredictionView() {
                 y < this.nRect ? y : y - 1,
             );
 
-            const qBlob = Math.min(m.nBlobsCand / m.nBlobsQuery, 1);
-            const cBlob = Math.min(m.nBlobsCand / m.nBlobs, 1);
+            const qBlob = Math.min(m.nBlobs / m.nBlobsQuery, 1);
+            const cBlob = Math.min(m.nBlobs / m.nBlobsCand, 1);
             x = this.nRect - Math.floor(cBlob * this.nRect);
             y = this.nRect - Math.floor(qBlob * this.nRect);
 
@@ -2640,10 +2640,10 @@ function PredictionView() {
                 '<td><a href="#">' + m.id + '</a></td>' +
                 '<td class="collapsing">'+ (m.dbLink ? '&nbsp;<a href="'+ m.dbLink +'"><i class="external icon"></i></a>' : '') +'</td>' +
                 // '<td>'+ m.dbShort +'</td>' +
-                '<td>'+ m.nProts +'</td>' +
-                '<td>'+ m.nBlobs +'</td>' +
-                '<td style="background-color: '+ c1 +'; color: #fff;">'+ m.nProtsCand +'</td>' +
-                '<td style="background-color: '+ c2 +'; color: #fff;">'+ m.nBlobsCand +'</td>';
+                '<td>'+ m.nProtsCand +'</td>' +
+                '<td>'+ m.nBlobsCand +'</td>' +
+                '<td style="background-color: '+ c1 +'; color: #fff;">'+ m.nProts +'</td>' +
+                '<td style="background-color: '+ c2 +'; color: #fff;">'+ m.nBlobs +'</td>';
 
             if (m.entryId) {
                 html += '<td class="nowrap"><div class="ui list">';
