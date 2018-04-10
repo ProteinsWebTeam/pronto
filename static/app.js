@@ -1974,18 +1974,6 @@ function ComparisonViews(methodsIds) {
             setClass(item, 'active', item.getAttribute('data-rank') === data.rank);
         });
 
-        // const dropdown = div.querySelector('.ui.dropdown');
-        // setSelected(dropdown, data.rank);
-        //
-        // $(dropdown).dropdown({
-        //     onChange: function(value, text, $selectedItem) {
-        //         const baseUrl = getPathName(history.state.url);
-        //         const params = extendObj(getParams(history.state.url), {rank: value});
-        //         history.pushState({}, '', baseUrl + encodeParams(params));
-        //         self.getTaxonomy();
-        //     }
-        // });
-
         let html = '';
         if (data.taxon.id === 1)
             html += '<thead><tr><th>'+ data.taxon.fullName +'</th>';
