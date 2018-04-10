@@ -165,6 +165,7 @@ def build_method2protein_sql(methods, **kwargs):
     comment_id = kwargs.get('comment_id')
     go_id = kwargs.get('go_id')
     ecno = kwargs.get('ecno')
+    no_rank = kwargs.get('no_rank')
     search = kwargs.get('search')
 
     may = []        # Methods that may match the set of returned proteins
@@ -271,6 +272,17 @@ def build_method2protein_sql(methods, **kwargs):
         ec_join = ''
         ec_cond = ''
 
+    # Exclude proteins that are not associated to a taxon of the passed rank
+    if no_rank:
+        lineage_join = 'LEFT OUTER JOIN {}.LINEAGE L ON M2P.LEFT_NUMBER = L.LEFT_NUMBER AND L.RANK = :rank'.format(
+            app.config['DB_SCHEMA']
+        )
+        lineage_cond = 'AND L.TAX_ID IS NULL'
+        params['rank'] = no_rank
+    else:
+        lineage_join = ''
+        lineage_cond = ''
+
     # Filter by search (on accession only, not name)
     if search:
         search_cond = 'AND M2P.PROTEIN_AC LIKE :search_like'
@@ -295,7 +307,9 @@ def build_method2protein_sql(methods, **kwargs):
         {}
         {}
         {}
+        {}
         WHERE M2P.METHOD_AC IN ({})
+        {}
         {}
         {}
         {}
@@ -310,7 +324,7 @@ def build_method2protein_sql(methods, **kwargs):
         app.config['DB_SCHEMA'],
 
         # filter joins
-        must_join, mustnt_join, comment_join, desc_join, go_join, ec_join,
+        must_join, mustnt_join, comment_join, desc_join, go_join, ec_join, lineage_join,
 
         # 'WHERE M2P.METHOD_AC IN' statement
         may_cond,
@@ -324,7 +338,8 @@ def build_method2protein_sql(methods, **kwargs):
         source_cond,
         search_cond,
         tax_cond,
-        ec_cond
+        ec_cond,
+        lineage_cond
     )
 
     return sql, params
@@ -2157,6 +2172,8 @@ def api_method_proteins(method_ac):
     finally:
         taxon = get_taxon(taxon_id)
 
+    rank = request.args.get('rank')
+
     try:
         page = int(request.args.get('page', 1))
     except ValueError:
@@ -2206,7 +2223,8 @@ def api_method_proteins(method_ac):
         comment_id=comment_id,
         go_id=go_id,
         ecno=ecno,
-        search=search
+        search=search,
+        no_rank=rank
     )
 
     cur = get_db().cursor()
@@ -2465,23 +2483,6 @@ def api_methods_taxonomy(methods):
     params['rank'] = rank
 
     cur = get_db().cursor()
-    """
-    SELECT E.TAX_ID, MIN(E.FULL_NAME), M.METHOD_AC, SUM(M.N_PROT)
-    FROM (
-           SELECT METHOD_AC, LEFT_NUMBER, COUNT(PROTEIN_AC) N_PROT
-           FROM interpro_analysis.METHOD2PROTEIN
-           WHERE METHOD_AC IN ('PTHR15000')
-           GROUP BY METHOD_AC, LEFT_NUMBER
-         ) M
-      LEFT OUTER JOIN (
-                        SELECT TAX_ID, LEFT_NUMBER
-                        FROM interpro_analysis.LINEAGE
-                        WHERE RANK = 'kingdom'
-                      ) L
-        ON M.LEFT_NUMBER = L.LEFT_NUMBER
-      LEFT OUTER JOIN interpro_analysis.ETAXI E ON L.TAX_ID = E.TAX_ID
-    GROUP BY M.METHOD_AC, E.TAX_ID
-    """
     cur.execute(
         """
         SELECT

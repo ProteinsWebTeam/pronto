@@ -1379,9 +1379,9 @@ function ComparisonViews(methodsIds) {
 
                 data.results.forEach(protein => {
                     if (protein.isReviewed)
-                        html += '<tr><td class="nowrap"><a href="/protein/'+ protein.id +'"><i class="star icon"></i>'+ protein.id +'</a></td><td><a href="'+ protein.link +'"><i class="external icon"></i></a></td>';
+                        html += '<tr><td class="nowrap"><a href="/protein/'+ protein.id +'"><i class="star icon"></i>'+ protein.id +'</a></td><td class="collapsing"><a href="'+ protein.link +'"><i class="external icon"></i></a></td>';
                     else
-                        html += '<tr><td><a href="'+ protein.link +'">'+ protein.id +'</a></td>';
+                        html += '<tr><td><a href="/protein/'+ protein.id +'">'+ protein.id +'</a></td><td class="collapsing"><a href="'+ protein.link +'"><i class="external icon"></i></a></td>';
 
                     html += '<td>'+ protein.shortName +'</td><td>'+ protein.name +'</td><td>'+ protein.taxon.fullName +'</td>';
 
@@ -1984,7 +1984,10 @@ function ComparisonViews(methodsIds) {
         html += '</thead><tbody>';
 
         data.results.forEach(taxon => {
-            html += '<tr data-filter="'+ taxon.fullName +'" data-search="?taxon='+ taxon.id +'"><td><a href="/methods/'+ this.methods.join('/') +'/taxonomy?taxon='+ taxon.id + '&rank=' + data.rank +'">'+ taxon.fullName +'</a></td>';
+            if (taxon.id)
+                html += '<tr data-filter="'+ taxon.fullName +'" data-search="?taxon='+ taxon.id +'"><td><a href="/methods/'+ this.methods.join('/') +'/taxonomy?taxon='+ taxon.id + '&rank=' + data.rank +'">'+ taxon.fullName +'</a></td>';
+            else
+                html += '<tr data-filter="'+ taxon.fullName +'" data-search="?&rank='+ data.rank +'"><td>'+ taxon.fullName +'</td>';
 
             this.methods.forEach(methodId => {
                 if (taxon.methods.hasOwnProperty(methodId)) {
