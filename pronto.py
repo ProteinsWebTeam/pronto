@@ -1945,7 +1945,7 @@ def api_prediction(method_ac):
         methods.append({
             # method and member database
             'id': row[0],
-            'dbCode': row[1],
+            'dbCode': row[1],  # if None, the signature is a MEROPS entry (because not in the METHOD table)
             'dbShort': row[2],
             'dbLink': db.gen_link() if db else None,
 
