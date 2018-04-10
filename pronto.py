@@ -1616,10 +1616,10 @@ def api_search():
 
         names = {entry_ac: (name, entry_type) for entry_ac, entry_type, name in cur}
         hits = [{
-                    'id': entry_ac,
-                    'name': names[entry_ac][0],
-                    'type': names[entry_ac][1]
-                } for entry_ac in hits if entry_ac in names]
+            'id': entry_ac,
+            'name': names[entry_ac][0],
+            'type': names[entry_ac][1]
+        } for entry_ac in hits if entry_ac in names]
 
     cur.close()
 
@@ -1899,36 +1899,36 @@ def api_prediction(method_ac):
           E.CHECKED,
           E.ENTRY_TYPE,
           E.NAME,
+          
+          MO.N_PROT_OVER,
+          MO.N_OVER,          
 
           MO.C_N_PROT,
           MO.C_N_MATCHES,
-
-          MO.N_PROT_OVER,
-          MO.N_OVER,
           MO.Q_N_PROT,
           MO.Q_N_MATCHES,
 
           MP.RELATION
         FROM (
             SELECT
-                MMC.METHOD_AC C_AC,
-                MMC.N_PROT C_N_PROT,
-                MMC.N_MATCHES C_N_MATCHES,
                 MMQ.METHOD_AC Q_AC,
                 MMQ.N_PROT Q_N_PROT,
                 MMQ.N_MATCHES Q_N_MATCHES,
+                MMC.METHOD_AC C_AC,
+                MMC.N_PROT C_N_PROT,
+                MMC.N_MATCHES C_N_MATCHES,
                 MO.N_PROT_OVER,
                 MO.N_OVER
             FROM (
                 SELECT METHOD_AC1, METHOD_AC2, N_PROT_OVER, N_OVER, AVG_FRAC1, AVG_FRAC2
                 FROM {0}.METHOD_OVERLAP
-                WHERE METHOD_AC2 = :method
+                WHERE METHOD_AC1 = :method
             ) MO
-            INNER JOIN {0}.METHOD_MATCH MMC ON MO.METHOD_AC1 = MMC.METHOD_AC
-            INNER JOIN {0}.METHOD_MATCH MMQ ON MO.METHOD_AC2 = MMQ.METHOD_AC
-            WHERE ((MO.N_PROT_OVER >= (:overlap * MMC.N_PROT)) OR (MO.N_PROT_OVER >= (:overlap * MMQ.N_PROT)))
+            INNER JOIN {0}.METHOD_MATCH MMQ ON MO.METHOD_AC1 = MMQ.METHOD_AC
+            INNER JOIN {0}.METHOD_MATCH MMC ON MO.METHOD_AC2 = MMC.METHOD_AC
+            WHERE ((MO.N_PROT_OVER >= (:overlap * MMQ.N_PROT)) OR (MO.N_PROT_OVER >= (:overlap * MMC.N_PROT)))
         ) MO
-        LEFT OUTER JOIN {0}.METHOD_PREDICTION MP ON MO.C_AC = MP.METHOD_AC1 AND MO.Q_AC = MP.METHOD_AC2
+        LEFT OUTER JOIN {0}.METHOD_PREDICTION MP ON MO.Q_AC = MP.METHOD_AC1 AND MO.C_AC = MP.METHOD_AC2
         LEFT OUTER JOIN {0}.METHOD M ON MO.C_AC = M.METHOD_AC
         LEFT OUTER JOIN {0}.CV_DATABASE DB ON M.DBCODE = DB.DBCODE
         LEFT OUTER JOIN {0}.ENTRY2METHOD E2M ON MO.C_AC = E2M.METHOD_AC
@@ -1956,7 +1956,6 @@ def api_prediction(method_ac):
             'entryType': row[5],
             'entryName': row[6],
 
-            # TODO: FIX comments and rename attrs (nProts should be nProtsCand, etc.) and propagate to client
             'nProts': row[7],  # number of proteins where both query and candidate signatures overlap
             'nBlobs': row[8],  # number of overlapping blobs with query and candidate signature
 
