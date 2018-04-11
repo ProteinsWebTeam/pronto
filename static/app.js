@@ -2077,8 +2077,12 @@ function ComparisonViews(methodsIds) {
                 else
                     html += '<td></td>';
 
-                html += '<td class="nowrap"><a href="'+ method.db.link +'">'+ method.id + '&nbsp;<i class="external icon"></i></a></td>' +
-                    '<td>'+ method.name + '</td>' +
+                if (method.db)
+                    html += '<td class="nowrap"><a href="'+ method.db.link +'">'+ method.id + '&nbsp;<i class="external icon"></i></a></td>';
+                else
+                    html += '<td>'+ method.id + '</td>';
+
+                html += '<td>'+ (method.name !== null ? method.name : '') + '</td>' +
                     '<td>'+ (method.isCandidate ? '&nbsp;<i class="checkmark box icon"></i>' : '') +'</td>';
 
                 const paddingLeft = 5;
@@ -2092,7 +2096,7 @@ function ComparisonViews(methodsIds) {
                 method.matches.forEach(match => {
                     const x = Math.round(match.start * width / protein.length) + paddingLeft;
                     const w = Math.round((match.end - match.start) * width / protein.length);
-                    html += '<g><rect x="'+ x +'" y="15" width="'+ w +'" height="10" rx="1" ry="1" style="fill: '+ method.db.color +';"/>' +
+                    html += '<g><rect x="'+ x +'" y="15" width="'+ w +'" height="10" rx="1" ry="1" style="fill: '+ (method.db !== null ? method.db.color : '#bbb') +';"/>' +
                         '<text x="'+ x +'" y="10">'+ match.start +'</text>' +
                         '<text x="'+ (x + w) +'" y="10">'+ match.end +'</text></g>'
                 });
