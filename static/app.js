@@ -330,7 +330,7 @@ function ProteinView() {
             let content = '<div class="header">' + start.toLocaleString() + ' - ' + end.toLocaleString() +'</div><div class="meta">' + nvl(name, '') + '</div>';
 
             if (id[0] === null || id[0].indexOf('IPR'))
-                content += '<div class="description"><strong>'+ dbName +'</strong>&nbsp;<a href="'+ link +'">'+ id +'&nbsp;<i class="external icon"></i></div>';
+                content += '<div class="description"><strong>'+ dbName +'</strong>&nbsp;<a target="_blank" href="'+ link +'">'+ id +'&nbsp;<i class="external icon"></i></div>';
             else // todo show hierarchy
                 content += '<div class="description"><a href="/entry/'+ id[0] +'">'+ id[0] +'</a></div>';
 
@@ -380,7 +380,7 @@ function ProteinView() {
         const protein = data.result;
 
         document.title = protein.name + ' (' + protein.id + ') | Pronto';
-        this.section.querySelector('h1.header').innerHTML = protein.name + '<div class="sub header"><a href="'+ protein.link +'">' + (protein.isReviewed ? '<i class="star icon"></i>' : '') + protein.id  + '&nbsp;<i class="external icon"></i></a></div>';
+        this.section.querySelector('h1.header').innerHTML = protein.name + '<div class="sub header"><a target="_blank" href="'+ protein.link +'">' + (protein.isReviewed ? '<i class="star icon"></i>' : '') + protein.id  + '&nbsp;<i class="external icon"></i></a></div>';
 
         const arr = protein.taxon.scientificName.split(' ');
         let nEntries = 0;
@@ -825,7 +825,7 @@ function ProteinView() {
                         });
                     });
 
-                    html += '<text x="' + (width + 10) + '" y="'+ (y + matchHeight / 2) +'"><a href="' + structures[dbName][0].db.home +'">'+ dbName +'&nbsp;<tspan>&#xf08e;</tspan></a></text>';
+                    html += '<text x="' + (width + 10) + '" y="'+ (y + matchHeight / 2) +'"><a target="_blank" href="' + structures[dbName][0].db.home +'">'+ dbName +'&nbsp;<tspan>&#xf08e;</tspan></a></text>';
                     ++i;
                 }
             }
@@ -1000,10 +1000,10 @@ function EntryView() {
                 content += '<div class="ui horizontal link list">';
 
                 if (ref.doi)
-                    content += '<a class="item" href="'+ ref.doi +'">View article&nbsp;<i class="external icon"></i></a>';
+                    content += '<a target="_blank" class="item" href="'+ ref.doi +'">View article&nbsp;<i class="external icon"></i></a>';
 
                 if (ref.pmid)
-                    content += '<span class="item">Europe PMC:&nbsp;<a href="http://europepmc.org/abstract/MED/' + ref.pmid + '">'+ ref.pmid +'&nbsp;<i class="external icon"></i></a></span>';
+                    content += '<span class="item">Europe PMC:&nbsp;<a target="_blank" href="http://europepmc.org/abstract/MED/' + ref.pmid + '">'+ ref.pmid +'&nbsp;<i class="external icon"></i></a></span>';
 
                 content += '</div>';
             }
@@ -1026,10 +1026,10 @@ function EntryView() {
                     '<div class="ui horizontal link list">';
 
                 if (references[refID].doi)
-                    content += '<a class="item" href="'+ references[refID].doi +'">View article&nbsp;<i class="external icon"></i></a>';
+                    content += '<a target="_blank" class="item" href="'+ references[refID].doi +'">View article&nbsp;<i class="external icon"></i></a>';
 
                 if (references[refID].pmid)
-                    content += '<span class="item">Europe PMC:&nbsp;<a href="http://europepmc.org/abstract/MED/' + references[refID].pmid + '">'+ references[refID].pmid +'&nbsp;<i class="external icon"></i></a></span>';
+                    content += '<span class="item">Europe PMC:&nbsp;<a target="_blank" href="http://europepmc.org/abstract/MED/' + references[refID].pmid + '">'+ references[refID].pmid +'&nbsp;<i class="external icon"></i></a></span>';
 
                 content += '</div></li>';
             }
@@ -1046,9 +1046,9 @@ function EntryView() {
             content += '<tr><td><a href="/method/'+ method.id +'">'+ method.id +'</a></td>';
 
             if (method.link)
-                content += '<td><a href="'+ method.link +'">'+ method.dbname +'&nbsp;<i class="external icon"></i></a></td>';
+                content += '<td><a target="_blank" href="'+ method.link +'">'+ method.dbname +'&nbsp;<i class="external icon"></i></a></td>';
             else if (method.home)
-                content += '<td><a href="'+ method.home +'">'+ method.dbname +'&nbsp;<i class="external icon"></i></a></td>';
+                content += '<td><a target="_blank" href="'+ method.home +'">'+ method.dbname +'&nbsp;<i class="external icon"></i></a></td>';
             else
                 content += '<td>'+ method.dbname +'</td>';
 
@@ -1099,7 +1099,7 @@ function EntryView() {
 
         entry.go.forEach(function (term) {
             if (goTerms.hasOwnProperty(term.category)) {
-                goTerms[term.category] += '<dd><a href="http://www.ebi.ac.uk/QuickGO/GTerm?id=' + term.id + '">' + term.id + '&nbsp;<i class="external icon"></i></a>&nbsp;' + term.name;
+                goTerms[term.category] += '<dd><a target="_blank" href="http://www.ebi.ac.uk/QuickGO/GTerm?id=' + term.id + '">' + term.id + '&nbsp;<i class="external icon"></i></a>&nbsp;' + term.name;
 
                 if (term.isObsolete)
                     goTerms[term.category] += '&nbsp;<span class="ui tiny red label">Obsolete</span>';
@@ -1379,9 +1379,9 @@ function ComparisonViews(methodsIds) {
 
                 data.results.forEach(protein => {
                     if (protein.isReviewed)
-                        html += '<tr><td class="nowrap"><a href="/protein/'+ protein.id +'"><i class="star icon"></i>'+ protein.id +'</a></td><td class="collapsing"><a href="'+ protein.link +'"><i class="external icon"></i></a></td>';
+                        html += '<tr><td class="nowrap"><a href="/protein/'+ protein.id +'"><i class="star icon"></i>'+ protein.id +'</a></td><td class="collapsing"><a target="_blank" href="'+ protein.link +'"><i class="external icon"></i></a></td>';
                     else
-                        html += '<tr><td><a href="/protein/'+ protein.id +'">'+ protein.id +'</a></td><td class="collapsing"><a href="'+ protein.link +'"><i class="external icon"></i></a></td>';
+                        html += '<tr><td><a href="/protein/'+ protein.id +'">'+ protein.id +'</a></td><td class="collapsing"><a target="_blank" href="'+ protein.link +'"><i class="external icon"></i></a></td>';
 
                     html += '<td>'+ protein.shortName +'</td><td>'+ protein.name +'</td><td>'+ protein.taxon.fullName +'</td>';
 
@@ -1648,15 +1648,15 @@ function ComparisonViews(methodsIds) {
                 html += '<tr><td>Average overlap</td><td class="right aligned">'+ (statsXY !== null ? Math.floor(statsXY.avgOver) : '') +'</td></tr>';
 
                 if (statsXY !== null)
-                    html += '<tr><td>In both signatures</td><td class="right aligned"><a href="/methods/'+ methodAcX + '/' + methodAcY +'/matches?force='+ methodAcX + ',' + methodAcY +'">'+ statsXY.coloc +'</a></td></tr>';
+                    html += '<tr><td>In both signatures</td><td class="right aligned"><a target="_blank" href="/methods/'+ methodAcX + '/' + methodAcY +'/matches?force='+ methodAcX + ',' + methodAcY +'">'+ statsXY.coloc +'</a></td></tr>';
                 else
                     html += '<tr><td>In both signatures</td><td class="right aligned">0</td></tr>';
 
-                html += '<tr><td>In either signatures</td><td class="right aligned"><a href="/methods/'+ methodAcX + '/' + methodAcY +'/matches">'+ (statsX.coloc + statsY.coloc - (statsXY !== null ? statsXY.coloc : 0)) +'</a></td></tr>';
-                html += '<tr><td>In '+ methodAcX +' only</td><td class="right aligned"><a href="/methods/'+ methodAcX + '/matches?exclude='+ methodAcY +'">'+ (statsX.coloc - (statsXY !== null ? statsXY.coloc : 0)) +'</a></td></tr>';
-                html += '<tr><td>In '+ methodAcY +' only</td><td class="right aligned"><a href="/methods/'+ methodAcY + '/matches?exclude='+ methodAcX +'">'+ (statsY.coloc - (statsXY !== null ? statsXY.coloc : 0)) +'</a></td></tr>';
-                html += '<tr><td>In '+ methodAcX +'</td><td class="right aligned"><a href="/methods/'+ methodAcX + '/matches">'+ statsX.coloc +'</a></td></tr>';
-                html += '<tr><td>In '+ methodAcY +'</td><td class="right aligned"><a href="/methods/'+ methodAcY + '/matches">'+ statsY.coloc +'</a></td></tr>';
+                html += '<tr><td>In either signatures</td><td class="right aligned"><a target="_blank" href="/methods/'+ methodAcX + '/' + methodAcY +'/matches">'+ (statsX.coloc + statsY.coloc - (statsXY !== null ? statsXY.coloc : 0)) +'</a></td></tr>';
+                html += '<tr><td>In '+ methodAcX +' only</td><td class="right aligned"><a target="_blank" href="/methods/'+ methodAcX + '/matches?exclude='+ methodAcY +'">'+ (statsX.coloc - (statsXY !== null ? statsXY.coloc : 0)) +'</a></td></tr>';
+                html += '<tr><td>In '+ methodAcY +' only</td><td class="right aligned"><a target="_blank" href="/methods/'+ methodAcY + '/matches?exclude='+ methodAcX +'">'+ (statsY.coloc - (statsXY !== null ? statsXY.coloc : 0)) +'</a></td></tr>';
+                html += '<tr><td>In '+ methodAcX +'</td><td class="right aligned"><a target="_blank" href="/methods/'+ methodAcX + '/matches">'+ statsX.coloc +'</a></td></tr>';
+                html += '<tr><td>In '+ methodAcY +'</td><td class="right aligned"><a target="_blank" href="/methods/'+ methodAcY + '/matches">'+ statsY.coloc +'</a></td></tr>';
 
                 div.querySelector('.column:last-child').innerHTML = html + '</tbody></table>';
             });
@@ -1693,7 +1693,7 @@ function ComparisonViews(methodsIds) {
         data.results.forEach(ecno => {
             html += '<tr data-filter="'+ ecno.id +'" data-search="?ec=' + ecno.id + '">' +
                 '<td>' +
-                '<a href="https://enzyme.expasy.org/EC/'+ ecno.id +'">'+ ecno.id + '&nbsp;<i class="external icon"></i></a></td>';
+                '<a target="_blank" href="https://enzyme.expasy.org/EC/'+ ecno.id +'">'+ ecno.id + '&nbsp;<i class="external icon"></i></a></td>';
 
             this.methods.forEach(methodId => {
                 if (ecno.methods.hasOwnProperty(methodId))
@@ -1748,7 +1748,7 @@ function ComparisonViews(methodsIds) {
             html += '<tr data-filter="'+ term.id +'" data-search="?term=' + term.id + '">' +
                 '<td class="nowrap">' +
                 '<span class="ui circular small label aspect-'+ term.aspect +'">'+ term.aspect +'</span>' +
-                '<a href="https://www.ebi.ac.uk/QuickGO/term/'+ term.id +'">'+ term.id + ':&nbsp;' + term.value +'&nbsp;<i class="external icon"></i></a></td>' +
+                '<a target="_blank" href="https://www.ebi.ac.uk/QuickGO/term/'+ term.id +'">'+ term.id + ':&nbsp;' + term.value +'&nbsp;<i class="external icon"></i></a></td>' +
                 '<td class="collapsing center aligned">'+ renderCheckbox(term.id, false) +'</td>';
 
             this.methods.forEach(methodId => {
@@ -1795,7 +1795,7 @@ function ComparisonViews(methodsIds) {
                     if (data.count) {
                         data.results.forEach(ref => {
                             html += '<li class="item">' +
-                                '<div class="header"><a href="http://europepmc.org/abstract/MED/'+ ref.id +'">'+ ref.id +'&nbsp;<i class="external icon"></i></a></div><div class="description">'+ nvl(ref.title, '') + ' ' + nvl(ref.date, '') +'</div></li>';
+                                '<div class="header"><a target="_blank" href="http://europepmc.org/abstract/MED/'+ ref.id +'">'+ ref.id +'&nbsp;<i class="external icon"></i></a></div><div class="description">'+ nvl(ref.title, '') + ' ' + nvl(ref.date, '') +'</div></li>';
                         });
                     } else {
                         html = '<div class="ui negative message"><div class="header">No references found</div><p>This entry does not have any references in the literature.</p></div>';
@@ -2050,7 +2050,7 @@ function ComparisonViews(methodsIds) {
         data.proteins.forEach((protein, i) => {
             html += '<div class="ui segment">' +
                 '<span class="ui red ribbon label">' + (protein.isReviewed ? '<i class="star icon"></i>&nbsp;' : '') + protein.id + '</a></span>' +
-                '<a href="'+ protein.link +'">'+ protein.description +'&nbsp;<i class="external icon"></i></a>';
+                '<a target="_blank" href="'+ protein.link +'">'+ protein.description +'&nbsp;<i class="external icon"></i></a>';
 
             const uncondensedURL = baseUrl + encodeParams(extendObj(params, {code: protein.code, page: null, pageSize: null}), true);
 
@@ -2078,7 +2078,7 @@ function ComparisonViews(methodsIds) {
                     html += '<td></td>';
 
                 if (method.db)
-                    html += '<td class="nowrap"><a href="'+ method.db.link +'">'+ method.id + '&nbsp;<i class="external icon"></i></a></td>';
+                    html += '<td class="nowrap"><a target="_blank" href="'+ method.db.link +'">'+ method.id + '&nbsp;<i class="external icon"></i></a></td>';
                 else
                     html += '<td>'+ method.id + '</td>';
 
@@ -2642,7 +2642,7 @@ function PredictionView() {
             html += '<tr '+ (m.id === methodId ? 'class="selected"' : '') +'>' +
                 '<td>'+ nvl(m.relation, '') +'</td>' +
                 '<td><a href="#">' + m.id + '</a></td>' +
-                '<td class="collapsing">'+ (m.dbLink ? '&nbsp;<a href="'+ m.dbLink +'"><i class="external icon"></i></a>' : '') +'</td>' +
+                '<td class="collapsing">'+ (m.dbLink ? '&nbsp;<a target="_blank" href="'+ m.dbLink +'"><i class="external icon"></i></a>' : '') +'</td>' +
                 // '<td>'+ m.dbShort +'</td>' +
                 '<td>'+ m.nProtsCand +'</td>' +
                 '<td>'+ m.nBlobsCand +'</td>' +
@@ -2734,7 +2734,7 @@ function IndexView() {
             html.push(
                 [
                     '<tr>',
-                    '<td><a href="'+ db.home +'">'+ db.name +'&nbsp;'+ db.version +'&nbsp;<i class="external icon"></i></a></td>',
+                    '<td><a target="_blank" href="'+ db.home +'">'+ db.name +'&nbsp;'+ db.version +'&nbsp;<i class="external icon"></i></a></td>',
                     '<td><a href="/db/'+ db.shortName +'">'+ db.count.toLocaleString() +'</a></td>',
                     '<td>'+ db.countIntegrated.toLocaleString() +'</td>',
                     '<td><a href="/db/'+ db.shortName +'?unintegrated=exist">'+ db.countUnintegrated.toLocaleString() +'</a></td>',
