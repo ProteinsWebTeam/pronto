@@ -368,7 +368,7 @@ def get_overlapping_proteins(methods, **kwargs):
                 {}
             )
             WHERE CONDENSE = :code
-            ORDER BY SEQ_ID
+            ORDER BY PROTEIN_AC
             """.format(sql),
             params
         )
