@@ -2559,7 +2559,7 @@ def api_methods_descriptions(methods):
     cur.close()
 
     return jsonify({
-        'results': sorted(descriptions.values(), key=lambda x: -max(x['methods'].values())),
+        'results': sorted(descriptions.values(), key=lambda x: (-max(x['methods'].values()), x['value'])),
         'database': source_db,
     })
 
