@@ -345,162 +345,6 @@ def build_method2protein_sql(methods, **kwargs):
     return sql, params
 
 
-def get_overlapping_proteins(methods, **kwargs):
-    """
-    Returns the protein matched by one or more signatures.
-    """
-    page = kwargs.get('page', 1)
-    page_size = kwargs.get('page_size', 10)
-
-    sql, params = build_method2protein_sql(methods, **kwargs)
-
-    cur = get_db().cursor()
-
-    if kwargs.get('code'):
-        params['code'] = kwargs['code']
-
-        cur.execute(
-            """
-            SELECT
-                PROTEIN_AC,
-                CONDENSE
-            FROM (
-                {}
-            )
-            WHERE CONDENSE = :code
-            ORDER BY PROTEIN_AC
-            """.format(sql),
-            params
-        )
-
-        proteins = [(row[0], row[1], 1) for row in cur]
-    else:
-        cur.execute(
-            """
-            SELECT
-                PROTEIN_AC,
-                CONDENSE,
-                N_PROT
-            FROM (
-                SELECT
-                    PROTEIN_AC,
-                    CONDENSE,
-                    COUNT(*) OVER (PARTITION BY CONDENSE) AS N_PROT,
-                    ROW_NUMBER() OVER (PARTITION BY CONDENSE ORDER BY LEN) AS RN
-                FROM (
-                    {}
-                )
-            )
-            WHERE RN = 1
-            ORDER BY N_PROT DESC, PROTEIN_AC
-            """.format(sql),
-            params
-        )
-        proteins = [row for row in cur]
-
-    n_proteins = len(proteins)
-
-    if not n_proteins:
-        return proteins, n_proteins, 0  # invalid method IDs, or no methods passing the filtering
-
-    # Select requested page
-    proteins = proteins[(page - 1) * page_size:page * page_size]
-
-    # Creat list of protein accessions and a dictionary of info for condensed proteins
-    accessions = []
-    codes = {}
-    for acc, code, count in proteins:
-        accessions.append(acc)
-        codes[acc] = {'code': code, 'count': count}
-
-    # Get info on proteins (description, taxon, etc.)
-    proteins_cond = ','.join([':' + str(i+1) for i in range(len(accessions))])
-    cur.execute(
-        """
-        SELECT MA.PROTEIN_AC, P.DBCODE, P.LEN, D.TEXT, E.FULL_NAME,
-          MA.METHOD_AC, ME.NAME, ME.CANDIDATE, ME.DBCODE,
-          EM.ENTRY_AC,
-          MA.POS_FROM, MA.POS_TO
-        FROM {0}.MATCH MA
-          INNER JOIN {0}.PROTEIN P ON MA.PROTEIN_AC = P.PROTEIN_AC
-          INNER JOIN {0}.PROTEIN_DESC PD ON MA.PROTEIN_AC = PD.PROTEIN_AC
-          INNER JOIN {0}.DESC_VALUE D ON PD.DESC_ID = D.DESC_ID
-          INNER JOIN {0}.ETAXI E ON P.TAX_ID = E.TAX_ID
-          LEFT OUTER JOIN {0}.METHOD ME ON MA.METHOD_AC = ME.METHOD_AC
-          LEFT OUTER JOIN {0}.ENTRY2METHOD EM ON MA.METHOD_AC = EM.METHOD_AC
-        WHERE MA.PROTEIN_AC IN ({1})
-        """.format(app.config['DB_SCHEMA'], proteins_cond),
-        accessions
-    )
-
-    max_len = 0
-    proteins = {}
-    for row in cur:
-        protein_ac = row[0]
-
-        if protein_ac in proteins:
-            p = proteins[protein_ac]
-        else:
-            if row[1] == 'S':
-                is_reviewed = True
-                prefix = 'http://sp.isb-sib.ch/uniprot/'
-            else:
-                is_reviewed = False
-                prefix = 'http://www.uniprot.org/uniprot/'
-
-            p = proteins[protein_ac] = {
-                'id': protein_ac,
-                'isReviewed': is_reviewed,
-                'length': row[2],
-                'description': row[3],
-                'organism': row[4],
-                'link': prefix + protein_ac,
-                'code': codes[protein_ac]['code'],
-                'count': codes[protein_ac]['count'],
-                'methods': {}
-            }
-
-            if row[2] > max_len:
-                max_len = row[2]
-
-        method_ac = row[5]
-
-        if method_ac in p['methods']:
-            m = p['methods'][method_ac]
-        else:
-            method_db = row[8]
-            if method_db is not None:
-                m = xref.find_ref(method_db, method_ac)
-                method_db = {
-                    'link': m.gen_link(),
-                    'color': m.color
-                }
-
-            m = p['methods'][method_ac] = {
-                'id': method_ac,
-                'name': row[6],
-                'isCandidate': row[7] == 'Y',
-                'entryId': row[9],
-                'isSelected': method_ac in methods,
-                'db': method_db,
-                'matches': []
-            }
-
-        m['matches'].append({'start': row[10], 'end': row[11]})
-
-    cur.close()
-
-    _proteins = []
-    for p in sorted(proteins.values(), key=lambda p: (-p['count'], p['id'])):
-        for m in p['methods'].values():
-            m['matches'].sort(key=lambda m: m['start'])
-
-        p['methods'] = sorted(p['methods'].values(), key=lambda m: (0 if m['entryId'] else 1, m['entryId'], m['id']))
-        _proteins.append(p)
-
-    return _proteins, n_proteins, max_len
-
-
 def get_description(desc_id):
     """
     Returns proteins associated to a given description.
@@ -2424,22 +2268,160 @@ def api_methods_matches(methods):
 
     _methods.update({m.strip(): False for m in exclude if len(m.strip())})
 
-    proteins, count, max_len = get_overlapping_proteins(
-        methods=_methods,
+    sql, params = build_method2protein_sql(
+        _methods,
         taxon=taxon,
-        page=page,
-        page_size=page_size,
-        description=desc_id,
-        topic=topic_id,
-        comment=comment_id,
-        term=go_id,
         source_db=db,
-        code=code
+        desc_id=desc_id,
+        topic_id=topic_id,
+        comment_id=comment_id,
+        go_id=go_id
     )
 
+    cur = get_db().cursor()
+    if code:
+        params['code'] = code
+
+        cur.execute(
+            """
+            SELECT
+                PROTEIN_AC,
+                CONDENSE
+            FROM (
+                {}
+            )
+            WHERE CONDENSE = :code
+            ORDER BY PROTEIN_AC
+            """.format(sql),
+            params
+        )
+
+        proteins = [(row[0], row[1], 1) for row in cur]
+    else:
+        cur.execute(
+            """
+            SELECT
+                PROTEIN_AC,
+                CONDENSE,
+                N_PROT
+            FROM (
+                SELECT
+                    PROTEIN_AC,
+                    CONDENSE,
+                    COUNT(*) OVER (PARTITION BY CONDENSE) AS N_PROT,
+                    ROW_NUMBER() OVER (PARTITION BY CONDENSE ORDER BY LEN) AS RN
+                FROM (
+                    {}
+                )
+            )
+            WHERE RN = 1
+            ORDER BY N_PROT DESC, PROTEIN_AC
+            """.format(sql),
+            params
+        )
+        proteins = [row for row in cur]
+
+    n_proteins = len(proteins)
+    max_len = 0
+    _proteins = []
+
+    if n_proteins:
+        # Select requested page
+        proteins = proteins[(page - 1) * page_size:page * page_size]
+
+        # Creat list of protein accessions and a dictionary of info for condensed proteins
+        accessions = []
+        codes = {}
+        for acc, code, count in proteins:
+            accessions.append(acc)
+            codes[acc] = {'code': code, 'count': count}
+
+        # Get info on proteins (description, taxon, etc.)
+        proteins_cond = ','.join([':' + str(i + 1) for i in range(len(accessions))])
+        cur.execute(
+            """
+            SELECT MA.PROTEIN_AC, P.DBCODE, P.LEN, D.TEXT, E.FULL_NAME,
+              MA.METHOD_AC, ME.NAME, ME.CANDIDATE, ME.DBCODE,
+              EM.ENTRY_AC,
+              MA.POS_FROM, MA.POS_TO
+            FROM {0}.MATCH MA
+              INNER JOIN {0}.PROTEIN P ON MA.PROTEIN_AC = P.PROTEIN_AC
+              INNER JOIN {0}.PROTEIN_DESC PD ON MA.PROTEIN_AC = PD.PROTEIN_AC
+              INNER JOIN {0}.DESC_VALUE D ON PD.DESC_ID = D.DESC_ID
+              INNER JOIN {0}.ETAXI E ON P.TAX_ID = E.TAX_ID
+              LEFT OUTER JOIN {0}.METHOD ME ON MA.METHOD_AC = ME.METHOD_AC
+              LEFT OUTER JOIN {0}.ENTRY2METHOD EM ON MA.METHOD_AC = EM.METHOD_AC
+            WHERE MA.PROTEIN_AC IN ({1})
+            """.format(app.config['DB_SCHEMA'], proteins_cond),
+            accessions
+        )
+
+        proteins = {}
+        for row in cur:
+            protein_ac = row[0]
+
+            if protein_ac in proteins:
+                p = proteins[protein_ac]
+            else:
+                if row[1] == 'S':
+                    is_reviewed = True
+                    prefix = 'http://sp.isb-sib.ch/uniprot/'
+                else:
+                    is_reviewed = False
+                    prefix = 'http://www.uniprot.org/uniprot/'
+
+                p = proteins[protein_ac] = {
+                    'id': protein_ac,
+                    'isReviewed': is_reviewed,
+                    'length': row[2],
+                    'description': row[3],
+                    'organism': row[4],
+                    'link': prefix + protein_ac,
+                    'code': codes[protein_ac]['code'],
+                    'count': codes[protein_ac]['count'],
+                    'methods': {}
+                }
+
+                if row[2] > max_len:
+                    max_len = row[2]
+
+            method_ac = row[5]
+
+            if method_ac in p['methods']:
+                m = p['methods'][method_ac]
+            else:
+                method_db = row[8]
+                if method_db is not None:
+                    m = xref.find_ref(method_db, method_ac)
+                    method_db = {
+                        'link': m.gen_link(),
+                        'color': m.color
+                    }
+
+                m = p['methods'][method_ac] = {
+                    'id': method_ac,
+                    'name': row[6],
+                    'isCandidate': row[7] == 'Y',
+                    'entryId': row[9],
+                    'isSelected': method_ac in methods,
+                    'db': method_db,
+                    'matches': []
+                }
+
+            m['matches'].append({'start': row[10], 'end': row[11]})
+
+        cur.close()
+
+        for p in sorted(proteins.values(), key=lambda p: (-p['count'], p['id'])):
+            for m in p['methods'].values():
+                m['matches'].sort(key=lambda m: m['start'])
+
+            p['methods'] = sorted(p['methods'].values(), key=lambda m: (0 if m['entryId'] else 1, m['entryId'], m['id']))
+            _proteins.append(p)
+
     return jsonify({
-        'count': count,
-        'proteins': proteins,
+        'count': n_proteins,
+        'proteins': _proteins,
         'maxLength': max_len,
         'taxon': taxon,
         'database': db,
