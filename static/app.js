@@ -824,7 +824,7 @@ function ProteinView() {
                         });
                     });
 
-                    html += '<text x="' + (width + 10) + '" y="'+ (y + matchHeight / 2) +'"><a target="_blank" href="' + structures[dbName][0].db.home +'">'+ dbName +'&nbsp;<tspan>&#xf08e;</tspan></a></text>';
+                    html += '<text x="' + (width + 10) + '" y="'+ (y + matchHeight / 2) +'"><a target="_blank" href="' + structures[dbName][0].db.link +'">'+ dbName +'&nbsp;<tspan>&#xf08e;</tspan></a></text>';
                     ++i;
                 }
             }
