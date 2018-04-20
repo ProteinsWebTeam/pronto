@@ -706,7 +706,6 @@ function ProteinView() {
 
         div.innerHTML = html;
 
-
         // Domains/repeats
         const domains = entries.filter(e => e.typeCode === 'D');
         const repeats = entries.filter(e => e.typeCode === 'R');
@@ -775,9 +774,9 @@ function ProteinView() {
                 if (a.typeCode === b.typeCode)
                     return sortByLeftmostMatch(a, b);
                 else if (a.typeCode === null)
-                    return -1;
-                else
                     return 1;
+                else
+                    return -1;
             })
             .forEach(entry => {
                 html += renderEntryMatches(entry);
