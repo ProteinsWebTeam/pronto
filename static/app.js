@@ -186,7 +186,7 @@ function calcPixelGradient(startingPixel, distance, slope) {
 function getJSON(url, callback) {
     let xhr = new XMLHttpRequest();
     xhr.onload = function () {
-        callback(JSON.parse(this.responseText), xhr.status)
+        callback(JSON.parse(this.responseText), xhr.status);
     };
     xhr.open('GET', url, true);
     xhr.send();
