@@ -250,6 +250,21 @@ def build_method2protein_sql(methods, **kwargs):
     else:
         source_cond = ''
 
+    # Filter by search (on accession only, not name)
+    if search:
+        search_cond = 'AND M2P.PROTEIN_AC LIKE :search_like'
+        params['search_like'] = search + '%'
+    else:
+        search_cond = ''
+
+    # Filter by taxon
+    if taxon:
+        tax_cond = 'AND M2P.LEFT_NUMBER BETWEEN :ln AND :rn'
+        params['ln'] = int(taxon['leftNumber'])
+        params['rn'] = int(taxon['rightNumber'])
+    else:
+        tax_cond = ''
+
     # Exclude proteins that are not associated to the passed GO term ID
     if go_id:
         go_join = 'INNER JOIN {}.PROTEIN2GO P2G ON M2P.PROTEIN_AC = P2G.PROTEIN_AC'.format(
@@ -282,21 +297,6 @@ def build_method2protein_sql(methods, **kwargs):
     else:
         lineage_join = ''
         lineage_cond = ''
-
-    # Filter by search (on accession only, not name)
-    if search:
-        search_cond = 'AND M2P.PROTEIN_AC LIKE :search_like'
-        params['search_like'] = search + '%'
-    else:
-        search_cond = ''
-
-    # Filter by taxon
-    if taxon:
-        tax_cond = 'AND M2P.LEFT_NUMBER BETWEEN :ln AND :rn'
-        params['ln'] = int(taxon['leftNumber'])
-        params['rn'] = int(taxon['rightNumber'])
-    else:
-        tax_cond = ''
 
     sql = """
         SELECT M2P.PROTEIN_AC, MIN(M2P.CONDENSE) CONDENSE, MIN(M2P.LEN) LEN
@@ -332,12 +332,12 @@ def build_method2protein_sql(methods, **kwargs):
         # Other conditions
         must_cond,
         mustnt_cond,
-        comment_cond,
-        desc_cond,
-        go_cond,
         source_cond,
         search_cond,
         tax_cond,
+        comment_cond,
+        desc_cond,
+        go_cond,
         ec_cond,
         lineage_cond
     )
@@ -2009,10 +2009,10 @@ def get_method_proteins(method_ac):
 @app.route('/api/method/<method_ac>/proteins/')
 def api_method_proteins(method_ac):
     try:
-        taxon_id = int(request.args.get('taxon', 1))
-    except ValueError:
-        taxon_id = 1
-    finally:
+        taxon_id = int(request.args.get('taxon'))
+    except (TypeError, ValueError):
+        taxon = None
+    else:
         taxon = get_taxon(taxon_id)
 
     rank = request.args.get('rank')
