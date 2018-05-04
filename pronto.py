@@ -345,37 +345,6 @@ def build_method2protein_sql(methods, **kwargs):
     return sql, params
 
 
-def get_description(desc_id):
-    """
-    Returns proteins associated to a given description.
-    """
-    cur = get_db().cursor()
-    cur.execute(
-        """
-        SELECT P.PROTEIN_AC, P.NAME, P.DBCODE, E.FULL_NAME
-        FROM {0}.PROTEIN_DESC D
-          INNER JOIN {0}.PROTEIN P ON D.PROTEIN_AC = P.PROTEIN_AC
-          INNER JOIN {0}.ETAXI E ON P.TAX_ID = E.TAX_ID
-        WHERE D.DESC_ID = :1
-        ORDER BY P.PROTEIN_AC
-        """.format(app.config['DB_SCHEMA']),
-        (desc_id,)
-    )
-
-    proteins = []
-    for row in cur:
-        proteins.append({
-            'id': row[0],
-            'shortName': row[1],
-            'isReviewed': row[2] == 'S',
-            'organism': row[3]
-        })
-
-    cur.close()
-
-    return proteins
-
-
 def get_db_info(dbshort):
     cur = get_db().cursor()
     cur.execute(
