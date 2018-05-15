@@ -24,7 +24,7 @@ body > .ui.menu {
     z-index: 5000;
 }
 
-.dimmer .icon {
+.dimmer > .icon {
     z-index: 1000;
     position: absolute;
     top: 1rem;
