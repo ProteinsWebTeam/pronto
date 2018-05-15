@@ -20,7 +20,18 @@ body > .ui.menu {
 }
 
 #dimmer {
+    /* default z-index set to 1000: lesser than modal's so dimmer is sent to background when opening a modal */
     z-index: 5000;
+}
+
+.dimmer .icon {
+    z-index: 1000;
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    color: rgba(255,255,255,.9);
+    font-size: 1.5rem;
+    cursor: pointer;
 }
 
 #messages.hidden {

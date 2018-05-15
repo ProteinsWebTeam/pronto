@@ -10,6 +10,8 @@ const _colors = [
     '#023858'
 ];
 
+let _processResults = true;
+
 
 function nvl(expr1, expr2, expr3) {
     if (expr1 !== null && expr1 !== undefined)
@@ -61,15 +63,8 @@ function renderCheckbox(entryId, isChecked) {
 }
 
 function showDimmer(show) {
-    const dimmer = document.getElementById('dimmer');
-    if (show) {
-        dimmer.children[0].innerHTML = 'Loading';
-        setClass(dimmer, 'active', true);
-    } else {
-        setClass(dimmer, 'active', false);
-    }
+    setClass(document.getElementById('dimmer'), 'active', show);
 }
-
 
 function setGlobalError(msg) {
     const div = document.getElementById('messages');
@@ -201,9 +196,12 @@ function calcPixelGradient(startingPixel, distance, slope) {
 }
 
 function getJSON(url, callback) {
+    _processResults = true;
     let xhr = new XMLHttpRequest();
     xhr.onload = function () {
-        callback(JSON.parse(this.responseText), xhr.status);
+        console.log(_processResults);
+        if (_processResults)
+            callback(JSON.parse(this.responseText), xhr.status);
     };
     xhr.open('GET', url, true);
     xhr.send();
@@ -1714,9 +1712,12 @@ function ComparisonViews(methodsIds) {
                 '<a target="_blank" href="https://enzyme.expasy.org/EC/'+ ecno.id +'">'+ ecno.id + '&nbsp;<i class="external icon"></i></a></td>';
 
             this.methods.forEach(methodId => {
-                if (ecno.methods.hasOwnProperty(methodId))
-                    html += '<td><a href="#" data-method="'+ methodId +'">' + ecno.methods[methodId] + '</a></td>';
-                else
+                if (ecno.methods.hasOwnProperty(methodId)) {
+                    const i = Math.floor(ecno.methods[methodId] / data.max * _colors.length);
+                    const color = _colors[Math.min(i, _colors.length - 1)];
+                    const className = useWhiteText(color) ? 'light' : 'dark';
+                    html += '<td class="'+ className +'" style="background-color: '+ color +';"><a href="#" data-method="'+ methodId +'">' +ecno.methods[methodId] + '</a></td>';
+                } else
                     html += '<td></td>';
 
             });
@@ -3043,6 +3044,11 @@ function initApp() {
 $(function () {
     $('.message .close').on('click', function() {
         $(this).closest('.message').transition('fade');
+    });
+
+    $('#dimmer .close').on('click', function() {
+        _processResults = false;
+        showDimmer(false);
     });
 
     // Observe search input
