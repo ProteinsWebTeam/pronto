@@ -1,14 +1,16 @@
 const _colors = [
-    "#dac5f3",
-    "#8bd6f0",
-    "#89e9e7",
-    "#b8e9d3",
-    "#a4e6b8",
-    "#cae8ad",
-    "#e0e1b1",
-    "#f1d49b",
-    "#f2c3b7"
+    '#ffffff',
+    '#ece7f2',
+    '#d0d1e6',
+    '#a6bddb',
+    '#74a9cf',
+    '#3690c0',
+    '#0570b0',
+    '#045a8d',
+    '#023858'
 ];
+
+let _processResults = true;
 
 
 function nvl(expr1, expr2, expr3) {
@@ -34,6 +36,23 @@ function setClass(element, className, active) {
     }
 }
 
+function useWhiteText(bgHexColor) {
+    // Implementation of https://www.w3.org/TR/WCAG20/
+    const rgb = hex2rgb(bgHexColor);
+    ['r', 'g', 'b'].forEach(k => {
+        rgb[k] /= 255;
+
+        if (rgb[k] <= 0.03928)
+            rgb[k] /= 12.92;
+        else
+            rgb[k] = Math.pow((rgb[k] + 0.055) / 1.055, 2.4);
+    });
+
+    // luminance formula: https://www.w3.org/TR/WCAG20/#relativeluminancedef
+    const l = 0.2126 * rgb.r + 0.7152 * rgb.g + 0.0722 * rgb.b;
+    return l <= 0.179;
+}
+
 function renderCheckbox(entryId, isChecked) {
     if (!entryId)
         return '<div class="ui disabled fitted checkbox"><input disabled="disabled" type="checkbox"><label></label></div>';
@@ -44,15 +63,8 @@ function renderCheckbox(entryId, isChecked) {
 }
 
 function showDimmer(show) {
-    const dimmer = document.getElementById('dimmer');
-    if (show) {
-        dimmer.children[0].innerHTML = 'Loading';
-        setClass(dimmer, 'active', true);
-    } else {
-        setClass(dimmer, 'active', false);
-    }
+    setClass(document.getElementById('dimmer'), 'active', show);
 }
-
 
 function setGlobalError(msg) {
     const div = document.getElementById('messages');
@@ -184,9 +196,12 @@ function calcPixelGradient(startingPixel, distance, slope) {
 }
 
 function getJSON(url, callback) {
+    _processResults = true;
     let xhr = new XMLHttpRequest();
     xhr.onload = function () {
-        callback(JSON.parse(this.responseText), xhr.status)
+        console.log(_processResults);
+        if (_processResults)
+            callback(JSON.parse(this.responseText), xhr.status);
     };
     xhr.open('GET', url, true);
     xhr.send();
@@ -706,7 +721,6 @@ function ProteinView() {
 
         div.innerHTML = html;
 
-
         // Domains/repeats
         const domains = entries.filter(e => e.typeCode === 'D');
         const repeats = entries.filter(e => e.typeCode === 'R');
@@ -775,9 +789,9 @@ function ProteinView() {
                 if (a.typeCode === b.typeCode)
                     return sortByLeftmostMatch(a, b);
                 else if (a.typeCode === null)
-                    return -1;
-                else
                     return 1;
+                else
+                    return -1;
             })
             .forEach(entry => {
                 html += renderEntryMatches(entry);
@@ -825,7 +839,7 @@ function ProteinView() {
                         });
                     });
 
-                    html += '<text x="' + (width + 10) + '" y="'+ (y + matchHeight / 2) +'"><a target="_blank" href="' + structures[dbName][0].db.home +'">'+ dbName +'&nbsp;<tspan>&#xf08e;</tspan></a></text>';
+                    html += '<text x="' + (width + 10) + '" y="'+ (y + matchHeight / 2) +'"><a target="_blank" href="' + structures[dbName][0].db.link +'">'+ dbName +'&nbsp;<tspan>&#xf08e;</tspan></a></text>';
                     ++i;
                 }
             }
@@ -1098,14 +1112,41 @@ function EntryView() {
         };
 
         entry.go.forEach(function (term) {
-            if (goTerms.hasOwnProperty(term.category))
-                goTerms[term.category] += '<dd>' + '<a href="http://www.ebi.ac.uk/QuickGO/GTerm?id=' + term.id + '" target="_blank">' + term.id + '&nbsp;<i class="external icon"></i></a>&nbsp;' + term.name + '</dd>';
+            if (goTerms.hasOwnProperty(term.category)) {
+                goTerms[term.category] += '<dd><a target="_blank" href="http://www.ebi.ac.uk/QuickGO/GTerm?id=' + term.id + '">' + term.id + '&nbsp;<i class="external icon"></i></a>&nbsp;' + term.name;
+
+                if (term.isObsolete)
+                    goTerms[term.category] += '&nbsp;<span class="ui tiny red label">Obsolete</span>';
+
+                if (term.replacedBy)
+                    goTerms[term.category] += '&nbsp;<span class="ui tiny yellow label">Secondary</span>';
+
+                goTerms[term.category] += '<i class="right floated plus icon"></i>' +
+                    '<p class="hidden">'+ term.definition +'</p>' +
+                    '</dd>';
+            }
+
         });
 
         content = '<dt>Molecular Function</dt>' + (goTerms['F'].length ? goTerms['F'] : '<dd>No terms assigned in this category.</dd>');
         content += '<dt>Biological Process</dt>' + (goTerms['P'].length ? goTerms['P'] : '<dd>No terms assigned in this category.</dd>');
         content += '<dt>Cellular Component</dt>' + (goTerms['C'].length ? goTerms['C'] : '<dd>No terms assigned in this category.</dd>');
         document.querySelector('#go-terms + dl').innerHTML = content;
+
+        Array.from(document.querySelectorAll('#go-terms + dl i.right.floated')).forEach(elem => {
+            elem.addEventListener('click', e => {
+                const icon = e.target;
+                const block = icon.parentNode.querySelector('p');
+
+                if (block.className === 'hidden') {
+                    block.className = '';
+                    icon.className = 'right floated minus icon';
+                } else {
+                    block.className = 'hidden';
+                    icon.className = 'right floated plus icon';
+                }
+            });
+        });
 
         this.getComments(entry.id, 2);
     };
@@ -1352,9 +1393,9 @@ function ComparisonViews(methodsIds) {
 
                 data.results.forEach(protein => {
                     if (protein.isReviewed)
-                        html += '<tr><td class="nowrap"><a target="_blank" href="'+ protein.link +'"><i class="star icon"></i>'+ protein.id +'</a></td>';
+                        html += '<tr><td class="nowrap"><a target="_blank" href="'+ protein.link +'"><i class="star icon"></i>'+ protein.id +'&nbsp;<i class="external icon"></i></a></td>';
                     else
-                        html += '<tr><td><a target="_blank" href="'+ protein.link +'">'+ protein.id +'</a></td>';
+                        html += '<tr><td class="nowrap"><a target="_blank" href="'+ protein.link +'">'+ protein.id +'&nbsp;<i class="external icon"></i></a></td>';
 
                     html += '<td>'+ protein.shortName +'</td><td>'+ protein.name +'</td><td>'+ protein.taxon.fullName +'</td>';
 
@@ -1444,8 +1485,8 @@ function ComparisonViews(methodsIds) {
                 actionLink.setAttribute(
                     'href',
                     '/methods/' + this.id + '/matches' + encodeParams(
-                        extendObj(getParams(this.url), {search: null, page: 1, pageSize: null}),
-                        true
+                    extendObj(getParams(this.url), {search: null, page: 1, pageSize: null}),
+                    true
                     )
                 );
                 observeLink(actionLink);
@@ -1571,25 +1612,27 @@ function ComparisonViews(methodsIds) {
 
             this.methods.forEach(methodAcX => {
                 if (data.matrix.hasOwnProperty(methodAcX) && data.matrix[methodAcX].methods.hasOwnProperty(methodAcY)) {
-                    let count, i, color;
+                    let count, i, color, className;
 
                     count = data.matrix[methodAcX].methods[methodAcY].over;
                     i = Math.floor(count / data.max * _colors.length);
                     color = _colors[Math.min(i, _colors.length - 1)];
+                    className = useWhiteText(color) ? 'light' : 'dark';
 
                     if (count && methodAcX !== methodAcY)
-                        html1 += '<td style="background-color: '+ color +'"><a data-x="'+ methodAcX +'" data-y="'+ methodAcY +'" href="#">' + count + '</a></td>';
+                        html1 += '<td class="'+ className +'" style="background-color: '+ color +'"><a data-x="'+ methodAcX +'" data-y="'+ methodAcY +'" href="#">' + count + '</a></td>';
                     else
-                        html1 += '<td style="background-color: '+ color +'">' + count + '</td>';
+                        html1 += '<td class="'+ className +'" style="background-color: '+ color +'">' + count + '</td>';
 
                     count = data.matrix[methodAcX].methods[methodAcY].coloc;
                     i = Math.floor(count / data.max * _colors.length);
                     color = _colors[Math.min(i, _colors.length - 1)];
+                    className = useWhiteText(color) ? 'light' : 'dark';
 
                     if (count && methodAcX !== methodAcY)
-                        html2 += '<td style="background-color: '+ color +'"><a data-x="'+ methodAcX +'" data-y="'+ methodAcY +'" href="#">' + count + '</a></td>';
+                        html2 += '<td class="'+ className +'" style="background-color: '+ color +'"><a data-x="'+ methodAcX +'" data-y="'+ methodAcY +'" href="#">' + count + '</a></td>';
                     else
-                        html2 += '<td style="background-color: '+ color +'">' + count + '</td>';
+                        html2 += '<td class="'+ className +'" style="background-color: '+ color +'">' + count + '</td>';
                 } else {
                     html1 += '<td style="background-color: '+ _colors[0] +'"><a data-x="'+ methodAcX +'" data-y="'+ methodAcY +'" href="#">0</a></td>';
                     html2 += '<td style="background-color: '+ _colors[0] +'"><a data-x="'+ methodAcX +'" data-y="'+ methodAcY +'" href="#">0</a></td>';
@@ -1615,24 +1658,81 @@ function ComparisonViews(methodsIds) {
                 const statsY = data.matrix.hasOwnProperty(methodAcY) && data.matrix[methodAcY].methods.hasOwnProperty(methodAcY) ? data.matrix[methodAcY].methods[methodAcY] : null;
                 const statsXY = data.matrix.hasOwnProperty(methodAcX) && data.matrix[methodAcX].methods.hasOwnProperty(methodAcY) ? data.matrix[methodAcX].methods[methodAcY] : null;
 
-                let html = '<h5 class="ui header">Proteins</h5><table class="ui very basic small compact table"><tbody>';
+                let html = '<h4 class="ui header">Proteins</h4><table class="ui very basic small compact table"><tbody>';
 
                 html += '<tr><td>Overlapping</td><td class="right aligned">'+ (statsXY !== null ? statsXY.over : 0) +'</td></tr>';
-                html += '<tr><td>Average overlap</td><td class="right aligned">'+ (statsXY !== null ? statsXY.avgOver : '') +'</td></tr>';
+                html += '<tr><td>Average overlap</td><td class="right aligned">'+ (statsXY !== null ? Math.floor(statsXY.avgOver) : '') +'</td></tr>';
 
                 if (statsXY !== null)
-                    html += '<tr><td>In both signatures</td><td class="right aligned"><a href="/methods/'+ methodAcX + '/' + methodAcY +'/matches?force='+ methodAcX + ',' + methodAcY +'">'+ statsXY.coloc +'</a></td></tr>';
+                    html += '<tr><td>In both signatures</td><td class="right aligned"><a target="_blank" href="/methods/'+ methodAcX + '/' + methodAcY +'/matches?force='+ methodAcX + ',' + methodAcY +'">'+ statsXY.coloc +'</a></td></tr>';
                 else
                     html += '<tr><td>In both signatures</td><td class="right aligned">0</td></tr>';
 
-                html += '<tr><td>In either signatures</td><td class="right aligned"><a href="/methods/'+ methodAcX + '/' + methodAcY +'/matches">'+ (statsX.coloc + statsY.coloc - (statsXY !== null ? statsXY.coloc : 0)) +'</a></td></tr>';
-                html += '<tr><td>In '+ methodAcX +' only</td><td class="right aligned"><a href="/methods/'+ methodAcX + '/matches?exclude='+ methodAcY +'">'+ (statsX.coloc - (statsXY !== null ? statsXY.coloc : 0)) +'</a></td></tr>';
-                html += '<tr><td>In '+ methodAcY +' only</td><td class="right aligned"><a href="/methods/'+ methodAcY + '/matches?exclude='+ methodAcX +'">'+ (statsY.coloc - (statsXY !== null ? statsXY.coloc : 0)) +'</a></td></tr>';
-                html += '<tr><td>In '+ methodAcX +'</td><td class="right aligned"><a href="/methods/'+ methodAcX + '/matches">'+ statsX.coloc +'</a></td></tr>';
-                html += '<tr><td>In '+ methodAcY +'</td><td class="right aligned"><a href="/methods/'+ methodAcY + '/matches">'+ statsY.coloc +'</a></td></tr>';
+                html += '<tr><td>In either signatures</td><td class="right aligned"><a target="_blank" href="/methods/'+ methodAcX + '/' + methodAcY +'/matches">'+ (statsX.coloc + statsY.coloc - (statsXY !== null ? statsXY.coloc : 0)) +'</a></td></tr>';
+                html += '<tr><td>In '+ methodAcX +' only</td><td class="right aligned"><a target="_blank" href="/methods/'+ methodAcX + '/matches?exclude='+ methodAcY +'">'+ (statsX.coloc - (statsXY !== null ? statsXY.coloc : 0)) +'</a></td></tr>';
+                html += '<tr><td>In '+ methodAcY +' only</td><td class="right aligned"><a target="_blank" href="/methods/'+ methodAcY + '/matches?exclude='+ methodAcX +'">'+ (statsY.coloc - (statsXY !== null ? statsXY.coloc : 0)) +'</a></td></tr>';
+                html += '<tr><td>In '+ methodAcX +'</td><td class="right aligned"><a target="_blank" href="/methods/'+ methodAcX + '/matches">'+ statsX.coloc +'</a></td></tr>';
+                html += '<tr><td>In '+ methodAcY +'</td><td class="right aligned"><a target="_blank" href="/methods/'+ methodAcY + '/matches">'+ statsY.coloc +'</a></td></tr>';
 
                 div.querySelector('.column:last-child').innerHTML = html + '</tbody></table>';
             });
+        });
+
+        setClass(div, 'hidden', false);
+    };
+
+    this.getEnzymes = function () {
+        const url = location.pathname + location.search;
+
+        showDimmer(true);
+        getJSON('/api' + url, (data, status) => {
+            try {
+                history.replaceState({page: 'enzymes', data: data, methods: this.methods, url: url}, '', url);
+            } catch (err) {
+                history.replaceState({page: 'enzymes', data: null, methods: this.methods, url: url}, '', url);
+            }
+            this.renderEnzymes(data);
+            showDimmer(false);
+        });
+    };
+
+    this.renderEnzymes = function (data) {
+        this.toggle('enzymes');
+        document.title = 'ENZYMEs (' + this.methods.join(', ') + ') | Pronto';
+
+        let html = '<thead><tr>' +
+            '<th>'+ data.results.length +' EC numbers</th>';
+
+        this.methods.forEach(methodId => { html += '<th>' + methodId + '</th>'; });
+        html += '</thead><tbody>';
+
+        data.results.forEach(ecno => {
+            html += '<tr data-filter="'+ ecno.id +'" data-search="?ec=' + ecno.id + '">' +
+                '<td>' +
+                '<a target="_blank" href="https://enzyme.expasy.org/EC/'+ ecno.id +'">'+ ecno.id + '&nbsp;<i class="external icon"></i></a></td>';
+
+            this.methods.forEach(methodId => {
+                if (ecno.methods.hasOwnProperty(methodId)) {
+                    const i = Math.floor(ecno.methods[methodId] / data.max * _colors.length);
+                    const color = _colors[Math.min(i, _colors.length - 1)];
+                    const className = useWhiteText(color) ? 'light' : 'dark';
+                    html += '<td class="'+ className +'" style="background-color: '+ color +';"><a href="#" data-method="'+ methodId +'">' +ecno.methods[methodId] + '</a></td>';
+                } else
+                    html += '<td></td>';
+
+            });
+
+            html += '</tr>';
+        });
+        html += '</tbody>';
+
+        const div = document.getElementById('enzymes');
+        const table = div.querySelector('table');
+        table.innerHTML = html;
+
+        observeLinks(div, (methodId, filter, search) => {
+            const header = '<em>' + methodId + '</em> proteins<div class="sub header">EC: <em>'+ filter +'</em></div>';
+            this.proteinList.open(methodId, search, header);
         });
 
         setClass(div, 'hidden', false);
@@ -1671,12 +1771,17 @@ function ComparisonViews(methodsIds) {
                 '<td class="collapsing center aligned">'+ renderCheckbox(term.id, false) +'</td>';
 
             this.methods.forEach(methodId => {
-                if (term.methods.hasOwnProperty(methodId) && data.methods.hasOwnProperty(methodId)) {
+                if (term.methods.hasOwnProperty(methodId)) {
                     const method = term.methods[methodId];
-                    const i = Math.floor(method.proteins / data.methods[methodId] * _colors.length);
+                    const i = Math.floor(method.proteins / data.max * _colors.length);
                     const color = _colors[Math.min(i, _colors.length - 1)];
-                    html += '<td style="background-color: '+ color +';"><a href="#" data-method="'+ methodId +'">' + method.proteins + '</a></td>' +
-                        '<td class="collapsing"><a data-term="'+ term.id +'" data-method2="'+ methodId +'" class="ui basic label"><i class="book icon"></i>&nbsp;'+ method.references +'</a></td>';
+                    const className = useWhiteText(color) ? 'light' : 'dark';
+                    html += '<td class="'+ className +'" style="background-color: '+ color +';"><a href="#" data-method="'+ methodId +'">' + method.proteins + '</a></td><td class="collapsing">';
+
+                    if (method.references)
+                        html += '<a data-term="'+ term.id +'" data-method2="'+ methodId +'" class="ui basic label"><i class="book icon"></i>&nbsp;'+ method.references +'</a>';
+
+                    html += '</td>';
                 } else
                     html += '<td colspan="2"></td>';
 
@@ -1777,21 +1882,21 @@ function ComparisonViews(methodsIds) {
             }
         });
 
-        let html = '<thead><tr><th colspan="2">'+ data.results.length +' comments</th>';
+        let html = '<thead><tr><th>'+ data.results.length +' comments</th>';
         this.methods.forEach(methodId => { html += '<th>' + methodId + '</th>'; });
 
         html += '</thead><tbody>';
 
         data.results.forEach(comment => {
             html += '<tr data-filter="'+ comment.value +'" data-search="?comment=' + comment.id + '&topic='+ data.topic.id +'">' +
-                '<td>'+ comment.value +'</td>' +
-                '<td>'+ comment.max +'</td>';
+                '<td>'+ comment.value +'</td>';
 
             this.methods.forEach(methodId => {
                 if (comment.methods.hasOwnProperty(methodId)) {
-                    const i = Math.floor(comment.methods[methodId] / comment.max * _colors.length);
+                    const i = Math.floor(comment.methods[methodId] / data.max * _colors.length);
                     const color = _colors[Math.min(i, _colors.length - 1)];
-                    html += '<td style="background-color: '+ color +'"><a href="#" data-method="'+ methodId +'">' + comment.methods[methodId] + '</a></td>';
+                    const className = useWhiteText(color) ? 'light' : 'dark';
+                    html += '<td class="'+ className +'" style="background-color: '+ color +';"><a href="#" data-method="'+ methodId +'">' + comment.methods[methodId] + '</a></td>';
                 } else
                     html += '<td></td>';
 
@@ -1829,24 +1934,23 @@ function ComparisonViews(methodsIds) {
         this.toggle('descriptions');
         document.title = 'UniProt descriptions (' + this.methods.join(', ') + ') | Pronto';
 
-        let html = '<thead><tr><th colspan="2">'+ data.results.length +' descriptions</th>';
+        let html = '<thead><tr><th>'+ data.results.length +' descriptions</th>';
         this.methods.forEach(methodId => { html += '<th><a href="" data-method="'+ methodId +'">' + methodId + '</a></th>'; });
 
         html += '</thead><tbody>';
 
         data.results.forEach(desc => {
             html += '<tr data-filter="'+ desc.value +'" data-search="?description=' + desc.id + '&db='+ data.database +'">' +
-                '<td>'+ desc.value +'</td>' +
-                '<td>' + desc.max + '</td>';
+                '<td>'+ desc.value +'</td>';
 
             this.methods.forEach(methodId => {
                 if (desc.methods.hasOwnProperty(methodId)) {
-                    const i = Math.floor(desc.methods[methodId] / desc.max * _colors.length);
+                    const i = Math.floor(desc.methods[methodId] / data.max * _colors.length);
                     const color = _colors[Math.min(i, _colors.length - 1)];
-                    html += '<td style="background-color: '+ color +'"><a href="" data-method="'+ methodId +'">' + desc.methods[methodId] + '</a></td>';
+                    const className = useWhiteText(color) ? 'light' : 'dark';
+                    html += '<td class="'+ className +'" style="background-color: '+ color +';"><a href="#" data-method="'+ methodId +'">' + desc.methods[methodId] + '</a></td>';
                 } else
                     html += '<td></td>';
-
             });
 
             html += '</tr>';
@@ -1869,59 +1973,7 @@ function ComparisonViews(methodsIds) {
             });
         });
 
-        // Array.from(div.querySelectorAll('td:first-child a[data-id]')).forEach(element => {
-        //     element.addEventListener('click', e => {
-        //         e.preventDefault();
-        //         const descId = e.target.getAttribute('data-id');
-        //         const desc = e.target.closest('tr').getAttribute('data-filter');
-        //
-        //         showDimmer(true);
-        //         getJSON('/api/description/' + descId, (data, status) => {
-        //             let html = '';
-        //
-        //             data.results.forEach(protein => {
-        //                 html += '<tr><td><a href="/protein/'+ protein.id +'">'+ (protein.isReviewed ? '<i class="star icon"></i>&nbsp;' : '') + protein.id +'</a></td><td>'+ protein.shortName +'</td><td>'+ protein.organism +'</td></tr>';
-        //             });
-        //
-        //             const modal = document.getElementById('descriptions-modal');
-        //             modal.querySelector('.header').innerHTML = data.count + ' proteins<div class="sub header">'+ desc +'</div>';
-        //             modal.querySelector('tbody').innerHTML = html;
-        //             $(modal).modal('show');
-        //
-        //             showDimmer(false);
-        //
-        //         });
-        //
-        //     });
-        // });
-
-        // Array.from(div.querySelectorAll('td:first-child a[data-id]')).forEach(element => {
-        //     element.addEventListener('click', e => {
-        //         e.preventDefault();
-        //         const descId = e.target.getAttribute('data-id');
-        //         const desc = e.target.closest('tr').getAttribute('data-filter');
-        //
-        //         showDimmer(true);
-        //         getJSON('/api/description/' + descId, (data, status) => {
-        //             let html = '';
-        //
-        //             data.results.forEach(protein => {
-        //                 html += '<tr><td><a href="/protein/'+ protein.id +'">'+ (protein.isReviewed ? '<i class="star icon"></i>&nbsp;' : '') + protein.id +'</a></td><td>'+ protein.shortName +'</td><td>'+ protein.organism +'</td></tr>';
-        //             });
-        //
-        //             const modal = document.getElementById('descriptions-modal');
-        //             modal.querySelector('.header').innerHTML = data.count + ' proteins<div class="sub header">'+ desc +'</div>';
-        //             modal.querySelector('tbody').innerHTML = html;
-        //             $(modal).modal('show');
-        //
-        //             showDimmer(false);
-        //
-        //         });
-        //
-        //     });
-        // });
-
-        div.querySelector('input[type=radio][value="'+ nvl(data.database, 'U') +'"]').checked = true;
+        div.querySelector('input[type=radio][value="'+ data.database +'"]').checked = true;
         setClass(div, 'hidden', false);
     };
 
@@ -1950,18 +2002,6 @@ function ComparisonViews(methodsIds) {
             setClass(item, 'active', item.getAttribute('data-rank') === data.rank);
         });
 
-        // const dropdown = div.querySelector('.ui.dropdown');
-        // setSelected(dropdown, data.rank);
-        //
-        // $(dropdown).dropdown({
-        //     onChange: function(value, text, $selectedItem) {
-        //         const baseUrl = getPathName(history.state.url);
-        //         const params = extendObj(getParams(history.state.url), {rank: value});
-        //         history.pushState({}, '', baseUrl + encodeParams(params));
-        //         self.getTaxonomy();
-        //     }
-        // });
-
         let html = '';
         if (data.taxon.id === 1)
             html += '<thead><tr><th>'+ data.taxon.fullName +'</th>';
@@ -1972,13 +2012,17 @@ function ComparisonViews(methodsIds) {
         html += '</thead><tbody>';
 
         data.results.forEach(taxon => {
-            html += '<tr data-filter="'+ taxon.fullName +'" data-search="?taxon='+ taxon.id +'"><td><a href="/methods/'+ this.methods.join('/') +'/taxonomy?taxon='+ taxon.id + '&rank=' + data.rank +'">'+ taxon.fullName +'</a></td>';
+            if (taxon.id)
+                html += '<tr data-filter="'+ taxon.fullName +'" data-search="?taxon='+ taxon.id +'"><td><a href="/methods/'+ this.methods.join('/') +'/taxonomy?taxon='+ taxon.id + '&rank=' + data.rank +'">'+ taxon.fullName +'</a></td>';
+            else
+                html += '<tr data-filter="'+ taxon.fullName +'" data-search="?&rank='+ data.rank +'"><td>'+ taxon.fullName +'</td>';
 
             this.methods.forEach(methodId => {
                 if (taxon.methods.hasOwnProperty(methodId)) {
                     const i = Math.floor(taxon.methods[methodId] / data.max * _colors.length);
                     const color = _colors[Math.min(i, _colors.length - 1)];
-                    html += '<td style="background-color: '+ color +'"><a href="#" data-method="'+ methodId +'">' + taxon.methods[methodId] + '</a></td>';
+                    const className = useWhiteText(color) ? 'light' : 'dark';
+                    html += '<td class="'+ className +'" style="background-color: '+ color +';"><a href="#" data-method="'+ methodId +'">' + taxon.methods[methodId] + '</a></td>';
                 } else
                     html += '<td></td>';
 
@@ -2062,8 +2106,12 @@ function ComparisonViews(methodsIds) {
                 else
                     html += '<td></td>';
 
-                html += '<td class="nowrap"><a target="_blank" href="'+ method.db.link +'">'+ method.id + '&nbsp;<i class="external icon"></i></a></td>' +
-                    '<td>'+ method.name + '</td>' +
+                if (method.db)
+                    html += '<td class="nowrap"><a target="_blank" href="'+ method.db.link +'">'+ method.id + '&nbsp;<i class="external icon"></i></a></td>';
+                else
+                    html += '<td>'+ method.id + '</td>';
+
+                html += '<td>'+ (method.name !== null ? method.name : '') + '</td>' +
                     '<td>'+ (method.isCandidate ? '&nbsp;<i class="checkmark box icon"></i>' : '') +'</td>';
 
                 const paddingLeft = 5;
@@ -2077,7 +2125,7 @@ function ComparisonViews(methodsIds) {
                 method.matches.forEach(match => {
                     const x = Math.round(match.start * width / protein.length) + paddingLeft;
                     const w = Math.round((match.end - match.start) * width / protein.length);
-                    html += '<g><rect x="'+ x +'" y="15" width="'+ w +'" height="10" rx="1" ry="1" style="fill: '+ method.db.color +';"/>' +
+                    html += '<g><rect x="'+ x +'" y="15" width="'+ w +'" height="10" rx="1" ry="1" style="fill: '+ (method.db !== null ? method.db.color : '#bbb') +';"/>' +
                         '<text x="'+ x +'" y="10">'+ match.start +'</text>' +
                         '<text x="'+ (x + w) +'" y="10">'+ match.end +'</text></g>'
                 });
@@ -2460,6 +2508,8 @@ function PredictionView() {
     this.sv = new MethodsSelectionView(this.section.querySelector('.methods'));
     this.pixels = null;
     this.nRect = null;
+    this.methodId = null;
+    this.overlapThreshold = null;
     const self = this;
 
     // Init
@@ -2519,7 +2569,21 @@ function PredictionView() {
             });
         });
 
-
+        const slider = document.getElementById('over-range');
+        const span = document.getElementById('over-value');
+        slider.addEventListener('change', evt => {
+            self.overlapThreshold = parseFloat(evt.target.value);
+            span.innerHTML = (self.overlapThreshold * 100).toFixed(0);
+            const pathname = getPathName(history.state.url);
+            const params = extendObj(getParams(history.state.url), {overlap: self.overlapThreshold});
+            history.pushState({}, '', pathname + encodeParams(params));
+            self.get(self.methodId);
+        });
+        slider.addEventListener('input', evt => {
+            span.innerHTML = (parseFloat(evt.target.value) * 100).toFixed(0);
+        });
+        self.overlapThreshold = parseFloat(slider.value);
+        span.innerHTML = (self.overlapThreshold * 100).toFixed(0);
     })();
 
     this.draw = function () {
@@ -2555,9 +2619,10 @@ function PredictionView() {
     this.get = function (methodId) {
         self.sv.clear().add(methodId).render();
         const url = location.pathname + location.search;
+        this.methodId = methodId;
 
         showDimmer(true);
-        getJSON('/api' + getPathName(location.pathname) + '/prediction?' + location.search, (data, status) => {
+        getJSON('/api' + getPathName(location.pathname) + '/prediction' + location.search, (data, status) => {
             try {
                 history.replaceState({page: 'method', data: data, methodId: methodId, url: url}, '', url);
             } catch (err) {
@@ -2583,8 +2648,8 @@ function PredictionView() {
 
         let html = '';
         data.results.forEach(m => {
-            const qRatio = Math.min(m.nProtsCand / m.nProtsQuery, 1);
-            const cRatio = Math.min(m.nProtsCand / m.nProts, 1);
+            const qRatio = Math.min(m.nProts / m.nProtsQuery, 1);
+            const cRatio = Math.min(m.nProts / m.nProtsCand, 1);
             let x = this.nRect - Math.floor(cRatio * this.nRect);
             let y = this.nRect - Math.floor(qRatio * this.nRect);
 
@@ -2593,8 +2658,8 @@ function PredictionView() {
                 y < this.nRect ? y : y - 1,
             );
 
-            const qBlob = Math.min(m.nBlobsCand / m.nBlobsQuery, 1);
-            const cBlob = Math.min(m.nBlobsCand / m.nBlobs, 1);
+            const qBlob = Math.min(m.nBlobs / m.nBlobsQuery, 1);
+            const cBlob = Math.min(m.nBlobs / m.nBlobsCand, 1);
             x = this.nRect - Math.floor(cBlob * this.nRect);
             y = this.nRect - Math.floor(qBlob * this.nRect);
 
@@ -2608,10 +2673,10 @@ function PredictionView() {
                 '<td><a href="#">' + m.id + '</a></td>' +
                 '<td class="collapsing">'+ (m.dbLink ? '&nbsp;<a target="_blank" href="'+ m.dbLink +'"><i class="external icon"></i></a>' : '') +'</td>' +
                 // '<td>'+ m.dbShort +'</td>' +
-                '<td>'+ m.nProts +'</td>' +
-                '<td>'+ m.nBlobs +'</td>' +
-                '<td style="background-color: '+ c1 +'; color: #fff;">'+ m.nProtsCand +'</td>' +
-                '<td style="background-color: '+ c2 +'; color: #fff;">'+ m.nBlobsCand +'</td>';
+                '<td>'+ m.nProtsCand +'</td>' +
+                '<td>'+ m.nBlobsCand +'</td>' +
+                '<td class="'+ (useWhiteText(c1) ? 'light' : 'dark') +'" style="background-color: '+ c1 +';">'+ m.nProts +'</td>' +
+                '<td class="'+ (useWhiteText(c2) ? 'light' : 'dark') +'" style="background-color: '+ c2 +';">'+ m.nBlobs +'</td>';
 
             if (m.entryId) {
                 html += '<td class="nowrap"><div class="ui list">';
@@ -2698,7 +2763,7 @@ function IndexView() {
             html.push(
                 [
                     '<tr>',
-                    '<td><a href="'+ db.home +'" target="_blank">'+ db.name +'&nbsp;'+ db.version +'&nbsp;<i class="external icon"></i></a></td>',
+                    '<td><a target="_blank" href="'+ db.home +'">'+ db.name +'&nbsp;'+ db.version +'&nbsp;<i class="external icon"></i></a></td>',
                     '<td><a href="/db/'+ db.shortName +'">'+ db.count.toLocaleString() +'</a></td>',
                     '<td>'+ db.countIntegrated.toLocaleString() +'</td>',
                     '<td><a href="/db/'+ db.shortName +'?unintegrated=exist">'+ db.countUnintegrated.toLocaleString() +'</a></td>',
@@ -2907,7 +2972,7 @@ function initApp() {
         views.method.get(match[1]);
     }
 
-    match = pathName.match(/^\/methods\/(.+)\/((?:matches)|(?:taxonomy)|(?:descriptions)|(?:comments)|(?:go)|(?:matrices))\/?$/);
+    match = pathName.match(/^\/methods\/(.+)\/((?:matches)|(?:taxonomy)|(?:descriptions)|(?:comments)|(?:go)|(?:matrices)|(?:enzymes))\/?$/);
     if (match) {
         section = 'comparison';
         const methods = match[1].trim().split('/');
@@ -2936,6 +3001,9 @@ function initApp() {
                 break;
             case 'matrices':
                 views.methods.getMatrices();
+                break;
+            case 'enzymes':
+                views.methods.getEnzymes();
                 break;
             default:
                 break;
@@ -2978,6 +3046,11 @@ $(function () {
         $(this).closest('.message').transition('fade');
     });
 
+    $('#dimmer .close').on('click', function() {
+        _processResults = false;
+        showDimmer(false);
+    });
+
     // Observe search input
     (function () {
         const messages = document.getElementById('messages');
@@ -3016,6 +3089,7 @@ window.onpopstate = function(event) {
     let section = null;
     if (event.state) {
         const state = event.state;
+        const comparisons = ['matches', 'taxonomy', 'descriptions', 'comments', 'go', 'matrices', 'enzymes'];
 
         if (state.page === 'method') {
             section = state.page;
@@ -3024,7 +3098,7 @@ window.onpopstate = function(event) {
                 views.method = new PredictionView();
 
             views.method.render(state.methodId, state.data);
-        } else if (state.page === 'matches' || state.page === 'taxonomy' || state.page === 'descriptions' || state.page === 'comments' || state.page === 'go' || state.page === 'matrices') {
+        } else if (comparisons.indexOf(state.page) !== -1) {
             section = 'comparison';
 
             if (!views.methods)
@@ -3032,18 +3106,28 @@ window.onpopstate = function(event) {
             else
                 views.methods.setMethods(state.methods);
 
-            if (state.page === 'matches')
-                views.methods.renderMatches(state.data);
-            else if (state.page === 'taxonomy')
-                views.methods.renderTaxonomy(state.data);
-            else if (state.page === 'descriptions')
-                views.methods.renderDescriptions(state.data);
-            else if (state.page === 'comments')
-                views.methods.renderSwissProtComments(state.data);
-            else if (state.page === 'go')
-                views.methods.renderGoTerms(state.data);
-            else
-                views.methods.renderMatrices(state.data);
+            switch (state.page) {
+                case 'matches':
+                    views.methods.renderMatches(state.data);
+                    break;
+                case 'taxonomy':
+                    views.methods.renderTaxonomy(state.data);
+                    break;
+                case 'descriptions':
+                    views.methods.renderDescriptions(state.data);
+                    break;
+                case 'comments':
+                    views.methods.renderSwissProtComments(state.data);
+                    break;
+                case 'go':
+                    views.methods.renderGoTerms(state.data);
+                    break;
+                case 'matrices':
+                    views.methods.renderMatrices(state.data);
+                    break;
+                default:
+                    break;
+            }
         } else if (state.page === 'methods') {
             if (!views.db)
                 views.db = new DatabaseView();

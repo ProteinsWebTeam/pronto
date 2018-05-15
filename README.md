@@ -24,6 +24,17 @@ Edit `config.cfg`, and set the following options:
 * `DB_SCHEMA` - Database schema (i.e. owner of tables).
 * `SECRET_KEY` - key used to sign cookies (prevent forgery).
 
+### Generate secret key
+
+Open a Python terminal and run:
+
+```python
+import os
+os.urandom(16)
+```
+
+Copy the string and paste it into the config file.
+
 ## Usage
 
 Pronto relies on the file the `PRONTO_CONFIG` environment variable points to. On Linux or OS X, you can set this environment variable with:

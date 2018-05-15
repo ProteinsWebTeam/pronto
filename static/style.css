@@ -20,7 +20,18 @@ body > .ui.menu {
 }
 
 #dimmer {
+    /* default z-index set to 1000: lesser than modal's so dimmer is sent to background when opening a modal */
     z-index: 5000;
+}
+
+.dimmer > .icon {
+    z-index: 1000;
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    color: rgba(255,255,255,.9);
+    font-size: 1.5rem;
+    cursor: pointer;
 }
 
 #messages.hidden {
@@ -69,7 +80,11 @@ h1, h2, h3, h4, h5, h6, .ui.header {
 
 .ui.link.list .item a:not(.ui):hover, .ui.link.list a.item:hover {
     color: rgba(0,0,0,.8);
-    text-decoration: underline;
+}
+
+input[type=range] {
+    display: block;
+    width: 50%;
 }
 
 /* Make labels behave like icons in lists */
@@ -267,11 +282,14 @@ svg.matches g:hover text {
     color: #1e70bf;
 }
 
-dt, dd {
+dt {
+    color: rgba(0, 0, 0, .87);
+    font-weight: bold;
     line-height: 1.5em;
 }
 
 dd {
+    line-height: 1.5em;
     margin-left: 2em;
 }
 
@@ -285,6 +303,22 @@ dd .ui.link.list > a.item, dd .ui.link.list > a.item > i.icon {
 
 dd .ui.link.list > a.item:hover, dd .ui.link.list > a.item:hover > i.icon {
     color: #1e70bf;
+}
+
+dl i.right.floated {
+    float: right;
+}
+
+dl i.right.floated:hover {
+    cursor: pointer;
+}
+
+dl .ui.label {
+    padding: .5em;
+}
+
+p.hidden {
+    display: none;
 }
 
 .ui.list > li > .ui.horizontal.list {
@@ -458,4 +492,20 @@ g.ticks text {
 
 .ui.comments .actions a:active, .ui.comments .actions a:hover {
     color: rgba(0,0,0,.8);
+}
+
+.light, .light > a {
+    color: rgba(255, 255, 255, 0.75);
+}
+
+.light > a:hover {
+    color: rgba(255, 255, 255, 1);
+}
+
+.dark, .dark > a {
+    color: rgba(0, 0, 0, 0.75);
+}
+
+.dark > a:hover {
+    color: rgba(0, 0, 0, 1);
 }

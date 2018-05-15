@@ -17,6 +17,10 @@ app.config.from_envvar('PRONTO_CONFIG')
 app.permanent_session_lifetime = timedelta(days=7)
 
 
+# TODO: do not hardcode INTERPRO schema, but use synonyms (e.g. MV_ENTRY2PROTEIN is not a synonym yet)
+# todo: refactoring: do not use functions if only called once
+
+
 def get_db_stats():
     """
     Retrieves the number of signatures (all, integrated into InterPro, and unintegrated) for each member database.
@@ -30,22 +34,20 @@ def get_db_stats():
     ## LEFT OUTER JOIN {}.FEATURE_SUMMARY FS ON M.METHOD_AC = FS.FEATURE_ID
     # that can be used to get the number of methods without matches:
     ## sum(case when m.method_ac is not null and feature_id is null then 1 else 0 end) nomatch,
-
     cur = get_db().cursor()
     cur.execute(
         """
         SELECT
           M.DBCODE,
-          MIN(C.DBNAME) DBNAME,
-          MIN(C.DBSHORT),
-          MIN(V.VERSION),
+          MIN(DB.DBNAME) DBNAME,
+          MIN(DB.DBSHORT),
+          MIN(DB.VERSION),
           COUNT(M.METHOD_AC),
           SUM(CASE WHEN E2M.ENTRY_AC IS NOT NULL THEN 1 ELSE 0 END),
           SUM(CASE WHEN E2M.ENTRY_AC IS NULL THEN 1 ELSE 0 END)
         FROM INTERPRO.METHOD M
-        LEFT OUTER JOIN {0}.DB_VERSION V ON M.DBCODE = V.DBCODE
-        LEFT OUTER JOIN {0}.CV_DATABASE C ON V.DBCODE = C.DBCODE
-        LEFT OUTER JOIN INTERPRO.ENTRY2METHOD E2M ON E2M.METHOD_AC = M.METHOD_AC
+        LEFT OUTER JOIN {}.CV_DATABASE DB ON M.DBCODE = DB.DBCODE
+        LEFT OUTER JOIN INTERPRO.ENTRY2METHOD E2M ON M.METHOD_AC = E2M.METHOD_AC
         GROUP BY M.DBCODE
         ORDER BY DBNAME
         """.format(app.config['DB_SCHEMA'])
@@ -112,7 +114,7 @@ def get_topic(topic_id):
     cur.execute(
         """
         SELECT TOPIC
-        FROM {}.PROTEIN_COMMENT_TOPIC
+        FROM {}.CV_COMMENT_TOPIC
         WHERE TOPIC_ID = :1
         """.format(app.config['DB_SCHEMA']),
         (topic_id,))
@@ -144,8 +146,7 @@ def get_topics():
     cur.execute(
         """
         SELECT TOPIC_ID, TOPIC
-        FROM {}.PROTEIN_COMMENT_TOPIC
-        WHERE TOPIC_ID != 0
+        FROM {}.CV_COMMENT_TOPIC
         ORDER BY TOPIC
         """.format(app.config['DB_SCHEMA'])
     )
@@ -158,140 +159,148 @@ def get_topics():
 
 def build_method2protein_sql(methods, **kwargs):
     taxon = kwargs.get('taxon')
-    db = kwargs.get('db')
-    desc_id = kwargs.get('description')
-    topic_id = kwargs.get('topic')
-    comment_id = kwargs.get('comment')
-    term_id = kwargs.get('term')
+    source_db = kwargs.get('source_db')
+    desc_id = kwargs.get('desc_id')
+    topic_id = kwargs.get('topic_id')
+    comment_id = kwargs.get('comment_id')
+    go_id = kwargs.get('go_id')
+    ecno = kwargs.get('ecno')
+    no_rank = kwargs.get('no_rank')
     search = kwargs.get('search')
 
-    can = []
-    must = []
-    mustnt = []
-
-    for method_ac, value in methods.items():
-        if value is None:
-            can.append(method_ac)
-        elif value:
-            must.append(method_ac)
+    may = []        # Methods that may match the set of returned proteins
+    must = []       # Methods that must match a protein for this protein to be selected
+    mustnt = []     # Methods that must not match a protein for this protein to be selected
+    for acc, status in methods.items():
+        if status is None:
+            may.append(acc)
+        elif status:
+            must.append(acc)
         else:
-            mustnt.append(method_ac)
+            mustnt.append(acc)
 
-    # Get the list of all proteins matched by the methods (and passing the filters)
-    can_cond = ','.join([':can' + str(i) for i in range(len(can + must))])
-    params = {'can' + str(i): method for i, method in enumerate(can + must)}
+    # Get proteins matched by any of the 'may', and 'must' signatures
+    may_cond = ','.join([':may' + str(i) for i in range(len(may + must))])
+    params = {'may' + str(i): acc for i, acc in enumerate(may + must)}
 
-    # Retrieve proteins that MUST match a set of given signatures
+    # Exclude proteins that are not matched by any of the 'must' signatures
     if must:
         must_join = """
             INNER JOIN (
-                SELECT
-                  SEQ_ID,
-                  COUNT(DISTINCT FEATURE_ID) CT
-                FROM {}.FEATURE2PROTEIN F2P
-                WHERE FEATURE_ID IN ({})
-                GROUP BY SEQ_ID
-            ) FF ON FF.SEQ_ID = F2P.SEQ_ID
+                SELECT PROTEIN_AC, COUNT(DISTINCT METHOD_AC) CT
+                FROM {}.METHOD2PROTEIN
+                WHERE METHOD_AC IN ({})
+                GROUP BY PROTEIN_AC
+            ) MC ON M2P.PROTEIN_AC = MC.PROTEIN_AC
         """.format(
             app.config['DB_SCHEMA'],
             ','.join([':must' + str(i) for i in range(len(must))])
         )
-
-        must_cond = 'AND FF.CT = :n_must'
-
-        params.update({'must' + str(i): method for i, method in enumerate(must)})
+        must_cond = 'AND MC.CT = :n_must'
+        params.update({'must' + str(i): acc for i, acc in enumerate(must)})
         params['n_must'] = len(must)
     else:
         must_join = ''
         must_cond = ''
 
-    # Exclude proteins matching a set of given signatures
+    # Exclude proteins that are matched by any of the 'mustnt' signatures
     if mustnt:
         mustnt_join = """
-            LEFT JOIN (
-                SELECT
-                    DISTINCT SEQ_ID
-                FROM {}.FEATURE2PROTEIN F2P
-                WHERE FEATURE_ID IN ({})
-                GROUP BY SEQ_ID
-            ) EF ON F2P.SEQ_ID = EF.SEQ_ID
+            LEFT OUTER JOIN (
+                SELECT DISTINCT PROTEIN_AC
+                FROM {}.METHOD2PROTEIN
+                WHERE METHOD_AC IN ({})
+            ) MNC ON M2P.PROTEIN_AC = MNC.PROTEIN_AC
         """.format(
             app.config['DB_SCHEMA'],
-            ','.join([':mustnt' + str(i) for i in range(len(mustnt))])
+            ','.join([':mustnt' + str(i) for i in range(len(must))])
         )
-
-        mustnt_cond = 'AND EF.SEQ_ID IS NULL'
-
-        params.update({'mustnt' + str(i): method for i, method in enumerate(mustnt)})
+        mustnt_cond = 'AND MNC.PROTEIN_AC IS NULL'
+        params.update({'mustnt' + str(i): acc for i, acc in enumerate(must)})
     else:
         mustnt_join = ''
         mustnt_cond = ''
 
-    # Retrieve only proteins associated to a given Swiss-Prot topic/comment
+    # Exclude proteins that are not associated to the passed SwissProt topic/comment ID
     if topic_id and comment_id:
-        comment_join = 'INNER JOIN {}.PROTEIN_COMMENT_CODE CC ON F2P.SEQ_ID = CC.PROTEIN_AC'.format(
+        comment_join = 'INNER JOIN {}.PROTEIN_COMMENT PC ON M2P.PROTEIN_AC = PC.PROTEIN_AC'.format(
             app.config['DB_SCHEMA']
         )
-        comment_cond = 'AND CC.TOPIC_ID = :topic AND CC.COMMENT_ID = :comment_id'
-        params.update({'topic': topic_id, 'comment_id': comment_id})
+        comment_cond = 'AND PC.TOPIC_ID = :topicid AND PC.COMMENT_ID = :commentid'
+        params.update({'topicid': topic_id, 'commentid': comment_id})
     else:
         comment_join = ''
         comment_cond = ''
 
-    # Retrieve only proteins associated to a given UniProt description
+    # Exclude proteins that are not associated to the passed UniProt description
     if desc_id:
-        desc_cond = 'AND F2P.DESCRIPTION_ID = :descid'
+        desc_join = 'INNER JOIN {}.PROTEIN_DESC PD ON M2P.PROTEIN_AC = PD.PROTEIN_AC'.format(
+            app.config['DB_SCHEMA']
+        )
+        desc_cond = 'AND PD.DESC_ID = :descid'
         params['descid'] = desc_id
     else:
+        desc_join = ''
         desc_cond = ''
 
-    # Retrieve only proteins from a given database (S: reviewed/SwissProt; T: unreviewed/TrEMBL)
-    if db:
-        db_cond = 'AND DB = :db'
-        params['db'] = db
+    # Exclude proteins that are/aren't reviewed
+    if source_db is not None:
+        source_cond = 'AND M2P.DBCODE = :sourcedb'
+        params['sourcedb'] = source_db
     else:
-        db_cond = ''
+        source_cond = ''
 
-    # Retrieve only proteins associated to a given GO term
-    if term_id:
-        term_join = """
-        INNER JOIN (
-            SELECT DISTINCT TERM_GROUP_ID
-            FROM {}.TERM_GROUP2TERM WHERE GO_ID = :term
-        ) GO ON F2P.TERM_GROUP_ID = GO.TERM_GROUP_ID
-        """.format(app.config['DB_SCHEMA'])
-        params['term'] = term_id
-    else:
-        term_join = ''
-
+    # Filter by search (on accession only, not name)
     if search:
-        name_cond = 'AND F2P.SEQ_ID LIKE :search_like'
+        search_cond = 'AND M2P.PROTEIN_AC LIKE :search_like'
         params['search_like'] = search + '%'
     else:
-        name_cond = ''
+        search_cond = ''
 
+    # Filter by taxon
     if taxon:
-        tax_cond = 'AND LEFT_NUMBER BETWEEN :ln AND :rn'
+        tax_cond = 'AND M2P.LEFT_NUMBER BETWEEN :ln AND :rn'
         params['ln'] = int(taxon['leftNumber'])
         params['rn'] = int(taxon['rightNumber'])
     else:
         tax_cond = ''
 
+    # Exclude proteins that are not associated to the passed GO term ID
+    if go_id:
+        go_join = 'INNER JOIN {}.PROTEIN2GO P2G ON M2P.PROTEIN_AC = P2G.PROTEIN_AC'.format(
+            app.config['DB_SCHEMA']
+        )
+        go_cond = 'AND P2G.GO_ID = :goid'
+        params['goid'] = go_id
+    else:
+        go_join = ''
+        go_cond = ''
+
+    # Exclude proteins that are not associated to the passed EC number
+    if ecno:
+        ec_join = 'INNER JOIN {}.ENZYME EZ ON M2P.PROTEIN_AC = EZ.PROTEIN_AC'.format(
+            app.config['DB_SCHEMA']
+        )
+        ec_cond = 'AND EZ.ECNO = :ecno'
+        params['ecno'] = ecno
+    else:
+        ec_join = ''
+        ec_cond = ''
+
+    # Exclude proteins that are not associated to a taxon of the passed rank
+    if no_rank:
+        lineage_join = 'LEFT OUTER JOIN {}.LINEAGE L ON M2P.LEFT_NUMBER = L.LEFT_NUMBER AND L.RANK = :rank'.format(
+            app.config['DB_SCHEMA']
+        )
+        lineage_cond = 'AND L.TAX_ID IS NULL'
+        params['rank'] = no_rank
+    else:
+        lineage_join = ''
+        lineage_cond = ''
+
     sql = """
-        SELECT
-            MIN(LEFT_NUMBER) AS LEFT_NUMBER,
-            MIN(GLOBAL) AS GLOBAL,
-            MIN(LENGTH) AS LENGTH,
-            MIN(DB) AS DB,
-            MIN(F2P.DESCRIPTION_ID) AS DESCRIPTION_ID,
-            MIN(F2P.TERM_GROUP_ID) AS TERM_GROUP_ID,
-            F2P.SEQ_ID
-        FROM {}.FEATURE2PROTEIN F2P
-        {}
-        {}
-        {}
-        {}
-        WHERE FEATURE_ID IN ({})
+        SELECT M2P.PROTEIN_AC, MIN(M2P.CONDENSE) CONDENSE, MIN(M2P.LEN) LEN
+        FROM {}.METHOD2PROTEIN M2P
         {}
         {}
         {}
@@ -299,697 +308,50 @@ def build_method2protein_sql(methods, **kwargs):
         {}
         {}
         {}
-        GROUP BY F2P.SEQ_ID
+        WHERE M2P.METHOD_AC IN ({})
+        {}
+        {}
+        {}
+        {}
+        {}
+        {}
+        {}
+        {}
+        {}
+        {}
+        GROUP BY M2P.PROTEIN_AC
     """.format(
         app.config['DB_SCHEMA'],
 
-        # Joins (above WHERE FEATURE_ID)
-        must_join, mustnt_join, comment_join, term_join,
+        # filter joins
+        must_join, mustnt_join, comment_join, desc_join, go_join, ec_join, lineage_join,
 
-        # WHERE FEATURE_ID
-        can_cond,
+        # 'WHERE M2P.METHOD_AC IN' statement
+        may_cond,
 
         # Other conditions
         must_cond,
         mustnt_cond,
+        source_cond,
+        search_cond,
+        tax_cond,
         comment_cond,
         desc_cond,
-        db_cond,
-        name_cond,
-        tax_cond
+        go_cond,
+        ec_cond,
+        lineage_cond
     )
 
     return sql, params
 
 
-def get_overlapping_proteins(methods, **kwargs):
-    """
-    Returns the protein matched by one or more signatures.
-    """
-    page = kwargs.get('page', 1)
-    page_size = kwargs.get('page_size', 10)
-
-    sql, params = build_method2protein_sql(methods, **kwargs)
-
-    cur = get_db().cursor()
-
-    if kwargs.get('code'):
-        params['code'] = kwargs['code']
-
-        cur.execute(
-            """
-            SELECT
-                SEQ_ID,
-                GLOBAL
-            FROM (
-                {}
-            )
-            WHERE GLOBAL = :code
-            ORDER BY SEQ_ID
-            """.format(sql),
-            params
-        )
-
-        proteins = [(row[0], row[1], 1) for row in cur]
-    else:
-        cur.execute(
-            """
-            SELECT
-                SEQ_ID,
-                CODE,
-                SEQ_CT
-            FROM (
-                SELECT
-                    SEQ_ID,
-                    GLOBAL AS CODE,
-                    COUNT(*) OVER (PARTITION BY GLOBAL) AS SEQ_CT,
-                    ROW_NUMBER() OVER (PARTITION BY GLOBAL ORDER BY LENGTH) AS RN
-                FROM (
-                    {}
-                )
-            )
-            WHERE RN = 1
-            ORDER BY SEQ_CT DESC, SEQ_ID
-            """.format(sql),
-            params
-        )
-        proteins = [row for row in cur]
-
-    count = len(proteins)
-
-    if not count:
-        return proteins, count, 0  # invalid method IDs, or no methods passing the filtering
-
-    # Select requested page
-    proteins = proteins[(page - 1) * page_size:page * page_size]
-
-    # Creat list of protein accessions and a dictionary of info for condensed proteins
-    protein_acs = [p[0] for p in proteins]
-    protein_codes = {p_ac: {'code': p_code, 'count': int(p_ct)} for p_ac, p_code, p_ct in proteins}
-
-    # Get info on proteins (description, taxon, etc.)
-    proteins_cond = ','.join([':' + str(i+1) for i in range(len(protein_acs))])
-    cur.execute(
-        """
-        SELECT P.PROTEIN_AC, P.DBCODE, P.LEN, PI.DESCRIPTION, E.FULL_NAME
-        FROM {0}.PROTEIN P
-        INNER JOIN {0}.PROTEIN_INFO PI ON P.PROTEIN_AC = PI.PROTEIN_AC
-        INNER JOIN {0}.ETAXI E ON P.TAX_ID = E.TAX_ID
-        WHERE P.PROTEIN_AC IN ({1})
-        """.format(app.config['DB_SCHEMA'], proteins_cond),
-        protein_acs
-    )
-
-    max_len = 0
-    protein_info = {}
-    for row in cur:
-        p_ac = row[0]
-
-        protein_info[p_ac] = {
-            'id': p_ac,
-            'isReviewed': row[1] == 'S',
-            'length': row[2],
-            'description': row[3],
-            'organism': row[4],
-            'link': ('http://sp.isb-sib.ch/uniprot/' if row[1] == 'S' else 'http://www.uniprot.org/uniprot/') + p_ac,
-            'code': protein_codes[p_ac]['code'],
-            'count': protein_codes[p_ac]['count']
-        }
-
-        if row[2] > max_len:
-            max_len = row[2]
-
-    proteins_cond = ','.join([':prot' + str(i) for i in range(len(protein_acs))])
-    params = {'prot' + str(i): p_ac for i, p_ac in enumerate(protein_acs)}
-    cur.execute(
-        """
-        SELECT F2P.SEQ_ID, F2P.FEATURE_ID, FS.NAME, M.DBCODE, M.CANDIDATE, E2M.ENTRY_AC
-        FROM {0}.FEATURE2PROTEIN F2P
-        INNER JOIN {0}.FEATURE_SUMMARY FS ON F2P.FEATURE_ID = FS.FEATURE_ID
-        INNER JOIN (
-            SELECT DISTINCT FEATURE_ID
-            FROM {0}.MATCH_SUMMARY
-            WHERE SEQ_ID IN ({1})
-        ) MS ON FS.FEATURE_ID = MS.FEATURE_ID
-        LEFT OUTER JOIN INTERPRO.ENTRY2METHOD E2M ON MS.FEATURE_ID = E2M.METHOD_AC
-        LEFT OUTER JOIN INTERPRO.METHOD M ON MS.FEATURE_ID = M.METHOD_AC
-        WHERE F2P.SEQ_ID IN ({1})
-        ORDER BY E2M.ENTRY_AC, F2P.FEATURE_ID
-        """.format(app.config['DB_SCHEMA'], proteins_cond),
-        params
-    )
-
-    proteins2methods = {}
-    for protein_ac, method_ac, method_name, method_db, is_candidate, entry_ac in cur:
-        try:
-            proteins2methods[protein_ac]
-        except KeyError:
-            proteins2methods[protein_ac] = []
-        finally:
-            if method_db is not None:
-                m = xref.find_ref(method_db, method_ac)
-                method_db = {
-                    'link': m.gen_link(),
-                    'color': m.color
-                }
-
-            proteins2methods[protein_ac].append({
-                'id': method_ac,
-                'name': method_name,
-                'isCandidate': is_candidate == 'Y',
-                'entryId': entry_ac,
-                'isSelected': method_ac in methods,
-                'db': method_db
-            })
-
-    proteins2matches = {}
-    cur.execute(
-        """
-        SELECT PROTEIN_AC, METHOD_AC, POS_FROM, POS_TO
-        FROM {}.MATCH
-        WHERE PROTEIN_AC IN ({})
-        """.format(app.config['DB_SCHEMA'], proteins_cond),
-        params
-    )
-    for protein_ac, method_ac, pos_from, pos_to in cur:
-        if protein_ac not in proteins2matches:
-            proteins2matches[protein_ac] = {
-                method_ac: [{'start': pos_from, 'end': pos_to}]
-            }
-        elif method_ac not in proteins2matches[protein_ac]:
-            proteins2matches[protein_ac][method_ac] = [{'start': pos_from, 'end': pos_to}]
-        else:
-            proteins2matches[protein_ac][method_ac].append({'start': pos_from, 'end': pos_to})
-
-    cur.close()
-
-    # Merge proteins, methods, and matches info
-    for p_ac in protein_info:
-        methods = []
-        for m in proteins2methods[p_ac]:
-            try:
-                m['matches'] = proteins2matches[p_ac][m['id']]
-            except KeyError:
-                pass
-            else:
-                methods.append(m)
-        protein_info[p_ac]['methods'] = methods
-
-    return [protein_info[p_ac] for p_ac in protein_acs], count, max_len
-
-
-def get_overlapping_entries(method):
-    """
-     Returns the overlapping entries for a given signature.
-    """
-    cur = get_db().cursor()
-
-    """
-    Signature predictions
-
-    Two following join were removed:
-        LEFT JOIN INTERPRO_ANALYSIS.EXTRA_RELATIONS EXC ON EXC.FEATURE_ID1=FSC.FEATURE_ID AND EXC.FEATURE_ID2=FSQ.FEATURE_ID
-        LEFT JOIN INTERPRO_ANALYSIS.EXTRA_RELATIONS EXQ ON EXQ.FEATURE_ID1=FSQ.FEATURE_ID AND EXQ.FEATURE_ID2=FSC.FEATURE_ID
-
-        Which allowed to select:
-            EXC.EXTRA1      number of signatures that the candidate has a relationship with, but the query does not have
-            EXQ.EXTRA1      number of signatures that the query has a relationship with, but the candidate does not have
-
-        LEFT OUTER JOIN INTERPRO_ANALYSIS.ADJACENT_RELATIONS ADJC ON ADJC.FEATURE_ID2=FSC.FEATURE_ID AND ADJC.FEATURE_ID1=FSQ.FEATURE_ID
-        LEFT OUTER JOIN INTERPRO_ANALYSIS.ADJACENT_RELATIONS ADJQ ON ADJQ.FEATURE_ID2=FSQ.FEATURE_ID AND ADJQ.FEATURE_ID1=FSC.FEATURE_ID
-
-        Which allowed to select:
-            ADJC.ADJ2       number of signatures adjacent to the candidate which overlap with the query
-            ADJQ.ADJ2       number of signatures adjacent to the query which overlap with the candidate
-    """
-    cur.execute(
-        """
-        SELECT
-          F.FEATURE_ID1,
-          F.DBCODE,
-          CV.DBSHORT,
-
-          E.ENTRY_AC,
-          E.CHECKED,
-          E.ENTRY_TYPE,
-          E.NAME,
-
-          FSC_CT_PROT,
-          FSC_N_BLOB,
-
-          OS_CT_OVER,
-          OS_N_OVER,
-          FSQ_CT_PROT,
-          FSQ_N_BLOB,
-
-          F.LEN1,
-          F.LEN2,
-
-          P.RELATION,
-          R.RELATION CURATED_RELATION
-        FROM (
-            SELECT
-                FSC.FEATURE_ID FEATURE_ID1,
-                FSQ.FEATURE_ID FEATURE_ID2,
-                FSC.DBCODE,
-                FSC.CT_PROT FSC_CT_PROT,
-                FSC.N_BLOB FSC_N_BLOB,
-                OS.CT_OVER OS_CT_OVER,
-                OS.N_OVER OS_N_OVER,
-                FSQ.CT_PROT FSQ_CT_PROT,
-                FSQ.N_BLOB FSQ_N_BLOB,
-                OS.LEN1,
-                OS.LEN2
-            FROM (
-                SELECT FEATURE_ID1, FEATURE_ID2, CT_OVER, N_OVER, LEN1, LEN2
-                FROM {0}.OVERLAP_SUMMARY
-                WHERE FEATURE_ID2 = :1
-            ) OS
-            INNER JOIN {0}.FEATURE_SUMMARY FSC ON OS.FEATURE_ID1 = FSC.FEATURE_ID
-            INNER JOIN {0}.FEATURE_SUMMARY FSQ ON OS.FEATURE_ID2 = FSQ.FEATURE_ID
-            WHERE ((OS.CT_OVER >= (0.3 * FSC.CT_PROT)) OR (OS.CT_OVER >= (0.3 * FSQ.CT_PROT)))
-        ) F
-        LEFT OUTER JOIN {0}.PREDICTION P ON F.FEATURE_ID1 = P.FEATURE_ID1 AND F.FEATURE_ID2 = P.FEATURE_ID2
-        LEFT OUTER JOIN INTERPRO.CURATED_RELATIONS R ON F.FEATURE_ID1 = R.FEATURE_ID1 AND F.FEATURE_ID2 = R.FEATURE_ID2
-        LEFT OUTER JOIN {0}.CV_DATABASE CV ON F.DBCODE = CV.DBCODE
-        LEFT OUTER JOIN INTERPRO.ENTRY2METHOD E2M ON F.FEATURE_ID1 = E2M.METHOD_AC
-        LEFT OUTER JOIN INTERPRO.ENTRY E ON E2M.ENTRY_AC = E.ENTRY_AC
-        ORDER BY OS_CT_OVER DESC
-        """.format(app.config['DB_SCHEMA']),
-        (method,)
-    )
-
-    methods = []
-    for row in cur:
-        db = xref.find_ref(row[1], row[0])
-
-        methods.append({
-            # method and member database
-            'id': row[0],
-            'dbCode': row[1],
-            'dbShort': row[2],
-            'dbLink': db.gen_link() if db else None,
-
-            # InterPro entry info
-            'entryId': row[3],
-            'entryHierarchy': [],
-            'isChecked': row[4] == 'Y',
-            'entryType': row[5],
-            'entryName': row[6],
-
-            'nProts': row[7],           # number of proteins where both query and candidate signatures overlap
-            'nBlobs': row[8],           # number of overlapping blobs with query and candidate signature
-
-            'nProtsCand': row[9],       # number of proteins for every candidate signature
-            'nBlobsCand': row[10],
-            'nProtsQuery': row[11],     # number of proteins in the query signature found
-            'nBlobsQuery': row[12],
-
-            'lenCand': row[13],         # average percentage of the overlap length as a fraction of the candidate blob length
-            'lenQuery': row[14],        # average percentage of the overlap length as a fraction of the query blob length
-
-            'relation': row[15],        # predicted relationship
-            'curatedRelation': row[16]  # existing curated relationship
-        })
-
-    cur.execute(
-        """
-        SELECT ENTRY_AC, PARENT_AC
-        FROM INTERPRO.ENTRY2ENTRY
-        """,
-    )
-
-    parent_of = dict(cur.fetchall())
-    cur.close()
-
-    for m in methods:
-        entry_ac = m['entryId']
-
-        if entry_ac:
-            hierarchy = []
-
-            while entry_ac in parent_of:
-                entry_ac = parent_of[entry_ac]
-                hierarchy.append(entry_ac)
-
-            m['entryHierarchy'] = hierarchy[::-1]
-
-    return methods
-
-
-def get_taxonomy(methods, taxon, rank):
-    """
-    Returns the taxonomic origins of one or more signatures.
-    """
-
-    cur = get_db().cursor()
-
-    fmt = ','.join([':meth' + str(i) for i in range(len(methods))])
-    params = {'meth' + str(i): method for i, method in enumerate(methods)}
-
-    max_cnt = 0
-    cur.execute(
-        """
-        SELECT MAX(CT_PROT)
-        FROM {}.FEATURE_SUMMARY
-        WHERE FEATURE_ID in ({})
-        """.format(app.config['DB_SCHEMA'], fmt),
-        params
-    )
-    row = cur.fetchone()
-    if row:
-        max_cnt = row[0]
-
-    params['left_number'] = taxon['leftNumber']
-    params['right_number'] = taxon['rightNumber']
-    params['rank'] = rank
-
-    cur.execute(
-        """
-        SELECT E.TAX_ID, MIN(E.FULL_NAME), F.FEATURE_ID, SUM(F.CNT)
-        FROM (
-          SELECT FEATURE_ID, LEFT_NUMBER, COUNT(SEQ_ID) CNT
-          FROM {0}.FEATURE2PROTEIN
-          WHERE FEATURE_ID IN ({1}) AND LEFT_NUMBER BETWEEN :left_number AND :right_number
-          GROUP BY FEATURE_ID, LEFT_NUMBER
-        ) F
-        INNER JOIN (
-          SELECT TAX_ID, LEFT_NUMBER
-          FROM {0}.TAXONOMY_RANK
-          WHERE LEFT_NUMBER BETWEEN :left_number AND :right_number
-          AND RANK = :rank
-        ) T
-        ON F.LEFT_NUMBER = T.LEFT_NUMBER
-        INNER JOIN {0}.ETAXI E ON T.TAX_ID = E.TAX_ID
-        GROUP BY FEATURE_ID, E.TAX_ID
-        """.format(app.config['DB_SCHEMA'], fmt),
-        params
-    )
-
-    taxons = {}
-    for tax_id, full_name, method_ac, count in cur:
-        try:
-            taxons[tax_id]
-        except KeyError:
-            taxons[tax_id] = {
-                'id': tax_id,
-                'fullName': full_name,
-                'methods': {}
-            }
-        finally:
-            taxons[tax_id]['methods'][method_ac] = count
-
-    cur.close()
-
-    return sorted(taxons.values(), key=lambda x: -sum(x['methods'].values())), max_cnt
-
-
-def get_descriptions(methods, db=None):
-    """
-    Returns the descriptions associated to one or more signatures.
-    """
-    cur = get_db().cursor()
-
-    fmt = ','.join([':meth' + str(i) for i in range(len(methods))])
-    params = {'meth' + str(i): method for i, method in enumerate(methods)}
-    params['db'] = db
-
-    cur.execute(
-        """
-        SELECT F.DESCRIPTION_ID, D.DESCRIPTION, FEATURE_ID, CT, CTMAX
-        FROM (
-          SELECT
-            FEATURE_ID,
-            DESCRIPTION_ID,
-            MAX(CT) CT,
-            MAX(CTMAX) CTMAX
-          FROM (
-            SELECT
-              FEATURE_ID,
-              DESCRIPTION_ID,
-              COUNT(*) OVER (PARTITION BY DESCRIPTION_ID, FEATURE_ID) CT ,
-              COUNT(DISTINCT SEQ_ID) OVER (PARTITION BY DESCRIPTION_ID) CTMAX
-            FROM {0}.FEATURE2PROTEIN
-            WHERE FEATURE_ID IN ({1}) AND (DB = :db OR :db IS NULL)
-          )
-          GROUP BY DESCRIPTION_ID, FEATURE_ID
-        ) F
-        INNER JOIN {0}.PROTEIN_DESCRIPTION_VALUE D ON F.DESCRIPTION_ID = D.DESCRIPTION_ID
-        """.format(app.config['DB_SCHEMA'], fmt),
-        params
-    )
-
-    descriptions = {}
-    for desc_id, desc, method_ac, count, count_max in cur:
-        try:
-            descriptions[desc_id]
-        except KeyError:
-            descriptions[desc_id] = {
-                'id': desc_id,
-                'value': desc,
-                'methods': {},
-                'max': count_max
-            }
-        finally:
-            descriptions[desc_id]['methods'][method_ac] = count
-
-    cur.close()
-
-    return sorted(descriptions.values(), key=lambda x: -x['max'])
-
-
-def get_description(desc_id):
-    """
-    Returns proteins associated to a given description.
-    """
-
-    cur = get_db().cursor()
-
-    cur.execute(
-        """
-        SELECT P.PROTEIN_AC, P.NAME, P.DBCODE, E.FULL_NAME
-        FROM {0}.PROTEIN_DESCRIPTION_CODE C
-        INNER JOIN {0}.PROTEIN P ON C.PROTEIN_AC = P.PROTEIN_AC
-        INNER JOIN {0}.ETAXI E ON P.TAX_ID = E.TAX_ID
-        WHERE C.DESCRIPTION_ID = :desc_id
-        ORDER BY P.PROTEIN_AC
-        """.format(app.config['DB_SCHEMA']),
-        (desc_id,)
-    )
-
-    proteins = []
-    for row in cur:
-        proteins.append({
-            'id': row[0],
-            'shortName': row[1],
-            'isReviewed': row[2] == 'S',
-            'organism': row[3]
-        })
-
-    cur.close()
-
-    return proteins
-
-
-def get_go_terms(methods, aspects=list()):
-    """
-    Return the GO terms associated to one or more signatures.
-    """
-
-    cur = get_db().cursor()
-
-    fmt = ','.join([':meth' + str(i) for i in range(len(methods))])
-    params = {'meth' + str(i): method for i, method in enumerate(methods)}
-
-    sql = """
-        SELECT
-          T.GO_ID,
-          T.NAME,
-          T.CATEGORY,
-          F.FEATURE_ID,
-          F.SEQ_ID,
-          P2G.REF_DB_ID
-        FROM (
-          SELECT DISTINCT FEATURE_ID, TERM_GROUP_ID, SEQ_ID
-          FROM {0}.FEATURE2PROTEIN
-          WHERE FEATURE_ID IN ({1})
-        ) F
-        INNER JOIN {0}.TERM_GROUP2TERM G2T ON F.TERM_GROUP_ID = G2T.TERM_GROUP_ID
-        INNER JOIN {0}.TERMS T ON G2T.GO_ID = T.GO_ID
-        LEFT OUTER JOIN (
-          SELECT PROTEIN_AC, GO_ID, REF_DB_ID
-          FROM {0}.PROTEIN2GO_MANUAL
-          WHERE REF_DB_CODE = 'PMID'
-        ) P2G ON F.SEQ_ID = P2G.PROTEIN_AC AND G2T.GO_ID = P2G.GO_ID
-    """.format(app.config['DB_SCHEMA'], fmt)
-
-    if aspects and isinstance(aspects,(list, tuple)):
-        sql += "WHERE T.CATEGORY IN ({})".format(','.join([':aspect' + str(i) for i in range(len(aspects))]))
-        params.update({'aspect' + str(i): aspect for i, aspect in enumerate(aspects)})
-
-    cur.execute(sql, params)
-
-    terms = {}
-    methods = {}  # count the total number of proteins for each signature
-    for go_id, term, aspect, method_ac, protein_ac, ref_id in cur:
-        try:
-            terms[go_id]
-        except KeyError:
-            terms[go_id] = {
-                'id': go_id,
-                'value': term,
-                'methods': {},
-                'aspect': aspect
-            }
-        finally:
-            d = terms[go_id]['methods']
-
-        try:
-            d[method_ac]
-        except KeyError:
-            d[method_ac] = {
-                'proteins': set(),
-                'references': set()
-            }
-        finally:
-            d[method_ac]['proteins'].add(protein_ac)
-            if ref_id:
-                d[method_ac]['references'].add(ref_id)
-
-        try:
-            methods[method_ac]
-        except KeyError:
-            methods[method_ac] = set()
-        finally:
-            methods[method_ac].add(protein_ac)
-
-    for term in terms.values():
-        for method in term['methods'].values():
-            method['proteins'] = len(method['proteins'])
-            method['references'] = len(method['references'])
-
-    cur.close()
-
-    return (
-        sorted(terms.values(), key=lambda t: -sum(m['proteins'] for m in t['methods'].values())),
-        {method_ac: len(proteins) for method_ac, proteins in methods.items()}
-    )
-
-
-def get_swissprot_comments(methods, topic_id):
-    """
-    Returns Swiss-Prot comments of a given topic associated to one or more signatures.
-    """
-
-    cur = get_db().cursor()
-
-    fmt = ','.join([':meth' + str(i) for i in range(len(methods))])
-    params = {'meth' + str(i): method for i, method in enumerate(methods)}
-    params['topic_id'] = topic_id
-
-    cur.execute(
-        """
-        SELECT
-          F.FEATURE_ID,
-          C.COMMENT_ID,
-          C.TEXT,
-          COUNT(F.SEQ_ID)
-        FROM (
-          SELECT FEATURE_ID, SEQ_ID
-          FROM {0}.FEATURE2PROTEIN
-          WHERE FEATURE_ID IN ({1})
-        ) F
-        INNER JOIN (
-          SELECT C.PROTEIN_AC, C.COMMENT_ID, V.TEXT
-          FROM {0}.PROTEIN_COMMENT_CODE C
-          INNER JOIN {0}.PROTEIN_COMMENT_VALUE V ON C.COMMENT_ID = V.COMMENT_ID
-          WHERE C.TOPIC_ID = :topic_id AND V.TOPIC_ID = :topic_id
-        ) C ON F.SEQ_ID = C.PROTEIN_AC
-        GROUP BY FEATURE_ID, COMMENT_ID, TEXT
-        """.format(app.config['DB_SCHEMA'], fmt),
-        params
-    )
-
-    comments = {}
-    for method_ac, comment_id, comment, count in cur:
-        try:
-            comments[comment_id]
-        except KeyError:
-            comments[comment_id] = {
-                'id': comment_id,
-                'value': comment,
-                'methods': {},
-                'max': 0
-            }
-        finally:
-            comments[comment_id]['methods'][method_ac] = count
-
-            if count > comments[comment_id]['max']:
-                comments[comment_id]['max'] = count
-
-    cur.close()
-
-    return sorted(comments.values(), key=lambda x: -x['max'])
-
-
-def get_match_matrix(methods):
-    """
-    Returns the overlap match matrix, and the collocation match matrix for overlapping signatures.
-    """
-
-    cur = get_db().cursor()
-
-    fmt = ','.join([':meth' + str(i) for i in range(len(methods))])
-    params = {'meth' + str(i): method for i, method in enumerate(methods)}
-
-    cur.execute(
-        """
-        SELECT F.FEATURE_ID, F.CT_PROT, OS.FEATURE_ID2, OS.CT_COLOC, OS.AVG_OVER, OS.CT_OVER
-        FROM (
-          SELECT FEATURE_ID, COUNT(DISTINCT SEQ_ID) CT_PROT
-          FROM {0}.FEATURE2PROTEIN
-          WHERE FEATURE_ID IN ({1})
-          GROUP BY FEATURE_ID
-        ) F
-        INNER JOIN (
-          SELECT FEATURE_ID1, FEATURE_ID2, CT_COLOC, AVG_OVER, CT_OVER
-          FROM {0}.OVERLAP_SUMMARY
-          WHERE FEATURE_ID1 IN ({1}) AND FEATURE_ID2 IN ({1})
-        ) OS ON F.FEATURE_ID = OS.FEATURE_ID1
-        """.format(app.config['DB_SCHEMA'], fmt),
-        params
-    )
-
-    matrix = {}
-    for method_ac_1, n_prot, method_ac_2, n_coloc, avg_over, n_overlap in cur:
-        try:
-            matrix[method_ac_1]
-        except KeyError:
-            matrix[method_ac_1] = {
-                'prot': n_prot,
-                'methods': {}
-            }
-        finally:
-            matrix[method_ac_1]['methods'][method_ac_2] = {
-                'coloc': n_coloc,
-                'over': n_overlap,
-                'avgOver': avg_over
-            }
-
-    cur.close()
-
-    return matrix, max([m['prot'] for m in matrix.values()])
-
-
 def get_db_info(dbshort):
     cur = get_db().cursor()
-
     cur.execute(
         """
-        SELECT CV.DBNAME, CV.DBCODE, DB.VERSION
-        FROM {}.CV_DATABASE CV
-        INNER JOIN INTERPRO.DB_VERSION DB ON CV.DBCODE = DB.DBCODE
-        WHERE LOWER(CV.DBSHORT) = :1
+        SELECT DBNAME, DBCODE, VERSION
+        FROM {}.CV_DATABASE
+        WHERE LOWER(DBSHORT) = :1
         """.format(app.config['DB_SCHEMA']),
         (dbshort.lower(),)
     )
@@ -1015,19 +377,22 @@ def get_unintegrated(dbcode, mode='newint', search=None):
     cur.execute(
         """
         SELECT DISTINCT
-            FS.FEATURE_ID,
-            P.FEATURE_ID2,
-            M.CANDIDATE,
-            P.RELATION,
+            MM.METHOD_AC,
+            MP.METHOD_AC2,
+            M2.CANDIDATE,
+            MP.RELATION,
             EM2.ENTRY_AC,
             E.ENTRY_TYPE
-        FROM {0}.FEATURE_SUMMARY FS
-        LEFT OUTER JOIN {0}.PREDICTION P ON (FS.FEATURE_ID = P.FEATURE_ID1 AND P.FEATURE_ID1 != P.FEATURE_ID2)
-        LEFT OUTER JOIN {0}.METHOD M ON P.FEATURE_ID2 = M.METHOD_AC
-        LEFT OUTER JOIN {0}.ENTRY2METHOD EM1 ON FS.FEATURE_ID = EM1.METHOD_AC
-        LEFT OUTER JOIN {0}.ENTRY2METHOD EM2 ON P.FEATURE_ID2 = EM2.METHOD_AC
+        FROM {0}.METHOD_MATCH MM
+        INNER JOIN {0}.METHOD M1 ON MM.METHOD_AC = M1.METHOD_AC
+        LEFT OUTER JOIN {0}.METHOD_PREDICTION MP ON (MM.METHOD_AC = MP.METHOD_AC1)
+        LEFT OUTER JOIN {0}.METHOD M2 ON MP.METHOD_AC2 = M2.METHOD_AC
+        LEFT OUTER JOIN {0}.ENTRY2METHOD EM1 ON MM.METHOD_AC = EM1.METHOD_AC
+        LEFT OUTER JOIN {0}.ENTRY2METHOD EM2 ON MP.METHOD_AC2 = EM2.METHOD_AC
         LEFT OUTER JOIN {0}.ENTRY E ON EM2.ENTRY_AC = E.ENTRY_AC
-        WHERE FS.DBCODE = :1 AND EM1.ENTRY_AC IS NULL AND (:2 IS NULL OR FS.FEATURE_ID LIKE :2)
+        WHERE M1.DBCODE = :1
+        AND EM1.ENTRY_AC IS NULL
+        AND (:2 IS NULL OR MM.METHOD_AC LIKE :2)
         """.format(app.config['DB_SCHEMA']),
         (dbcode, search)
     )
@@ -1103,9 +468,7 @@ def get_methods(dbcode, search=None, integrated=None, checked=None, commented=No
     """
     Get signatures from a given member database with their InterPro entry and the most recent comment (if any)
     """
-
     cur = get_db().cursor()
-
     sql = """
         SELECT
           M.METHOD_AC,
@@ -1490,28 +853,27 @@ def get_entry(entry_ac):
     # GO annotations
     cur.execute(
         """
-        SELECT DISTINCT
-          GT.GO_ID,
-          GT.CATEGORY,
-          GT.NAME
-        FROM GO.TERMS@GOAPRO GT
-        INNER JOIN (
-          SELECT GS.GO_ID
-          FROM INTERPRO.INTERPRO2GO I2G
-          INNER JOIN GO.SECONDARIES@GOAPRO GS ON I2G.GO_ID = GS.SECONDARY_ID
-          WHERE I2G.ENTRY_AC = :1
-          UNION
-          SELECT GT.GO_ID
-          FROM INTERPRO.INTERPRO2GO I2G
-          INNER JOIN GO.TERMS@GOAPRO GT ON I2G.GO_ID = GT.GO_ID
-          WHERE I2G.ENTRY_AC = :1
-        ) GS
-        ON GS.GO_ID = GT.GO_ID
+        SELECT T.GO_ID, T.NAME, T.CATEGORY, T.DEFINITION, T.IS_OBSOLETE, T.REPLACED_BY
+        FROM INTERPRO.INTERPRO2GO I
+          INNER JOIN INTERPRO_ANALYSIS.TERM T ON I.GO_ID = T.GO_ID
+        WHERE I.ENTRY_AC = :1
+        ORDER BY T.GO_ID
         """,
         (entry_ac,)
     )
 
-    entry['go'] = [dict(zip(['id', 'category', 'name'], row)) for row in cur]
+    terms = []
+    for row in cur:
+        terms.append({
+            'id': row[0],
+            'name': row[1],
+            'category': row[2],
+            'definition': row[3],
+            'isObsolete': row[4] == 'Y',
+            'replacedBy': row[5]
+        })
+
+    entry['go'] = terms
 
     # References
     cur.execute(
@@ -1814,7 +1176,7 @@ def get_db():
         finally:
             uri = credentials + '@' + app.config['DATABASE_HOST']
 
-        g.oracle_db = cx_Oracle.connect(uri)
+        g.oracle_db = cx_Oracle.connect(uri, encoding='utf-8', nencoding='utf-8')
     return g.oracle_db
 
 
@@ -1977,6 +1339,7 @@ def view_method(method_ac):
 @app.route('/methods/<path:methods>/comments/')
 @app.route('/methods/<path:methods>/go/')
 @app.route('/methods/<path:methods>/matrices/')
+@app.route('/methods/<path:methods>/enzymes/')
 def view_compare(methods):
     return render_template('main.html', user=get_user(), topics=get_topics(), schema=app.config['DB_SCHEMA'])
 
@@ -2066,10 +1429,10 @@ def api_search():
 
         names = {entry_ac: (name, entry_type) for entry_ac, entry_type, name in cur}
         hits = [{
-                    'id': entry_ac,
-                    'name': names[entry_ac][0],
-                    'type': names[entry_ac][1]
-                } for entry_ac in hits if entry_ac in names]
+            'id': entry_ac,
+            'name': names[entry_ac][0],
+            'type': names[entry_ac][1]
+        } for entry_ac in hits if entry_ac in names]
 
     cur.close()
 
@@ -2326,12 +1689,119 @@ def api_entry_comment(entry_ac):
 @app.route('/api/method/<method_ac>/prediction/')
 def api_prediction(method_ac):
     """
-    Signature prediction
+    Returns the overlapping entries for a given signature.
     Example:
     ---
-    /method/prediction/PF00051
+    /api/method/PF00051/prediction/
     """
-    methods = get_overlapping_entries(method_ac)
+
+    try:
+        overlap = float(request.args.get('overlap', 0.3))
+    except ValueError:
+        overlap = 0.3
+
+    cur = get_db().cursor()
+    cur.execute(
+        """
+        SELECT
+          MO.C_AC,
+          DB.DBCODE,
+          DB.DBSHORT,
+
+          E.ENTRY_AC,
+          E.CHECKED,
+          E.ENTRY_TYPE,
+          E.NAME,
+          
+          MO.N_PROT_OVER,
+          MO.N_OVER,          
+
+          MO.C_N_PROT,
+          MO.C_N_MATCHES,
+          MO.Q_N_PROT,
+          MO.Q_N_MATCHES,
+
+          MP.RELATION
+        FROM (
+            SELECT
+                MMQ.METHOD_AC Q_AC,
+                MMQ.N_PROT Q_N_PROT,
+                MMQ.N_MATCHES Q_N_MATCHES,
+                MMC.METHOD_AC C_AC,
+                MMC.N_PROT C_N_PROT,
+                MMC.N_MATCHES C_N_MATCHES,
+                MO.N_PROT_OVER,
+                MO.N_OVER
+            FROM (
+                SELECT METHOD_AC1, METHOD_AC2, N_PROT_OVER, N_OVER, AVG_FRAC1, AVG_FRAC2
+                FROM {0}.METHOD_OVERLAP
+                WHERE METHOD_AC1 = :method
+            ) MO
+            INNER JOIN {0}.METHOD_MATCH MMQ ON MO.METHOD_AC1 = MMQ.METHOD_AC
+            INNER JOIN {0}.METHOD_MATCH MMC ON MO.METHOD_AC2 = MMC.METHOD_AC
+            WHERE ((MO.N_PROT_OVER >= (:overlap * MMQ.N_PROT)) OR (MO.N_PROT_OVER >= (:overlap * MMC.N_PROT)))
+        ) MO
+        LEFT OUTER JOIN {0}.METHOD_PREDICTION MP ON MO.Q_AC = MP.METHOD_AC1 AND MO.C_AC = MP.METHOD_AC2
+        LEFT OUTER JOIN {0}.METHOD M ON MO.C_AC = M.METHOD_AC
+        LEFT OUTER JOIN {0}.CV_DATABASE DB ON M.DBCODE = DB.DBCODE
+        LEFT OUTER JOIN {0}.ENTRY2METHOD E2M ON MO.C_AC = E2M.METHOD_AC
+        LEFT OUTER JOIN {0}.ENTRY E ON E2M.ENTRY_AC = E.ENTRY_AC
+        ORDER BY MO.N_PROT_OVER DESC, MO.N_OVER DESC, MO.C_AC
+        """.format(app.config['DB_SCHEMA']),
+        {'method': method_ac, 'overlap': overlap}
+    )
+
+    methods = []
+    for row in cur:
+        db = xref.find_ref(row[1], row[0])
+
+        methods.append({
+            # method and member database
+            'id': row[0],
+            'dbCode': row[1],  # if None, the signature is a MEROPS entry (because not in the METHOD table)
+            'dbShort': row[2],
+            'dbLink': db.gen_link() if db else None,
+
+            # InterPro entry info
+            'entryId': row[3],
+            'entryHierarchy': [],
+            'isChecked': row[4] == 'Y',
+            'entryType': row[5],
+            'entryName': row[6],
+
+            'nProts': row[7],  # number of proteins where both query and candidate signatures overlap
+            'nBlobs': row[8],  # number of overlapping blobs with query and candidate signature
+
+            'nProtsCand': row[9],  # number of proteins for every candidate signature
+            'nBlobsCand': row[10],
+            'nProtsQuery': row[11],  # number of proteins in the query signature found
+            'nBlobsQuery': row[12],
+
+            'relation': row[13]  # predicted relationship
+        })
+
+    cur.execute(
+        """
+        SELECT ENTRY_AC, PARENT_AC
+        FROM {}.ENTRY2ENTRY
+        """.format(app.config['DB_SCHEMA'])
+    )
+
+    parent_of = dict(cur.fetchall())
+    cur.close()
+
+    for m in methods:
+        entry_ac = m['entryId']
+
+        if entry_ac:
+            hierarchy = []
+
+            while entry_ac in parent_of:
+                entry_ac = parent_of[entry_ac]
+                hierarchy.append(entry_ac)
+
+            m['entryHierarchy'] = hierarchy[::-1]
+
     return jsonify({
         'results': methods,
         'count': len(methods)
@@ -2399,41 +1869,20 @@ def api_method_comments(method_ac):
 
 @app.route('/api/method/<method_ac>/references/<go_id>')
 def api_method_references(method_ac, go_id):
-    references = []
-
     cur = get_db().cursor()
-
-    # cur.execute(
-    #     """
-    #     SELECT DISTINCT P2G.REF_DB_ID
-    #     FROM (
-    #       SELECT DISTINCT TERM_GROUP_ID, SEQ_ID
-    #       FROM INTERPRO_ANALYSIS.FEATURE2PROTEIN
-    #       WHERE FEATURE_ID = :1
-    #     ) F2P
-    #     INNER JOIN INTERPRO_ANALYSIS.TERM_GROUP2TERM G2T ON F2P.TERM_GROUP_ID = G2T.TERM_GROUP_ID
-    #     INNER JOIN INTERPRO_ANALYSIS.PROTEIN2GO_MANUAL P2G ON G2T.GO_ID = P2G.GO_ID AND F2P.SEQ_ID = P2G.PROTEIN_AC
-    #     WHERE P2G.GO_ID = :2 AND P2G.REF_DB_CODE = 'PMID'
-    #     ORDER BY P2G.REF_DB_ID
-    #     """,
-    #     (method_ac, go_id)
-    # )
-    #
-    # references = [{'id': row[0]} for row in cur]
-
     cur.execute(
         """
-        SELECT DISTINCT PUB.ID, PUB.TITLE, PUB.FIRST_PUBLISH_DATE
-        FROM (
-          SELECT DISTINCT TERM_GROUP_ID, SEQ_ID
-          FROM {0}.FEATURE2PROTEIN
-          WHERE FEATURE_ID = :1
-        ) F2P
-        INNER JOIN {0}.TERM_GROUP2TERM G2T ON F2P.TERM_GROUP_ID = G2T.TERM_GROUP_ID
-        INNER JOIN {0}.PROTEIN2GO_MANUAL P2G ON G2T.GO_ID = P2G.GO_ID AND F2P.SEQ_ID = P2G.PROTEIN_AC
-        INNER JOIN GO.PUBLICATIONS@GOAPRO PUB ON PUB.ID = P2G.REF_DB_ID
-        WHERE P2G.GO_ID = :2 AND P2G.REF_DB_CODE = 'PMID'
-        ORDER BY PUB.FIRST_PUBLISH_DATE
+        SELECT ID, TITLE, FIRST_PUBLISHED_DATE
+        FROM {0}.PUBLICATION
+        WHERE ID IN (
+          SELECT REF_DB_ID
+          FROM {0}.PROTEIN2GO P
+            INNER JOIN {0}.METHOD2PROTEIN M ON P.PROTEIN_AC = M.PROTEIN_AC
+          WHERE M.METHOD_AC = :1
+                AND P.GO_ID = :2
+                AND REF_DB_CODE = 'PMID'
+        )
+        ORDER BY FIRST_PUBLISHED_DATE
         """.format(app.config['DB_SCHEMA']),
         (method_ac, go_id)
     )
@@ -2443,7 +1892,7 @@ def api_method_references(method_ac, go_id):
         references.append({
             'id': row[0],
             'title': row[1],
-            'date': row[2].strftime('%d %b %Y')
+            'date': row[2].strftime('%d %b %Y') if row[2] else None
         })
 
     cur.close()
@@ -2456,54 +1905,56 @@ def api_method_references(method_ac, go_id):
 
 @app.route('/api/method/<method_ac>/proteins/all/')
 def get_method_proteins(method_ac):
-    try:
-        db = request.args['db'].upper()
-    except KeyError:
-        db = None
+    source_db = request.args.get('db', '').upper()
 
-    if db in ('S', 'T'):
-        params = (method_ac, db)
-        db_cond = 'AND DB = :2'
+    if source_db in ('S', 'T'):
+        source_cond = 'AND DBCODE = :2'
+        params = (method_ac, source_db)
     else:
+        source_cond = ''
         params = (method_ac,)
-        db_cond = ''
 
     cur = get_db().cursor()
     cur.execute(
         """
         SELECT
-          F.SEQ_ID,
+          M2P.PROTEIN_AC,
           P.DBCODE,
           P.LEN,
           P.NAME,
-          PI.DESCRIPTION,
+          D.TEXT,
           E.TAX_ID,
           E.FULL_NAME
         FROM (
-          SELECT SEQ_ID
-          FROM {0}.FEATURE2PROTEIN
-          WHERE FEATURE_ID = :1
+          SELECT DISTINCT PROTEIN_AC
+          FROM {0}.METHOD2PROTEIN
+          WHERE METHOD_AC = :1
           {1}
-        ) F
-        INNER JOIN {0}.PROTEIN P ON F.SEQ_ID = P.PROTEIN_AC
-        INNER JOIN {0}.PROTEIN_INFO PI ON F.SEQ_ID = PI.PROTEIN_AC
+        ) M2P
+        INNER JOIN {0}.PROTEIN P ON M2P.PROTEIN_AC = P.PROTEIN_AC
+        INNER JOIN {0}.PROTEIN_DESC PD ON M2P.PROTEIN_AC = PD.PROTEIN_AC
+        INNER JOIN {0}.DESC_VALUE D ON PD.DESC_ID = D.DESC_ID
         INNER JOIN {0}.ETAXI E ON P.TAX_ID = E.TAX_ID
-        ORDER BY F.SEQ_ID
-        """.format(app.config['DB_SCHEMA'], db_cond),
+        ORDER BY M2P.PROTEIN_AC
+        """.format(app.config['DB_SCHEMA'], source_cond),
         params
     )
 
     proteins = []
     for row in cur:
+        protein_ac = row[0]
+
         if row[1] == 'S':
-            url = 'http://sp.isb-sib.ch/uniprot/'
+            is_reviewed = True
+            prefix = 'http://sp.isb-sib.ch/uniprot/'
         else:
-            url = 'http://www.uniprot.org/uniprot/'
+            is_reviewed = False
+            prefix = 'http://www.uniprot.org/uniprot/'
 
         proteins.append({
-            'id': row[0],
-            'link': url + row[0],
-            'isReviewed': row[1] == 'S',
+            'id': protein_ac,
+            'link': prefix + protein_ac,
+            'isReviewed': is_reviewed,
             'length': row[2],
             'shortName': row[3],
             'name': row[4],
@@ -2527,23 +1978,25 @@ def get_method_proteins(method_ac):
 @app.route('/api/method/<method_ac>/proteins/')
 def api_method_proteins(method_ac):
     try:
-        taxon_id = int(request.args['taxon'])
-    except (KeyError, ValueError):
-        taxon_id = 1
-    finally:
+        taxon_id = int(request.args.get('taxon'))
+    except (TypeError, ValueError):
+        taxon = None
+    else:
         taxon = get_taxon(taxon_id)
 
+    rank = request.args.get('rank')
+
     try:
-        page = int(request.args['page'])
-    except (KeyError, ValueError):
+        page = int(request.args.get('page', 1))
+    except ValueError:
         page = 1
     else:
         if page < 1:
             page = 1
 
     try:
-        page_size = int(request.args['pageSize'])
-    except (KeyError, ValueError):
+        page_size = int(request.args.get('pageSize', 25))
+    except ValueError:
         page_size = 25
     else:
         if page_size < 1:
@@ -2561,17 +2014,13 @@ def api_method_proteins(method_ac):
         topic_id = None
         comment_id = None
 
-    try:
-        go_id = request.args['term']
-    except KeyError:
-        go_id = None
+    go_id = request.args.get('term')
 
-    try:
-        db = request.args['db'].upper()
-    except KeyError:
-        db = None
-    else:
-        db = db if db in ('S', 'T') else None
+    source_db = request.args.get('db', '').upper()
+    if source_db not in ('S', 'T'):
+        source_db = None
+
+    ecno = request.args.get('ec')
 
     search = request.args.get('search', '').strip()
     if not search:
@@ -2580,47 +2029,46 @@ def api_method_proteins(method_ac):
     sql, params = build_method2protein_sql(
         methods={method_ac: None},
         taxon=taxon,
-        description=desc_id,
-        topic=topic_id,
-        comment=comment_id,
-        term=go_id,
-        db=db,
-        search=search
+        source_db=source_db,
+        desc_id=desc_id,
+        topic_id=topic_id,
+        comment_id=comment_id,
+        go_id=go_id,
+        ecno=ecno,
+        search=search,
+        no_rank=rank
     )
 
     cur = get_db().cursor()
-    # cur.execute('SELECT COUNT(*) FROM ({})'.format(sql), params)
-    # count = cur.fetchone()[0]
-    # proteins_all = []
-
-    cur.execute('SELECT SEQ_ID FROM ({})'.format(sql), params)
+    cur.execute(sql, params)
     proteins_all = [row[0] for row in cur]
     count = len(proteins_all)
 
     params['i_start'] = 1 + (page - 1) * page_size
     params['i_end'] = page * page_size
-    params['method_ac'] = method_ac
+    params['method'] = method_ac
 
     cur.execute(
         """
-        SELECT P.PROTEIN_AC, P.DBCODE, P.LEN, P.NAME, PI.DESCRIPTION, E.TAX_ID, E.FULL_NAME, MS.POS_FROM, MS.POS_TO
+        SELECT P.PROTEIN_AC, P.DBCODE, P.LEN, P.NAME, DV.TEXT, E.TAX_ID, E.FULL_NAME, M.POS_FROM, M.POS_TO
         FROM {0}.PROTEIN P
         INNER JOIN (
             SELECT *
             FROM (
-                SELECT F.*, ROWNUM RN
+                SELECT M2P.*, ROWNUM RN
                 FROM (
                     {1}
-                    ORDER BY F2P.SEQ_ID
-                  ) F
+                    ORDER BY M2P.PROTEIN_AC
+                  ) M2P
                 WHERE ROWNUM <= :i_end
             ) WHERE RN >= :i_start
 
-        ) F ON P.PROTEIN_AC = F.SEQ_ID
-        INNER JOIN {0}.PROTEIN_INFO PI ON P.PROTEIN_AC = PI.PROTEIN_AC
+        ) M2P ON P.PROTEIN_AC = M2P.PROTEIN_AC
+        INNER JOIN {0}.PROTEIN_DESC PD ON P.PROTEIN_AC = PD.PROTEIN_AC
+        INNER JOIN {0}.DESC_VALUE DV ON PD.DESC_ID = DV.DESC_ID
         INNER JOIN {0}.ETAXI E ON P.TAX_ID = E.TAX_ID
-        INNER JOIN {0}.MATCH_SUMMARY MS ON PI.PROTEIN_AC = MS.SEQ_ID
-        WHERE MS.FEATURE_ID = :method_ac
+        INNER JOIN {0}.MATCH M ON P.PROTEIN_AC = M.PROTEIN_AC
+        WHERE M.METHOD_AC = :method
         ORDER BY P.PROTEIN_AC
         """.format(app.config['DB_SCHEMA'], sql),
         params
@@ -2666,6 +2114,60 @@ def api_method_proteins(method_ac):
             'page': page,
             'pageSize': page_size
         }
+    })
+
+
+@app.route('/api/methods/<path:methods>/enzymes/')
+def api_methods_enzymes(methods):
+    params = [m.strip() for m in methods.split('/') if m.strip()]
+    meth_var = ','.join([':' + str(i+1) for i in range(len(params))])
+    source_db = request.args.get('db', 'S').upper()
+
+    if source_db in ('S', 'T'):
+        source_cond = 'AND M2P.DBCODE = :' + str(len(params)+1)
+        params.append(source_db)
+    else:
+        source_db = 'U'
+        source_cond = ''
+
+    cur = get_db().cursor()
+    cur.execute(
+        """
+        SELECT
+          M2P.METHOD_AC,
+          EZ.ECNO,
+          COUNT(DISTINCT M2P.PROTEIN_AC)
+        FROM {0}.METHOD2PROTEIN M2P
+          INNER JOIN {0}.ENZYME EZ ON M2P.PROTEIN_AC = EZ.PROTEIN_AC
+        WHERE M2P.METHOD_AC IN ({1})
+        {2}
+        GROUP BY M2P.METHOD_AC, EZ.ECNO
+        """.format(app.config['DB_SCHEMA'], meth_var, source_cond),
+        params
+    )
+
+    enzymes = {}
+    max_prot = 0
+    for acc, ezno, n_prot in cur:
+        if ezno in enzymes:
+            e = enzymes[ezno]
+        else:
+            e = enzymes[ezno] = {
+                'id': ezno,
+                'methods': {}
+            }
+
+        e['methods'][acc] = n_prot
+
+        if n_prot > max_prot:
+            max_prot = n_prot
+
+    cur.close()
+
+    return jsonify({
+        'results': sorted(enzymes.values(), key=lambda e: -max(e['methods'].values())),
+        'database': source_db,
+        'max': max_prot
     })
 
 
@@ -2740,22 +2242,160 @@ def api_methods_matches(methods):
 
     _methods.update({m.strip(): False for m in exclude if len(m.strip())})
 
-    proteins, count, max_len = get_overlapping_proteins(
-        methods=_methods,
+    sql, params = build_method2protein_sql(
+        _methods,
         taxon=taxon,
-        page=page,
-        page_size=page_size,
-        description=desc_id,
-        topic=topic_id,
-        comment=comment_id,
-        term=go_id,
-        db=db,
-        code=code
+        source_db=db,
+        desc_id=desc_id,
+        topic_id=topic_id,
+        comment_id=comment_id,
+        go_id=go_id
     )
 
+    cur = get_db().cursor()
+    if code:
+        params['code'] = code
+
+        cur.execute(
+            """
+            SELECT
+                PROTEIN_AC,
+                CONDENSE
+            FROM (
+                {}
+            )
+            WHERE CONDENSE = :code
+            ORDER BY PROTEIN_AC
+            """.format(sql),
+            params
+        )
+
+        proteins = [(row[0], row[1], 1) for row in cur]
+    else:
+        cur.execute(
+            """
+            SELECT
+                PROTEIN_AC,
+                CONDENSE,
+                N_PROT
+            FROM (
+                SELECT
+                    PROTEIN_AC,
+                    CONDENSE,
+                    COUNT(*) OVER (PARTITION BY CONDENSE) AS N_PROT,
+                    ROW_NUMBER() OVER (PARTITION BY CONDENSE ORDER BY LEN) AS RN
+                FROM (
+                    {}
+                )
+            )
+            WHERE RN = 1
+            ORDER BY N_PROT DESC, PROTEIN_AC
+            """.format(sql),
+            params
+        )
+        proteins = [row for row in cur]
+
+    n_proteins = len(proteins)
+    max_len = 0
+    _proteins = []
+
+    if n_proteins:
+        # Select requested page
+        proteins = proteins[(page - 1) * page_size:page * page_size]
+
+        # Creat list of protein accessions and a dictionary of info for condensed proteins
+        accessions = []
+        codes = {}
+        for acc, code, count in proteins:
+            accessions.append(acc)
+            codes[acc] = {'code': code, 'count': count}
+
+        # Get info on proteins (description, taxon, etc.)
+        proteins_cond = ','.join([':' + str(i + 1) for i in range(len(accessions))])
+        cur.execute(
+            """
+            SELECT MA.PROTEIN_AC, P.DBCODE, P.LEN, D.TEXT, E.FULL_NAME,
+              MA.METHOD_AC, ME.NAME, ME.CANDIDATE, ME.DBCODE,
+              EM.ENTRY_AC,
+              MA.POS_FROM, MA.POS_TO
+            FROM {0}.MATCH MA
+              INNER JOIN {0}.PROTEIN P ON MA.PROTEIN_AC = P.PROTEIN_AC
+              INNER JOIN {0}.PROTEIN_DESC PD ON MA.PROTEIN_AC = PD.PROTEIN_AC
+              INNER JOIN {0}.DESC_VALUE D ON PD.DESC_ID = D.DESC_ID
+              INNER JOIN {0}.ETAXI E ON P.TAX_ID = E.TAX_ID
+              LEFT OUTER JOIN {0}.METHOD ME ON MA.METHOD_AC = ME.METHOD_AC
+              LEFT OUTER JOIN {0}.ENTRY2METHOD EM ON MA.METHOD_AC = EM.METHOD_AC
+            WHERE MA.PROTEIN_AC IN ({1})
+            """.format(app.config['DB_SCHEMA'], proteins_cond),
+            accessions
+        )
+
+        proteins = {}
+        for row in cur:
+            protein_ac = row[0]
+
+            if protein_ac in proteins:
+                p = proteins[protein_ac]
+            else:
+                if row[1] == 'S':
+                    is_reviewed = True
+                    prefix = 'http://sp.isb-sib.ch/uniprot/'
+                else:
+                    is_reviewed = False
+                    prefix = 'http://www.uniprot.org/uniprot/'
+
+                p = proteins[protein_ac] = {
+                    'id': protein_ac,
+                    'isReviewed': is_reviewed,
+                    'length': row[2],
+                    'description': row[3],
+                    'organism': row[4],
+                    'link': prefix + protein_ac,
+                    'code': codes[protein_ac]['code'],
+                    'count': codes[protein_ac]['count'],
+                    'methods': {}
+                }
+
+                if row[2] > max_len:
+                    max_len = row[2]
+
+            method_ac = row[5]
+
+            if method_ac in p['methods']:
+                m = p['methods'][method_ac]
+            else:
+                method_db = row[8]
+                if method_db is not None:
+                    m = xref.find_ref(method_db, method_ac)
+                    method_db = {
+                        'link': m.gen_link(),
+                        'color': m.color
+                    }
+
+                m = p['methods'][method_ac] = {
+                    'id': method_ac,
+                    'name': row[6],
+                    'isCandidate': row[7] == 'Y',
+                    'entryId': row[9],
+                    'isSelected': method_ac in methods,
+                    'db': method_db,
+                    'matches': []
+                }
+
+            m['matches'].append({'start': row[10], 'end': row[11]})
+
+        cur.close()
+
+        for p in sorted(proteins.values(), key=lambda p: (-p['count'], p['id'])):
+            for m in p['methods'].values():
+                m['matches'].sort(key=lambda m: m['start'])
+
+            p['methods'] = sorted(p['methods'].values(), key=lambda m: (0 if m['entryId'] else 1, m['entryId'], m['id']))
+            _proteins.append(p)
+
     return jsonify({
-        'count': count,
-        'proteins': proteins,
+        'count': n_proteins,
+        'proteins': _proteins,
         'maxLength': max_len,
         'taxon': taxon,
         'database': db,
@@ -2772,139 +2412,335 @@ def api_methods_taxonomy(methods):
     Taxonomic origins
     Example:
     ---
-    /taxonomy/MF_00011/PF00709?rank=genus
+    /methods/MF_00011/PF00709/taxonomy/?rank=genus
     """
+    methods = [m.strip() for m in methods.split('/') if m.strip()]
+
     try:
-        taxon_id = int(request.args['taxon'])
-    except (KeyError, ValueError):
+        taxon_id = int(request.args.get('taxon', ''))
+    except ValueError:
         taxon_id = 1
     finally:
         taxon = get_taxon(taxon_id)
 
-    ranks = (
-        'superkingdom', 'kingdom', 'phylum', 'class',
-        'order', 'family', 'genus', 'species'
-    )
+    ranks = ('superkingdom', 'kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species')
     try:
-        i = ranks.index(request.args['rank'].lower())
-    except (KeyError, ValueError):
+        i = ranks.index(request.args.get('rank', 'superkingdom').lower())
+    except ValueError:
         i = 0
     finally:
         rank = ranks[i]
 
-    # try:
-    #     i = ranks.index(taxon['rank'])
-    # except ValueError:
-    #     i = 0
-    # else:
-    #     try:
-    #         ranks[i + 1]
-    #     except IndexError:
-    #         pass
-    #     else:
-    #         i += 1
-    # finally:
-    #     rank = ranks[i]
+    fmt = ','.join([':meth' + str(i) for i in range(len(methods))])
+    params = {'meth' + str(i): method for i, method in enumerate(methods)}
+    params['ln'] = taxon['leftNumber']
+    params['rn'] = taxon['rightNumber']
+    params['rank'] = rank
 
-    taxons, max_cnt = get_taxonomy(methods=methods.split('/'), taxon=taxon, rank=rank)
+    cur = get_db().cursor()
+    cur.execute(
+        """
+        SELECT
+          L.TAX_ID,
+          MIN(E.FULL_NAME),
+          M2P.METHOD_AC,
+          COUNT(DISTINCT M2P.PROTEIN_AC)
+        FROM {0}.METHOD2PROTEIN M2P
+          LEFT OUTER JOIN {0}.LINEAGE L ON M2P.LEFT_NUMBER = L.LEFT_NUMBER
+          LEFT OUTER JOIN {0}.ETAXI E ON L.TAX_ID = E.TAX_ID
+        WHERE M2P.METHOD_AC IN ({1})
+              AND M2P.LEFT_NUMBER BETWEEN :ln AND :rn
+              AND L.RANK = :rank
+        GROUP BY M2P.METHOD_AC, L.TAX_ID
+        """.format(app.config['DB_SCHEMA'], fmt),
+        params
+    )
+
+    taxons = {}
+    max_prots = 0
+    for row in cur:
+        tax_id = row[0]
+        n_prots = row[3]
+
+        if tax_id in taxons:
+            t = taxons[tax_id]
+        else:
+            t = taxons[tax_id] = {
+                'id': tax_id,
+                'fullName': row[1] if tax_id else 'Others',
+                'methods': {}
+            }
+
+        t['methods'][row[2]] = n_prots
+
+        if n_prots > max_prots:
+            max_prots = n_prots
+
+    cur.close()
 
     return jsonify({
         'taxon': taxon,
         'rank': rank,
-        'count': len(taxons),
-        'results': taxons,
-        'max': max_cnt
+        'results': sorted(taxons.values(), key=lambda x: (0 if x['id'] else 1, -sum(x['methods'].values()))),
+        'max': max_prots
     })
 
 
 @app.route('/api/methods/<path:methods>/descriptions/')
 def api_methods_descriptions(methods):
     """
-    Protein descriptions
+    Returns UniProt descriptions associated to a set of signatures
     Example:
     ---
     /methods/PF00051/PS50070/SM00130/descriptions/
     """
-    try:
-        db = request.args['db'].upper()
-    except KeyError:
-        db = 'S'
-    else:
-        if db == 'U':
-            db = None
-        elif db not in ('S', 'T'):
-            db = 'S'
+    params = [m.strip() for m in methods.split('/') if m.strip()]
+    meth_var = ','.join([':' + str(i+1) for i in range(len(params))])
+    source_db = request.args.get('db', 'S').upper()
 
-    descriptions = get_descriptions(methods=methods.split('/'), db=db)
+    if source_db in ('S', 'T'):
+        source_cond = 'AND M2P.DBCODE = :' + str(len(params)+1)
+        params.append(source_db)
+    else:
+        source_db = 'U'
+        source_cond = ''
+
+    cur = get_db().cursor()
+    cur.execute(
+        """
+        SELECT M.DESC_ID, D.TEXT, M.METHOD_AC, M.N_PROT
+        FROM (
+               SELECT
+                 PD.DESC_ID,
+                 M2P.METHOD_AC,
+                 COUNT(DISTINCT M2P.PROTEIN_AC) N_PROT
+               FROM {0}.METHOD2PROTEIN M2P
+                 INNER JOIN {0}.PROTEIN_DESC PD ON M2P.PROTEIN_AC = PD.PROTEIN_AC
+               WHERE METHOD_AC IN ({1}) {2}
+               GROUP BY M2P.METHOD_AC, PD.DESC_ID
+             ) M
+          INNER JOIN {0}.DESC_VALUE D ON M.DESC_ID = D.DESC_ID
+        """.format(app.config['DB_SCHEMA'], meth_var, source_cond),
+        params
+    )
+
+    descriptions = {}
+    max_prot = 0
+    for desc_id, desc, method_ac, n_prot in cur:
+        if desc_id in descriptions:
+            d = descriptions[desc_id]
+        else:
+            d = descriptions[desc_id] = {
+                'id': desc_id,
+                'value': desc,
+                'methods': {}
+            }
+
+        d['methods'][method_ac] = n_prot
+
+        if n_prot > max_prot:
+            max_prot = n_prot
+
+    cur.close()
 
     return jsonify({
-        'results': descriptions,
-        'count': len(descriptions),
-        'database': db if db is not None else 'U',
+        'results': sorted(descriptions.values(), key=lambda x: (-max(x['methods'].values()), x['value'])),
+        'database': source_db,
+        'max': max_prot
     })
 
 
 @app.route('/api/methods/<path:methods>/go/')
 def api_methods_go(methods):
     """
-    GO terms
+    Return the GO terms associated to a set of signatures.
     Example:
     ---
-    /go/MF_00011/PF00709?category=C
+    /api/methods/MF_00011/PF00709/go/?category=C
     """
-    try:
-        aspects = [e for e in request.args['aspect'].upper().split(',') if e in ('C', 'P', 'F')]
-    except (KeyError, ValueError):
-        aspects = None
-    else:
-        if not aspects:
-            aspects = None
+    methods = [m.strip() for m in methods.split('/') if m.strip()]
+    meth_var = ','.join([':meth' + str(i) for i in range(len(methods))])
+    params = {'meth' + str(i): method for i, method in enumerate(methods)}
 
-    terms, methods = get_go_terms(methods.split('/'), aspects)
+    _aspects = ('C', 'P', 'F')
+    aspects = [e for e in request.args.get('aspect', '').upper().split(',') if e in _aspects]
+    if 0 < len(aspects) < 3:
+        aspect_cond = 'AND T.CATEGORY IN ({})'.format(','.join([':aspect' + str(i) for i in range(len(aspects))]))
+        params.update({'aspect' + str(i): aspect for i, aspect in enumerate(aspects)})
+    else:
+        aspects = _aspects
+        aspect_cond = ''
+
+    cur = get_db().cursor()
+    cur.execute(
+        """
+        SELECT M.METHOD_AC, T.GO_ID, T.NAME, T.CATEGORY, P.PROTEIN_AC, P.REF_DB_CODE, P.REF_DB_ID
+        FROM {0}.METHOD2PROTEIN M
+          INNER JOIN {0}.PROTEIN2GO P ON M.PROTEIN_AC = P.PROTEIN_AC
+          INNER JOIN {0}.TERM T ON P.GO_ID = T.GO_ID
+        WHERE M.METHOD_AC IN ({1}) {2}
+        """.format(app.config['DB_SCHEMA'], meth_var, aspect_cond),
+        params
+    )
+
+    terms = {}
+    for method_ac, go_id, term, aspect, protein_ac, ref_db, ref_id in cur:
+        if go_id in terms:
+            t = terms[go_id]
+        else:
+            t = terms[go_id] = {
+                'id': go_id,
+                'value': term,
+                'methods': {},
+                'aspect': aspect
+            }
+
+        if method_ac in t['methods']:
+            m = t['methods'][method_ac]
+        else:
+            m = t['methods'][method_ac] = {
+                'proteins': set(),
+                'references': set()
+            }
+
+        m['proteins'].add(protein_ac)
+        if ref_db == 'PMID':
+            m['references'].add(ref_id)
+
+    cur.close()
+
+    max_prot = 0
+    for t in terms.values():
+        for m in t['methods'].values():
+            n_prot = len(m['proteins'])
+            m['proteins'] = n_prot
+            m['references'] = len(m['references'])
+
+            if n_prot > max_prot:
+                max_prot = n_prot
 
     return jsonify({
-        'results': terms,
-        'count': len(terms),
-        'methods': methods,
-        'aspects': ('C', 'P', 'F') if aspects is None else aspects,
+        # Sort by sum of proteins counts (desc), and GO ID (asc)
+        'results': sorted(terms.values(), key=lambda t: (-max(m['proteins'] for m in t['methods'].values()), t['id'])),
+        'aspects': aspects,
+        'max': max_prot
     })
 
 
 @app.route('/api/methods/<path:methods>/comments/')
 def api_methods_comments(methods):
     """
-    Protein comments (Swiss-Prot only)
+    Returns Swiss-Prot comments of a given topic associated to a set of signatures
     Example:
     ---
-    /comments/PTHR11846:SF3/PTHR11846:SF2/TIGR00184
+    /api/methods/PTHR11846:SF3/PTHR11846:SF2/TIGR00184/comments/
     """
+    methods = [m.strip() for m in methods.split('/') if m.strip()]
+    meth_var = ','.join([':meth' + str(i) for i in range(len(methods))])
+    params = {'meth' + str(i): method for i, method in enumerate(methods)}
+
     try:
-        # todo: accept topic title
-        topic_id = int(request.args['topic'])
-    except (KeyError, ValueError):
-        topic_id = 34
+        topic_id = int(request.args.get('topic', 34))
+    except ValueError:
+        topic_id = 34  # Similarity
+    finally:
+        params['topicid'] = topic_id
+
+    cur = get_db().cursor()
+    cur.execute(
+        """
+        SELECT M.METHOD_AC, M.COMMENT_ID, C.TEXT, M.N_PROT
+        FROM (
+               SELECT PC.COMMENT_ID, M2P.METHOD_AC, COUNT(DISTINCT M2P.PROTEIN_AC) N_PROT
+               FROM {0}.METHOD2PROTEIN M2P
+                 INNER JOIN {0}.PROTEIN_COMMENT PC ON M2P.PROTEIN_AC = PC.PROTEIN_AC
+               WHERE M2P.METHOD_AC IN ({1})
+                     AND PC.TOPIC_ID = :topicid
+               GROUP BY PC.COMMENT_ID, M2P.METHOD_AC
+             ) M
+          INNER JOIN {0}.COMMENT_VALUE C ON M.COMMENT_ID = C.COMMENT_ID AND C.TOPIC_ID = :topicid
+        """.format(app.config['DB_SCHEMA'], meth_var),
+        params
+    )
+
+    comments = {}
+    max_prot = 0
+    for method_ac, comment_id, comment, n_prot in cur:
+        if comment_id in comments:
+            c = comments[comment_id]
+        else:
+            c = comments[comment_id] = {
+                'id': comment_id,
+                'value': comment,
+                'methods': {}
+            }
+
+        c['methods'][method_ac] = n_prot
+
+        if n_prot > max_prot:
+            max_prot = n_prot
+
+    cur.close()
 
     return jsonify({
         'topic': {
             'id': topic_id,
             'value': get_topic(topic_id)
         },
-        'results': get_swissprot_comments(methods.split('/'), topic_id)
+        'results': sorted(comments.values(), key=lambda x: -max(x['methods'].values())),
+        'max': max_prot
     })
 
 
 @app.route('/api/methods/<path:methods>/matrices/')
 def api_methods_matrices(methods):
     """
-    Match matrix of overlapping signatures
+    Returns the overlap match matrix, and the collocation match matrix for a set of signatures
     Example:
     ---
-    /matrix/SSF57440/cd00108/PIRSF500183/PTHR19331:SF315/PTHR44106:SF1
+    /api/methods/SSF57440/cd00108/PIRSF500183/PTHR19331:SF315/PTHR44106:SF1/matrices/
     """
-    matrix, max_prot = get_match_matrix(methods.split('/'))
+    methods = [m.strip() for m in methods.split('/') if m.strip()]
+    meth_var = ','.join([':meth' + str(i) for i in range(len(methods))])
+    params = {'meth' + str(i): method for i, method in enumerate(methods)}
+
+    cur = get_db().cursor()
+    cur.execute(
+        """
+        SELECT MM.METHOD_AC, MM.N_PROT, MO.METHOD_AC2, MO.N_PROT, MO.AVG_OVER, MO.N_PROT_OVER
+        FROM {0}.METHOD_MATCH MM
+          INNER JOIN (
+                       SELECT METHOD_AC1, METHOD_AC2, N_PROT, AVG_OVER, N_PROT_OVER
+                       FROM {0}.METHOD_OVERLAP MO
+                       WHERE METHOD_AC1 IN ({1})
+                             AND METHOD_AC2 IN ({1})
+                     ) MO ON MM.METHOD_AC = MO.METHOD_AC1
+        WHERE METHOD_AC IN ({1})
+        """.format(app.config['DB_SCHEMA'], meth_var),
+        params
+    )
+
+    matrix = {}
+    for acc_1, n_prot, acc_2, n_coloc, avg_over, n_overlap in cur:
+        if acc_1 in matrix:
+            m = matrix[acc_1]
+        else:
+            m = matrix[acc_1] = {
+                'prot': n_prot,
+                'methods': {}
+            }
+
+        m['methods'][acc_2] = {
+            'coloc': n_coloc,
+            'over': n_overlap,
+            'avgOver': avg_over
+        }
+
+    cur.close()
+
     return jsonify({
         'matrix': matrix,
-        'max': max_prot
+        'max': max([m['prot'] for m in matrix.values()])
     })
 
 
@@ -2919,114 +2755,6 @@ def has_overlaping_matches(matches1, matches2, min_overlap=0.5):
                 return True
 
     return False
-
-
-# @app.route('/api/methods/<method_ac1>/<method_ac2>/overlap/')
-# def api_methods_overlap(method_ac1, method_ac2):
-#     cur = get_db().cursor()
-#
-#     try:
-#         page = int(request.args['page'])
-#     except (KeyError, ValueError):
-#         page = 1
-#     else:
-#         if page < 1:
-#             page = 1
-#
-#     try:
-#         page_size = int(request.args['pageSize'])
-#     except (KeyError, ValueError):
-#         page_size = 10
-#     else:
-#         if page_size < 1:
-#             page_size = 10
-#
-#     cur.execute(
-#         """
-#         SELECT SEQ_ID, FEATURE_ID, POS_FROM, POS_TO
-#         FROM {0}.MATCH_SUMMARY
-#         WHERE FEATURE_ID = :1 OR FEATURE_ID = :2
-#          """.format(app.config['DB_SCHEMA']),
-#         (method_ac1, method_ac2)
-#     )
-#
-#     proteins = {}
-#     for protein_ac, method_ac, start, end in cur:
-#         try:
-#             proteins[protein_ac]
-#         except KeyError:
-#             proteins[protein_ac] = {
-#                 'id': protein_ac,
-#                 'methods': {
-#                     method_ac1: [],
-#                     method_ac2: []
-#                 }
-#             }
-#         finally:
-#             proteins[protein_ac]['methods'][method_ac].append((start, end))
-#
-#     overlapping = []
-#     for protein_ac in sorted(proteins):
-#         p = proteins[protein_ac]
-#         matches1 = p['methods'][method_ac1]
-#         matches2 = p['methods'][method_ac2]
-#
-#         if has_overlaping_matches(matches1, matches2, min_overlap=0.5):
-#             overlapping.append(p)
-#
-#     count = len(overlapping)
-#     overlapping = overlapping[(page-1)*page_size:page*page_size]
-#
-#     if count:
-#         cur.execute(
-#             """
-#             SELECT PROTEIN_AC, NAME, LEN, DBCODE
-#             FROM {0}.PROTEIN
-#             WHERE PROTEIN_AC IN ({1})
-#             """.format(
-#                 app.config['DB_SCHEMA'],
-#                 ','.join([':' + str(i+1) for i in range(len(overlapping))])
-#             ),
-#             [p['id'] for p in overlapping]
-#         )
-#
-#         info = {}
-#         for row in cur:
-#             info[row[0]] = {
-#                 'name': row[1],
-#                 'length': row[2],
-#                 'isReviewed': row[3] == 'S'
-#             }
-#
-#         for p in overlapping:
-#             p.update(info[p['id']])
-#
-#     cur.close()
-#
-#     return jsonify({
-#         'count': count,
-#         'results': overlapping,
-#         'pageInfo': {
-#             'page': page,
-#             'pageSize': page_size
-#         }
-#     })
-
-
-@app.route('/api/description/<int:desc_id>/')
-def api_methods_description(desc_id):
-    """
-    Proteins associated to a description
-    Example:
-    ---
-    /description/403214
-    """
-    proteins = get_description(desc_id)
-
-    return jsonify({
-        'count': len(proteins),
-        'results': proteins
-    })
 
 
 @app.route('/api/db/')
@@ -3105,64 +2833,6 @@ def api_db_methods(dbshort):
             'name': dbname,
             'version': dbversion
         }
-    })
-
-
-@app.route('/api/go/<go_id>/')
-def api_go_term(go_id):
-    cur = get_db().cursor()
-
-    cur.execute(
-        """
-        SELECT DISTINCT REF_DB_ID
-        FROM {}.PROTEIN2GO_MANUAL
-        WHERE GO_ID = :1
-        AND EVIDENCE = 'TAS'
-        AND REF_DB_CODE = 'PMID'
-        ORDER BY REF_DB_ID
-        """.format(app.config['DB_SCHEMA']),
-        (go_id,)
-    )
-
-    references = []
-    for row in cur:
-        references.append({
-            'id': row[0]
-        })
-
-    # cur.execute(
-    #     """
-    #     SELECT DISTINCT P.ID, P.TITLE, P.AUTHORS, P.FIRST_PUBLISH_DATE
-    #     FROM (
-    #       SELECT DISTINCT ECO_ID, REF_DB_ID
-    #       FROM GO.ANNOTATIONS@GOAPRO
-    #       WHERE GO_ID = :1
-    #       AND REF_DB_CODE = 'PMID'
-    #       AND ENTITY_TYPE = 'protein'
-    #     ) A
-    #     INNER JOIN GO.ECO2EVIDENCE@GOAPRO E ON A.ECO_ID = E.ECO_ID
-    #     INNER JOIN GO.PUBLICATIONS@GOAPRO P ON A.REF_DB_ID = P.ID
-    #     WHERE E.GO_EVIDENCE = 'TAS'
-    #     AND P.IS_RETRACTED = 'N'
-    #     ORDER BY P.FIRST_PUBLISH_DATE
-    #     """,
-    #     (go_id, )
-    # )
-    #
-    # references = []
-    # for row in cur:
-    #     references.append({
-    #         'id': row[0],
-    #         'title': row[1],
-    #         'authors': row[2],
-    #         'date': row[3].strftime('%b %Y'),
-    #     })
-
-    cur.close()
-
-    return jsonify({
-        'results': references,
-        'count': len(references)
     })
 
 

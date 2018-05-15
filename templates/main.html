@@ -44,20 +44,23 @@
             <a target="_blank" data-page="comments" class="item">Swiss-Prot comments</a>
             <a target="_blank" data-page="go" class="item">GO terms</a>
             <a target="_blank" data-page="matrices" class="item">Match matrices</a>
+            <a target="_blank" data-page="enzymes" class="item">ENZYME entries</a>
         </div>
     </div>
 
-    {% include 'matches.html' %}
+    {% include '__matches.html' %}
 
-    {% include 'taxonomy.html' %}
+    {% include '__taxonomy.html' %}
 
-    {% include 'descriptions.html' %}
+    {% include '__descriptions.html' %}
 
-    {% include 'swissprot_comments.html' %}
+    {% include '__swissprot_comments.html' %}
 
-    {% include 'go.html' %}
+    {% include '__go.html' %}
 
-    {% include 'matrices.html' %}
+    {% include '__matrices.html' %}
+
+    {% include '__enzymes.html' %}
 
     <div id="proteins-modal" class="ui large modal">
         <i class="close icon"></i>
@@ -101,7 +104,7 @@
         <div class="actions">
             <button class="ui button">
             </button>
-            <a href="#" class="ui secondary button">
+            <a target="_blank" href="#" class="ui secondary button">
                 Overlapping proteins
             </a>
         </div>
@@ -154,6 +157,7 @@
             <a target="_blank" data-page="comments" class="item">Swiss-Prot comments</a>
             <a target="_blank" data-page="go" class="item">GO terms</a>
             <a target="_blank" data-page="matrices" class="item">Match matrices</a>
+            <a target="_blank" data-page="enzymes" class="item">ENZYME entries</a>
         </div>
     </div>
 
@@ -194,6 +198,14 @@
                 </thead>
                 <tbody>
                 </tbody>
+                <tfoot>
+                <tr>
+                    <th colspan="11">
+                        <span>Hide signatures if they overlap in less than <span id="over-value"></span>% of the proteins of both</span>
+                        <input id="over-range" type="range" min="0.01" max="1" step="0.01" value="0.3">
+                    </th>
+                </tr>
+                </tfoot>
             </table>
         </div>
 
@@ -475,8 +487,9 @@
             </div>
         </div>
         <div class="twelve wide column">
-            <div class="ui vertical segment">
-                <h2 id="curation" class="ui header">Curation</h2>
+            <div class="ui basic vertical segment">
+                <h2 id="curation" class="ui dividing header">Curation</h2>
+
 
                 <dl>
                     <dt>Public website</dt>
@@ -505,6 +518,9 @@
                             </a>
                             <a data-internal="matrices" class="item">
                                 Match matrices
+                            </a>
+                            <a data-internal="enzymes" class="item">
+                                ENZYME entries
                             </a>
                         </div>
                     </dd>
@@ -540,12 +556,12 @@
                     </dd>
                 </dl>
             </div>
-            <div class="ui vertical segment">
-                <h2 id="description" class="ui header">Description</h2>
+            <div class="ui basic vertical segment">
+                <h2 id="description" class="ui dividing header">Description</h2>
                 <div></div>
             </div>
-            <div class="ui vertical segment">
-                <h2 id="signatures" class="ui header">Signatures</h2>
+            <div class="ui basic vertical segment">
+                <h2 id="signatures" class="ui dividing header">Signatures</h2>
                 <table class="ui selectable table">
                     <thead>
                     <tr>
@@ -559,18 +575,18 @@
                     </tbody>
                 </table>
             </div>
-            <div class="ui vertical segment">
-                <h2 id="relationships" class="ui header">InterPro relationships</h2>
+            <div class="ui basic vertical segment">
+                <h2 id="relationships" class="ui dividing header">InterPro relationships</h2>
                 <div></div>
             </div>
-            <div class="ui vertical segment">
-                <h2 id="go-terms" class="ui header">GO terms</h2>
+            <div class="ui basic vertical segment">
+                <h2 id="go-terms" class="ui dividing header">GO terms</h2>
                 <dl></dl>
             </div>
-            <div class="ui vertical segment">
-                <h2 id="references" class="ui header">References</h2>
+            <div class="ui basic vertical segment">
+                <h2 id="references" class="ui dividing header">References</h2>
                 <div></div>
-                <h2 id="supp-references" class="ui header">Supplementary references</h2>
+                <h2 id="supp-references" class="ui dividing header">Supplementary references</h2>
                 <div></div>
             </div>
         </div>
@@ -631,23 +647,23 @@
             </div>
         </div>
         <div class="twelve wide column">
-            <div class="ui vertical segment">
-                <h2 id="families" class="ui header">Protein family</h2>
+            <div class="ui basic vertical segment">
+                <h2 id="families" class="ui dividing header">Protein family</h2>
                 <div></div>
             </div>
-            <div class="ui vertical segment">
+            <div class="ui basic vertical segment">
                 <h2 id="superfamilies" class="ui header">Homologuous superfamilies</h2>
                 <div></div>
             </div>
-            <div class="ui vertical segment">
+            <div class="ui basic vertical segment">
                 <h2 id="domains-repeats" class="ui header">Domain and repeats</h2>
                 <div></div>
             </div>
-            <div class="ui vertical segment">
+            <div class="ui basic vertical segment">
                 <h2 id="detailed" class="ui header">Detailed signatures matches</h2>
                 <div></div>
             </div>
-            <div class="ui vertical segment">
+            <div class="ui basic vertical segment">
                 <h2 id="structures" class="ui header">Structural features and predictions</h2>
                 <div></div>
             </div>
