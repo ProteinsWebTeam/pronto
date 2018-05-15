@@ -2675,8 +2675,8 @@ function PredictionView() {
                 // '<td>'+ m.dbShort +'</td>' +
                 '<td>'+ m.nProtsCand +'</td>' +
                 '<td>'+ m.nBlobsCand +'</td>' +
-                '<td style="background-color: '+ c1 +'; color: #fff;">'+ m.nProts +'</td>' +
-                '<td style="background-color: '+ c2 +'; color: #fff;">'+ m.nBlobs +'</td>';
+                '<td class="'+ (useWhiteText(c1) ? 'light' : 'dark') +'" style="background-color: '+ c1 +';">'+ m.nProts +'</td>' +
+                '<td class="'+ (useWhiteText(c2) ? 'light' : 'dark') +'" style="background-color: '+ c2 +';">'+ m.nBlobs +'</td>';
 
             if (m.entryId) {
                 html += '<td class="nowrap"><div class="ui list">';
