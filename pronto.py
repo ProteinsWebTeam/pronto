@@ -2147,6 +2147,7 @@ def api_methods_enzymes(methods):
     )
 
     enzymes = {}
+    max_prot = 0
     for acc, ezno, n_prot in cur:
         if ezno in enzymes:
             e = enzymes[ezno]
@@ -2158,11 +2159,15 @@ def api_methods_enzymes(methods):
 
         e['methods'][acc] = n_prot
 
+        if n_prot > max_prot:
+            max_prot = n_prot
+
     cur.close()
 
     return jsonify({
         'results': sorted(enzymes.values(), key=lambda e: -max(e['methods'].values())),
-        'database': source_db
+        'database': source_db,
+        'max': max_prot
     })
 
 
