@@ -1,15 +1,3 @@
-// const _colors = [
-//     "#dac5f3",
-//     "#8bd6f0",
-//     "#89e9e7",
-//     "#b8e9d3",
-//     "#a4e6b8",
-//     "#cae8ad",
-//     "#e0e1b1",
-//     "#f1d49b",
-//     "#f2c3b7"
-// ];
-
 const _colors = [
     '#ffffff',
     '#ece7f2',
