@@ -482,3 +482,19 @@ g.ticks text {
 .ui.comments .actions a:active, .ui.comments .actions a:hover {
     color: rgba(0,0,0,.8);
 }
+
+.light, .light > a {
+    color: rgba(255, 255, 255, 0.75);
+}
+
+.light > a:hover {
+    color: rgba(255, 255, 255, 1);
+}
+
+.dark, .dark > a {
+    color: rgba(0, 0, 0, 0.75);
+}
+
+.dark > a:hover {
+    color: rgba(0, 0, 0, 1);
+}

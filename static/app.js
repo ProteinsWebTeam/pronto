@@ -1,13 +1,25 @@
+// const _colors = [
+//     "#dac5f3",
+//     "#8bd6f0",
+//     "#89e9e7",
+//     "#b8e9d3",
+//     "#a4e6b8",
+//     "#cae8ad",
+//     "#e0e1b1",
+//     "#f1d49b",
+//     "#f2c3b7"
+// ];
+
 const _colors = [
-    "#dac5f3",
-    "#8bd6f0",
-    "#89e9e7",
-    "#b8e9d3",
-    "#a4e6b8",
-    "#cae8ad",
-    "#e0e1b1",
-    "#f1d49b",
-    "#f2c3b7"
+    '#ffffff',
+    '#ece7f2',
+    '#d0d1e6',
+    '#a6bddb',
+    '#74a9cf',
+    '#3690c0',
+    '#0570b0',
+    '#045a8d',
+    '#023858'
 ];
 
 
@@ -32,6 +44,23 @@ function setClass(element, className, active) {
         }
         element.className = newClasses.join(' ');
     }
+}
+
+function useWhiteText(bgHexColor) {
+    // Implementation of https://www.w3.org/TR/WCAG20/
+    const rgb = hex2rgb(bgHexColor);
+    ['r', 'g', 'b'].forEach(k => {
+        rgb[k] /= 255;
+
+        if (rgb[k] <= 0.03928)
+            rgb[k] /= 12.92;
+        else
+            rgb[k] = Math.pow((rgb[k] + 0.055) / 1.055, 2.4);
+    });
+
+    // luminance formula: https://www.w3.org/TR/WCAG20/#relativeluminancedef
+    const l = 0.2126 * rgb.r + 0.7152 * rgb.g + 0.0722 * rgb.b;
+    return l <= 0.179;
 }
 
 function renderCheckbox(entryId, isChecked) {
@@ -1597,25 +1626,27 @@ function ComparisonViews(methodsIds) {
 
             this.methods.forEach(methodAcX => {
                 if (data.matrix.hasOwnProperty(methodAcX) && data.matrix[methodAcX].methods.hasOwnProperty(methodAcY)) {
-                    let count, i, color;
+                    let count, i, color, className;
 
                     count = data.matrix[methodAcX].methods[methodAcY].over;
                     i = Math.floor(count / data.max * _colors.length);
                     color = _colors[Math.min(i, _colors.length - 1)];
+                    className = useWhiteText(color) ? 'light' : 'dark';
 
                     if (count && methodAcX !== methodAcY)
-                        html1 += '<td style="background-color: '+ color +'"><a data-x="'+ methodAcX +'" data-y="'+ methodAcY +'" href="#">' + count + '</a></td>';
+                        html1 += '<td class="'+ className +'" style="background-color: '+ color +'"><a data-x="'+ methodAcX +'" data-y="'+ methodAcY +'" href="#">' + count + '</a></td>';
                     else
-                        html1 += '<td style="background-color: '+ color +'">' + count + '</td>';
+                        html1 += '<td class="'+ className +'" style="background-color: '+ color +'">' + count + '</td>';
 
                     count = data.matrix[methodAcX].methods[methodAcY].coloc;
                     i = Math.floor(count / data.max * _colors.length);
                     color = _colors[Math.min(i, _colors.length - 1)];
+                    className = useWhiteText(color) ? 'light' : 'dark';
 
                     if (count && methodAcX !== methodAcY)
-                        html2 += '<td style="background-color: '+ color +'"><a data-x="'+ methodAcX +'" data-y="'+ methodAcY +'" href="#">' + count + '</a></td>';
+                        html2 += '<td class="'+ className +'" style="background-color: '+ color +'"><a data-x="'+ methodAcX +'" data-y="'+ methodAcY +'" href="#">' + count + '</a></td>';
                     else
-                        html2 += '<td style="background-color: '+ color +'">' + count + '</td>';
+                        html2 += '<td class="'+ className +'" style="background-color: '+ color +'">' + count + '</td>';
                 } else {
                     html1 += '<td style="background-color: '+ _colors[0] +'"><a data-x="'+ methodAcX +'" data-y="'+ methodAcY +'" href="#">0</a></td>';
                     html2 += '<td style="background-color: '+ _colors[0] +'"><a data-x="'+ methodAcX +'" data-y="'+ methodAcY +'" href="#">0</a></td>';
@@ -1753,7 +1784,10 @@ function ComparisonViews(methodsIds) {
             this.methods.forEach(methodId => {
                 if (term.methods.hasOwnProperty(methodId)) {
                     const method = term.methods[methodId];
-                    html += '<td><a href="#" data-method="'+ methodId +'">' + method.proteins + '</a></td><td class="collapsing">';
+                    const i = Math.floor(method.proteins / data.max * _colors.length);
+                    const color = _colors[Math.min(i, _colors.length - 1)];
+                    const className = useWhiteText(color) ? 'light' : 'dark';
+                    html += '<td class="'+ className +'" style="background-color: '+ color +';"><a href="#" data-method="'+ methodId +'">' + method.proteins + '</a></td><td class="collapsing">';
 
                     if (method.references)
                         html += '<a data-term="'+ term.id +'" data-method2="'+ methodId +'" class="ui basic label"><i class="book icon"></i>&nbsp;'+ method.references +'</a>';
@@ -1870,7 +1904,10 @@ function ComparisonViews(methodsIds) {
 
             this.methods.forEach(methodId => {
                 if (comment.methods.hasOwnProperty(methodId)) {
-                    html += '<td><a href="#" data-method="'+ methodId +'">' + comment.methods[methodId] + '</a></td>';
+                    const i = Math.floor(comment.methods[methodId] / data.max * _colors.length);
+                    const color = _colors[Math.min(i, _colors.length - 1)];
+                    const className = useWhiteText(color) ? 'light' : 'dark';
+                    html += '<td class="'+ className +'" style="background-color: '+ color +';"><a href="#" data-method="'+ methodId +'">' + comment.methods[methodId] + '</a></td>';
                 } else
                     html += '<td></td>';
 
@@ -1919,7 +1956,10 @@ function ComparisonViews(methodsIds) {
 
             this.methods.forEach(methodId => {
                 if (desc.methods.hasOwnProperty(methodId)) {
-                    html += '<td><a href="" data-method="'+ methodId +'">' + desc.methods[methodId] + '</a></td>';
+                    const i = Math.floor(desc.methods[methodId] / data.max * _colors.length);
+                    const color = _colors[Math.min(i, _colors.length - 1)];
+                    const className = useWhiteText(color) ? 'light' : 'dark';
+                    html += '<td class="'+ className +'" style="background-color: '+ color +';"><a href="#" data-method="'+ methodId +'">' + desc.methods[methodId] + '</a></td>';
                 } else
                     html += '<td></td>';
             });
@@ -1990,9 +2030,10 @@ function ComparisonViews(methodsIds) {
 
             this.methods.forEach(methodId => {
                 if (taxon.methods.hasOwnProperty(methodId)) {
-                    //const i = Math.floor(taxon.methods[methodId] / taxon.max * _colors.length);
-                    //const color = _colors[Math.min(i, _colors.length - 1)];
-                    html += '<td><a href="#" data-method="'+ methodId +'">' + taxon.methods[methodId] + '</a></td>';
+                    const i = Math.floor(taxon.methods[methodId] / data.max * _colors.length);
+                    const color = _colors[Math.min(i, _colors.length - 1)];
+                    const className = useWhiteText(color) ? 'light' : 'dark';
+                    html += '<td class="'+ className +'" style="background-color: '+ color +';"><a href="#" data-method="'+ methodId +'">' + taxon.methods[methodId] + '</a></td>';
                 } else
                     html += '<td></td>';
 
