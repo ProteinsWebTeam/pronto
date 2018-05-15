@@ -2452,8 +2452,10 @@ def api_methods_taxonomy(methods):
     )
 
     taxons = {}
+    max_prots = 0
     for row in cur:
         tax_id = row[0]
+        n_prots = row[3]
 
         if tax_id in taxons:
             t = taxons[tax_id]
@@ -2464,14 +2466,18 @@ def api_methods_taxonomy(methods):
                 'methods': {}
             }
 
-        t['methods'][row[2]] = row[3]
+        t['methods'][row[2]] = n_prots
+
+        if n_prots > max_prots:
+            max_prots = n_prots
 
     cur.close()
 
     return jsonify({
         'taxon': taxon,
         'rank': rank,
-        'results': sorted(taxons.values(), key=lambda x: (0 if x['id'] else 1, -sum(x['methods'].values())))
+        'results': sorted(taxons.values(), key=lambda x: (0 if x['id'] else 1, -sum(x['methods'].values()))),
+        'max': max_prots
     })
 
 
@@ -2514,6 +2520,7 @@ def api_methods_descriptions(methods):
     )
 
     descriptions = {}
+    max_prot = 0
     for desc_id, desc, method_ac, n_prot in cur:
         if desc_id in descriptions:
             d = descriptions[desc_id]
@@ -2526,11 +2533,15 @@ def api_methods_descriptions(methods):
 
         d['methods'][method_ac] = n_prot
 
+        if n_prot > max_prot:
+            max_prot = n_prot
+
     cur.close()
 
     return jsonify({
         'results': sorted(descriptions.values(), key=lambda x: (-max(x['methods'].values()), x['value'])),
         'database': source_db,
+        'max': max_prot
     })
 
 
@@ -2593,15 +2604,21 @@ def api_methods_go(methods):
 
     cur.close()
 
+    max_prot = 0
     for t in terms.values():
         for m in t['methods'].values():
-            m['proteins'] = len(m['proteins'])
+            n_prot = len(m['proteins'])
+            m['proteins'] = n_prot
             m['references'] = len(m['references'])
+
+            if n_prot > max_prot:
+                max_prot = n_prot
 
     return jsonify({
         # Sort by sum of proteins counts (desc), and GO ID (asc)
         'results': sorted(terms.values(), key=lambda t: (-max(m['proteins'] for m in t['methods'].values()), t['id'])),
         'aspects': aspects,
+        'max': max_prot
     })
 
 
@@ -2642,6 +2659,7 @@ def api_methods_comments(methods):
     )
 
     comments = {}
+    max_prot = 0
     for method_ac, comment_id, comment, n_prot in cur:
         if comment_id in comments:
             c = comments[comment_id]
@@ -2654,6 +2672,9 @@ def api_methods_comments(methods):
 
         c['methods'][method_ac] = n_prot
 
+        if n_prot > max_prot:
+            max_prot = n_prot
+
     cur.close()
 
     return jsonify({
@@ -2661,7 +2682,8 @@ def api_methods_comments(methods):
             'id': topic_id,
             'value': get_topic(topic_id)
         },
-        'results': sorted(comments.values(), key=lambda x: -max(x['methods'].values()))
+        'results': sorted(comments.values(), key=lambda x: -max(x['methods'].values())),
+        'max': max_prot
     })
 
 
