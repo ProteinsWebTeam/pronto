@@ -1519,6 +1519,17 @@ function ComparisonViews(methodsIds) {
             });
         });
 
+        Array.from(document.querySelectorAll('#enzymes input[type=radio]')).forEach(radio => {
+            radio.addEventListener('change', e => {
+                if (e.target.checked) {
+                    const baseUrl = getPathName(history.state.url);
+                    const params = extendObj(getParams(history.state.url), {db: e.target.value});
+                    history.pushState({}, '', baseUrl + encodeParams(params));
+                    self.getEnzymes();
+                }
+            });
+        });
+
         Array.from(document.querySelectorAll('#matches input[type=radio]')).forEach(radio => {
             radio.addEventListener('change', e => {
                 if (e.target.checked) {
@@ -1735,6 +1746,7 @@ function ComparisonViews(methodsIds) {
             this.proteinList.open(methodId, search, header);
         });
 
+        div.querySelector('input[type=radio][value="'+ data.database +'"]').checked = true;
         setClass(div, 'hidden', false);
     };
 
