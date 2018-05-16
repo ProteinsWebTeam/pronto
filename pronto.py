@@ -213,10 +213,10 @@ def build_method2protein_sql(methods, **kwargs):
             ) MNC ON M2P.PROTEIN_AC = MNC.PROTEIN_AC
         """.format(
             app.config['DB_SCHEMA'],
-            ','.join([':mustnt' + str(i) for i in range(len(must))])
+            ','.join([':mustnt' + str(i) for i in range(len(mustnt))])
         )
         mustnt_cond = 'AND MNC.PROTEIN_AC IS NULL'
-        params.update({'mustnt' + str(i): acc for i, acc in enumerate(must)})
+        params.update({'mustnt' + str(i): acc for i, acc in enumerate(mustnt)})
     else:
         mustnt_join = ''
         mustnt_cond = ''
