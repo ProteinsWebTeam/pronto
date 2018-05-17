@@ -2219,12 +2219,9 @@ def api_methods_matches(methods):
     except KeyError:
         go_id = None
 
-    try:
-        db = request.args['db'].upper()
-    except KeyError:
-        db = None
-    else:
-        db = db if db in ('S', 'T') else None
+    db = request.args.get('db', 'S').upper()
+    if db not in ('S', 'T'):
+        db = NotImplementedError
 
     code = request.args.get('code')
     force = request.args.get('force', '').split(',')
@@ -2398,7 +2395,7 @@ def api_methods_matches(methods):
         'proteins': _proteins,
         'maxLength': max_len,
         'taxon': taxon,
-        'database': db,
+        'database': db if db else 'U',
         'pageInfo': {
             'page': page,
             'pageSize': page_size
