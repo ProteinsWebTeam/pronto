@@ -2208,7 +2208,7 @@ function ComparisonViews(methodsIds) {
             });
         }
 
-        div.querySelector('input[type=radio][value="'+ nvl(data.database, 'U') +'"]').checked = true;
+        div.querySelector('input[type=radio][value="'+ data.database +'"]').checked = true;
         setClass(div, 'hidden', false);
         showDimmer(false);
     };
