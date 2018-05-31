@@ -636,6 +636,8 @@ def add_comment(entry_ac, author, comment, comment_type='entry'):
 def get_entry(entry_ac):
     cur = get_db().cursor()
 
+    print(entry_ac)
+
     cur.execute(
         """
         SELECT
@@ -644,7 +646,7 @@ def get_entry(entry_ac):
           E.ENTRY_TYPE,
           ET.ABBREV,
           E.CHECKED,
-          (SELECT COUNT(*) FROM INTERPRO.MV_ENTRY2PROTEIN MVEP WHERE MVEP.ENTRY_AC = :1),
+          NVL(EM.PROTEIN_COUNT, 0),
           E.CREATED,
           E.TIMESTAMP
         FROM INTERPRO.ENTRY E
@@ -667,7 +669,7 @@ def get_entry(entry_ac):
               E.ENTRY_TYPE,
               ET.ABBREV,
               E.CHECKED,
-              (SELECT COUNT(*) FROM INTERPRO.MV_ENTRY2PROTEIN MVEP WHERE MVEP.ENTRY_AC = :1),
+              NVL(EM.PROTEIN_COUNT, 0),
               E.CREATED,
               E.TIMESTAMP,
               E.ENTRY_AC
