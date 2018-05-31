@@ -636,8 +636,6 @@ def add_comment(entry_ac, author, comment, comment_type='entry'):
 def get_entry(entry_ac):
     cur = get_db().cursor()
 
-    print(entry_ac)
-
     cur.execute(
         """
         SELECT
