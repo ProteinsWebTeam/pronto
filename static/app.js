@@ -199,7 +199,6 @@ function getJSON(url, callback) {
     _processResults = true;
     let xhr = new XMLHttpRequest();
     xhr.onload = function () {
-        console.log(_processResults);
         if (_processResults)
             callback(JSON.parse(this.responseText), xhr.status);
     };
