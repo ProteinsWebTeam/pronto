@@ -2221,7 +2221,7 @@ def api_methods_matches(methods):
 
     db = request.args.get('db', 'S').upper()
     if db not in ('S', 'T'):
-        db = NotImplementedError
+        db = None
 
     code = request.args.get('code')
     force = request.args.get('force', '').split(',')
