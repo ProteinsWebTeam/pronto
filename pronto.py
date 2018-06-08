@@ -450,9 +450,9 @@ def get_unintegrated(dbcode, mode='newint', search=None):
                 if p['relation'] == 'ADD_TO':
                     add_to[feature] = e_type
                 elif p['relation'] == 'PARENT_OF':
-                    parents.add(feature)
-                elif p['relation'] == 'CHILD_OF':
                     children.add(feature)
+                elif p['relation'] == 'CHILD_OF':
+                    parents.add(feature)
 
             _methods.append({
                 'id': m['id'],
