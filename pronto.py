@@ -424,11 +424,11 @@ def get_unintegrated(dbcode, mode='newint', search=None):
     elif mode == 'exist':
         # Method must have at least one InterPro prediction
         def test_method(m):
-            return len([p for p in m['predictions'] if p['relation'] == 'ADDTO' and p['type'] is not None])
+            return len([p for p in m['predictions'] if p['relation'] == 'ADD_TO' and p['type'] is not None])
     elif mode == 'newint':
         # Method must have at least one prediction that is an unintegrated candidate signature
         def test_method(m):
-            return len([p for p in m['predictions'] if p['relation'] == 'ADDTO' and p['type'] is None and p['isCandidate']])
+            return len([p for p in m['predictions'] if p['relation'] == 'ADD_TO' and p['type'] is None and p['isCandidate']])
     else:
         # Invalid mode
         def test_method(m):
@@ -447,7 +447,7 @@ def get_unintegrated(dbcode, mode='newint', search=None):
                 feature = p['id']
                 e_type = p['type']
 
-                if p['relation'] == 'ADDTO':
+                if p['relation'] == 'ADD_TO':
                     add_to[feature] = e_type
                 elif p['relation'] == 'PARENT_OF':
                     parents.add(feature)
