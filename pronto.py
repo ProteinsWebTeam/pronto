@@ -1027,7 +1027,8 @@ def get_protein(protein_ac):
           P.DBCODE,
           P.TAX_ID,
           E.FULL_NAME,
-          E.SCIENTIFIC_NAME
+          E.SCIENTIFIC_NAME,
+          P.FRAGMENT
         FROM {0}.PROTEIN P
         LEFT OUTER JOIN {0}.ETAXI E ON P.TAX_ID = E.TAX_ID
         WHERE PROTEIN_AC = :1
@@ -1050,7 +1051,8 @@ def get_protein(protein_ac):
             'id': row[3],
             'fullName': row[4],
             'scientificName': row[5]
-        }
+        },
+        'isFragment': row[6] == 'Y',
     }
 
     cur.execute(
