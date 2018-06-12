@@ -659,6 +659,13 @@ function ProteinView() {
             return html;
         };
 
+        const message = document.querySelector('#protein .ui.message');
+        if (protein.isFragment) {
+            message.className = 'ui warning message';
+            message.innerHTML = '<div class="header">Sequence fragment</div>The canonical sequence for this protein is a fragment. The protein is not considered when comparing signatures.';
+        } else
+            message.className = 'ui hidden message';
+
         let html = '';
 
         // Protein family membership
