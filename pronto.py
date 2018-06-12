@@ -1403,9 +1403,12 @@ def api_search():
     params = urllib.parse.urlencode({
         'query': search,
         'format': 'json',
+        'fields': 'id,name,type',
         'size': page_size,
         'start': (page - 1) * page_size
     })
+
+    cur.close()
 
     try:
         req = urllib.request.urlopen('http://www.ebi.ac.uk/ebisearch/ws/rest/interpro?{}'.format(params))
@@ -1415,26 +1418,14 @@ def api_search():
         hit_count = 0
     else:
         hit_count = res['hitCount']
-        hits = [e['id'] for e in res['entries']]
-
-    if hits:
-        cur.execute(
-            """
-            SELECT ENTRY_AC, ENTRY_TYPE, NAME
-            FROM INTERPRO.ENTRY
-            WHERE ENTRY_AC IN ({})
-            """.format(','.join([':' + str(i+1) for i in range(len(hits))])),
-            hits
-        )
-
-        names = {entry_ac: (name, entry_type) for entry_ac, entry_type, name in cur}
-        hits = [{
-            'id': entry_ac,
-            'name': names[entry_ac][0],
-            'type': names[entry_ac][1]
-        } for entry_ac in hits if entry_ac in names]
-
-    cur.close()
+        hits = []
+        print(res)
+        for e in res['entries']:
+            hits.append({
+                'id': e['id'],
+                'name': e['fields']['name'][0],  # EBI search returns an array of name/type fields
+                'type': e['fields']['type'][0][0].upper()  # Take the first char only (will display a label on client)
+            })
 
     return jsonify({
         'entries': list(sorted(set(entry_accs))),
