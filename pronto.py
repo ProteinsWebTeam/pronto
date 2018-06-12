@@ -2402,11 +2402,10 @@ def api_methods_taxonomy(methods):
           M2P.METHOD_AC,
           COUNT(DISTINCT M2P.PROTEIN_AC)
         FROM {0}.METHOD2PROTEIN M2P
-          LEFT OUTER JOIN {0}.LINEAGE L ON M2P.LEFT_NUMBER = L.LEFT_NUMBER
+          LEFT OUTER JOIN {0}.LINEAGE L ON M2P.LEFT_NUMBER = L.LEFT_NUMBER AND L.RANK = :rank
           LEFT OUTER JOIN {0}.ETAXI E ON L.TAX_ID = E.TAX_ID
         WHERE M2P.METHOD_AC IN ({1})
               AND M2P.LEFT_NUMBER BETWEEN :ln AND :rn
-              AND L.RANK = :rank
         GROUP BY M2P.METHOD_AC, L.TAX_ID
         """.format(app.config['DB_SCHEMA'], fmt),
         params
