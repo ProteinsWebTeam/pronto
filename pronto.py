@@ -1419,7 +1419,6 @@ def api_search():
     else:
         hit_count = res['hitCount']
         hits = []
-        print(res)
         for e in res['entries']:
             hits.append({
                 'id': e['id'],
@@ -1439,39 +1438,6 @@ def api_search():
             'pageSize': page_size
         }
     })
-
-    if s == 0:
-        # No matches
-        r['error'] = 'Your search returned no matches.'
-    elif s > 1:
-        # Ambiguous
-        r['error'] = 'Your search returned no matches.'
-    elif len(entries) == 1:
-        # InterPro entry
-        r.update({
-            'status': True,
-            'url': '/entry/{}'.format(entries[0]),
-        })
-    elif len(proteins) == 1:
-        r.update({
-            'status': True,
-            'url': '/protein/{}'.format(proteins[0]),
-        })
-    elif len(methods) > 1:
-        r.update({
-            'status': True,
-            'url': '/methods/{}'.format('/'.join(methods)),
-        })
-    elif len(methods) == 1:
-        r.update({
-            'status': True,
-            'url': '/method/{}'.format(methods[0]),
-        })
-    else:
-        # Ambiguous again (e.g. multiple InterPro entries)
-        r['error'] = 'Your search returned no matches.'
-
-    return jsonify(r)
 
 
 @app.route('/api/comment/<comment_type>/<comment_id>/',  strict_slashes=False, methods=['POST'])
