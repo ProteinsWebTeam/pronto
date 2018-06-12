@@ -234,13 +234,9 @@ def build_method2protein_sql(methods, **kwargs):
 
     # Exclude proteins that are not associated to the passed UniProt description
     if desc_id:
-        desc_join = 'INNER JOIN {}.PROTEIN_DESC PD ON M2P.PROTEIN_AC = PD.PROTEIN_AC'.format(
-            app.config['DB_SCHEMA']
-        )
-        desc_cond = 'AND PD.DESC_ID = :descid'
+        desc_cond = 'AND M2P.DESC_ID = :descid'
         params['descid'] = desc_id
     else:
-        desc_join = ''
         desc_cond = ''
 
     # Exclude proteins that are/aren't reviewed
@@ -299,9 +295,8 @@ def build_method2protein_sql(methods, **kwargs):
         lineage_cond = ''
 
     sql = """
-        SELECT M2P.PROTEIN_AC, MIN(M2P.CONDENSE) CONDENSE, MIN(M2P.LEN) LEN
+        SELECT M2P.PROTEIN_AC, MIN(M2P.CONDENSE) CONDENSE, MIN(M2P.LEN) LEN, MIN(M2P.DESC_ID) DESC_ID
         FROM {}.METHOD2PROTEIN M2P
-        {}
         {}
         {}
         {}
@@ -324,7 +319,7 @@ def build_method2protein_sql(methods, **kwargs):
         app.config['DB_SCHEMA'],
 
         # filter joins
-        must_join, mustnt_join, comment_join, desc_join, go_join, ec_join, lineage_join,
+        must_join, mustnt_join, comment_join, go_join, ec_join, lineage_join,
 
         # 'WHERE M2P.METHOD_AC IN' statement
         may_cond,
@@ -1891,8 +1886,7 @@ def get_method_proteins(method_ac):
           {1}
         ) M2P
         INNER JOIN {0}.PROTEIN P ON M2P.PROTEIN_AC = P.PROTEIN_AC
-        INNER JOIN {0}.PROTEIN_DESC PD ON M2P.PROTEIN_AC = PD.PROTEIN_AC
-        INNER JOIN {0}.DESC_VALUE D ON PD.DESC_ID = D.DESC_ID
+        INNER JOIN {0}.DESC_VALUE D ON M2P.DESC_ID = D.DESC_ID
         INNER JOIN {0}.ETAXI E ON P.TAX_ID = E.TAX_ID
         ORDER BY M2P.PROTEIN_AC
         """.format(app.config['DB_SCHEMA'], source_cond),
@@ -2023,8 +2017,7 @@ def api_method_proteins(method_ac):
             ) WHERE RN >= :i_start
 
         ) M2P ON P.PROTEIN_AC = M2P.PROTEIN_AC
-        INNER JOIN {0}.PROTEIN_DESC PD ON P.PROTEIN_AC = PD.PROTEIN_AC
-        INNER JOIN {0}.DESC_VALUE DV ON PD.DESC_ID = DV.DESC_ID
+        INNER JOIN {0}.DESC_VALUE DV ON M2P.DESC_ID = DV.DESC_ID
         INNER JOIN {0}.ETAXI E ON P.TAX_ID = E.TAX_ID
         INNER JOIN {0}.MATCH M ON P.PROTEIN_AC = M.PROTEIN_AC
         WHERE M.METHOD_AC = :method
@@ -2466,13 +2459,12 @@ def api_methods_descriptions(methods):
         SELECT M.DESC_ID, D.TEXT, M.METHOD_AC, M.N_PROT
         FROM (
                SELECT
-                 PD.DESC_ID,
+                 M2P.DESC_ID,
                  M2P.METHOD_AC,
                  COUNT(DISTINCT M2P.PROTEIN_AC) N_PROT
                FROM {0}.METHOD2PROTEIN M2P
-                 INNER JOIN {0}.PROTEIN_DESC PD ON M2P.PROTEIN_AC = PD.PROTEIN_AC
                WHERE METHOD_AC IN ({1}) {2}
-               GROUP BY M2P.METHOD_AC, PD.DESC_ID
+               GROUP BY M2P.METHOD_AC, M2P.DESC_ID
              ) M
           INNER JOIN {0}.DESC_VALUE D ON M.DESC_ID = D.DESC_ID
         """.format(app.config['DB_SCHEMA'], meth_var, source_cond),
