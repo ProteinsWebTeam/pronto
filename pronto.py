@@ -1388,7 +1388,7 @@ def api_search():
             continue
 
         cur.execute(
-            'SELECT PROTEIN_AC from {}.PROTEIN WHERE PROTEIN_AC = :1'.format(app.config['DB_SCHEMA']),
+            'SELECT PROTEIN_AC from {}.PROTEIN WHERE PROTEIN_AC = :1 OR NAME = :1'.format(app.config['DB_SCHEMA']),
             (term.upper(),)
         )
         row = cur.fetchone()
