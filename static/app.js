@@ -2861,7 +2861,7 @@ function SearchView() {
                 if (data[e.key].length === 1)
                     urls.push(e.page + data[e.key][0]);
 
-                html += '<li>'+ e.label +': ' + data[e.key].map(x => '<a href="'+ e.page + x +'">'+ x +'</a>').join(',') + '</li>';
+                html += '<li>'+ e.label +': ' + data[e.key].map(x => '<a href="'+ e.page + x +'">'+ x +'</a>').join(', ') + '</li>';
             }
         });
 
