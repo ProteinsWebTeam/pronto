@@ -1931,8 +1931,8 @@ def get_method_proteins(method_ac):
 @app.route('/api/method/<method_ac>/proteins/')
 def api_method_proteins(method_ac):
     try:
-        taxon_id = int(request.args.get('taxon'))
-    except (TypeError, ValueError):
+        taxon_id = int(request.args['taxon'])
+    except (KeyError, ValueError):
         taxon = None
     else:
         taxon = get_taxon(taxon_id)
@@ -2134,8 +2134,8 @@ def api_methods_matches(methods):
     try:
         taxon_id = int(request.args['taxon'])
     except (KeyError, ValueError):
-        taxon_id = 1
-    finally:
+        taxon = None
+    else:
         taxon = get_taxon(taxon_id)
 
     try:
@@ -2346,7 +2346,7 @@ def api_methods_matches(methods):
         'count': n_proteins,
         'proteins': _proteins,
         'maxLength': max_len,
-        'taxon': taxon,
+        'taxon': taxon if taxon else get_taxon(1),
         'database': db if db else 'U',
         'pageInfo': {
             'page': page,
@@ -2366,10 +2366,10 @@ def api_methods_taxonomy(methods):
     methods = [m.strip() for m in methods.split('/') if m.strip()]
 
     try:
-        taxon_id = int(request.args.get('taxon', ''))
-    except ValueError:
-        taxon_id = 1
-    finally:
+        taxon_id = int(request.args['taxon'])
+    except (KeyError, ValueError):
+        taxon = None
+    else:
         taxon = get_taxon(taxon_id)
 
     ranks = ('superkingdom', 'kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species')
@@ -2382,9 +2382,14 @@ def api_methods_taxonomy(methods):
 
     fmt = ','.join([':meth' + str(i) for i in range(len(methods))])
     params = {'meth' + str(i): method for i, method in enumerate(methods)}
-    params['ln'] = taxon['leftNumber']
-    params['rn'] = taxon['rightNumber']
     params['rank'] = rank
+
+    if taxon:
+        params['ln'] = taxon['leftNumber']
+        params['rn'] = taxon['rightNumber']
+        tax_cond = 'AND M2P.LEFT_NUMBER BETWEEN :ln AND :rn'
+    else:
+        tax_cond = ''
 
     cur = get_db().cursor()
     cur.execute(
@@ -2398,9 +2403,9 @@ def api_methods_taxonomy(methods):
           LEFT OUTER JOIN {0}.LINEAGE L ON M2P.LEFT_NUMBER = L.LEFT_NUMBER AND L.RANK = :rank
           LEFT OUTER JOIN {0}.ETAXI E ON L.TAX_ID = E.TAX_ID
         WHERE M2P.METHOD_AC IN ({1})
-              AND M2P.LEFT_NUMBER BETWEEN :ln AND :rn
+              {2}
         GROUP BY M2P.METHOD_AC, L.TAX_ID
-        """.format(app.config['DB_SCHEMA'], fmt),
+        """.format(app.config['DB_SCHEMA'], fmt, tax_cond),
         params
     )
 
@@ -2427,7 +2432,7 @@ def api_methods_taxonomy(methods):
     cur.close()
 
     return jsonify({
-        'taxon': taxon,
+        'taxon': taxon if taxon else get_taxon(1),
         'rank': rank,
         'results': sorted(taxons.values(), key=lambda x: (0 if x['id'] else 1, -sum(x['methods'].values()))),
         'max': max_prots
