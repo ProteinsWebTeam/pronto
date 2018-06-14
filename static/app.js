@@ -2770,9 +2770,9 @@ function IndexView() {
             this.renderDatabases(data);
         });
 
-        // getJSON('/api/feed?n=10', (data, status) => {
-        //     this.renderFeed(data);
-        // });
+        getJSON('/api/feed?n=15', (data, status) => {
+            this.renderFeed(data);
+        });
     };
 
     this.renderDatabases = function (data) {
@@ -2794,34 +2794,28 @@ function IndexView() {
     };
 
     this.renderFeed = function (data) {
-        const html = [];
+        let html = '';
         data.results.forEach(e => {
             const date = new Date(e.timestamp * 1000);
             const timeDelta = Math.floor(Date.now() / 1000) - e.timestamp;
 
-            let event = '<div class="event">' +
-                '<div class="label"><span class="ui large type-'+ e.type +' circular label">'+ e.type +'</span></div>' +
+            html += '<div class="event">' +
                 '<div class="content"><div class="date"><abbr title="'+ date.toLocaleString() +'">';
 
             if (timeDelta < 60)
-                event += timeDelta.toString() + 's';
+                html += timeDelta.toString() + 's';
             else if (timeDelta < 3600)
-                event += Math.floor(timeDelta / 60).toString() + 'm';
+                html += Math.floor(timeDelta / 60).toString() + 'm';
             else if (timeDelta < (3600 * 24))
-                event += Math.floor(timeDelta / 3600).toString() + 'h';
+                html += Math.floor(timeDelta / 3600).toString() + 'h';
             else
-                event += date.toLocaleDateString();
+                html += date.toLocaleDateString();
 
-            event += '</abbr></div>';
-            event += '<div class="summary"><a class="user">'+ e.user +'</a> created <a href="/entry/'+ e.id +'">'+ e.id +'</a></div>';
-
-            if (e.count)
-                event += '<div class="extra text">'+ e.count +' proteins</div>';
-
-            html.push(event + '</div></div>')
+            html += '</abbr></div>';
+            html += '<div class="summary"><a class="user">'+ e.user +'</a> '+ e.event +'</div></div></div>';
         });
 
-        this.section.querySelector('.ui.feed').innerHTML = html.join('');
+        this.section.querySelector('.ui.feed').innerHTML = html
     };
 }
 

@@ -1,19 +1,31 @@
 {% include 'header.html' %}
 
 <section id="index" class="ui container basic vertical hidden segment">
-    <table class="ui selectable table">
-        <thead>
-        <tr>
-            <th><i class="database icon"></i>Member databases</th>
-            <th>Signatures</th>
-            <th>Integrated</th>
-            <th>Unintegrated</th>
-        </tr>
-        </thead>
-        <tbody>
+    <div class="ui divided grid">
+        <div class="row">
+            <div class="twelve wide column">
+                <table class="ui selectable table">
+                    <thead>
+                    <tr>
+                        <th><i class="database icon"></i>Member databases</th>
+                        <th>Signatures</th>
+                        <th>Integrated</th>
+                        <th>Unintegrated</th>
+                    </tr>
+                    </thead>
+                    <tbody>
 
-        </tbody>
-    </table>
+                    </tbody>
+                </table>
+            </div>
+            <div class="four wide column">
+                <h3 class="ui header">
+                    <i class="feed icon"></i>Latest integrations
+                </h3>
+                <div class="ui feed"></div>
+            </div>
+        </div>
+    </div>
 </section>
 
 <section id="comparison" class="ui container basic vertical hidden segment">

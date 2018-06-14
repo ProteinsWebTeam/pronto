@@ -2794,12 +2794,40 @@ def api_feed():
         n = int(request.args['n'])
     except (KeyError, ValueError):
         n = 20
-    finally:
-        feed = get_latest_entries(n)
+
+    cur = get_db().cursor()
+    cur.execute(
+        """
+        SELECT *
+        FROM (
+          SELECT U.NAME, EM.TIMESTAMP, EM.METHOD_AC, EM.ENTRY_AC, E.ENTRY_TYPE
+          FROM INTERPRO.ENTRY2METHOD_AUDIT EM
+            INNER JOIN INTERPRO.ENTRY E ON EM.ACTION = 'I' AND EM.ENTRY_AC = E.ENTRY_AC
+            INNER JOIN INTERPRO.USER_PRONTO U ON EM.DBUSER = U.DB_USER
+          ORDER BY EM.TIMESTAMP DESC
+        ) WHERE ROWNUM <= :1
+        """,
+        (n,)
+    )
+
+    events = []
+    for row in cur:
+        events.append({
+            'user': row[0].split()[0],
+            'timestamp': row[1].timestamp(),
+            'event': (
+                'integrated <a href="/method/{0}/">{0}</a> '
+                'into <a href="/entry/{1}/" class="type-{2}">{1}</a>'.format(
+                    row[2], row[3], row[4]
+                )
+            )
+        })
+
+    cur.close()
 
     return jsonify({
-        'count': len(feed),
-        'results': feed
+        'count': len(events),
+        'results': events
     })
 
 
