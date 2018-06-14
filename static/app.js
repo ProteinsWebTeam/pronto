@@ -1127,7 +1127,7 @@ function EntryView() {
                 if (term.replacedBy)
                     goTerms[term.category] += '&nbsp;<span class="ui tiny yellow label">Secondary</span>';
 
-                goTerms[term.category] += '<i class="right floated plus icon"></i>' +
+                goTerms[term.category] += '<i class="right-floated caret left icon"></i>' +
                     '<p class="hidden">'+ term.definition +'</p>' +
                     '</dd>';
             }
@@ -1139,17 +1139,17 @@ function EntryView() {
         content += '<dt>Cellular Component</dt>' + (goTerms['C'].length ? goTerms['C'] : '<dd>No terms assigned in this category.</dd>');
         document.querySelector('#go-terms + dl').innerHTML = content;
 
-        Array.from(document.querySelectorAll('#go-terms + dl i.right.floated')).forEach(elem => {
+        Array.from(document.querySelectorAll('#go-terms + dl i.right-floated')).forEach(elem => {
             elem.addEventListener('click', e => {
                 const icon = e.target;
                 const block = icon.parentNode.querySelector('p');
 
                 if (block.className === 'hidden') {
                     block.className = '';
-                    icon.className = 'right floated minus icon';
+                    icon.className = 'right-floated caret down icon';
                 } else {
                     block.className = 'hidden';
-                    icon.className = 'right floated plus icon';
+                    icon.className = 'right-floated caret left icon';
                 }
             });
         });

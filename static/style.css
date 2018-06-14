@@ -303,11 +303,11 @@ dd .ui.link.list > a.item:hover, dd .ui.link.list > a.item:hover > i.icon {
     color: #1e70bf;
 }
 
-dl i.right.floated {
+dl i.right-floated {
     float: right;
 }
 
-dl i.right.floated:hover {
+dl i.right-floated:hover {
     cursor: pointer;
 }
 
