@@ -1137,9 +1137,9 @@ function EntryView() {
         content = '<dt>Molecular Function</dt>' + (goTerms['F'].length ? goTerms['F'] : '<dd>No terms assigned in this category.</dd>');
         content += '<dt>Biological Process</dt>' + (goTerms['P'].length ? goTerms['P'] : '<dd>No terms assigned in this category.</dd>');
         content += '<dt>Cellular Component</dt>' + (goTerms['C'].length ? goTerms['C'] : '<dd>No terms assigned in this category.</dd>');
-        document.querySelector('#go-terms + dl').innerHTML = content;
+        document.getElementById('go-terms').parentNode.querySelector('dl').innerHTML = content;
 
-        Array.from(document.querySelectorAll('#go-terms + dl i.right-floated')).forEach(elem => {
+        Array.from(document.getElementById('go-terms').parentNode.querySelectorAll('dl i.right-floated')).forEach(elem => {
             elem.addEventListener('click', e => {
                 const icon = e.target;
                 const block = icon.parentNode.querySelector('p');
