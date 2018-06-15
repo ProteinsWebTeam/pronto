@@ -1640,6 +1640,58 @@ def api_entry_comment(entry_ac):
     })
 
 
+@app.route('/api/entry/<entry_ac>/go/', strict_slashes=False, methods=['POST'])
+def api_entry_go(entry_ac):
+    user = get_user()
+
+    if not user:
+        return jsonify({
+            'status': False,
+            'message': 'Please log in to perform this action.'
+        }), 401
+
+    try:
+        new_terms = set(request.form['ids'].strip().split(','))
+    except (AttributeError, KeyError):
+        return jsonify({
+            'status': False,
+            'message': 'Invalid or missing parameters.'
+        }), 400
+
+    con = get_db()
+    cur = con.cursor()
+
+    cur.execute('SELECT GO_ID FROM INTERPRO.INTERPRO2GO WHERE ENTRY_AC = :1', (entry_ac.upper(),))
+    terms = set([row[0] for row in cur])
+    new_terms -= terms
+
+    res = jsonify({
+        'status': True,
+        'message': None
+    })
+
+    if new_terms:
+        try:
+            cur.executemany(
+                """
+                INSERT INTO INTERPRO.INTERPRO2GO (ENTRY_AC, GO_ID, SOURCE) 
+                VALUES (:1, :2, :3)
+                """,
+                [(entry_ac.upper(), term_id.upper(), 'MANU') for term_id in new_terms]
+            )
+        except cx_Oracle.IntegrityError:
+            res = jsonify({
+                'status': False,
+                'message': 'NOPE'
+            }), 400
+        else:
+            con.commit()
+        finally:
+            cur.close()
+
+    return res
+
+
 @app.route('/api/method/<method_ac>/prediction/')
 def api_prediction(method_ac):
     """

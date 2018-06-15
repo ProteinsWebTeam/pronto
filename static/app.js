@@ -882,6 +882,7 @@ function ProteinView() {
 
 function EntryView() {
     this.section = document.getElementById('entry');
+    this.id = null;
     const self = this;
 
     // Init
@@ -922,6 +923,7 @@ function EntryView() {
 
         getJSON('/api/entry/' + entryId, (data, status) => {
             history.replaceState({data: data, page: 'entry', url: url}, '', url);
+            this.id = data.result.id;
             this.render(data);
             showDimmer(false);
         });
@@ -1137,9 +1139,11 @@ function EntryView() {
         content = '<dt>Molecular Function</dt>' + (goTerms['F'].length ? goTerms['F'] : '<dd>No terms assigned in this category.</dd>');
         content += '<dt>Biological Process</dt>' + (goTerms['P'].length ? goTerms['P'] : '<dd>No terms assigned in this category.</dd>');
         content += '<dt>Cellular Component</dt>' + (goTerms['C'].length ? goTerms['C'] : '<dd>No terms assigned in this category.</dd>');
-        document.getElementById('go-terms').parentNode.querySelector('dl').innerHTML = content;
+        const GoSection = document.getElementById('go-terms').parentNode;
+        GoSection.querySelector('dl').innerHTML = content;
+        GoSection.querySelector('.ui.input input').value = null;  // reset GO terms input
 
-        Array.from(document.getElementById('go-terms').parentNode.querySelectorAll('dl i.right-floated')).forEach(elem => {
+        Array.from(GoSection.querySelectorAll('dl i.right-floated')).forEach(elem => {
             elem.addEventListener('click', e => {
                 const icon = e.target;
                 const block = icon.parentNode.querySelector('p');
@@ -3087,6 +3091,36 @@ $(function () {
 
         messages.querySelector('i.close').addEventListener('click', e => {
             setClass(messages, 'hidden', true);
+        });
+    })();
+
+    // Observe GO term input
+    (function () {
+        function addGoTerms(ids) {
+            postXhr('/api/entry/' + views.entry.id + '/go/', {
+                ids: ids.replace(/,/g, ' ').split(/\s+/).join(',')
+            }, data => {
+                // setClass(textarea.closest('.field'), 'error', !data.status);
+
+                if (!data.status) {
+                    const modal = document.getElementById('error-modal');
+                    modal.querySelector('.content p').innerHTML = data.message;
+                    $(modal).modal('show');
+                } else
+                    views.entry.get(views.entry.id);
+            });
+        }
+
+        const div = document.getElementById('go-terms').parentNode;
+        const input = div.querySelector('.ui.input input');
+        input.addEventListener('keyup', e => {
+            if (e.which === 13 && e.target.value.trim().length)
+                addGoTerms(e.target.value.trim());
+        });
+
+        div.querySelector('.ui.input button').addEventListener('click', e => {
+            if (input.value.trim().length)
+                addGoTerms(input.value.trim());
         });
     })();
 
