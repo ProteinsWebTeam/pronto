@@ -492,14 +492,18 @@ g.ticks text {
     color: rgba(0,0,0,.8);
 }
 
-dl dd a.remove {
+dl dd a[data-id] {
     cursor: pointer;
     color: rgba(0,0,0,.4);
     opacity: 0;
 }
 
-dl dd:hover a.remove {
+dl dd:hover a[data-id] {
     opacity: 1;
+}
+
+dl dd a[data-id]:hover {
+    color: rgba(0,0,0,.8);
 }
 
 .light, .light > a {

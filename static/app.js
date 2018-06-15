@@ -1136,7 +1136,7 @@ function EntryView() {
 
         entry.go.forEach(function (term) {
             if (goTerms.hasOwnProperty(term.category)) {
-                goTerms[term.category] += '<dd data-id="'+ term.id +'"><a target="_blank" href="http://www.ebi.ac.uk/QuickGO/GTerm?id=' + term.id + '">' + term.id + '&nbsp;<i class="external icon"></i></a>&nbsp;' + term.name;
+                goTerms[term.category] += '<dd><a target="_blank" href="http://www.ebi.ac.uk/QuickGO/GTerm?id=' + term.id + '">' + term.id + '&nbsp;<i class="external icon"></i></a>&nbsp;' + term.name;
 
                 if (term.isObsolete)
                     goTerms[term.category] += '&nbsp;<span class="ui tiny red label">Obsolete</span>';
@@ -1144,7 +1144,7 @@ function EntryView() {
                 if (term.replacedBy)
                     goTerms[term.category] += '&nbsp;<span class="ui tiny yellow label">Secondary</span>';
 
-                goTerms[term.category] += '&nbsp;<a class="remove"><i class="remove icon"></i></a>';
+                goTerms[term.category] += '&nbsp;<a data-id="'+ term.id +'"><i class="trash icon"></i></a>';
 
                 goTerms[term.category] += '<i class="right-floated caret left icon"></i>' +
                     '<p class="hidden">'+ term.definition +'</p>' +
@@ -1175,7 +1175,7 @@ function EntryView() {
             });
         });
 
-        Array.from(GoSection.querySelectorAll('dl a.remove')).forEach(elem => {
+        Array.from(GoSection.querySelectorAll('a[data-id]')).forEach(elem => {
             elem.addEventListener('click', e => {
                 const termId = e.target.closest('dd').getAttribute('data-id');
                 deleteXhr('/api/entry/' + self.id + '/go/', {
