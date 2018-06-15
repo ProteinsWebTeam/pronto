@@ -1177,9 +1177,8 @@ function EntryView() {
 
         Array.from(GoSection.querySelectorAll('a[data-id]')).forEach(elem => {
             elem.addEventListener('click', e => {
-                const termId = e.target.closest('dd').getAttribute('data-id');
                 deleteXhr('/api/entry/' + self.id + '/go/', {
-                    ids: termId
+                    ids: elem.getAttribute('data-id')
                 }, data => {
                     if (!data.status) {
                         const modal = document.getElementById('error-modal');
