@@ -492,6 +492,16 @@ g.ticks text {
     color: rgba(0,0,0,.8);
 }
 
+dl dd a.remove {
+    cursor: pointer;
+    color: rgba(0,0,0,.4);
+    opacity: 0;
+}
+
+dl dd:hover a.remove {
+    opacity: 1;
+}
+
 .light, .light > a {
     color: rgba(255, 255, 255, 0.75);
 }

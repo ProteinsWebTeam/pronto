@@ -221,6 +221,21 @@ function postXhr(url, params, callback) {
     xhr.send(postVars.join('&'));
 }
 
+function deleteXhr(url, params, callback) {
+    let xhr = new XMLHttpRequest();
+    xhr.onload = function () {
+        callback(JSON.parse(this.responseText))
+    };
+    xhr.open('DELETE', url, true);
+    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');
+    let postVars = [];
+    for (let key in params) {
+        if (params.hasOwnProperty(key))
+            postVars.push(key + '=' + params[key])
+    }
+    xhr.send(postVars.join('&'));
+}
+
 function getParams(url) {
     let search;
     if (url) {
@@ -1121,13 +1136,15 @@ function EntryView() {
 
         entry.go.forEach(function (term) {
             if (goTerms.hasOwnProperty(term.category)) {
-                goTerms[term.category] += '<dd><a target="_blank" href="http://www.ebi.ac.uk/QuickGO/GTerm?id=' + term.id + '">' + term.id + '&nbsp;<i class="external icon"></i></a>&nbsp;' + term.name;
+                goTerms[term.category] += '<dd data-id="'+ term.id +'"><a target="_blank" href="http://www.ebi.ac.uk/QuickGO/GTerm?id=' + term.id + '">' + term.id + '&nbsp;<i class="external icon"></i></a>&nbsp;' + term.name;
 
                 if (term.isObsolete)
                     goTerms[term.category] += '&nbsp;<span class="ui tiny red label">Obsolete</span>';
 
                 if (term.replacedBy)
                     goTerms[term.category] += '&nbsp;<span class="ui tiny yellow label">Secondary</span>';
+
+                goTerms[term.category] += '&nbsp;<a class="remove"><i class="remove icon"></i></a>';
 
                 goTerms[term.category] += '<i class="right-floated caret left icon"></i>' +
                     '<p class="hidden">'+ term.definition +'</p>' +
@@ -1155,6 +1172,22 @@ function EntryView() {
                     block.className = 'hidden';
                     icon.className = 'right-floated caret left icon';
                 }
+            });
+        });
+
+        Array.from(GoSection.querySelectorAll('dl a.remove')).forEach(elem => {
+            elem.addEventListener('click', e => {
+                const termId = e.target.closest('dd').getAttribute('data-id');
+                deleteXhr('/api/entry/' + self.id + '/go/', {
+                    ids: termId
+                }, data => {
+                    if (!data.status) {
+                        const modal = document.getElementById('error-modal');
+                        modal.querySelector('.content p').innerHTML = data.message;
+                        $(modal).modal('show');
+                    } else
+                        self.get(self.id);
+                });
             });
         });
 
@@ -3100,8 +3133,6 @@ $(function () {
             postXhr('/api/entry/' + views.entry.id + '/go/', {
                 ids: ids.replace(/,/g, ' ').split(/\s+/).join(',')
             }, data => {
-                // setClass(textarea.closest('.field'), 'error', !data.status);
-
                 if (!data.status) {
                     const modal = document.getElementById('error-modal');
                     modal.querySelector('.content p').innerHTML = data.message;

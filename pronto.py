@@ -1640,10 +1640,9 @@ def api_entry_comment(entry_ac):
     })
 
 
-@app.route('/api/entry/<entry_ac>/go/', strict_slashes=False, methods=['POST'])
+@app.route('/api/entry/<entry_ac>/go/', strict_slashes=False, methods=['POST', 'DELETE'])
 def api_entry_go(entry_ac):
     user = get_user()
-
     if not user:
         return jsonify({
             'status': False,
@@ -1651,7 +1650,7 @@ def api_entry_go(entry_ac):
         }), 401
 
     try:
-        new_terms = set(request.form['ids'].strip().split(','))
+        terms = set(request.form['ids'].strip().split(','))
     except (AttributeError, KeyError):
         return jsonify({
             'status': False,
@@ -1660,36 +1659,62 @@ def api_entry_go(entry_ac):
 
     con = get_db()
     cur = con.cursor()
+    if request.method == 'POST':
+        cur.execute('SELECT GO_ID FROM INTERPRO.INTERPRO2GO WHERE ENTRY_AC = :1', (entry_ac.upper(),))
+        _terms = set([row[0] for row in cur])
+        terms -= _terms
 
-    cur.execute('SELECT GO_ID FROM INTERPRO.INTERPRO2GO WHERE ENTRY_AC = :1', (entry_ac.upper(),))
-    terms = set([row[0] for row in cur])
-    new_terms -= terms
+        res = jsonify({
+            'status': True,
+            'message': None
+        })
 
-    res = jsonify({
-        'status': True,
-        'message': None
-    })
+        if terms:
+            try:
+                cur.executemany(
+                    """
+                    INSERT INTO INTERPRO.INTERPRO2GO (ENTRY_AC, GO_ID, SOURCE) 
+                    VALUES (:1, :2, :3)
+                    """,
+                    [(entry_ac.upper(), term_id.upper(), 'MANU') for term_id in terms]
+                )
+            except cx_Oracle.IntegrityError:
+                res = jsonify({
+                    'status': False,
+                    'message': 'Could not add the following GO terms: {}'.format(', '.join(sorted(terms)))
+                }), 400
+            else:
+                con.commit()
+            finally:
+                cur.close()
 
-    if new_terms:
-        try:
-            cur.executemany(
-                """
-                INSERT INTO INTERPRO.INTERPRO2GO (ENTRY_AC, GO_ID, SOURCE) 
-                VALUES (:1, :2, :3)
-                """,
-                [(entry_ac.upper(), term_id.upper(), 'MANU') for term_id in new_terms]
-            )
-        except cx_Oracle.IntegrityError:
-            res = jsonify({
-                'status': False,
-                'message': 'NOPE'
-            }), 400
-        else:
-            con.commit()
-        finally:
-            cur.close()
+        return res
+    else:
+        res = jsonify({
+            'status': True,
+            'message': None
+        })
 
-    return res
+        if terms:
+            try:
+                cur.execute(
+                    """
+                    DELETE FROM INTERPRO.INTERPRO2GO
+                    WHERE ENTRY_AC = :1 AND GO_ID IN ({})
+                    """.format(','.join([':'+str(i+2) for i in range(len(terms))])),
+                    (entry_ac.upper(), *map(str.upper, terms))
+                )
+            except cx_Oracle.IntegrityError:
+                res = jsonify({
+                    'status': False,
+                    'message': 'Could not delete the following GO terms: {}'.format(', '.join(sorted(terms)))
+                }), 400
+            else:
+                con.commit()
+            finally:
+                cur.close()
+
+        return res
 
 
 @app.route('/api/method/<method_ac>/prediction/')
