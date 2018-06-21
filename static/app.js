@@ -221,6 +221,21 @@ function postXhr(url, params, callback) {
     xhr.send(postVars.join('&'));
 }
 
+function deleteXhr(url, params, callback) {
+    let xhr = new XMLHttpRequest();
+    xhr.onload = function () {
+        callback(JSON.parse(this.responseText))
+    };
+    xhr.open('DELETE', url, true);
+    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');
+    let postVars = [];
+    for (let key in params) {
+        if (params.hasOwnProperty(key))
+            postVars.push(key + '=' + params[key])
+    }
+    xhr.send(postVars.join('&'));
+}
+
 function getParams(url) {
     let search;
     if (url) {
@@ -882,6 +897,7 @@ function ProteinView() {
 
 function EntryView() {
     this.section = document.getElementById('entry');
+    this.id = null;
     const self = this;
 
     // Init
@@ -922,6 +938,7 @@ function EntryView() {
 
         getJSON('/api/entry/' + entryId, (data, status) => {
             history.replaceState({data: data, page: 'entry', url: url}, '', url);
+            this.id = data.result.id;
             this.render(data);
             showDimmer(false);
         });
@@ -1127,6 +1144,8 @@ function EntryView() {
                 if (term.replacedBy)
                     goTerms[term.category] += '&nbsp;<span class="ui tiny yellow label">Secondary</span>';
 
+                goTerms[term.category] += '&nbsp;<a data-id="'+ term.id +'"><i class="trash icon"></i></a>';
+
                 goTerms[term.category] += '<i class="right-floated caret left icon"></i>' +
                     '<p class="hidden">'+ term.definition +'</p>' +
                     '</dd>';
@@ -1137,9 +1156,11 @@ function EntryView() {
         content = '<dt>Molecular Function</dt>' + (goTerms['F'].length ? goTerms['F'] : '<dd>No terms assigned in this category.</dd>');
         content += '<dt>Biological Process</dt>' + (goTerms['P'].length ? goTerms['P'] : '<dd>No terms assigned in this category.</dd>');
         content += '<dt>Cellular Component</dt>' + (goTerms['C'].length ? goTerms['C'] : '<dd>No terms assigned in this category.</dd>');
-        document.getElementById('go-terms').parentNode.querySelector('dl').innerHTML = content;
+        const GoSection = document.getElementById('go-terms').parentNode;
+        GoSection.querySelector('dl').innerHTML = content;
+        GoSection.querySelector('.ui.input input').value = null;  // reset GO terms input
 
-        Array.from(document.getElementById('go-terms').parentNode.querySelectorAll('dl i.right-floated')).forEach(elem => {
+        Array.from(GoSection.querySelectorAll('dl i.right-floated')).forEach(elem => {
             elem.addEventListener('click', e => {
                 const icon = e.target;
                 const block = icon.parentNode.querySelector('p');
@@ -1151,6 +1172,21 @@ function EntryView() {
                     block.className = 'hidden';
                     icon.className = 'right-floated caret left icon';
                 }
+            });
+        });
+
+        Array.from(GoSection.querySelectorAll('a[data-id]')).forEach(elem => {
+            elem.addEventListener('click', e => {
+                deleteXhr('/api/entry/' + self.id + '/go/', {
+                    ids: elem.getAttribute('data-id')
+                }, data => {
+                    if (!data.status) {
+                        const modal = document.getElementById('error-modal');
+                        modal.querySelector('.content p').innerHTML = data.message;
+                        $(modal).modal('show');
+                    } else
+                        self.get(self.id);
+                });
             });
         });
 
@@ -3087,6 +3123,34 @@ $(function () {
 
         messages.querySelector('i.close').addEventListener('click', e => {
             setClass(messages, 'hidden', true);
+        });
+    })();
+
+    // Observe GO term input
+    (function () {
+        function addGoTerms(ids) {
+            postXhr('/api/entry/' + views.entry.id + '/go/', {
+                ids: ids.replace(/,/g, ' ').split(/\s+/).join(',')
+            }, data => {
+                if (!data.status) {
+                    const modal = document.getElementById('error-modal');
+                    modal.querySelector('.content p').innerHTML = data.message;
+                    $(modal).modal('show');
+                } else
+                    views.entry.get(views.entry.id);
+            });
+        }
+
+        const div = document.getElementById('go-terms').parentNode;
+        const input = div.querySelector('.ui.input input');
+        input.addEventListener('keyup', e => {
+            if (e.which === 13 && e.target.value.trim().length)
+                addGoTerms(e.target.value.trim());
+        });
+
+        div.querySelector('.ui.input button').addEventListener('click', e => {
+            if (input.value.trim().length)
+                addGoTerms(input.value.trim());
         });
     })();
 
