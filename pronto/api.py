@@ -54,6 +54,190 @@ def get_db():
     return g.oracle_db
 
 
+def build_method2protein_sql(methods, **kwargs):
+    taxon = kwargs.get('taxon')
+    dbcode = kwargs.get('dbcode')
+    desc = kwargs.get('desc')
+    topic = kwargs.get('topic')
+    comment = kwargs.get('comment')
+    goid = kwargs.get('go')
+    ecno = kwargs.get('ecno')
+    rank = kwargs.get('rank')
+    query = kwargs.get('search')
+
+    may = []        # Methods that may match the set of returned proteins
+    must = []       # Methods that must match a protein for this protein to be selected
+    mustnt = []     # Methods that must not match a protein for this protein to be selected
+    for acc, status in methods.items():
+        if status is None:
+            may.append(acc)
+        elif status:
+            must.append(acc)
+        else:
+            mustnt.append(acc)
+
+    # Get proteins matched by any of the 'may', and 'must' signatures
+    may_cond = ','.join([':may' + str(i) for i in range(len(may + must))])
+    params = {'may' + str(i): acc for i, acc in enumerate(may + must)}
+
+    # Exclude proteins that are not matched by any of the 'must' signatures
+    if must:
+        must_join = """
+            INNER JOIN (
+                SELECT PROTEIN_AC, COUNT(DISTINCT METHOD_AC) CT
+                FROM {}.METHOD2PROTEIN
+                WHERE METHOD_AC IN ({})
+                GROUP BY PROTEIN_AC
+            ) MC ON M2P.PROTEIN_AC = MC.PROTEIN_AC
+        """.format(
+            app.config['DB_SCHEMA'],
+            ','.join([':must' + str(i) for i in range(len(must))])
+        )
+        must_cond = 'AND MC.CT = :n_must'
+        params.update({'must' + str(i): acc for i, acc in enumerate(must)})
+        params['n_must'] = len(must)
+    else:
+        must_join = ''
+        must_cond = ''
+
+    # Exclude proteins that are matched by any of the 'mustnt' signatures
+    if mustnt:
+        mustnt_join = """
+            LEFT OUTER JOIN (
+                SELECT DISTINCT PROTEIN_AC
+                FROM {}.METHOD2PROTEIN
+                WHERE METHOD_AC IN ({})
+            ) MNC ON M2P.PROTEIN_AC = MNC.PROTEIN_AC
+        """.format(
+            app.config['DB_SCHEMA'],
+            ','.join([':mustnt' + str(i) for i in range(len(mustnt))])
+        )
+        mustnt_cond = 'AND MNC.PROTEIN_AC IS NULL'
+        params.update({'mustnt' + str(i): acc for i, acc in enumerate(mustnt)})
+    else:
+        mustnt_join = ''
+        mustnt_cond = ''
+
+    # Exclude proteins that are not associated to the passed SwissProt topic/comment ID
+    if topic and comment:
+        comment_join = 'INNER JOIN {}.PROTEIN_COMMENT PC ON M2P.PROTEIN_AC = PC.PROTEIN_AC'.format(
+            app.config['DB_SCHEMA']
+        )
+        comment_cond = 'AND PC.TOPIC_ID = :topicid AND PC.COMMENT_ID = :commentid'
+        params.update({'topicid': topic, 'commentid': comment})
+    else:
+        comment_join = ''
+        comment_cond = ''
+
+    # Exclude proteins that are not associated to the passed UniProt description
+    if desc:
+        desc_cond = 'AND M2P.DESC_ID = :descid'
+        params['descid'] = desc
+    else:
+        desc_cond = ''
+
+    # Exclude proteins that are/aren't reviewed
+    if dbcode:
+        source_cond = 'AND M2P.DBCODE = :sourcedb'
+        params['sourcedb'] = dbcode
+    else:
+        source_cond = ''
+
+    # Filter by search (on accession only, not name)
+    if query:
+        search_cond = 'AND M2P.PROTEIN_AC LIKE :search_like'
+        params['search_like'] = query + '%'
+    else:
+        search_cond = ''
+
+    # Filter by taxon
+    if taxon:
+        taxon = get_taxon(taxon)
+        tax_cond = 'AND M2P.LEFT_NUMBER BETWEEN :ln AND :rn'
+        params['ln'] = int(taxon['leftNumber'])
+        params['rn'] = int(taxon['rightNumber'])
+    else:
+        tax_cond = ''
+
+    # Exclude proteins that are not associated to the passed GO term ID
+    if goid:
+        go_join = 'INNER JOIN {}.PROTEIN2GO P2G ON M2P.PROTEIN_AC = P2G.PROTEIN_AC'.format(
+            app.config['DB_SCHEMA']
+        )
+        go_cond = 'AND P2G.GO_ID = :goid'
+        params['goid'] = goid
+    else:
+        go_join = ''
+        go_cond = ''
+
+    # Exclude proteins that are not associated to the passed EC number
+    if ecno:
+        ec_join = 'INNER JOIN {}.ENZYME EZ ON M2P.PROTEIN_AC = EZ.PROTEIN_AC'.format(
+            app.config['DB_SCHEMA']
+        )
+        ec_cond = 'AND EZ.ECNO = :ecno'
+        params['ecno'] = ecno
+    else:
+        ec_join = ''
+        ec_cond = ''
+
+    # Exclude proteins that are not associated to a taxon of the passed rank
+    if rank:
+        lineage_join = 'LEFT OUTER JOIN {}.LINEAGE L ON M2P.LEFT_NUMBER = L.LEFT_NUMBER AND L.RANK = :rank'.format(
+            app.config['DB_SCHEMA']
+        )
+        lineage_cond = 'AND L.TAX_ID IS NULL'
+        params['rank'] = rank
+    else:
+        lineage_join = ''
+        lineage_cond = ''
+
+    sql = """
+        SELECT M2P.PROTEIN_AC, MIN(M2P.CONDENSE) CONDENSE, MIN(M2P.LEN) LEN, MIN(M2P.DESC_ID) DESC_ID
+        FROM {}.METHOD2PROTEIN M2P
+        {}
+        {}
+        {}
+        {}
+        {}
+        {}
+        WHERE M2P.METHOD_AC IN ({})
+        {}
+        {}
+        {}
+        {}
+        {}
+        {}
+        {}
+        {}
+        {}
+        {}
+        GROUP BY M2P.PROTEIN_AC
+    """.format(
+        app.config['DB_SCHEMA'],
+
+        # filter joins
+        must_join, mustnt_join, comment_join, go_join, ec_join, lineage_join,
+
+        # 'WHERE M2P.METHOD_AC IN' statement
+        may_cond,
+
+        # Other conditions
+        must_cond,
+        mustnt_cond,
+        source_cond,
+        search_cond,
+        tax_cond,
+        comment_cond,
+        desc_cond,
+        go_cond,
+        ec_cond,
+        lineage_cond
+    )
+
+    return sql, params
+
+
 def search(query, page=1, page_size=20):
     """
     Search a given string.
@@ -1235,7 +1419,7 @@ def get_method_proteins(method_ac, dbcode=None):
           E.TAX_ID,
           E.FULL_NAME
         FROM (
-          SELECT DISTINCT PROTEIN_AC
+          SELECT DISTINCT PROTEIN_AC, DESC_ID
           FROM {0}.METHOD2PROTEIN
           WHERE METHOD_AC = :1
           {1}
@@ -1957,3 +2141,263 @@ def get_database_unintegrated_methods(dbshort, **kwargs):
             'version': dbversion
         }
     }, 200
+
+
+def get_method_matches(method_ac, **kwargs):
+    page = kwargs.get('page', 1)
+    page_size = kwargs.get('page_size', 25)
+
+    sql, params = build_method2protein_sql({method_ac: None}, **kwargs)
+
+    cur = get_db().cursor()
+    cur.execute(sql, params)
+    proteins_all = [row[0] for row in cur]
+    count = len(proteins_all)
+
+    params['i_start'] = 1 + (page - 1) * page_size
+    params['i_end'] = page * page_size
+    params['method'] = method_ac
+
+    cur.execute(
+        """
+        SELECT P.PROTEIN_AC, P.DBCODE, P.LEN, P.NAME, DV.TEXT, E.TAX_ID, E.FULL_NAME, M.POS_FROM, M.POS_TO
+        FROM {0}.PROTEIN P
+        INNER JOIN (
+            SELECT *
+            FROM (
+                SELECT M2P.*, ROWNUM RN
+                FROM (
+                    {1}
+                    ORDER BY M2P.PROTEIN_AC
+                  ) M2P
+                WHERE ROWNUM <= :i_end
+            ) WHERE RN >= :i_start
+
+        ) M2P ON P.PROTEIN_AC = M2P.PROTEIN_AC
+        INNER JOIN {0}.DESC_VALUE DV ON M2P.DESC_ID = DV.DESC_ID
+        INNER JOIN {0}.ETAXI E ON P.TAX_ID = E.TAX_ID
+        INNER JOIN {0}.MATCH M ON P.PROTEIN_AC = M.PROTEIN_AC
+        WHERE M.METHOD_AC = :method
+        ORDER BY P.PROTEIN_AC
+        """.format(app.config['DB_SCHEMA'], sql),
+        params
+    )
+
+    proteins = {}
+    max_length = 0
+    for row in cur:
+        protein_ac = row[0]
+
+        if protein_ac not in proteins:
+            if row[1] == 'S':
+                url = 'http://sp.isb-sib.ch/uniprot/'
+            else:
+                url = 'http://www.uniprot.org/uniprot/'
+
+            proteins[protein_ac] = {
+                'id': protein_ac,
+                'link': url + protein_ac,
+                'isReviewed': row[1] == 'S',
+                'length': row[2],
+                'shortName': row[3],
+                'name': row[4],
+                'taxon': {'id': row[5], 'fullName': row[6]},
+                'matches': []
+            }
+
+            if row[2] > max_length:
+                max_length = row[2]
+
+        proteins[protein_ac]['matches'].append({
+            'start': row[7],
+            'end': row[8]
+        })
+
+    cur.close()
+
+    return {
+        'list': sorted(proteins_all),
+        'results': sorted(proteins.values(), key=lambda x: x['id']),
+        'maxLength': max_length,
+        'count': count,
+        'pageInfo': {
+            'page': page,
+            'pageSize': page_size
+        }
+    }
+
+
+def get_methods_matches(methods, **kwargs):
+    force = kwargs.get('force', [])
+    exclude = kwargs.get('exclude', [])
+    code = kwargs.get('code')
+    page = kwargs.get('page', 1)
+    page_size = kwargs.get('page_size', 5)
+
+    _methods = {}
+    for m in methods:
+        m = m.strip()
+        if not len(m):
+            continue
+        elif m in force:
+            _methods[m] = True
+        else:
+            _methods[m] = None
+
+    _methods.update({m.strip(): False for m in exclude if len(m.strip())})
+
+    sql, params = build_method2protein_sql(_methods, **kwargs)
+
+    cur = get_db().cursor()
+    if code:
+        params['code'] = code
+
+        cur.execute(
+            """
+            SELECT
+                PROTEIN_AC,
+                CONDENSE
+            FROM (
+                {}
+            )
+            WHERE CONDENSE = :code
+            ORDER BY PROTEIN_AC
+            """.format(sql),
+            params
+        )
+
+        proteins = [(row[0], row[1], 1) for row in cur]
+    else:
+        cur.execute(
+            """
+            SELECT
+                PROTEIN_AC,
+                CONDENSE,
+                N_PROT
+            FROM (
+                SELECT
+                    PROTEIN_AC,
+                    CONDENSE,
+                    COUNT(*) OVER (PARTITION BY CONDENSE) AS N_PROT,
+                    ROW_NUMBER() OVER (PARTITION BY CONDENSE ORDER BY LEN) AS RN
+                FROM (
+                    {}
+                )
+            )
+            WHERE RN = 1
+            ORDER BY N_PROT DESC, PROTEIN_AC
+            """.format(sql),
+            params
+        )
+        proteins = [row for row in cur]
+
+    n_proteins = len(proteins)
+    max_len = 0
+    _proteins = []
+
+    if n_proteins:
+        # Select requested page
+        proteins = proteins[(page - 1) * page_size:page * page_size]
+
+        # Creat list of protein accessions and a dictionary of info for condensed proteins
+        accessions = []
+        codes = {}
+        for acc, code, count in proteins:
+            accessions.append(acc)
+            codes[acc] = {'code': code, 'count': count}
+
+        # Get info on proteins (description, taxon, etc.)
+        proteins_cond = ','.join([':' + str(i + 1) for i in range(len(accessions))])
+        cur.execute(
+            """
+            SELECT MA.PROTEIN_AC, P.DBCODE, P.LEN, D.TEXT, E.FULL_NAME,
+              MA.METHOD_AC, ME.NAME, ME.CANDIDATE, ME.DBCODE,
+              EM.ENTRY_AC,
+              MA.POS_FROM, MA.POS_TO
+            FROM {0}.MATCH MA
+              INNER JOIN {0}.PROTEIN P ON MA.PROTEIN_AC = P.PROTEIN_AC
+              INNER JOIN {0}.PROTEIN_DESC PD ON MA.PROTEIN_AC = PD.PROTEIN_AC
+              INNER JOIN {0}.DESC_VALUE D ON PD.DESC_ID = D.DESC_ID
+              INNER JOIN {0}.ETAXI E ON P.TAX_ID = E.TAX_ID
+              LEFT OUTER JOIN {0}.METHOD ME ON MA.METHOD_AC = ME.METHOD_AC
+              LEFT OUTER JOIN {0}.ENTRY2METHOD EM ON MA.METHOD_AC = EM.METHOD_AC
+            WHERE MA.PROTEIN_AC IN ({1})
+            """.format(app.config['DB_SCHEMA'], proteins_cond),
+            accessions
+        )
+
+        proteins = {}
+        for row in cur:
+            protein_ac = row[0]
+
+            if protein_ac in proteins:
+                p = proteins[protein_ac]
+            else:
+                if row[1] == 'S':
+                    is_reviewed = True
+                    prefix = 'http://sp.isb-sib.ch/uniprot/'
+                else:
+                    is_reviewed = False
+                    prefix = 'http://www.uniprot.org/uniprot/'
+
+                p = proteins[protein_ac] = {
+                    'id': protein_ac,
+                    'isReviewed': is_reviewed,
+                    'length': row[2],
+                    'description': row[3],
+                    'organism': row[4],
+                    'link': prefix + protein_ac,
+                    'code': codes[protein_ac]['code'],
+                    'count': codes[protein_ac]['count'],
+                    'methods': {}
+                }
+
+                if row[2] > max_len:
+                    max_len = row[2]
+
+            method_ac = row[5]
+
+            if method_ac in p['methods']:
+                m = p['methods'][method_ac]
+            else:
+                method_db = row[8]
+                if method_db is not None:
+                    m = xref.find_ref(method_db, method_ac)
+                    method_db = {
+                        'link': m.gen_link(),
+                        'color': m.color
+                    }
+
+                m = p['methods'][method_ac] = {
+                    'id': method_ac,
+                    'name': row[6],
+                    'isCandidate': row[7] == 'Y',
+                    'entryId': row[9],
+                    'isSelected': method_ac in methods,
+                    'db': method_db,
+                    'matches': []
+                }
+
+            m['matches'].append({'start': row[10], 'end': row[11]})
+
+        cur.close()
+
+        for p in sorted(proteins.values(), key=lambda p: (-p['count'], p['id'])):
+            for m in p['methods'].values():
+                m['matches'].sort(key=lambda m: m['start'])
+
+            p['methods'] = sorted(p['methods'].values(),
+                                  key=lambda m: (0 if m['entryId'] else 1, m['entryId'], m['id']))
+            _proteins.append(p)
+
+    return {
+        'count': n_proteins,
+        'proteins': _proteins,
+        'maxLength': max_len,
+        'taxon': get_taxon(kwargs.get['taxon'] if kwargs.get('taxon') else 1),
+        'database': kwargs['dbcode'] if kwargs.get('dbcode') else 'U',
+        'pageInfo': {
+            'page': page,
+            'pageSize': page_size
+        }
+    }

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from flask import jsonify, request
+from flask import jsonify, request, render_template
 
 from pronto import app, api
 
@@ -146,6 +146,57 @@ def entry_go(entry_ac):
     return jsonify(response), status
 
 
+@app.route('/api/method/<method_ac>/proteins/')
+def get_method_proteins(method_ac):
+    try:
+        taxon = int(request.args['taxon'])
+    except (KeyError, ValueError):
+        taxon = None
+
+    try:
+        page = int(request.args['page'])
+    except (KeyError, ValueError):
+        page = 1
+
+    try:
+        page_size = int(request.args['pageSize'])
+    except (KeyError, ValueError):
+        page_size = 25
+
+    try:
+        desc_id = int(request.args['description'])
+    except (KeyError, ValueError):
+        desc_id = None
+
+    try:
+        topic_id = int(request.args['topic'])
+        comment_id = int(request.args['comment'])
+    except (KeyError, ValueError):
+        topic_id = None
+        comment_id = None
+
+    dbcode = request.args.get('db', '').upper()
+    if dbcode not in ('S', 'T'):
+        dbcode = None
+
+    return jsonify(
+        api.get_method_matches(
+            method_ac=method_ac,
+            taxon=taxon,
+            dbcode=dbcode,
+            desc=desc_id,
+            topic=topic_id,
+            comment=comment_id,
+            go=request.args.get('term'),
+            ecno=request.args.get('ec'),
+            rank=request.args.get('rank'),
+            query=request.args.get('search', '').strip(),
+            page=page,
+            page_size=page_size
+        )
+    ), 200
+
+
 @app.route('/api/method/<method_ac>/prediction/')
 def get_method_predictions(method_ac):
     """
@@ -209,6 +260,57 @@ def get_method_references(method_ac, go_id):
 @app.route('/api/method/<method_ac>/proteins/all/')
 def get_method_all_proteins(method_ac):
     return jsonify(api.get_method_proteins(method_ac, dbcode=request.args.get('db'))), 200
+
+
+@app.route('/api/methods/<path:methods>/matches/')
+def api_methods_matches(methods):
+    try:
+        taxon = int(request.args['taxon'])
+    except (KeyError, ValueError):
+        taxon = None
+
+    try:
+        page = int(request.args['page'])
+    except (KeyError, ValueError):
+        page = 1
+
+    try:
+        page_size = int(request.args['pageSize'])
+    except (KeyError, ValueError):
+        page_size = 5
+
+    try:
+        desc_id = int(request.args['description'])
+    except (KeyError, ValueError):
+        desc_id = None
+
+    try:
+        topic_id = int(request.args['topic'])
+        comment_id = int(request.args['comment'])
+    except (KeyError, ValueError):
+        topic_id = None
+        comment_id = None
+
+    dbcode = request.args.get('db', '').upper()
+    if dbcode not in ('S', 'T'):
+        dbcode = None
+
+    api.get_methods_matches(
+        methods=[m.strip() for m in methods.split('/') if m.strip()],
+        dbcode=dbcode,
+        desc=desc_id,
+        topic=topic_id,
+        comment=comment_id,
+        go=request.args.get('term'),
+        ecno=request.args.get('ec'),
+        rank=request.args.get('rank'),
+        query=request.args.get('search', '').strip(),
+        force=request.args.get('force', '').split(','),
+        exclude=request.args.get('exclude', '').split(','),
+        code=request.args.get('code'),
+        page=page,
+        page_size=page_size
+    )
 
 
 @app.route('/api/methods/<path:methods>/enzymes/')
@@ -341,3 +443,9 @@ def get_database_unintegrated_methods(dbshort):
     )
 
     return jsonify(response), status
+
+
+@app.route('/')
+def index():
+    """Home page."""
+    return render_template('index.html', user=api.get_user(), schema=app.config['DB_SCHEMA'])
