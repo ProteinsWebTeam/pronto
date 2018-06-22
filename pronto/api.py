@@ -831,6 +831,50 @@ def add_comment(entry_ac, author, comment, comment_type='entry'):
     return status
 
 
+def delete_comment(ac, comment_id, comment_type):
+    user = get_user()
+
+    if not user:
+        return {
+                   'status': False,
+                   'message': 'Please log in to perform this action.'
+               }, 401
+
+    if comment_type == 'entry':
+        col_name = 'ENTRY_AC'
+        table_name = 'ENTRY_COMMENT'
+    elif comment_type == 'method':
+        col_name = 'METHOD_AC'
+        table_name = 'METHOD_COMMENT'
+    else:
+        return {
+                   'status': False,
+                   'message': 'Invalid or missing parameters.'
+               }, 400
+
+    con = get_db()
+    cur = con.cursor()
+
+    try:
+        cur.execute(
+            "UPDATE INTERPRO.{} SET STATUS = 'N' WHERE {} = :1 AND ID = :2".format(table_name, col_name),
+            (ac, comment_id)
+        )
+    except cx_Oracle.DatabaseError as e:
+        cur.close()
+        return {
+                   'status': False,
+                   'message': 'Could not delete comment for "{}".'.format(ac)
+               }, 400
+    else:
+        con.commit()
+        cur.close()
+        return {
+                   'status': True,
+                   'message': None
+               }, 200
+
+
 def comment_entry(entry_ac, comment):
     user = get_user()
 

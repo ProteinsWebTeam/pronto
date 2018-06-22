@@ -115,6 +115,20 @@ def comment_entry(entry_ac):
     return jsonify(response), status
 
 
+@app.route('/api/entry/<entry_ac>/comment/<comment_id>/', strict_slashes=False, methods=['DELETE'])
+def delete_entry_comment(entry_ac, comment_id):
+    try:
+        comment_id = int(comment_id)
+    except ValueError:
+        return jsonify({
+            'status': False,
+            'message': 'Invalid or missing parameters.'
+        }), 400
+
+    response, status = api.delete_comment(entry_ac, comment_id, 'entry')
+    return jsonify(response), status
+
+
 @app.route('/api/entry/<entry_ac>/go/', strict_slashes=False, methods=['POST', 'DELETE'])
 def entry_go(entry_ac):
     terms = set(request.form.get('ids', '').strip().split(','))
@@ -160,6 +174,20 @@ def comment_method(method_ac):
         }), 400
 
     response, status = api.comment_method(method_ac, comment)
+    return jsonify(response), status
+
+
+@app.route('/api/method/<method_ac>/comment/<comment_id>/',  strict_slashes=False, methods=['DELETE'])
+def delete_method_comment(method_ac, comment_id):
+    try:
+        comment_id = int(comment_id)
+    except ValueError:
+        return jsonify({
+            'status': False,
+            'message': 'Invalid or missing parameters.'
+        }), 400
+
+    response, status = api.delete_comment(method_ac, comment_id, 'method')
     return jsonify(response), status
 
 
