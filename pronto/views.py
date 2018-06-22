@@ -251,7 +251,7 @@ def get_databases():
 
 
 @app.route('/api/db/<dbshort>/')
-def api_db_methods(dbshort):
+def get_database_methods(dbshort):
     try:
         page = int(request.args['page'])
     except (KeyError, ValueError):
@@ -293,7 +293,7 @@ def api_db_methods(dbshort):
 
 
 @app.route('/api/db/<dbshort>/unintegrated/')
-def api_db_unintegrated_methods(dbshort):
+def get_database_unintegrated_methods(dbshort):
     try:
         page = int(request.args['page'])
     except (KeyError, ValueError):
