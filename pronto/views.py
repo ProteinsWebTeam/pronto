@@ -175,12 +175,12 @@ def get_method_comments(method_ac):
 
 @app.route('/api/method/<method_ac>/references/<go_id>')
 def get_method_references(method_ac, go_id):
-    return jsonify(api.get_method_references(method_ac, go_id))
+    return jsonify(api.get_method_references(method_ac, go_id)), 200
 
 
 @app.route('/api/method/<method_ac>/proteins/all/')
 def get_method_all_proteins(method_ac):
-    return jsonify(api.get_method_proteins(method_ac, dbcode=request.args.get('db')))
+    return jsonify(api.get_method_proteins(method_ac, dbcode=request.args.get('db'))), 200
 
 
 @app.route('/api/methods/<path:methods>/enzymes/')
@@ -190,7 +190,7 @@ def get_methods_enzymes(methods):
             methods=[m.strip() for m in methods.split('/') if m.strip()],
             dbcode=request.args.get('db')
         )
-    )
+    ), 200
 
 
 @app.route('/api/methods/<path:methods>/taxonomy/')
@@ -204,4 +204,112 @@ def get_methods_taxonomy(methods):
         methods=[m.strip() for m in methods.split('/') if m.strip()],
         taxon=taxon,
         rank=request.args.get('rank')
-    ))
+    )), 200
+
+
+@app.route('/api/methods/<path:methods>/descriptions/')
+def get_methods_descriptions(methods):
+    return jsonify(api.get_methods_descriptions(
+        methods=[m.strip() for m in methods.split('/') if m.strip()],
+        dbcode=request.args.get('db')
+    )), 200
+
+
+@app.route('/api/methods/<path:methods>/go/')
+def get_methods_go(methods):
+    return jsonify(api.get_methods_go(
+        methods=[m.strip() for m in methods.split('/') if m.strip()],
+        aspects=request.args.get('aspect', '').upper().split(',')
+    )), 200
+
+
+@app.route('/api/methods/<path:methods>/comments/')
+def get_methods_swissprot_comments(methods):
+    try:
+        topic = int(request.args['topic'])
+    except (KeyError, ValueError):
+        topic = 34
+
+    return jsonify(api.get_methods_swissprot_comments(
+        methods=[m.strip() for m in methods.split('/') if m.strip()],
+        topic=topic
+    )), 200
+
+
+@app.route('/api/methods/<path:methods>/matrices/')
+def get_methods_matrixx(methods):
+    return jsonify(
+        api.get_methods_matrix(
+            methods=[m.strip() for m in methods.split('/') if m.strip()]
+        )
+    ), 200
+
+
+@app.route('/api/db/')
+def get_databases():
+    return jsonify(api.get_databases()), 200
+
+
+@app.route('/api/db/<dbshort>/')
+def api_db_methods(dbshort):
+    try:
+        page = int(request.args['page'])
+    except (KeyError, ValueError):
+        page = 1
+
+    try:
+        page_size = int(request.args['pageSize'])
+    except (KeyError, ValueError):
+        page_size = 100
+
+    try:
+        integrated = bool(int(request.args['integrated']))
+    except (KeyError, ValueError):
+        integrated = None
+
+    try:
+        checked = bool(int(request.args['checked']))
+    except (KeyError, ValueError):
+        checked = None
+
+    try:
+        commented = bool(int(request.args['commented']))
+    except (KeyError, ValueError):
+        commented = None
+
+    query = request.args.get('search', '').strip()
+
+    response, status = api.get_database_methods(
+        dbshort,
+        query=query,
+        integrated=integrated,
+        checked=checked,
+        commented=commented,
+        page=page,
+        page_size=page_size
+    )
+
+    return jsonify(response), status
+
+
+@app.route('/api/db/<dbshort>/unintegrated/')
+def api_db_unintegrated_methods(dbshort):
+    try:
+        page = int(request.args['page'])
+    except (KeyError, ValueError):
+        page = 1
+
+    try:
+        page_size = int(request.args['pageSize'])
+    except (KeyError, ValueError):
+        page_size = 100
+
+    response, status = api.get_database_unintegrated_methods(
+        dbshort,
+        query=request.args.get('search', '').strip(),
+        filter=request.args.get('filter', 'exist'),
+        page=page,
+        page_size=page_size
+    )
+
+    return jsonify(response), status

@@ -1243,7 +1243,8 @@ def get_methods_enzymes(methods, dbcode=None):
     params = methods
 
     if dbcode in ('S', 'T'):
-        source_cond = 'AND M2P.DBCODE = :' + str(len(params) + 1)
+        params.append(dbcode)
+        source_cond = 'AND M2P.DBCODE = :' + str(len(params))
     else:
         source_cond = ''
 
@@ -1374,3 +1375,541 @@ def get_methods_taxonomy(methods, taxon=None, rank=None):
         'results': sorted(taxons.values(), key=lambda x: (0 if x['id'] else 1, -sum(x['methods'].values()))),
         'max': max_prots
     }
+
+
+def get_methods_descriptions(methods, dbcode):
+    params = methods
+
+    if dbcode in ('S', 'T'):
+        params.append(dbcode)
+        source_cond = 'AND M2P.DBCODE = :' + str(len(params))
+    else:
+        source_cond = ''
+
+    cur = get_db().cursor()
+    cur.execute(
+        """
+        SELECT M.DESC_ID, D.TEXT, M.METHOD_AC, M.N_PROT
+        FROM (
+               SELECT
+                 M2P.DESC_ID,
+                 M2P.METHOD_AC,
+                 COUNT(DISTINCT M2P.PROTEIN_AC) N_PROT
+               FROM {0}.METHOD2PROTEIN M2P
+               WHERE METHOD_AC IN ({1}) {2}
+               GROUP BY M2P.METHOD_AC, M2P.DESC_ID
+             ) M
+          INNER JOIN {0}.DESC_VALUE D ON M.DESC_ID = D.DESC_ID
+        """.format(
+            app.config['DB_SCHEMA'],
+            ','.join([':' + str(i + 1) for i in range(len(methods))]),
+            source_cond
+        ),
+        params
+    )
+
+    descriptions = {}
+    max_prot = 0
+    for desc_id, desc, method_ac, n_prot in cur:
+        if desc_id in descriptions:
+            d = descriptions[desc_id]
+        else:
+            d = descriptions[desc_id] = {
+                'id': desc_id,
+                'value': desc,
+                'methods': {}
+            }
+
+        d['methods'][method_ac] = n_prot
+
+        if n_prot > max_prot:
+            max_prot = n_prot
+
+    cur.close()
+
+    return {
+        'results': sorted(descriptions.values(), key=lambda x: (-max(x['methods'].values()), x['value'])),
+        'database': dbcode if dbcode in ('S', 'T') else 'U',
+        'max': max_prot
+    }
+
+
+def get_methods_go(methods, aspects):
+    params = {'meth' + str(i): method for i, method in enumerate(methods)}
+    aspects = set(aspects) & {'C', 'P', 'F'}
+
+    if 0 < len(aspects) < 3:
+        aspect_cond = 'AND T.CATEGORY IN ({})'.format(','.join([':aspect' + str(i) for i in range(len(aspects))]))
+        params.update({'aspect' + str(i): aspect for i, aspect in enumerate(aspects)})
+        aspects = list(aspects)
+    else:
+        aspect_cond = ''
+        aspects = ['C', 'P', 'F']
+
+    cur = get_db().cursor()
+    cur.execute(
+        """
+        SELECT M.METHOD_AC, T.GO_ID, T.NAME, T.CATEGORY, P.PROTEIN_AC, P.REF_DB_CODE, P.REF_DB_ID
+        FROM {0}.METHOD2PROTEIN M
+          INNER JOIN {0}.PROTEIN2GO P ON M.PROTEIN_AC = P.PROTEIN_AC
+          INNER JOIN {0}.TERM T ON P.GO_ID = T.GO_ID
+        WHERE M.METHOD_AC IN ({1}) {2}
+        """.format(
+            app.config['DB_SCHEMA'],
+            ','.join([':meth' + str(i) for i in range(len(methods))]),
+            aspect_cond
+        ),
+        params
+    )
+
+    terms = {}
+    for method_ac, go_id, term, aspect, protein_ac, ref_db, ref_id in cur:
+        if go_id in terms:
+            t = terms[go_id]
+        else:
+            t = terms[go_id] = {
+                'id': go_id,
+                'value': term,
+                'methods': {},
+                'aspect': aspect
+            }
+
+        if method_ac in t['methods']:
+            m = t['methods'][method_ac]
+        else:
+            m = t['methods'][method_ac] = {
+                'proteins': set(),
+                'references': set()
+            }
+
+        m['proteins'].add(protein_ac)
+        if ref_db == 'PMID':
+            m['references'].add(ref_id)
+
+    cur.close()
+
+    max_prot = 0
+    for t in terms.values():
+        for m in t['methods'].values():
+            n_prot = len(m['proteins'])
+            m['proteins'] = n_prot
+            m['references'] = len(m['references'])
+
+            if n_prot > max_prot:
+                max_prot = n_prot
+
+    return {
+        # Sort by sum of proteins counts (desc), and GO ID (asc)
+        'results': sorted(terms.values(), key=lambda t: (-max(m['proteins'] for m in t['methods'].values()), t['id'])),
+        'aspects': aspects,
+        'max': max_prot
+    }
+
+
+def get_methods_swissprot_comments(methods, topic=34):
+    params = {'meth' + str(i): method for i, method in enumerate(methods)}
+    params['topicid'] = topic
+
+    comments = {}
+    max_prot = 0
+
+    cur = get_db().cursor()
+    cur.execute(
+        """
+        SELECT TOPIC
+        FROM {}.CV_COMMENT_TOPIC
+        WHERE TOPIC_ID = :1
+        """.format(app.config['DB_SCHEMA']),
+        (topic,)
+    )
+    row = cur.fetchone()
+
+    if row:
+        topic_value = row[0]
+
+        cur.execute(
+            """
+            SELECT M.METHOD_AC, M.COMMENT_ID, C.TEXT, M.N_PROT
+            FROM (
+                   SELECT PC.COMMENT_ID, M2P.METHOD_AC, COUNT(DISTINCT M2P.PROTEIN_AC) N_PROT
+                   FROM {0}.METHOD2PROTEIN M2P
+                     INNER JOIN {0}.PROTEIN_COMMENT PC ON M2P.PROTEIN_AC = PC.PROTEIN_AC
+                   WHERE M2P.METHOD_AC IN ({1})
+                         AND PC.TOPIC_ID = :topicid
+                   GROUP BY PC.COMMENT_ID, M2P.METHOD_AC
+                 ) M
+              INNER JOIN {0}.COMMENT_VALUE C ON M.COMMENT_ID = C.COMMENT_ID AND C.TOPIC_ID = :topicid
+            """.format(
+                app.config['DB_SCHEMA'],
+                ','.join([':meth' + str(i) for i in range(len(methods))])
+            ),
+            params
+        )
+
+        for method_ac, comment_id, comment, n_prot in cur:
+            if comment_id in comments:
+                c = comments[comment_id]
+            else:
+                c = comments[comment_id] = {
+                    'id': comment_id,
+                    'value': comment,
+                    'methods': {}
+                }
+
+            c['methods'][method_ac] = n_prot
+
+            if n_prot > max_prot:
+                max_prot = n_prot
+    else:
+        topic_value = None
+
+    cur.close()
+
+    return {
+        'topic': {
+            'id': topic,
+            'value': topic_value
+        },
+        'results': sorted(comments.values(), key=lambda x: -max(x['methods'].values())),
+        'max': max_prot
+    }
+
+
+def get_methods_matrix(methods):
+    cur = get_db().cursor()
+    cur.execute(
+        """
+        SELECT MM.METHOD_AC, MM.N_PROT, MO.METHOD_AC2, MO.N_PROT, MO.AVG_OVER, MO.N_PROT_OVER
+        FROM {0}.METHOD_MATCH MM
+          INNER JOIN (
+                       SELECT METHOD_AC1, METHOD_AC2, N_PROT, AVG_OVER, N_PROT_OVER
+                       FROM {0}.METHOD_OVERLAP MO
+                       WHERE METHOD_AC1 IN ({1})
+                             AND METHOD_AC2 IN ({1})
+                     ) MO ON MM.METHOD_AC = MO.METHOD_AC1
+        WHERE METHOD_AC IN ({1})
+        """.format(
+            app.config['DB_SCHEMA'],
+            ','.join([':meth' + str(i) for i in range(len(methods))])
+        ),
+        {'meth' + str(i): method for i, method in enumerate(methods)}
+    )
+
+    matrix = {}
+    for acc_1, n_prot, acc_2, n_coloc, avg_over, n_overlap in cur:
+        if acc_1 in matrix:
+            m = matrix[acc_1]
+        else:
+            m = matrix[acc_1] = {
+                'prot': n_prot,
+                'methods': {}
+            }
+
+        m['methods'][acc_2] = {
+            'coloc': n_coloc,
+            'over': n_overlap,
+            'avgOver': avg_over
+        }
+
+    cur.close()
+
+    return {
+        'matrix': matrix,
+        'max': max([m['prot'] for m in matrix.values()])
+    }
+
+
+def get_databases():
+    """
+    Retrieves the number of signatures (all, integrated into InterPro, and unintegrated) for each member database.
+    """
+
+    # Previous SUM statements were:
+    ## SUM(CASE WHEN E2M.ENTRY_AC IS NOT NULL  AND FS.FEATURE_ID IS NOT NULL THEN 1 ELSE 0 END),
+    ## SUM(CASE WHEN M.CANDIDATE != 'N' AND E2M.ENTRY_AC IS NULL AND FS.FEATURE_ID IS NOT NULL THEN 1 ELSE 0 END)
+
+    # Removed the join with FEATURE_SUMMARY:
+    ## LEFT OUTER JOIN {}.FEATURE_SUMMARY FS ON M.METHOD_AC = FS.FEATURE_ID
+    # that can be used to get the number of methods without matches:
+    ## sum(case when m.method_ac is not null and feature_id is null then 1 else 0 end) nomatch,
+    cur = get_db().cursor()
+    cur.execute(
+        """
+        SELECT
+          M.DBCODE,
+          MIN(DB.DBNAME) DBNAME,
+          MIN(DB.DBSHORT),
+          MIN(DB.VERSION),
+          COUNT(M.METHOD_AC),
+          SUM(CASE WHEN E2M.ENTRY_AC IS NOT NULL THEN 1 ELSE 0 END),
+          SUM(CASE WHEN E2M.ENTRY_AC IS NULL THEN 1 ELSE 0 END)
+        FROM INTERPRO.METHOD M
+        LEFT OUTER JOIN {}.CV_DATABASE DB ON M.DBCODE = DB.DBCODE
+        LEFT OUTER JOIN INTERPRO.ENTRY2METHOD E2M ON M.METHOD_AC = E2M.METHOD_AC
+        GROUP BY M.DBCODE
+        ORDER BY DBNAME
+        """.format(app.config['DB_SCHEMA'])
+    )
+
+    databases = []
+    for row in cur:
+        databases.append({
+            'code': row[0],
+            'name': row[1],
+            'shortName': row[2].lower(),
+            'version': row[3],
+            'home': xref.find_ref(row[0]).home,
+            'count': row[4],
+            'countIntegrated': row[5],
+            'countUnintegrated': row[6],
+        })
+
+    cur.close()
+
+    return {
+        'count': len(databases),
+        'results': databases
+    }
+
+
+def get_database(dbshort):
+    cur = get_db().cursor()
+    cur.execute(
+        """
+        SELECT DBNAME, DBCODE, VERSION
+        FROM {}.CV_DATABASE
+        WHERE LOWER(DBSHORT) = :1
+        """.format(app.config['DB_SCHEMA']),
+        (dbshort.lower(),)
+    )
+
+    row = cur.fetchone()
+
+    if row:
+        dbname, dbcode, dbversion = row
+    else:
+        dbname = dbcode = dbversion = None
+
+    cur.close()
+
+    return dbname, dbcode, dbversion
+
+
+def get_database_methods(dbshort, **kwargs):
+    query = kwargs.get('query')
+    integrated = kwargs.get('integrated')
+    checked = kwargs.get('checked')
+    commented = kwargs.get('commented')
+    page = kwargs.get('page', 1)
+    page_size = kwargs.get('page_size', 20)
+
+    dbname, dbcode, dbversion = get_database(dbshort)
+
+    if not dbname:
+        return {
+                   'results': [],
+                   'count': 0,
+                   'database': None
+               }, 404
+
+    cur = get_db().cursor()
+    sql = """
+            SELECT
+              M.METHOD_AC,
+              EM.ENTRY_AC,
+              E.CHECKED,
+              MM_NOW.PROTEIN_COUNT,
+              MM_THEN.PROTEIN_COUNT,
+              C.VALUE,
+              C.NAME,
+              C.CREATED_ON
+            FROM INTERPRO.METHOD M
+            LEFT OUTER JOIN INTERPRO.MV_METHOD_MATCH MM_NOW ON M.METHOD_AC = MM_NOW.METHOD_AC
+            LEFT OUTER JOIN INTERPRO.MV_METHOD_MATCH@IPREL MM_THEN ON M.METHOD_AC = MM_THEN.METHOD_AC
+            LEFT OUTER JOIN INTERPRO.ENTRY2METHOD EM ON M.METHOD_AC = EM.METHOD_AC
+            LEFT OUTER JOIN INTERPRO.ENTRY E ON E.ENTRY_AC = EM.ENTRY_AC
+            LEFT OUTER JOIN (
+                SELECT
+                  C.METHOD_AC,
+                  C.VALUE,
+                  P.NAME,
+                  C.CREATED_ON,
+                  ROW_NUMBER() OVER (PARTITION BY METHOD_AC ORDER BY C.CREATED_ON DESC) R
+                FROM INTERPRO.METHOD_COMMENT C
+                INNER JOIN INTERPRO.USER_PRONTO P ON C.USERNAME = P.USERNAME
+            ) C ON (M.METHOD_AC = C.METHOD_AC AND C.R = 1)
+            WHERE M.DBCODE = :1
+        """
+
+    if query:
+        sql += " AND M.METHOD_AC LIKE :2"
+        params = (dbcode, query + '%')
+    else:
+        params = (dbcode,)
+
+    if integrated:
+        sql += " AND EM.ENTRY_AC IS NOT NULL"
+    elif integrated is False:
+        sql += " AND EM.ENTRY_AC IS NULL"
+
+    if checked:
+        sql += " AND E.CHECKED = 'Y'"
+    elif checked is False:
+        sql += " AND E.CHECKED = 'N'"
+
+    if commented:
+        sql += " AND C.VALUE IS NOT NULL"
+    elif commented is False:
+        sql += " AND C.VALUE IS NULL"
+
+    cur.execute(sql, params)
+
+    methods = []
+    for row in cur:
+        methods.append({
+            'id': row[0],
+            'entryId': row[1],
+            'isChecked': row[2] == 'Y',
+            'countNow': row[3],
+            'countThen': row[4],
+            'latestComment': {'text': row[5], 'author': row[6], 'date': row[7].strftime('%Y-%m-%d %H:%M:%S')} if row[
+                                                                                                                     5] is not None else None
+        })
+
+    cur.close()
+
+    return {
+               'pageInfo': {
+                   'page': page,
+                   'pageSize': page_size
+               },
+               'results': methods[(page-1)*page_size:page*page_size],
+               'count': len(methods),
+               'database': {
+                   'name': dbname,
+                   'version': dbversion
+               }
+           }, 200
+
+
+def get_database_unintegrated_methods(dbshort, **kwargs):
+    query = kwargs.get('query')
+    _filter = kwargs.get('filter')
+    page = kwargs.get('page', 1)
+    page_size = kwargs.get('page_size', 20)
+
+    dbname, dbcode, dbversion = get_database(dbshort)
+
+    if not dbname:
+        return {
+                   'results': [],
+                   'count': 0,
+                   'database': None
+               }, 404
+
+    cur = get_db().cursor()
+
+    sql = """
+        SELECT DISTINCT
+            MM.METHOD_AC,
+            MP.METHOD_AC2,
+            M2.CANDIDATE,
+            MP.RELATION,
+            EM2.ENTRY_AC,
+            E.ENTRY_TYPE
+        FROM {0}.METHOD_MATCH MM
+        INNER JOIN {0}.METHOD M1 ON MM.METHOD_AC = M1.METHOD_AC
+        LEFT OUTER JOIN {0}.METHOD_PREDICTION MP ON (MM.METHOD_AC = MP.METHOD_AC1)
+        LEFT OUTER JOIN {0}.METHOD M2 ON MP.METHOD_AC2 = M2.METHOD_AC
+        LEFT OUTER JOIN {0}.ENTRY2METHOD EM1 ON MM.METHOD_AC = EM1.METHOD_AC
+        LEFT OUTER JOIN {0}.ENTRY2METHOD EM2 ON MP.METHOD_AC2 = EM2.METHOD_AC
+        LEFT OUTER JOIN {0}.ENTRY E ON EM2.ENTRY_AC = E.ENTRY_AC
+        WHERE M1.DBCODE = :1
+        AND EM1.ENTRY_AC IS NULL   
+    """.format(app.config['DB_SCHEMA'])
+
+    if query:
+        sql += " MM.METHOD_AC LIKE :2"
+        params = (dbcode, query + '%')
+    else:
+        params = (dbcode,)
+
+    cur.execute(sql, params)
+
+    methods = {}
+    for m1_ac, m2_ac, m2_is_candidate, rel, e_ac, e_type in cur:
+        if m1_ac in methods:
+            m = methods[m1_ac]
+        else:
+            m = methods[m1_ac] = {
+                'id': m1_ac,
+                'predictions': []
+            }
+
+        m['predictions'].append({
+            'id': e_ac if e_ac is not None else m2_ac,
+            'type': e_type if e_ac is not None else None,
+            'isCandidate': m2_is_candidate == 'Y',
+            'relation': rel
+        })
+
+    cur.close()
+
+    # Filter methods
+    if _filter == 'norel':
+        # Method mustn't have any non-null relation
+        def test_method(m):
+            return not len([p for p in m['predictions'] if p['relation'] is not None])
+    elif _filter == 'exist':
+        # Method must have at least one InterPro prediction
+        def test_method(m):
+            return len([p for p in m['predictions'] if p['relation'] == 'ADD_TO' and p['type'] is not None])
+    elif _filter == 'newint':
+        # Method must have at least one prediction that is an unintegrated candidate signature
+        def test_method(m):
+            return len(
+                [p for p in m['predictions'] if p['relation'] == 'ADD_TO' and p['type'] is None and p['isCandidate']])
+    else:
+        # Invalid mode
+        def test_method(m):
+            return False
+
+    _methods = []
+    for m in sorted([m for m in methods.values()], key=lambda x: x['id']):
+
+        if test_method(m):
+            add_to = {}
+            parents = set()
+            children = set()
+
+            for p in m['predictions']:
+
+                feature = p['id']
+                e_type = p['type']
+
+                if p['relation'] == 'ADD_TO':
+                    add_to[feature] = e_type
+                elif p['relation'] == 'PARENT_OF':
+                    children.add(feature)
+                elif p['relation'] == 'CHILD_OF':
+                    parents.add(feature)
+
+            _methods.append({
+                'id': m['id'],
+                'addTo': [{'id': k, 'type': add_to[k]} for k in sorted(add_to)],
+                'parents': list(sorted(parents)),
+                'children': list(sorted(children))
+            })
+
+    return {
+        'pageInfo': {
+            'page': page,
+            'pageSize': page_size
+        },
+        'results': _methods[(page-1)*page_size:page*page_size],
+        'count': len(_methods),
+        'database': {
+            'name': dbname,
+            'version': dbversion
+        }
+    }, 200
