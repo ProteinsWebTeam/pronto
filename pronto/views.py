@@ -17,7 +17,7 @@ def get_feed():
 
 
 @app.route('/api/search/')
-def search():
+def api_search():
     query = request.args.get('query', '').strip()
 
     try:
@@ -375,12 +375,12 @@ def get_methods_matrixx(methods):
     ), 200
 
 
-@app.route('/api/db/')
+@app.route('/api/database/')
 def get_databases():
     return jsonify(api.get_databases()), 200
 
 
-@app.route('/api/db/<dbshort>/')
+@app.route('/api/database/<dbshort>/')
 def get_database_methods(dbshort):
     try:
         page = int(request.args['page'])
@@ -422,7 +422,7 @@ def get_database_methods(dbshort):
     return jsonify(response), status
 
 
-@app.route('/api/db/<dbshort>/unintegrated/')
+@app.route('/api/database/<dbshort>/unintegrated/')
 def get_database_unintegrated_methods(dbshort):
     try:
         page = int(request.args['page'])
@@ -447,5 +447,10 @@ def get_database_unintegrated_methods(dbshort):
 
 @app.route('/')
 def index():
-    """Home page."""
     return render_template('index.html', user=api.get_user(), schema=app.config['DB_SCHEMA'])
+
+
+@app.route('/search/')
+def search():
+    """Home page."""
+    return render_template('search.html', user=api.get_user(), schema=app.config['DB_SCHEMA'])

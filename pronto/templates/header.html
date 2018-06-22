@@ -5,12 +5,12 @@
         </a>
 
         <div class="item">
-            <div class="ui action input">
-                <input placeholder="Search&hellip;" type="text">
-                <div class="ui basic icon button">
+            <form class="ui action input" action="/search/" method="get" role="search" autocomplete="off">
+                <input name="query" placeholder="Search&hellip;" type="text">
+                <button class="ui basic icon button">
                     <i class="search icon"></i>
-                </div>
-            </div>
+                </button>
+            </form>
         </div>
 
         <div class="item">
