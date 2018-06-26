@@ -1338,9 +1338,9 @@ def get_method_comments(entry_ac, n=0):
     cur.execute(
         """
         SELECT C.ID, C.VALUE, C.CREATED_ON, C.STATUS, U.NAME
-        FROM INTERPRO.ENTRY_COMMENT C
+        FROM INTERPRO.METHOD_COMMENT C
         INNER JOIN INTERPRO.USER_PRONTO U ON C.USERNAME = U.USERNAME
-        WHERE C.ENTRY_AC = :1
+        WHERE C.METHOD_AC = :1
         ORDER BY C.CREATED_ON DESC
         """,
         (entry_ac, )
@@ -1894,10 +1894,7 @@ def get_databases():
 
     cur.close()
 
-    return {
-        'count': len(databases),
-        'results': databases
-    }
+    return databases
 
 
 def get_database(dbshort):
