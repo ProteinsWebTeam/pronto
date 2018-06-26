@@ -14,6 +14,10 @@ h1, h2, h3, h4, h5, h6, .ui.header {
     font-weight: 400;
 }
 
+p.hidden {
+    display: none;
+}
+
 .ui.dimmer {
     /* default z-index set to 1000: lesser than modal's so dimmer is sent to background when opening a modal */
     z-index: 5000;
@@ -84,4 +88,126 @@ td > .ui.list > .item > .label + .content {
     background-color: #a333c8;
     border-color: #a333c8;
     color: #fff;
+}
+
+/* Header icon */
+h1.ui.header > .sub.header > i.icon {
+    display: inline;
+    font-size: .75em;
+}
+
+/* Entry types (entry page) */
+.ui.segment.type-R:not(.inverted) {
+    border-top: 2px solid #f2711c;
+}
+.ui.segment.type-H:not(.inverted) {
+    border-top: 2px solid #1678c2;
+}
+.ui.segment.type-D:not(.inverted) {
+    border-top: 2px solid #21ba45;
+}
+.ui.segment.type-F:not(.inverted) {
+    border-top: 2px solid #db2828;
+}
+.ui.segment.type-C:not(.inverted), .ui.segment.type-B:not(.inverted), .ui.segment.type-A:not(.inverted), .ui.segment.type-P:not(.inverted) {
+    border-top: 2px solid #a333c8;
+}
+
+/* Statistics */
+.ui.statistics .statistic > .label {
+    font-weight: 400;
+    font-size: .8em;
+}
+.ui.statistics .statistic > .value {
+    font-weight: 300;
+    text-transform: none;
+}
+.ui.statistics .statistic > a.value {
+    color: #4183c4;
+}
+.ui.statistics .statistic > a.value:hover {
+    color: #1e70bf;
+}
+
+/* Description lists */
+dt {
+    color: rgba(0, 0, 0, .87);
+    font-weight: bold;
+    line-height: 1.5em;
+}
+dd {
+    line-height: 1.5em;
+    margin-left: 2em;
+}
+dl > dd + dt {
+    margin-top: 1em;
+}
+dd .ui.link.list > a.item, dd .ui.link.list > a.item > i.icon {
+    color: #4183c4;
+}
+dd .ui.link.list > a.item:hover, dd .ui.link.list > a.item:hover > i.icon {
+    color: #1e70bf;
+}
+dl i.right-floated {
+    float: right;
+}
+dl i.right-floated:hover {
+    cursor: pointer;
+}
+dl .ui.label {
+    padding: .5em;
+}
+
+/* Keep icon and title on the same line */
+.ui.comments .ui.header > .icon {
+    display: inline-block;
+    padding: 0;
+    margin-right: .75rem;
+}
+
+/* Comments and comment actions */
+.ui.comments .comment .metadata a {
+    cursor: pointer;
+    display: inline-block;
+    color: rgba(0,0,0,.4);
+    position: absolute;
+    top: 0;
+    right: 0;
+    opacity: 0;
+}
+.ui.comments .comment .metadata a i {
+    margin: 0;
+}
+.ui.comments .comment .metadata a:active, .ui.comments .comment .metadata a:hover {
+    color: rgba(0,0,0,.8);
+}
+.ui.comments .comment > .content:hover > .metadata a {
+    opacity: 1;
+}
+.ui.comments .negative.comment .content {
+    background: #ffe1e1;
+}
+.ui.comments .negative.comment .content .actions {
+    background-color: #fff;
+}
+.ui.comments .actions a {
+    font-size: .875em;
+    cursor: pointer;
+    color: rgba(0,0,0,.4);
+}
+.ui.comments .actions a:active, .ui.comments .actions a:hover {
+    color: rgba(0,0,0,.8);
+}
+
+/* Do not inline references links (DOI, PubMED) */
+.ui.list > li > .ui.horizontal.list {
+    display: block;
+}
+
+/* References links color */
+.ui.link.list .item, .ui.link.list .item a:not(.ui), .ui.link.list a.item {
+    color: rgba(0,0,0,.6);
+}
+.ui.link.list .item a:not(.ui):hover, .ui.link.list a.item:hover {
+    color: rgba(0,0,0,.8);
 }
