@@ -211,3 +211,16 @@ dl .ui.label {
 .ui.link.list .item a:not(.ui):hover, .ui.link.list a.item:hover {
     color: rgba(0,0,0,.8);
 }
+
+/* Button to delete GO term association */
+dl dd a[data-go-id] {
+    cursor: pointer;
+    color: rgba(0,0,0,.4);
+    opacity: 0;
+}
+dl dd:hover a[data-go-id] {
+    opacity: 1;
+}
+dl dd a[data-go-id]:hover {
+    color: rgba(0,0,0,.8);
+}
