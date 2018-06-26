@@ -18,7 +18,7 @@ def get_feed():
 
 @app.route('/api/search/')
 def api_search():
-    query = request.args.get('query', '').strip()
+    query = request.args.get('q', '').strip()
 
     try:
         page = int(request.args['page'])
@@ -447,10 +447,21 @@ def get_database_unintegrated_methods(dbshort):
 
 @app.route('/')
 def index():
-    return render_template('index.html', user=api.get_user(), schema=app.config['DB_SCHEMA'])
+    return render_template('index.html', databases=api.get_databases(),
+                           user=api.get_user(), schema=app.config['DB_SCHEMA'])
 
 
 @app.route('/search/')
 def search():
     """Home page."""
     return render_template('search.html', user=api.get_user(), schema=app.config['DB_SCHEMA'])
+
+
+@app.route('/database/<dbcode>/')
+def database(dbcode):
+    return render_template('database.html', user=api.get_user(), schema=app.config['DB_SCHEMA'])
+
+
+@app.route('/database/<dbcode>/unintegrated/')
+def database_unint(dbcode):
+    return render_template('database2.html', user=api.get_user(), schema=app.config['DB_SCHEMA'])

@@ -25,7 +25,14 @@
                     </tr>
                     </thead>
                     <tbody>
-
+                        {% for db in databases %}
+                            <tr>
+                            <td><a target="_blank" href="{{ db['home'] }}">{{ db['name'] }}&nbsp;{{ db['version'] }}&nbsp;<i class="external icon"></i></a></td>
+                            <td><a href="/database/{{ db['shortName'] }}/">{{ "{:,}".format(db['count']) }}</a></td>
+                            <td>{{ "{:,}".format(db['countIntegrated']) }}</td>
+                                <td><a href="/database/{{ db['shortName'] }}/unintegrated/">{{ "{:,}".format(db['countUnintegrated']) }}</a></td>
+                            </tr>
+                        {% endfor %}
                     </tbody>
                 </table>
             </div>
