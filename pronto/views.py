@@ -7,7 +7,7 @@ from pronto import app, api
 
 
 @app.route('/api/feed/')
-def get_feed():
+def api_feed():
     try:
         n = int(request.args['n'])
     except (KeyError, ValueError):
@@ -17,7 +17,7 @@ def get_feed():
 
 
 @app.route('/api/protein/<protein_ac>/')
-def get_protein(protein_ac):
+def api_protein(protein_ac):
     r = {
         'status': False,
         'result': None,
@@ -38,7 +38,7 @@ def get_protein(protein_ac):
 
 
 @app.route('/api/entry/<entry_ac>/')
-def get_entry(entry_ac):
+def api_entry(entry_ac):
     r = {
         'status': False,
         'result': None,
@@ -65,7 +65,7 @@ def get_entry(entry_ac):
 
 
 @app.route('/api/entry/<entry_ac>/check/', strict_slashes=False, methods=['POST'])
-def check_entry(entry_ac):
+def api_check_entry(entry_ac):
     try:
         is_checked = bool(int(request.form['checked']))
     except (KeyError, ValueError):
@@ -80,7 +80,7 @@ def check_entry(entry_ac):
 
 
 @app.route('/api/entry/<entry_ac>/comments/')
-def get_entry_comments(entry_ac):
+def api_entry_comments(entry_ac):
     try:
         n = int(request.args['size'])
     except (KeyError, ValueError):
@@ -90,7 +90,7 @@ def get_entry_comments(entry_ac):
 
 
 @app.route('/api/entry/<entry_ac>/comment/', strict_slashes=False, methods=['POST'])
-def comment_entry(entry_ac):
+def api_comment_entry(entry_ac):
     try:
         comment = request.form['comment'].strip()
     except (AttributeError, KeyError):
@@ -104,7 +104,7 @@ def comment_entry(entry_ac):
 
 
 @app.route('/api/entry/<entry_ac>/comment/<comment_id>/', strict_slashes=False, methods=['DELETE'])
-def delete_entry_comment(entry_ac, comment_id):
+def api_delete_entry_comment(entry_ac, comment_id):
     try:
         comment_id = int(comment_id)
     except ValueError:
@@ -118,7 +118,7 @@ def delete_entry_comment(entry_ac, comment_id):
 
 
 @app.route('/api/entry/<entry_ac>/go/', strict_slashes=False, methods=['POST', 'DELETE'])
-def entry_go(entry_ac):
+def api_entry_go(entry_ac):
     terms = set(request.form.get('ids', '').strip().split(','))
     if not terms:
         return jsonify({
@@ -135,7 +135,7 @@ def entry_go(entry_ac):
 
 
 @app.route('/api/method/<method_ac>/proteins/')
-def get_method_proteins(method_ac):
+def api_method_proteins(method_ac):
     try:
         taxon = int(request.args['taxon'])
     except (KeyError, ValueError):
@@ -186,7 +186,7 @@ def get_method_proteins(method_ac):
 
 
 @app.route('/api/method/<method_ac>/prediction/')
-def get_method_predictions(method_ac):
+def api_method_predictions(method_ac):
     """
     Returns the overlapping entries for a given signature.
     Example:
@@ -203,7 +203,7 @@ def get_method_predictions(method_ac):
 
 
 @app.route('/api/method/<method_ac>/comment/', strict_slashes=False, methods=['POST'])
-def comment_method(method_ac):
+def api_comment_method(method_ac):
     try:
         comment = request.form['comment'].strip()
     except (AttributeError, KeyError):
@@ -217,7 +217,7 @@ def comment_method(method_ac):
 
 
 @app.route('/api/method/<method_ac>/comment/<comment_id>/',  strict_slashes=False, methods=['DELETE'])
-def delete_method_comment(method_ac, comment_id):
+def api_delete_method_comment(method_ac, comment_id):
     try:
         comment_id = int(comment_id)
     except ValueError:
@@ -231,7 +231,7 @@ def delete_method_comment(method_ac, comment_id):
 
 
 @app.route('/api/method/<method_ac>/comments/')
-def get_method_comments(method_ac):
+def api_method_comments(method_ac):
     try:
         n = int(request.args['size'])
     except (KeyError, ValueError):
@@ -241,12 +241,12 @@ def get_method_comments(method_ac):
 
 
 @app.route('/api/method/<method_ac>/references/<go_id>')
-def get_method_references(method_ac, go_id):
+def api_method_references(method_ac, go_id):
     return jsonify(api.get_method_references(method_ac, go_id)), 200
 
 
 @app.route('/api/method/<method_ac>/proteins/all/')
-def get_method_all_proteins(method_ac):
+def api_method_proteins_all(method_ac):
     return jsonify(api.get_method_proteins(method_ac, dbcode=request.args.get('db'))), 200
 
 
@@ -302,7 +302,7 @@ def api_methods_matches(methods):
 
 
 @app.route('/api/methods/<path:methods>/enzymes/')
-def get_methods_enzymes(methods):
+def api_methods_enzymes(methods):
     return jsonify(
         api.get_methods_enzymes(
             methods=[m.strip() for m in methods.split('/') if m.strip()],
@@ -312,7 +312,7 @@ def get_methods_enzymes(methods):
 
 
 @app.route('/api/methods/<path:methods>/taxonomy/')
-def get_methods_taxonomy(methods):
+def api_methods_taxonomy(methods):
     try:
         taxon = int(request.args['taxon'])
     except (KeyError, ValueError):
@@ -326,7 +326,7 @@ def get_methods_taxonomy(methods):
 
 
 @app.route('/api/methods/<path:methods>/descriptions/')
-def get_methods_descriptions(methods):
+def api_methods_descriptions(methods):
     return jsonify(api.get_methods_descriptions(
         methods=[m.strip() for m in methods.split('/') if m.strip()],
         dbcode=request.args.get('db')
@@ -334,7 +334,7 @@ def get_methods_descriptions(methods):
 
 
 @app.route('/api/methods/<path:methods>/go/')
-def get_methods_go(methods):
+def api_methods_go(methods):
     return jsonify(api.get_methods_go(
         methods=[m.strip() for m in methods.split('/') if m.strip()],
         aspects=request.args.get('aspect', '').upper().split(',')
@@ -342,7 +342,7 @@ def get_methods_go(methods):
 
 
 @app.route('/api/methods/<path:methods>/comments/')
-def get_methods_swissprot_comments(methods):
+def api_methods_comments(methods):
     try:
         topic = int(request.args['topic'])
     except (KeyError, ValueError):
@@ -355,7 +355,7 @@ def get_methods_swissprot_comments(methods):
 
 
 @app.route('/api/methods/<path:methods>/matrices/')
-def get_methods_matrixx(methods):
+def api_methods_matrix(methods):
     return jsonify(
         api.get_methods_matrix(
             methods=[m.strip() for m in methods.split('/') if m.strip()]
@@ -364,12 +364,12 @@ def get_methods_matrixx(methods):
 
 
 @app.route('/api/database/')
-def get_databases():
+def api_databases():
     return jsonify(api.get_databases()), 200
 
 
 @app.route('/api/database/<dbshort>/')
-def get_database_methods(dbshort):
+def api_database(dbshort):
     try:
         page = int(request.args['page'])
     except (KeyError, ValueError):
@@ -411,7 +411,7 @@ def get_database_methods(dbshort):
 
 
 @app.route('/api/database/<dbshort>/unintegrated/')
-def get_database_unintegrated_methods(dbshort):
+def api_database_unintegrated(dbshort):
     try:
         page = int(request.args['page'])
     except (KeyError, ValueError):
@@ -434,13 +434,13 @@ def get_database_unintegrated_methods(dbshort):
 
 
 @app.route('/')
-def index():
+def v_index():
     return render_template('index.html', databases=api.get_databases(),
                            user=api.get_user(), schema=app.config['DB_SCHEMA'])
 
 
 @app.route('/search/')
-def search():
+def v_search():
     query = request.args.get('q', '').strip()
 
     try:
@@ -453,11 +453,11 @@ def search():
     entries, methods, proteins, hits, hit_count = api.search(query=query, page=page, page_size=page_size)
 
     if len(entries) == 1 and not methods and not proteins:
-        return redirect(url_for('entry', accession=entries[0]))
+        return redirect(url_for('v_entry', accession=entries[0]))
     elif not entries and len(methods) == 1 and not proteins:
-        return redirect(url_for('method', accession=entries[0]))
+        return redirect(url_for('v_method', accession=entries[0]))
     elif not entries and not methods and len(proteins) == 1:
-        return redirect(url_for('protein', accession=entries[0]))
+        return redirect(url_for('v_protein', accession=entries[0]))
 
     suggestions = []
     if entries:
@@ -489,25 +489,35 @@ def search():
 
 
 @app.route('/database/<dbcode>/')
-def database(dbcode):
+def v_database(dbcode):
     return render_template('database.html', user=api.get_user(), schema=app.config['DB_SCHEMA'])
 
 
 @app.route('/database/<dbcode>/unintegrated/')
-def database_unint(dbcode):
+def v_database_unintegrated(dbcode):
     return render_template('database2.html', user=api.get_user(), schema=app.config['DB_SCHEMA'])
 
 
 @app.route('/protein/<accession>/')
-def protein(accession):
+def v_protein(accession):
     return accession
 
 
 @app.route('/method/<accession>/')
-def method(accession):
+def v_method(accession):
     return accession
 
 
 @app.route('/entry/<accession>/')
-def entry(accession):
-    return accession
+def v_entry(accession):
+    try:
+        entry = api.get_entry(accession)
+    except Exception:
+        entry = None
+        # todo: return 500
+
+    # todo: return 404 if entry does not exist
+    return render_template('entry.html',
+                           entry=entry,
+                           user=api.get_user(),
+                           schema=app.config['DB_SCHEMA'])
