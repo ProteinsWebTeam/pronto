@@ -74,37 +74,39 @@
     <div class="ui grid">
         <div class="four wide column">
             <div class="ui sticky">
-                <div class="ui fluid vertical menu">
-                    <a href="#curation" class="active item">
-                        Curation
-                    </a>
-                    <a href="#description" class="item">
-                        Description
-                    </a>
-                    <a href="#signatures" class="item">
-                        Signatures
-                        <div class="ui label">
-                            {{ '{:,}'.format(entry['methods']|length) }}
-                        </div>
-                    </a>
-                    <a href="#relationships" class="item">
-                        Relationships
-                        <div class="ui label">
-                            {{ '{:,}'.format(entry['relationships']|length) }}
-                        </div>
-                    </a>
-                    <a href="#go-terms" class="item">
-                        GO terms
-                        <div class="ui label">
-                            {{ '{:,}'.format(entry['go']|length) }}
-                        </div>
-                    </a>
-                    <a href="#references" class="item">
-                        References
-                        <div class="ui label">
-                            {{ '{:,}'.format(entry['references']|length) }}
-                        </div>
-                    </a>
+                <div class="ui vertical basic segment">
+                    <div class="ui fluid vertical menu">
+                        <a href="#curation" class="active item">
+                            Curation
+                        </a>
+                        <a href="#description" class="item">
+                            Description
+                        </a>
+                        <a href="#signatures" class="item">
+                            Signatures
+                            <div class="ui label">
+                                {{ '{:,}'.format(entry['methods']|length) }}
+                            </div>
+                        </a>
+                        <a href="#relationships" class="item">
+                            Relationships
+                            <div class="ui label">
+                                {{ '{:,}'.format(entry['relationships']|length) }}
+                            </div>
+                        </a>
+                        <a href="#go-terms" class="item">
+                            GO terms
+                            <div class="ui label">
+                                {{ '{:,}'.format(entry['go']|length) }}
+                            </div>
+                        </a>
+                        <a href="#references" class="item">
+                            References
+                            <div class="ui label">
+                                {{ '{:,}'.format(entry['references']|length) }}
+                            </div>
+                        </a>
+                    </div>
                 </div>
                 <div class="ui vertical segment comments">
                     <h3 class="ui dividing header">
