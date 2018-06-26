@@ -150,7 +150,8 @@ export function deletexhr(url, params, callback) {
 export function getComments(div, type, id, size, callback) {
     getJSON('/api/'+ type +'/' + id + '/comments/' + encodeParams({size: size}), data => {
         // Sub header
-        document.querySelector('.ui.header .sub').innerHTML = id;
+        const sub = div.querySelector('.ui.header .sub');
+        if (sub) sub.innerHTML = id;
 
         let html = '';
         data.results.forEach(comment => {
