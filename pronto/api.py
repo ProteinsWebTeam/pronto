@@ -584,9 +584,10 @@ def get_entry(entry_ac):
                 'components': []
             }
         },
-        'go': [],
+        'go': {},
         'description': None,
-        'references': {},
+        'references': [],
+        'suppReferences': [],
         'missingXrefs': []
     }
 
@@ -739,18 +740,22 @@ def get_entry(entry_ac):
         (entry_ac,)
     )
 
-    terms = []
-    for row in cur:
-        terms.append({
-            'id': row[0],
-            'name': row[1],
-            'category': row[2],
-            'definition': row[3],
-            'isObsolete': row[4] == 'Y',
-            'replacedBy': row[5]
+    categories = {}
+    for term_id, term_name, term_cat, term_def, is_obsolete, replaced_by in cur:
+        if term_cat in categories:
+            cat = categories[term_cat]
+        else:
+            cat = categories[term_cat] = []
+
+        cat.append({
+            'id': term_id,
+            'name': term_name,
+            'definition': term_def,
+            'isObsolete': is_obsolete == 'Y',
+            'replacedBy': replaced_by
         })
 
-    entry['go'] = terms
+    entry['go'] = categories
 
     # References
     cur.execute(
@@ -807,7 +812,7 @@ def get_entry(entry_ac):
     description = ''
 
     for row in cur:
-        text = row[0]
+        text = row[0].strip()
 
         # # Disabled for not breaking the <pre> tags
         # text = re.sub(r'\s{2,}', ' ', text)
@@ -819,10 +824,9 @@ def get_entry(entry_ac):
         if text[-4:].lower() != '</p>':
             text += '</p>'
 
-        # Find references and replace <cite id="PUBXXXX"/> by #PUBXXXX
+        # Find missing references
         for m in re.finditer(r'<cite\s+id="(PUB\d+)"\s*/>', text):
             ref = m.group(1)
-            text = text.replace(m.group(0), '#' + ref)
 
             if ref not in references:
                 missing_refs.append(ref)
@@ -878,17 +882,26 @@ def get_entry(entry_ac):
 
     cur.close()
 
-    for block in re.findall(r'\[\s*#PUB\d+(?:\s*,\s*#PUB\d+)*\s*\]', description):
-        refs = re.findall(r'#(PUB\d+)', block)
+    ordered_ref = []
+    for m in re.finditer(r'<cite\s+id="(PUB\d+)"\s*/>', description):
+        ref = m.group(1)
+        pub = references.get(ref)
 
-        description = description.replace(block, '<cite id="{}"/>'.format(','.join(refs)))
+        if pub:
+            if ref in ordered_ref:
+                i = ordered_ref.index(ref) + 1
+            else:
+                ordered_ref.append(ref)
+                i = len(ordered_ref)
+        else:
+            i = '?'
+
+        description = description.replace(m.group(0), '<a href=#{}>{}</a>'.format(ref, i))
 
     entry.update({
         'description': description,
-        'references': {
-            'values': references,
-            'count': len(references)
-        }
+        'references': [references.pop(ref) for ref in ordered_ref],
+        'suppReferences': [references[ref] for ref in sorted(references)]
     })
 
     return entry
