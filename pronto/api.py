@@ -1359,8 +1359,8 @@ def get_method_comments(entry_ac, n=0):
     cur.close()
 
     return {
-        'count': comments[:n] if n else comments,
-        'results': len(comments)
+        'count': len(comments),
+        'results': comments[:n] if n else comments
     }
 
 
