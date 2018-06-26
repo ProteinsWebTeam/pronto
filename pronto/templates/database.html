@@ -135,7 +135,19 @@
         </div>
         <div class="four wide column">
             <div class="ui hidden sticky">
-                {% include 'user_comments.html' %}
+                <div class="ui vertical segment comments">
+                    <h3 class="ui dividing header">
+                        <i class="comments icon"></i>Comments
+                        <div class="sub header"></div>
+                    </h3>
+                    <div class="comments-content"></div>
+                    <form class="ui reply form">
+                        <div class="field">
+                            <textarea placeholder="Write comment&hellip;"></textarea>
+                        </div>
+                        <button class="ui blue labeled icon button"><i class="icon edit"></i> Add comment</button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>

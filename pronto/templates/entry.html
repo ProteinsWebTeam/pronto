@@ -106,7 +106,18 @@
                         </div>
                     </a>
                 </div>
-                {% include 'user_comments.html' %}
+                <div class="ui vertical segment comments">
+                    <h3 class="ui dividing header">
+                        <i class="comments icon"></i>Comments
+                    </h3>
+                    <div class="comments-content"></div>
+                    <form class="ui reply form">
+                        <div class="field">
+                            <textarea placeholder="Write comment&hellip;"></textarea>
+                        </div>
+                        <button class="ui blue labeled icon button"><i class="icon edit"></i> Add comment</button>
+                    </form>
+                </div>
             </div>
         </div>
         <div class="twelve wide column">
@@ -420,6 +431,7 @@
 
 <script src="/static/vendor/jquery.min.js"></script>
 <script src="/static/vendor/semantic.min.js"></script>
+<script src="/static/entry.js" type="module"></script>
 
 </body>
 </html>
