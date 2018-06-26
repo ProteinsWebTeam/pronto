@@ -277,7 +277,7 @@
             </div>
             <div class="ui basic vertical segment">
                 <h2 id="go-terms" class="ui dividing header">GO terms</h2>
-                <div class="ui form">
+                <div id="add-terms" class="ui form">
                     <div class="field">
                         <label>Add GO term mapping</label>
                         <div class="ui small action input">
@@ -287,7 +287,7 @@
                     </div>
                 </div>
 
-                <dl>
+                <dl id="interpro2go">
                     <dt>Molecular Function</dt>
                     {% if entry['go']['F'] %}
                         {% for term in entry['go']['F'] %}
@@ -303,7 +303,7 @@
                                     <span class="ui tiny yellow label">Secondary</span>
                                 {% endif %}
 
-                                <a data-id="{{ term['id'] }}"><i class="trash icon"></i></a>
+                                <a data-go-id="{{ term['id'] }}"><i class="trash icon"></i></a>
 
                                 <i class="right-floated caret left icon"></i>
                                 <p class="hidden">{{ term['definition'] }}</p>
@@ -327,7 +327,7 @@
                                     <span class="ui tiny yellow label">Secondary</span>
                                 {% endif %}
 
-                                <a data-id="{{ term['id'] }}"><i class="trash icon"></i></a>
+                                <a data-go-id="{{ term['id'] }}"><i class="trash icon"></i></a>
 
                                 <i class="right-floated caret left icon"></i>
                                 <p class="hidden">{{ term['definition'] }}</p>
@@ -351,7 +351,7 @@
                                     <span class="ui tiny yellow label">Secondary</span>
                                 {% endif %}
 
-                                <a data-id="{{ term['id'] }}"><i class="trash icon"></i></a>
+                                <a data-go-id="{{ term['id'] }}"><i class="trash icon"></i></a>
 
                                 <i class="right-floated caret left icon"></i>
                                 <p class="hidden">{{ term['definition'] }}</p>
