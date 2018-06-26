@@ -117,8 +117,11 @@ def api_delete_entry_comment(entry_ac, comment_id):
     return jsonify(response), status
 
 
-@app.route('/api/entry/<entry_ac>/go/', strict_slashes=False, methods=['POST', 'DELETE'])
+@app.route('/api/entry/<entry_ac>/go/', strict_slashes=False, methods=['GET', 'POST', 'DELETE'])
 def api_entry_go(entry_ac):
+    if request.method == 'GET':
+        return jsonify(api.get_entry_go(entry_ac)), 200
+
     terms = set(request.form.get('ids', '').strip().split(','))
     if not terms:
         return jsonify({

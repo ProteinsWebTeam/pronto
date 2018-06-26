@@ -942,6 +942,40 @@ def check_entry(entry_ac, is_checked):
                }, 200
 
 
+def get_entry_go(entry_ac):
+    cur = get_db().cursor()
+
+    cur.execute(
+        """
+        SELECT T.GO_ID, T.NAME, T.CATEGORY, T.DEFINITION, T.IS_OBSOLETE, T.REPLACED_BY
+        FROM INTERPRO.INTERPRO2GO I
+          INNER JOIN INTERPRO_ANALYSIS.TERM T ON I.GO_ID = T.GO_ID
+        WHERE I.ENTRY_AC = :1
+        ORDER BY T.GO_ID
+        """,
+        (entry_ac,)
+    )
+
+    categories = {}
+    for term_id, term_name, term_cat, term_def, is_obsolete, replaced_by in cur:
+        if term_cat in categories:
+            cat = categories[term_cat]
+        else:
+            cat = categories[term_cat] = []
+
+        cat.append({
+            'id': term_id,
+            'name': term_name,
+            'definition': term_def,
+            'isObsolete': is_obsolete == 'Y',
+            'replacedBy': replaced_by
+        })
+
+    cur.close()
+
+    return categories
+
+
 def get_entry_comments(entry_ac, n=0):
     """
     Get the curator comments associated to a given entry
