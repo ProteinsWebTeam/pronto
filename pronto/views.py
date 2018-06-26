@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from flask import jsonify, redirect, render_template, request, url_for
+from flask import jsonify, redirect, render_template, request, session, url_for
 
 from pronto import app, api
 
@@ -524,3 +524,36 @@ def v_entry(accession):
                            entry=entry,
                            user=api.get_user(),
                            schema=app.config['DB_SCHEMA'])
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def v_signin():
+    """Login page. Display a form on GET, and test the credentials on POST."""
+    if api.get_user():
+        return redirect(url_for('v_index'))
+    elif request.method == 'GET':
+        return render_template('login.html', referrer=request.referrer)
+    else:
+        username = request.form['username'].strip().lower()
+        password = request.form['password'].strip()
+        user = api.verify_user(username, password)
+
+        if user and user['active'] and user['status']:
+            session.permanent = True
+            session['user'] = user
+            return redirect(request.args.get('next', url_for('v_index')))
+        else:
+            msg = 'Wrong username or password.'
+            return render_template(
+                'login.html',
+                username=username,
+                error=msg,
+                referrer=request.args.get('next', url_for('v_index'))
+            )
+
+
+@app.route('/logout/')
+def v_signout():
+    """Clear the cookie, which logs the user out."""
+    session.clear()
+    return redirect(request.referrer)

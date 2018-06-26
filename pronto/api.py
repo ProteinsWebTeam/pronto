@@ -36,6 +36,68 @@ def get_user():
     return g.user
 
 
+def verify_user(username, password):
+    """
+    Authenticates a user with the provided credentials.
+    """
+
+    # Check the user account exists and is active
+    con1 = get_db()
+    cur = con1.cursor()
+    cur.execute(
+        """
+        SELECT USERNAME, NAME, DB_USER, IS_ACTIVE FROM INTERPRO.USER_PRONTO WHERE LOWER(USERNAME) = :1
+        """,
+        (username.lower(), )
+    )
+
+    row = cur.fetchone()
+
+    if not row:
+        user = None
+    else:
+        username, name, db_user, is_active = row
+        is_active = is_active == 'Y'
+
+        user = {
+            'username': username,
+            'name': name,
+            'dbuser': db_user,
+            'active': is_active,
+            'password': password,
+            'status': False
+        }
+
+        if is_active:
+            try:
+                con2 = cx_Oracle.connect(
+                    user=db_user,
+                    password=password,
+                    dsn=app.config['DATABASE_HOST']
+                )
+            except cx_Oracle.DatabaseError:
+                pass
+            else:
+                con2.close()
+                user['status'] = True
+
+                # Update user activity
+                cur.execute(
+                    """
+                    UPDATE INTERPRO.USER_PRONTO
+                    SET LAST_ACTIVITY = SYSDATE
+                    WHERE USERNAME = :1
+                    """,
+                    (username,)
+                )
+
+                con1.commit()
+
+    cur.close()
+
+    return user
+
+
 def get_db():
     """
     Opens a new database connection if there is none yet for the current application context.
