@@ -6,7 +6,7 @@ $(function () {
 
     document.querySelector('form input[name=query]').value = decodeURIComponent(params.query).replace(/\+/g, ' ');
 
-    utils.getJSON('/api/search/?query=' + params.query, (data, status) => {
+    utils.getJSON('/api/search/?q=' + params.query, (data, status) => {
         console.log(data);
     });
 });
