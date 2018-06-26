@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="/static/vendor/semantic.min.css" />
+    <link rel="stylesheet" href="/static/style.css" />
+    <link rel="icon" href="/static/favicon.png">
+    <title>{{ entry['name'] }} ({{ entry['id'] }}) | Pronto</title>
+</head>
+<body>
+
+{% include 'header.html' %}
+
+<div class="ui container basic vertical segment">
+    <h1 class="ui header">
+        {{ entry['name'] }}
+        <div class="sub header">
+            {% if entry['isChecked'] %}
+                <i class="checkmark icon"></i>
+            {%- endif -%}
+            {{ entry['shortName'] }} ({{ entry['id'] }})
+        </div>
+    </h1>
+    <div class="ui segment type-{{ entry['typeCode'] }}">
+        <div class="ui five tiny statistics">
+            <div class="statistic">
+                <div class="label">
+                    UniProtKB Matches
+                </div>
+                <div class="value">
+                    {{ '{:,}'.format(entry['proteinCount']) }}
+                </div>
+
+            </div>
+            <div class="statistic">
+                <div class="label">
+                    Type
+                </div>
+                <div class="value">
+                    {{ entry['type'].replace('_', '<br>') }}
+                </div>
+
+            </div>
+            <div class="statistic">
+                <div class="label">
+                    Signatures
+                </div>
+                <a href="#signatures" class="value">
+                    {{ '{:,}'.format(entry['methods']|length) }}
+                </a>
+
+            </div>
+            <div class="statistic">
+                <div class="label">
+                    GO terms
+                </div>
+                <a href="#go-terms" class="value">
+                    {{ '{:,}'.format(entry['go']|length) }}
+                </a>
+
+            </div>
+            <div class="statistic">
+                <div class="label">
+                    References
+                </div>
+                <a href="#references" class="value">
+                    {{ '{:,}'.format(entry['references']|length) }}
+                </a>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="ui grid">
+        <div class="four wide column">
+            <div class="ui sticky">
+                <div class="ui fluid vertical menu">
+                    <a href="#curation" class="active item">
+                        Curation
+                    </a>
+                    <a href="#description" class="item">
+                        Description
+                    </a>
+                    <a href="#signatures" class="item">
+                        Signatures
+                        <div class="ui label">
+                            {{ '{:,}'.format(entry['methods']|length) }}
+                        </div>
+                    </a>
+                    <a href="#relationships" class="item">
+                        Relationships
+                        <div class="ui label">
+                            {{ '{:,}'.format(entry['relationships']|length) }}
+                        </div>
+                    </a>
+                    <a href="#go-terms" class="item">
+                        GO terms
+                        <div class="ui label">
+                            {{ '{:,}'.format(entry['go']|length) }}
+                        </div>
+                    </a>
+                    <a href="#references" class="item">
+                        References
+                        <div class="ui label">
+                            {{ '{:,}'.format(entry['references']|length) }}
+                        </div>
+                    </a>
+                </div>
+                {% include 'user_comments.html' %}
+            </div>
+        </div>
+        <div class="twelve wide column">
+            <div class="ui basic vertical segment">
+                <h2 id="curation" class="ui dividing header">Curation</h2>
+
+                <dl>
+                    <dt>Public website</dt>
+                    <dd><a target="_blank" href="http://www.ebi.ac.uk/interpro/entry/{{ entry['id'] }}">
+                        Entry
+                        <i class="external icon"></i>
+                    </a></dd>
+
+                    <dt>Signature comparison</dt>
+                    <dd>
+                        <div class="ui bulleted horizontal link list">
+                            <a href="/methods/{{ entry['methods']|map(attribute='id')|join("/") }}/matches/" class="item">
+                                Overlapping proteins
+                            </a>
+                            <a href="/methods/{{ entry['methods']|map(attribute='id')|join("/") }}/taxonomy/" class="item">
+                                Taxonomy
+                            </a>
+                            <a href="/methods/{{ entry['methods']|map(attribute='id')|join("/") }}/descriptions/" class="item">
+                                UniProt descriptions
+                            </a>
+                            <a href="/methods/{{ entry['methods']|map(attribute='id')|join("/") }}/comments/" class="item">
+                                Swiss-Prot comments
+                            </a>
+                            <a href="/methods/{{ entry['methods']|map(attribute='id')|join("/") }}/go/" class="item">
+                                GO terms
+                            </a>
+                            <a href="/methods/{{ entry['methods']|map(attribute='id')|join("/") }}/matrices/" class="item">
+                                Match matrices
+                            </a>
+                            <a href="/methods/{{ entry['methods']|map(attribute='id')|join("/") }}/enzymes/" class="item">
+                                ENZYME entries
+                            </a>
+                        </div>
+                    </dd>
+
+                    <dt>Talisman</dt>
+                    <dd>
+                        <div class="ui bulleted horizontal link list">
+                            <a target="_blank" href="http://www.ebi.ac.uk/talisman/Create?page=ipr_commabs/annot_entry.xml&url=ipro&ac={{ entry['id'] }}" class="item">
+                                Abstract
+                                <i class="external icon"></i>
+                            </a>
+                            <a target="_blank" href="http://www.ebi.ac.uk/talisman/Create?page=ipr_interpro2go/interpro2go.xml&url=IPRO&ac={{ entry['id'] }}" class="item">
+                                InterPro2GO
+                                <i class="external icon"></i>
+                            </a>
+                            <a target="_blank" href="http://www.ebi.ac.uk/talisman/Create?page=ipr_entry/merge.xml&url=IPRO&ac={{ entry['id'] }}" class="item">
+                                Merge
+                                <i class="external icon"></i>
+                            </a>
+                            <a target="_blank" href="http://www.ebi.ac.uk/talisman/Create?page=ipr_reference/ref_manager.xml&url=IPRO&ac={{ entry['id'] }}" class="item">
+                                References
+                                <i class="external icon"></i>
+                            </a>
+                            <a target="_blank" href="http://www.ebi.ac.uk/talisman/Create?page=ipr_entry/new_relation.xml&url=IPRO&ac={{ entry['id'] }}" class="item">
+                                Relationship
+                                <i class="external icon"></i>
+                            </a>
+                            <a target="_blank" href="http://www.ebi.ac.uk/talisman/Create?page=ipr_entry/split2.xml&url=IPRO&ac={{ entry['id'] }}" class="item">
+                                Split
+                                <i class="external icon"></i>
+                            </a>
+                        </div>
+                    </dd>
+                </dl>
+            </div>
+            <div class="ui basic vertical segment">
+                <h2 id="description" class="ui dividing header">Description</h2>
+                {{ entry['description']|safe }}
+            </div>
+            <div class="ui basic vertical segment">
+                <h2 id="signatures" class="ui dividing header">Signatures</h2>
+                <table class="ui selectable table">
+                    <thead>
+                    <tr>
+                        <th>Accession</th>
+                        <th>Member database</th>
+                        <th>Name</th>
+                        <th>Protein count</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for method in entry['methods'] %}
+                        <tr>
+                            <td><a href="/method/{{ method['id'] }}/">{{ method['id'] }}</a></td>
+
+                            <td>
+                                {% if method['link'] %}
+                                    <a target="_blank" href="{{ method['link'] }}">{{ method['dbname'] }}&nbsp;<i class="external icon"></i></a>
+                                {% elif method['home'] %}
+                                    <a target="_blank" href="{{ method['home'] }}">{{ method['dbname'] }}&nbsp;<i class="external icon"></i></a>
+                                {% else %}
+                                    {{ method['dbname'] }}
+                                {% endif %}
+                            </td>
+
+                            <td>{{ method['name'] }}</td>
+                            <td>{{ '{:,}'.format(method['count']) }}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="ui basic vertical segment">
+                <h2 id="relationships" class="ui dividing header">InterPro relationships</h2>
+                {% if entry['relationships']['count'] %}
+                    {% if entry['relationships']['types']['parents'] %}
+                        <dt>Parents</dt>
+                        {% for e in entry['relationships']['types']['parents'] %}
+                            <dd>
+                                <span class="ui tiny label circular type-{{ e['typeCode'] }}">{{ e['typeCode'] }}</span>
+                                <a href="/entry/{{ e['id'] }}/">{{ e['id'] }}</a>
+                                {{ e['name'] }}
+                            </dd>
+                        {% endfor %}
+                    {% endif %}
+                    {% if entry['relationships']['types']['children'] %}
+                        <dt>Children</dt>
+                        {% for e in entry['relationships']['types']['children'] %}
+                            <dd>
+                                <span class="ui tiny label circular type-{{ e['typeCode'] }}">{{ e['typeCode'] }}</span>
+                                <a href="/entry/{{ e['id'] }}/">{{ e['id'] }}</a>
+                                {{ e['name'] }}
+                            </dd>
+                        {% endfor %}
+                    {% endif %}
+                    {% if entry['relationships']['types']['containers'] %}
+                        <dt>Found in</dt>
+                        {% for e in entry['relationships']['types']['containers'] %}
+                            <dd>
+                                <span class="ui tiny label circular type-{{ e['typeCode'] }}">{{ e['typeCode'] }}</span>
+                                <a href="/entry/{{ e['id'] }}/">{{ e['id'] }}</a>
+                                {{ e['name'] }}
+                            </dd>
+                        {% endfor %}
+                    {% endif %}
+                    {% if entry['relationships']['types']['components'] %}
+                        <dt>Contains</dt>
+                        {% for e in entry['relationships']['types']['components'] %}
+                            <dd>
+                                <span class="ui tiny label circular type-{{ e['typeCode'] }}">{{ e['typeCode'] }}</span>
+                                <a href="/entry/{{ e['id'] }}/">{{ e['id'] }}</a>
+                                {{ e['name'] }}
+                            </dd>
+                        {% endfor %}
+                    {% endif %}
+                {% else %}
+                    <p>This entry has no relationships.</p>
+                {% endif %}
+            </div>
+            <div class="ui basic vertical segment">
+                <h2 id="go-terms" class="ui dividing header">GO terms</h2>
+                <div class="ui form">
+                    <div class="field">
+                        <label>Add GO term mapping</label>
+                        <div class="ui small action input">
+                            <input placeholder="Type one or several GO terms" type="text">
+                            <button class="ui primary button">Add</button>
+                        </div>
+                    </div>
+                </div>
+
+                <dl>
+                    <dt>Molecular Function</dt>
+                    {% if entry['go']['F'] %}
+                        {% for term in entry['go']['F'] %}
+                            <dd>
+                                <a target="_blank" href="http://www.ebi.ac.uk/QuickGO/GTerm?id={{ term['id'] }}">{{ term['id'] }}&nbsp;<i class="external icon"></i></a>
+                                {{ term['name'] }}
+
+                                {% if term['isObsolete'] %}
+                                    <span class="ui tiny red label">Obsolete</span>
+                                {% endif %}
+
+                                {% if term['replacedBy'] %}
+                                    <span class="ui tiny yellow label">Secondary</span>
+                                {% endif %}
+
+                                <a data-id="{{ term['id'] }}"><i class="trash icon"></i></a>
+
+                                <i class="right-floated caret left icon"></i>
+                                <p class="hidden">{{ term['definition'] }}</p>
+                            </dd>
+                        {% endfor %}
+                    {% else %}
+                        <dd>No terms assigned in this category.</dd>
+                    {% endif %}
+                    <dt>Biological Process</dt>
+                    {% if entry['go']['P'] %}
+                        {% for term in entry['go']['P'] %}
+                            <dd>
+                                <a target="_blank" href="http://www.ebi.ac.uk/QuickGO/GTerm?id={{ term['id'] }}">{{ term['id'] }}&nbsp;<i class="external icon"></i></a>
+                                {{ term['name'] }}
+
+                                {% if term['isObsolete'] %}
+                                    <span class="ui tiny red label">Obsolete</span>
+                                {% endif %}
+
+                                {% if term['replacedBy'] %}
+                                    <span class="ui tiny yellow label">Secondary</span>
+                                {% endif %}
+
+                                <a data-id="{{ term['id'] }}"><i class="trash icon"></i></a>
+
+                                <i class="right-floated caret left icon"></i>
+                                <p class="hidden">{{ term['definition'] }}</p>
+                            </dd>
+                        {% endfor %}
+                    {% else %}
+                        <dd>No terms assigned in this category.</dd>
+                    {% endif %}
+                    <dt>Cellular Component</dt>
+                    {% if entry['go']['C'] %}
+                        {% for term in entry['go']['C'] %}
+                            <dd>
+                                <a target="_blank" href="http://www.ebi.ac.uk/QuickGO/GTerm?id={{ term['id'] }}">{{ term['id'] }}&nbsp;<i class="external icon"></i></a>
+                                {{ term['name'] }}
+
+                                {% if term['isObsolete'] %}
+                                    <span class="ui tiny red label">Obsolete</span>
+                                {% endif %}
+
+                                {% if term['replacedBy'] %}
+                                    <span class="ui tiny yellow label">Secondary</span>
+                                {% endif %}
+
+                                <a data-id="{{ term['id'] }}"><i class="trash icon"></i></a>
+
+                                <i class="right-floated caret left icon"></i>
+                                <p class="hidden">{{ term['definition'] }}</p>
+                            </dd>
+                        {% endfor %}
+                    {% else %}
+                        <dd>No terms assigned in this category.</dd>
+                    {% endif %}
+                </dl>
+            </div>
+            <div class="ui basic vertical segment">
+                <h2 id="references" class="ui dividing header">References</h2>
+                {% if entry['references'] %}
+                    <ol class="ui list">
+                        {% for pub in entry['references'] %}
+                            <li id="{{ pub['id'] }}">
+                                {{ pub['authors'] }}
+                                {{ pub['title'] }}
+                                <em>{{ pub['journal'] }}</em>
+                                {{ pub['year'] }};{{ pub['volume'] }}:{{ pub['pages'] }}
+
+                                <div class="ui horizontal link list">
+                                    {% if pub['doi'] %}
+                                        <a target="_blank" class="item" href="{{ pub['doi'] }}">View article
+                                            <i class="external icon"></i>
+                                        </a>
+                                    {% endif %}
+
+                                    {% if pub['pmid'] %}
+                                        <span class="item">Europe PMC:
+                                        <a target="_blank" class="item" href="{{ pub['pmid'] }}">View article
+                                            <i class="external icon"></i>
+                                        </a>
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </li>
+                        {% endfor %}
+                    </ol>
+                {% else %}
+                    <p>This entry has no references.</p>
+                {% endif %}
+                <h2 id="supp-references" class="ui dividing header">Supplementary references</h2>
+                {% if entry['suppReferences'] %}
+                    <p>The following publications were not referred to in the description, but provide useful additional information.</p>
+                    <ul class="ui list">
+                        {% for pub in entry['suppReferences'] %}
+                            <li id="{{ pub['id'] }}">
+                                {{ pub['authors'] }}
+                                {{ pub['title'] }}
+                                <em>{{ pub['journal'] }}</em>
+                                {{ pub['year'] }};{{ pub['volume'] }}:{{ pub['pages'] }}
+
+                                <div class="ui horizontal link list">
+                                    {% if pub['doi'] %}
+                                        <a target="_blank" class="item" href="{{ pub['doi'] }}">View article
+                                            <i class="external icon"></i>
+                                        </a>
+                                    {% endif %}
+
+                                    {% if pub['pmid'] %}
+                                        <span class="item">Europe PMC:
+                                        <a target="_blank" class="item" href="{{ pub['pmid'] }}">View article
+                                            <i class="external icon"></i>
+                                        </a>
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p>This entry has no additional references.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="/static/vendor/jquery.min.js"></script>
+<script src="/static/vendor/semantic.min.js"></script>
+
+</body>
+</html>
