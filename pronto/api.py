@@ -1151,6 +1151,7 @@ def add_go_mapping(entry_ac, terms):
         terms
     )
     _terms = set([row[0] for row in cur])
+    terms = set(terms)
 
     status = 201
 

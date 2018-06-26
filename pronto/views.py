@@ -122,7 +122,7 @@ def api_entry_go(entry_ac):
     if request.method == 'GET':
         return jsonify(api.get_entry_go(entry_ac)), 200
 
-    terms = set(request.form.get('ids', '').strip().split(','))
+    terms = list(set(request.form.get('ids', '').strip().upper().replace(',', ' ').split()))
     if not terms:
         return jsonify({
             'status': False,
@@ -130,9 +130,9 @@ def api_entry_go(entry_ac):
         }), 400
 
     if request.method == 'POST':
-        response, status = api.add_go_mapping(entry_ac.upper(), list(map(str.upper, set(terms))))
+        response, status = api.add_go_mapping(entry_ac.upper(), terms)
     else:
-        response, status = api.delete_go_mapping(entry_ac.upper(), list(map(str.upper, set(terms))))
+        response, status = api.delete_go_mapping(entry_ac.upper(), terms)
 
     return jsonify(response), status
 
