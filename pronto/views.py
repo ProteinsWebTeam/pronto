@@ -130,9 +130,9 @@ def api_entry_go(entry_ac):
         }), 400
 
     if request.method == 'POST':
-        response, status = api.add_go_mapping(entry_ac.upper(), map(str.upper, set(terms)))
+        response, status = api.add_go_mapping(entry_ac.upper(), list(map(str.upper, set(terms))))
     else:
-        response, status = api.delete_go_mapping(entry_ac.upper(), map(str.upper, set(terms)))
+        response, status = api.delete_go_mapping(entry_ac.upper(), list(map(str.upper, set(terms))))
 
     return jsonify(response), status
 
