@@ -317,18 +317,13 @@ def search(query, page=1, page_size=20):
                     # Take the first char only (will display a label on client)
                 })
 
-    return {
-        'entries': list(sorted(set(entry_accs))),
-        'methods': list(sorted(set(methods_accs))),
-        'proteins': proteins_accs,
-
-        'ebiSearch': {
-            'hits': hits,
-            'hitCount': hit_count,
-            'page': page,
-            'pageSize': page_size
-        }
-    }
+    return (
+        list(sorted(set(entry_accs))),
+        list(sorted(set(methods_accs))),
+        proteins_accs,
+        hits,
+        hit_count
+    )
 
 
 def get_feed(n=20):

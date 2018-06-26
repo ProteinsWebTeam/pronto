@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from flask import jsonify, request, render_template
+from flask import jsonify, redirect, render_template, request, url_for
 
 from pronto import app, api
 
@@ -14,18 +14,6 @@ def get_feed():
         n = 20
 
     return jsonify(api.get_feed(n))
-
-
-@app.route('/api/search/')
-def api_search():
-    query = request.args.get('q', '').strip()
-
-    try:
-        page = int(request.args['page'])
-    except (KeyError, ValueError):
-        page = 1
-
-    return jsonify(api.search(query=query, page=page, page_size=20))
 
 
 @app.route('/api/protein/<protein_ac>/')
@@ -453,8 +441,51 @@ def index():
 
 @app.route('/search/')
 def search():
-    """Home page."""
-    return render_template('search.html', user=api.get_user(), schema=app.config['DB_SCHEMA'])
+    query = request.args.get('q', '').strip()
+
+    try:
+        page = int(request.args['page'])
+    except (KeyError, ValueError):
+        page = 1
+
+    page_size = 20
+
+    entries, methods, proteins, hits, hit_count = api.search(query=query, page=page, page_size=page_size)
+
+    if len(entries) == 1 and not methods and not proteins:
+        return redirect(url_for('entry', accession=entries[0]))
+    elif not entries and len(methods) == 1 and not proteins:
+        return redirect(url_for('method', accession=entries[0]))
+    elif not entries and not methods and len(proteins) == 1:
+        return redirect(url_for('protein', accession=entries[0]))
+
+    suggestions = []
+    if entries:
+        suggestions.append('<li>Entries: {}</li>'.format(
+            ', '.join(['<a href="/entry/{0}/">{0}</a>'.format(accession) for accession in entries])
+        ))
+
+    if methods:
+        suggestions.append('<li>Signatures: {}</li>'.format(
+            ', '.join(['<a href="/method/{0}/">{0}</a>'.format(accession) for accession in methods])
+        ))
+
+    if proteins:
+        suggestions.append('<li>Proteins: {}</li>'.format(
+            ', '.join(['<a href="/protein/{0}/">{0}</a>'.format(accession) for accession in proteins])
+        ))
+
+    return render_template('search.html',
+                           query=query,
+                           entries=entries,
+                           methods=methods,
+                           proteins=proteins,
+                           hits=hits,
+                           hit_count=hit_count,
+                           page=page,
+                           page_size=page_size,
+                           user=api.get_user(),
+                           schema=app.config['DB_SCHEMA'])
 
 
 @app.route('/database/<dbcode>/')
@@ -465,3 +496,18 @@ def database(dbcode):
 @app.route('/database/<dbcode>/unintegrated/')
 def database_unint(dbcode):
     return render_template('database2.html', user=api.get_user(), schema=app.config['DB_SCHEMA'])
+
+
+@app.route('/protein/<accession>/')
+def protein(accession):
+    return accession
+
+
+@app.route('/method/<accession>/')
+def method(accession):
+    return accession
+
+
+@app.route('/entry/<accession>/')
+def entry(accession):
+    return accession

@@ -12,24 +12,74 @@
 {% include 'header.html' %}
 
 <div class="ui container basic vertical segment">
+    {% if entries or methods or proteins %}
         <div class="ui info message">
-        <div class="header">
-            Suggestions:
+            <div class="header">
+                Suggestions:
+            </div>
+            <ul class="list">
+                {% if entries %}
+                    <li>
+                        Entries:
+                        {% for acc in entries -%}
+                            <a href="/entry/{{ acc }}">{{ acc }}</a>
+                            {%- if not loop.last -%}
+                                ,
+                            {% endif %}
+                        {%- endfor %}
+                    </li>
+                {% endif %}
+                {% if methods %}
+                    <li>
+                        Signatures:
+                        {% for acc in methods -%}
+                            <a href="/methods/{{ acc }}">{{ acc }}</a>
+                            {%- if not loop.last -%}
+                                ,
+                            {% endif %}
+                        {%- endfor %}
+                    </li>
+                {% endif %}
+                {% if proteins %}
+                    <li>
+                        Entries:
+                        {% for acc in proteins -%}
+                            <a href="/protein/{{ acc }}">{{ acc }}</a>
+                            {%- if not loop.last -%}
+                                ,
+                            {% endif %}
+                        {%- endfor %}
+                    </li>
+                {% endif %}
+            </ul>
         </div>
-        <ul class="list"></ul>
-    </div>
+    {% endif %}
 
     <table class="ui compact selectable table">
         <thead>
         <tr>
-            <th colspan="2"></th>
+            <th colspan="2">
+                 {{ (page - 1) * page_size + 1 }} - {{ [page * page_size, hit_count]|min }} of {{ hit_count }} results
+            </th>
         </tr>
         <tr>
             <th>Accession</th>
             <th>Name</th>
         </tr>
         </thead>
-        <tbody></tbody>
+        <tbody>
+        {% if hits %}
+            {% for entry in hits %}
+                <tr>
+                    <td><span class="ui tiny type-{{ entry['type'] }} circular label">{{ entry['type'] }}</span>&nbsp;<a href="/entry/{{ entry['id'] }}">{{ entry['id'] }}</a></td>
+                    <td>{{ entry['name'] }}</td>
+                </tr>
+            {% endfor %}
+        {% else %}
+            <tr><td colspan="2">No hits found by EBI Search</td></tr>
+        {% endif %}
+
+        </tbody>
         <tfoot>
         <tr>
             <th colspan="2">
@@ -42,7 +92,5 @@
 
 <script src="/static/vendor/jquery.min.js"></script>
 <script src="/static/vendor/semantic.min.js"></script>
-<script src="/static/search.js" type="module"></script>
-
 </body>
 </html>
