@@ -530,10 +530,8 @@ def get_protein(protein_ac):
                 'id': method_ac,
                 'name': row[6],
                 'link': db.gen_link(),
-                'db': {
-                    'name': db.name,
-                    'color': db.color
-                },
+                'database': db.name,
+                'color': db.color,
                 'matches': []
             }
 
@@ -585,10 +583,8 @@ def get_protein(protein_ac):
             fam = structs[fam_id] = {
                 'id': fam_id,
                 'link': db.gen_link(),
-                'db': {
-                    'name': db.name,
-                    'color': db.color
-                },
+                'database': db.name,
+                'color': db.color,
                 'matches': []
             }
 
