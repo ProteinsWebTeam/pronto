@@ -91,7 +91,7 @@ td > .ui.list > .item > .label + .content {
 }
 
 /* Header icon */
-h1.ui.header > .sub.header > i.icon {
+h1.ui.header > .sub.header i.icon {
     display: inline;
     font-size: .75em;
 }
@@ -223,4 +223,37 @@ dl dd:hover a[data-go-id] {
 }
 dl dd a[data-go-id]:hover {
     color: rgba(0,0,0,.8);
+}
+
+.italic {
+    font-style: italic;
+}
+
+/* SVG elements */
+g.ticks line {
+    stroke-dasharray: 2, 2;
+    stroke-width: 0.5px;
+    stroke: #000;
+}
+g.ticks text {
+    dominant-baseline: hanging;
+    text-anchor: middle;
+    font-size: 10px;
+}
+svg rect.match {
+    opacity: .5;
+}
+svg rect.match:hover {
+    opacity: 1;
+    cursor: pointer;
+}
+svg text.label {
+    dominant-baseline: central;
+    font-size: 14px;
+}
+svg text.label a {
+    fill: #4a4a4a;
+}
+svg text.label:hover a {
+    fill: #1a1a1a;
 }
