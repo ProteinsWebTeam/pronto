@@ -199,28 +199,25 @@ export function getComments(div, type, id, size, callback) {
                 e.preventDefault();
 
                 const commentId = e.target.closest('.comment').getAttribute('data-id');
-                const modal = document.getElementById('confirm-modal');
 
-                modal.querySelector('.content').innerHTML = '<p>Flag this comment as invalid? This action <strong>cannot</strong> be undone.</p>';
-
-                $(modal)
-                    .modal({
-                        onApprove: function () {
-                            deletexhr('/api/' + type + '/' + id + '/comment/' + commentId + '/', {
-                                status: 0
-                            }, data => {
-                                if (data.status)
-                                    getComments(div, type, id, size, callback);
-                                else {
-                                    const modal = document.getElementById('error-modal');
-                                    modal.querySelector('.content p').innerHTML = data.message;
-                                    $(modal).modal('show');
-                                }
-                            });
-                        },
-                        onDeny: function () {}
-                    })
-                    .modal('show');
+                openConfirmModal(
+                    'Flag comment?',
+                    'This comment will be marked as obsolete, and highlighted in red.',
+                    'Flag',
+                    function () {
+                        deletexhr('/api/' + type + '/' + id + '/comment/' + commentId + '/', {
+                            status: 0
+                        }, data => {
+                            if (data.status)
+                                getComments(div, type, id, size, callback);
+                            else {
+                                const modal = document.getElementById('error-modal');
+                                modal.querySelector('.content p').innerHTML = data.message;
+                                $(modal).modal('show');
+                            }
+                        });
+                    }
+                );
             });
         });
 
@@ -288,4 +285,21 @@ export function paginate(table, page, pageSize, count, onClick) {
             onClick(elements[i].href);
         });
     }
+}
+
+export function openConfirmModal(header, content, approve, onApprove) {
+    const modal = document.getElementById('confirm-modal');
+
+    modal.querySelector('.header').innerText = header;
+    modal.querySelector('.content').innerHTML = '<p>'+ content +'</p>';
+    modal.querySelector('.approve').innerText = approve;
+
+    $(modal)
+        .modal({
+            onApprove: function () {
+                onApprove();
+            },
+            onDeny: function () {}
+        })
+        .modal('show');
 }
