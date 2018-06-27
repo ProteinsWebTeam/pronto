@@ -458,9 +458,9 @@ def v_search():
     if len(entries) == 1 and not methods and not proteins:
         return redirect(url_for('v_entry', accession=entries[0]))
     elif not entries and len(methods) == 1 and not proteins:
-        return redirect(url_for('v_method', accession=entries[0]))
+        return redirect(url_for('v_method', accession=methods[0]))
     elif not entries and not methods and len(proteins) == 1:
-        return redirect(url_for('v_protein', accession=entries[0]))
+        return redirect(url_for('v_protein', accession=proteins[0]))
 
     suggestions = []
     if entries:
@@ -499,7 +499,6 @@ def v_database(dbcode):
 @app.route('/database/<dbcode>/unintegrated/')
 def v_database_unintegrated(dbcode):
     return render_template('database2.html', user=api.get_user(), schema=app.config['DB_SCHEMA'])
-
 
 @app.route('/protein/<accession>/')
 def v_protein(accession):
