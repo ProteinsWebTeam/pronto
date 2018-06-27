@@ -502,7 +502,8 @@ def v_database_unintegrated(dbcode):
 
 @app.route('/protein/<accession>/')
 def v_protein(accession):
-    return accession
+    protein = api.get_protein(accession)
+    return render_template('protein.html', protein=protein, user=api.get_user(), schema=app.config['DB_SCHEMA'])
 
 
 @app.route('/method/<accession>/')
