@@ -131,4 +131,10 @@ $(function () {
     // Structures and predictions
     html = renderFeatures(svgWidth, rectWidth, proteinLength, structures, 'database', false);
     document.querySelector('#structures + div').innerHTML = html;
+
+    $(document.querySelector('.ui.sticky')).sticky({
+        context: document.querySelector('.twelve.column')
+    });
+
+    utils.listenMenu(document.querySelector('.ui.vertical.menu'));
 });

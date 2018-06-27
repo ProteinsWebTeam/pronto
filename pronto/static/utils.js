@@ -303,3 +303,15 @@ export function openConfirmModal(header, content, approve, onApprove) {
         })
         .modal('show');
 }
+
+export function listenMenu(menu) {
+    const items = menu.querySelectorAll('a.item');
+    console.log(items);
+    Array.from(items).forEach(item => {
+        item.addEventListener('click', e => {
+            Array.from(items).forEach(i => {
+                setClass(i, 'active', i === e.target);
+            });
+        });
+    });
+}

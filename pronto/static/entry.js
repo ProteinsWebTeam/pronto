@@ -171,4 +171,6 @@ $(function () {
                 input.value = null;
             });
     });
+
+    utils.listenMenu(document.querySelector('.ui.vertical.menu'));
 });
