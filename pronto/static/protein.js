@@ -40,7 +40,12 @@ function initSVG (svgWidth, rectWidth, proteinLength, numLines) {
 }
 
 
-function renderFeatures(svgWidth, rectWidth, proteinLength, features) {
+function renderFeatures(svgWidth, rectWidth, proteinLength, features, labelKey, labelLink) {
+    if (labelKey === undefined)
+        labelKey = 'id';
+    if (labelLink === undefined)
+        labelLink = true;
+
     // Create SVG and ticks
     let html = initSVG(svgWidth, rectWidth, proteinLength, features.length);
 
@@ -51,11 +56,14 @@ function renderFeatures(svgWidth, rectWidth, proteinLength, features) {
             const x = Math.round(match.start * rectWidth / proteinLength);
             const w = Math.round((match.end - match.start) * rectWidth / proteinLength);
             html += '<rect data-start="'+ match.start +'" data-end="'+ match.end +'" data-id="'+ feature.id +'" ' +
-                'data-name="'+ feature.name +'" data-db="'+ feature.db.name +'" data-link="'+ feature.link +'" class="match" x="'+ x +'" y="' + y + '" ' +
-                'width="' + w + '" height="'+ matchHeight +'" rx="1" ry="1" style="fill: '+ feature.db.color +'"/>';
+                'data-name="'+ feature.name +'" data-db="'+ feature.database +'" data-link="'+ feature.link +'" class="match" x="'+ x +'" y="' + y + '" ' +
+                'width="' + w + '" height="'+ matchHeight +'" rx="1" ry="1" style="fill: '+ feature.color +'"/>';
         });
 
-        html += '<text class="label" x="' + (rectWidth + 10) + '" y="'+ (y + matchHeight / 2) +'"><a href="/method/'+ feature.id +'/">'+ feature.id +'</a></text>';
+        if (labelLink)
+            html += '<text class="label" x="' + (rectWidth + 10) + '" y="'+ (y + matchHeight / 2) +'"><a href="/method/'+ feature[labelKey] +'/">'+ feature[labelKey] +'</a></text>';
+        else
+            html += '<text class="label" x="' + (rectWidth + 10) + '" y="'+ (y + matchHeight / 2) +'">'+ feature[labelKey] +'</text>';
     });
 
     return html + '</svg>';
@@ -121,6 +129,6 @@ $(function () {
     document.querySelector('#others + div').innerHTML = html;
 
     // Structures and predictions
-    html = renderFeatures(svgWidth, rectWidth, proteinLength, structures);
+    html = renderFeatures(svgWidth, rectWidth, proteinLength, structures, 'database', false);
     document.querySelector('#structures + div').innerHTML = html;
 });
