@@ -56,7 +56,7 @@ function renderFeatures(svgWidth, rectWidth, proteinLength, features, labelKey, 
             const x = Math.round(match.start * rectWidth / proteinLength);
             const w = Math.round((match.end - match.start) * rectWidth / proteinLength);
             html += '<rect data-start="'+ match.start +'" data-end="'+ match.end +'" data-id="'+ feature.id +'" ' +
-                'data-name="'+ feature.name +'" data-db="'+ feature.database +'" data-link="'+ feature.link +'" class="match" x="'+ x +'" y="' + y + '" ' +
+                'data-name="'+ (feature.name ? feature.name : '') +'" data-db="'+ feature.database +'" data-link="'+ feature.link +'" class="match" x="'+ x +'" y="' + y + '" ' +
                 'width="' + w + '" height="'+ matchHeight +'" rx="1" ry="1" style="fill: '+ feature.color +'"/>';
         });
 
@@ -137,4 +137,78 @@ $(function () {
     });
 
     utils.listenMenu(document.querySelector('.ui.vertical.menu'));
+
+    const tooltip = {
+        element: document.getElementById('tooltip'),
+        isInit: false,
+        active: false,
+
+        show: function(rect) {
+            this.active = true;
+            this.element.style.display = 'block';
+            this.element.style.top = Math.round(rect.top - this.element.offsetHeight + window.scrollY - 5).toString() + 'px';
+            this.element.style.left = Math.round(rect.left + rect .width / 2 - this.element.offsetWidth / 2).toString() + 'px';
+
+        },
+        _hide: function () {
+            if (!this.active)
+                this.element.style.display = 'none';
+        },
+        hide: function () {
+            this.active = false;
+            setTimeout(() => {
+                this._hide();
+            }, 500);
+        },
+        update: function (id, name, start, end, dbName, link) {
+            let content = '<div class="header">' + start.toLocaleString() + ' - ' + end.toLocaleString() +'</div><div class="meta">' + dbName + '</div>';
+
+            if (id[0] === null || id[0].indexOf('IPR'))
+                content += '<div class="description"><strong>'+ name +'</strong>&nbsp;<a target="_blank" href="'+ link +'">'+ id +'&nbsp;<i class="external icon"></i></div>';
+            else // todo show hierarchy
+                content += '<div class="description"><a href="/entry/'+ id[0] +'">'+ id[0] +'</a></div>';
+
+            this.element.querySelector('.content').innerHTML = content;
+        },
+        init: function () {
+            if (this.isInit)
+                return;
+
+            this.isInit = true;
+
+            this.element.addEventListener('mouseenter', e => {
+                this.active = true;
+            });
+
+            this.element.addEventListener('mouseleave', e => {
+                this.hide();
+            });
+
+            this.element.querySelector('.close').addEventListener('click', e => {
+                this.element.style.display = 'none';
+            });
+        }
+    };
+
+    tooltip.init();
+
+    Array.from(document.querySelectorAll('rect[data-id]')).forEach(rect => {
+        rect.addEventListener('mouseenter', e => {
+            const target = e.target;
+
+            tooltip.update(
+                target.getAttribute('data-id'),
+                target.getAttribute('data-name'),
+                parseInt(target.getAttribute('data-start'), 10),
+                parseInt(target.getAttribute('data-end'), 10),
+                target.getAttribute('data-db'),
+                target.getAttribute('data-link')
+            );
+            tooltip.show(target.getBoundingClientRect());
+        });
+
+        rect.addEventListener('mouseleave', e => {
+            tooltip.hide();
+        });
+    });
 });
