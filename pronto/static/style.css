@@ -257,3 +257,40 @@ svg text.label, svg text.label a {
 svg text.label:hover a {
     fill: #1a1a1a;
 }
+
+/* Matches tooltip */
+.ui.tooltip {
+    background-color: #fff;
+    border-radius: 5px;
+    -webkit-box-shadow: 0 2px 3px rgba(10,10,10,.1),0 0 0 1px rgba(10,10,10,.1);
+    box-shadow: 0 2px 3px rgba(10,10,10,.1),0 0 0 1px rgba(10,10,10,.1);
+    padding: .7em;
+    width: 275px;
+    position: absolute;
+    z-index: 9999;
+    display: none;
+}
+.ui.tooltip .header {
+    font-size: 1.25em;
+}
+.ui.tooltip .meta {
+    font-size: .8em;
+    color: rgba(0,0,0,.5);
+    line-height: 1;
+}
+.ui.tooltip .description {
+    margin-top: .5rem;
+    font-size: 1em;
+    color: rgba(0,0,0,.7);
+}
+.ui.tooltip > .close.icon {
+    cursor: pointer;
+    position: absolute;
+    margin: 0;
+    top: .5em;
+    right: .5em;
+    opacity: .7;
+}
+.ui.tooltip > .close.icon:hover {
+    opacity: 1;
+}
