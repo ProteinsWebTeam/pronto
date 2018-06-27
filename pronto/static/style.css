@@ -251,7 +251,7 @@ svg text.label {
     dominant-baseline: central;
     font-size: 14px;
 }
-svg text.label a {
+svg text.label, svg text.label a {
     fill: #4a4a4a;
 }
 svg text.label:hover a {
