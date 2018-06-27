@@ -99,27 +99,6 @@ function addGOEvents(entryID) {
                     });
                 }
             )
-            // const modal = document.getElementById('confirm-modal');
-            //
-            // modal.querySelector('.content').innerHTML = '<p>Are you you want to delete this GO term?</p>';
-            // modal.querySelector('.approve').innerText = 'Delete';
-            //
-            // $(modal)
-            //     .modal({
-            //         onApprove: function () {
-            //             utils.deletexhr('/api/entry/' + entryID + '/go/', {ids: elem.getAttribute('data-go-id')}, data => {
-            //                 if (data.status)
-            //                     getGOTerms(entryID);
-            //                 else {
-            //                     const modal = document.getElementById('error-modal');
-            //                     modal.querySelector('.content p').innerHTML = data.message;
-            //                     $(modal).modal('show');
-            //                 }
-            //             });
-            //         },
-            //         onDeny: function () {}
-            //     })
-            //     .modal('show');
         });
     });
 }
