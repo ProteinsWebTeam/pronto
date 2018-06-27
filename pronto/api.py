@@ -13,7 +13,6 @@ from flask import g, session
 from pronto import app
 from . import xref
 
-
 RANKS = (
     'superkingdom',
     'kingdom',
@@ -487,45 +486,79 @@ def get_protein(protein_ac):
         (protein_ac, )
     )
 
+    families = {}
     entries = {}
+    methods = {}  # unintegrated signatures
+    others = {}   # other features (e.g. MobiDB)
     for row in cur:
         entry_ac = row[0]
-
-        try:
-            entries[entry_ac]
-        except KeyError:
-            entries[entry_ac] = {
-                'id': entry_ac,
-                'name': row[1],
-                'typeCode': row[2],
-                'type': row[3],
-                'parent': row[4],
-                'methods': {}
-            }
-        finally:
-            methods = entries[entry_ac]['methods']
-
+        entry_name = row[1]
+        type_code = row[2]
+        parent = row[4]
         method_ac = row[5]
-        try:
-            methods[method_ac]
-        except KeyError:
-            db = xref.find_ref(dbcode=row[7], ac=method_ac)
+        dbcode = row[7]
 
-            methods[method_ac] = {
+        if entry_ac:
+            if type_code == 'F' and entry_ac not in families:
+                families[entry_ac] = {
+                    'id': entry_ac,
+                    'name': entry_name,
+                    'parent': parent,
+                    'children': []
+                }
+
+            if entry_ac not in entries:
+                entries[entry_ac] = {
+                    'id': entry_ac,
+                    'name': entry_name,
+                    'typeCode': type_code,
+                    'type': row[3],
+                    'methods': {}
+                }
+
+            _methods = entries[entry_ac]['methods']
+        elif dbcode in ('g',):
+            _methods = others
+        else:
+            _methods = methods
+
+        if method_ac in _methods:
+            method = _methods[method_ac]
+        else:
+            db = xref.find_ref(dbcode=dbcode, ac=method_ac)
+            method = _methods[method_ac] = {
                 'id': method_ac,
                 'name': row[6],
+                'link': db.gen_link(),
                 'db': {
                     'name': db.name,
-                    'link': db.gen_link(),
                     'color': db.color
                 },
                 'matches': []
             }
-        finally:
-            methods[method_ac]['matches'].append({'start': row[8], 'end': row[9]})
+
+        method['matches'].append({'start': row[8], 'end': row[9]})
 
     for entry_ac in entries:
-        entries[entry_ac]['methods'] = list(entries[entry_ac]['methods'].values())
+        entries[entry_ac]['methods'] = sorted(entries[entry_ac]['methods'].values(), key=lambda x: x['id'])
+
+    tree = []
+    while families:
+        # Remove nodes, and keep only leaves (i.e. entries without children)
+        keys = set(families.keys())
+        for entry_ac, entry in families.items():
+            if entry['parent']:
+                keys.discard(entry['parent'])
+
+        for entry_ac in sorted(keys):
+            entry = families.pop(entry_ac)
+            parent = entry['parent']
+            del entry['parent']
+            if parent:
+                families[parent]['children'].append(entry)
+            else:
+                tree.append(entry)
+    families = tree
 
     # Structural features and predictions
     cur.execute(
@@ -545,28 +578,30 @@ def get_protein(protein_ac):
 
     structs = {}
     for dbcode, domain_id, fam_id, start, end in cur:
-        try:
-            structs[fam_id]
-        except KeyError:
+        if fam_id in structs:
+            fam = structs[fam_id]
+        else:
             db = xref.find_ref(dbcode=dbcode, ac=fam_id)
-
-            structs[fam_id] = {
+            fam = structs[fam_id] = {
                 'id': fam_id,
+                'link': db.gen_link(),
                 'db': {
                     'name': db.name,
-                    'link': db.gen_link(),
                     'color': db.color
                 },
                 'matches': []
             }
-        finally:
-            structs[fam_id]['matches'].append({'start': start, 'end': end})
+
+        fam['matches'].append({'start': start, 'end': end})
 
     cur.close()
 
     protein.update({
-        'entries': list(entries.values()),
-        'structures': list(structs.values())
+        'entries': sorted(entries.values(), key=lambda x: x['id']),
+        'methods': list(methods.values()),
+        'others': list(others.values()),
+        'structures': list(structs.values()),
+        'families': families
     })
 
     return protein
@@ -2232,17 +2267,17 @@ def get_database_unintegrated_methods(dbshort, **kwargs):
             })
 
     return {
-        'pageInfo': {
-            'page': page,
-            'pageSize': page_size
-        },
-        'results': _methods[(page-1)*page_size:page*page_size],
-        'count': len(_methods),
-        'database': {
-            'name': dbname,
-            'version': dbversion
-        }
-    }, 200
+               'pageInfo': {
+                   'page': page,
+                   'pageSize': page_size
+               },
+               'results': _methods[(page-1)*page_size:page*page_size],
+               'count': len(_methods),
+               'database': {
+                   'name': dbname,
+                   'version': dbversion
+               }
+           }, 200
 
 
 def get_method_matches(method_ac, **kwargs):
