@@ -63,6 +63,8 @@ function getGOTerms(entryID) {
 
 
 function addGOEvents(entryID) {
+    // TODO: when adding/removing, the counters should be updated as well.
+
     // Showing/hiding GO defintions
     Array.from(document.querySelectorAll('dl i.right-floated')).forEach(elem => {
         elem.addEventListener('click', e => {
