@@ -287,7 +287,7 @@ export function paginate(table, page, pageSize, count, onClick) {
     }
 }
 
-export function openConfirmModal(header, content, approve, onApprove) {
+export function openConfirmModal(header, content, approve, onApprove, onDeny) {
     const modal = document.getElementById('confirm-modal');
 
     modal.querySelector('.header').innerText = header;
@@ -297,9 +297,11 @@ export function openConfirmModal(header, content, approve, onApprove) {
     $(modal)
         .modal({
             onApprove: function () {
-                onApprove();
+                if (onApprove) onApprove();
             },
-            onDeny: function () {}
+            onDeny: function () {
+                if (onDeny) onDeny();
+            }
         })
         .modal('show');
 }
@@ -313,4 +315,86 @@ export function listenMenu(menu) {
             });
         });
     });
+}
+
+export function MethodsSelectionView(root) {
+    this.root = root;
+    this.methods = [];
+    const self = this;
+
+    // Init
+    (function () {
+        const input = self.root.querySelector('input[type=text]');
+        input.addEventListener('keyup', e => {
+            if (e.which === 13) {
+                let render = false;
+                e.target.value.trim().replace(/,/g, ' ').split(' ').forEach(id => {
+                    if (id.length && self.methods.indexOf(id) === -1) {
+                        self.methods.push(id);
+                        render = true;
+                    }
+                });
+
+                e.target.value = null;
+                if (render)
+                    self.render();
+            }
+        });
+
+        Array.from(self.root.querySelectorAll('.links a')).forEach(element => {
+            element.addEventListener('click', e => {
+                if (!self.methods.length)
+                    e.preventDefault();
+            });
+        });
+    })();
+
+    this.clear = function () {
+        this.methods = [];
+        return this;
+    };
+
+
+    this.add = function(methodId) {
+        if (this.methods.indexOf(methodId) === -1)
+            this.methods.push(methodId);
+        setClass(this.root.querySelector('.ui.input'), 'error', false);
+        return this;
+    };
+
+    this.render = function () {
+        const div = this.root.querySelector('.ui.grid .column:last-child');
+        let html = '';
+        this.methods.forEach(m => {
+            html += '<a class="ui basic label" data-id="' + m + '">' + m + '<i class="delete icon"></i></a>';
+        });
+        div.innerHTML = html;
+
+        let nodes = div.querySelectorAll('a i.delete');
+        for (let i = 0; i < nodes.length; ++i) {
+            nodes[i].addEventListener('click', e => {
+                const methodAc = e.target.parentNode.getAttribute('data-id');
+                const newMethods = [];
+                this.methods.forEach(m => {
+                    if (m !== methodAc)
+                        newMethods.push(m);
+                });
+                this.methods = newMethods;
+                this.render();
+
+                if (!this.methods.length)
+                    setClass(this.root.querySelector('.ui.input'), 'error', true);
+            });
+        }
+
+        Array.from(this.root.querySelectorAll('.links a')).forEach(element => {
+            element.setAttribute('href', '/methods/' + this.methods.join('/') + '/' + element.getAttribute('data-page'));
+        });
+    };
+
+    this.toggle = function (page) {
+        Array.from(this.root.querySelectorAll('.links a')).forEach(e => {
+            setClass(e, 'active', e.getAttribute('data-page') === page);
+        });
+    };
 }
