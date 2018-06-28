@@ -1,6 +1,5 @@
 import * as utils from './utils.js';
 
-
 function getMethods() {
     const url = location.pathname + location.search;
 
@@ -55,30 +54,29 @@ function getMethods() {
 
         Array.from(document.querySelectorAll('tbody input[type=checkbox]')).forEach(input => {
             input.addEventListener('change', e => {
-                const modal = document.getElementById('confirm-modal');
-                modal.querySelector('.content').innerHTML = '<p>' + (input.checked ? 'Check' : 'Uncheck') + ' entry <strong>'+ input.name +'</strong>?';
-                $(modal)
-                    .modal({
-                        onApprove: function () {
-                            utils.post('/api/entry/' + input.name + '/check/', {
-                                checked: input.checked ? 1 : 0
-                            }, data => {
-                                if (data.status) {
-                                    const cboxes = document.querySelectorAll('input[type=checkbox][name="'+ input.name +'"]');
-                                    for (let i = 0; i < cboxes.length; ++i)
-                                        cboxes[i].checked = input.checked;
-                                } else {
-                                    const modal = document.getElementById('error-modal');
-                                    modal.querySelector('.content p').innerHTML = data.message;
-                                    $(modal).modal('show');
-                                }
-                            });
-                        },
-                        onDeny: function () {
-                            input.checked = !input.checked;
-                        }
-                    })
-                    .modal('show');
+                utils.openConfirmModal(
+                    (input.checked ? 'Check' : 'Uncheck') + ' entry?',
+                    '<strong>' + input.name + '</strong> will be marked as ' + (input.checked ? 'checked' : 'unchecked'),
+                    (input.checked ? 'Check' : 'Uncheck'),
+                    function () {
+                        utils.post('/api/entry/' + input.name + '/check/', {
+                            checked: input.checked ? 1 : 0
+                        }, data => {
+                            if (data.status) {
+                                const cboxes = document.querySelectorAll('input[type=checkbox][name="'+ input.name +'"]');
+                                for (let i = 0; i < cboxes.length; ++i)
+                                    cboxes[i].checked = input.checked;
+                            } else {
+                                const modal = document.getElementById('error-modal');
+                                modal.querySelector('.content p').innerHTML = data.message;
+                                $(modal).modal('show');
+                            }
+                        });
+                    },
+                    function () {
+                        input.checked = !input.checked;
+                    }
+                );
             });
         });
 
