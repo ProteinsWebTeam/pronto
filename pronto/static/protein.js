@@ -161,12 +161,14 @@ $(function () {
             }, 500);
         },
         update: function (id, name, start, end, dbName, link) {
-            let content = '<div class="header">' + start.toLocaleString() + ' - ' + end.toLocaleString() +'</div><div class="meta">' + dbName + '</div>';
+            let content = '<div class="header">' + start.toLocaleString() + ' - ' + end.toLocaleString() +'</div>';
 
-            if (id[0] === null || id[0].indexOf('IPR'))
-                content += '<div class="description"><strong>'+ name +'</strong>&nbsp;<a target="_blank" href="'+ link +'">'+ id +'&nbsp;<i class="external icon"></i></div>';
-            else // todo show hierarchy
-                content += '<div class="description"><a href="/entry/'+ id[0] +'">'+ id[0] +'</a></div>';
+            if (name.length)
+                content += '<div class="meta">'+ name +'&nbsp;&ndash;&nbsp;'+ dbName +'</div>';
+            else
+                content += '<div class="meta">'+ dbName +'</div>';
+
+            content += '<div class="description"><a target="_blank" href="'+ link +'">'+ id +'&nbsp;<i class="external icon"></i></div>';
 
             this.element.querySelector('.content').innerHTML = content;
         },
