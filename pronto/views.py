@@ -512,6 +512,12 @@ def v_method(accession):
     return render_template('method.html', method=accession, user=api.get_user(), schema=app.config['DB_SCHEMA'])
 
 
+@app.route('/methods/<path:accessions>/matches/')
+def v_matches(accessions):
+    accessions = accessions.split('/')
+    return render_template('matches.html', accessions=accessions, user=api.get_user(), schema=app.config['DB_SCHEMA'])
+
+
 @app.route('/entry/<accession>/')
 def v_entry(accession):
     try:
