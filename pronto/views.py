@@ -508,7 +508,7 @@ def v_protein(accession):
 
 @app.route('/method/<accession>/')
 def v_method(accession):
-    return render_template('method.html', user=api.get_user(), schema=app.config['DB_SCHEMA'])
+    return render_template('method.html', method=accession, user=api.get_user(), schema=app.config['DB_SCHEMA'])
 
 
 @app.route('/entry/<accession>/')
