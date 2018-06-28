@@ -294,3 +294,12 @@ svg text.label:hover a {
 .ui.tooltip > .close.icon:hover {
     opacity: 1;
 }
+
+/* Prevent line break in tables */
+td.nowrap, th.nowrap { white-space: nowrap; }
+
+/* Range element on Signature prediction page */
+input[type="range"] {
+    display: block;
+    width: 50%;
+}
