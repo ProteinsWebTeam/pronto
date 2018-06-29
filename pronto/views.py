@@ -143,6 +143,8 @@ def api_method_proteins(method_ac):
         taxon = int(request.args['taxon'])
     except (KeyError, ValueError):
         taxon = None
+    else:
+        taxon = api.get_taxon(taxon)
 
     try:
         page = int(request.args['page'])
@@ -259,6 +261,8 @@ def api_methods_matches(methods):
         taxon = int(request.args['taxon'])
     except (KeyError, ValueError):
         taxon = None
+    else:
+        taxon = api.get_taxon(taxon)
 
     try:
         page = int(request.args['page'])
@@ -282,12 +286,13 @@ def api_methods_matches(methods):
         topic_id = None
         comment_id = None
 
-    dbcode = request.args.get('db', '').upper()
+    dbcode = request.args.get('db', 'S').upper()
     if dbcode not in ('S', 'T'):
         dbcode = None
 
-    api.get_methods_matches(
+    count, proteins = api.get_methods_matches(
         methods=[m.strip() for m in methods.split('/') if m.strip()],
+        taxon=taxon,
         dbcode=dbcode,
         desc=desc_id,
         topic=topic_id,
@@ -302,6 +307,15 @@ def api_methods_matches(methods):
         page=page,
         page_size=page_size
     )
+
+    return jsonify({
+        'count': count,
+        'data': proteins,
+        'taxon': None,
+        'database': dbcode if dbcode else 'U',
+        'page': page,
+        'pageSize': page_size
+    })
 
 
 @app.route('/api/methods/<path:methods>/enzymes/')
