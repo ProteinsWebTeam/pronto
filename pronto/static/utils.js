@@ -231,7 +231,7 @@ export function getComments(div, type, id, size, callback) {
     });
 }
 
-export function paginate(table, page, pageSize, count, onClick) {
+export function paginate(element, page, pageSize, count, onClick) {
     const lastPage = Math.ceil(count / pageSize);
     const pathName = location.pathname;
     const params = parseLocation(location.search);
@@ -274,17 +274,21 @@ export function paginate(table, page, pageSize, count, onClick) {
     else
         html += '<a class="icon item" href="'+ genLink(page + 1)  +'"><i class="right chevron icon"></i></a>';
 
-    const pagination = table.querySelector('.pagination');
+    const pagination = element.querySelector('.pagination');
     pagination.innerHTML = html;
-    table.querySelector('thead span').innerHTML = (count ? (page - 1) * pageSize + 1 : 0) + ' - ' + Math.min(page * pageSize, count) + ' of ' + count.toLocaleString() + ' entries';
 
-    const elements = pagination.querySelectorAll('a[href]');
-    for (let i  = 0; i < elements.length; ++i) {
-        elements[i].addEventListener('click', e => {
-            e.preventDefault();
-            onClick(elements[i].href);
+    if (onClick) {
+        Array.from(pagination.querySelectorAll('a[href]')).forEach(elem => {
+            elem.addEventListener('click', e => {
+                e.preventDefault();
+                onClick(elem.href);
+            });
         });
     }
+
+    const span = element.querySelector('thead span');
+    if (span)
+        span.innerHTML = (count ? (page - 1) * pageSize + 1 : 0) + ' - ' + Math.min(page * pageSize, count) + ' of ' + count.toLocaleString() + ' entries';
 }
 
 export function openConfirmModal(header, content, approve, onApprove, onDeny) {
