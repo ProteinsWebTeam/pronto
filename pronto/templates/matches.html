@@ -5,7 +5,7 @@
     <link rel="stylesheet" href="/static/vendor/semantic.min.css" />
     <link rel="stylesheet" href="/static/style.css" />
     <link rel="icon" href="/static/favicon.png">
-    <title>{{ accessions|join(', ') }} overlapping proteins | Pronto</title>
+    <title>Overlapping proteins ({{ accessions|join(', ') }}) | Pronto</title>
 </head>
 <body>
 
@@ -37,19 +37,19 @@
             <label>Source</label>
             <div class="field">
                 <div class="ui radio checkbox">
-                    <input name="db" value="S" type="radio">
+                    <input name="dbcode" value="S" type="radio" checked>
                     <label>Swiss-Prot</label>
                 </div>
             </div>
             <div class="field">
                 <div class="ui radio checkbox">
-                    <input name="db" value="T" type="radio">
+                    <input name="dbcode" value="T" type="radio">
                     <label>TrEMBL</label>
                 </div>
             </div>
             <div class="field">
                 <div class="ui radio checkbox">
-                    <input name="db" value="U" type="radio">
+                    <input name="dbcode" value="U" type="radio">
                     <label>Any</label>
                 </div>
             </div>

@@ -213,10 +213,9 @@ def build_method2protein_sql(methods, **kwargs):
 
     # Filter by taxon
     if taxon:
-        taxon = get_taxon(taxon)
         tax_cond = 'AND M2P.LEFT_NUMBER BETWEEN :ln AND :rn'
-        params['ln'] = int(taxon['leftNumber'])
-        params['rn'] = int(taxon['rightNumber'])
+        params['ln'] = taxon['leftNumber']
+        params['rn'] = taxon['rightNumber']
     else:
         tax_cond = ''
 
@@ -1673,7 +1672,13 @@ def get_taxon(taxon_id):
     row = cur.fetchone()
     cur.close()
 
-    return None if not row else dict(zip(('id', 'fullName', 'leftNumber', 'rightNumber', 'rank'), row))
+    return {
+        'id': row[0],
+        'fullName': row[1],
+        'leftNumber': int(row[2]),
+        'rightNumber': int(row[3]),
+        'rank': row[4]
+    }
 
 
 def get_methods_taxonomy(methods, taxon=None, rank=None):
@@ -2425,7 +2430,6 @@ def get_methods_matches(methods, **kwargs):
         proteins = [row for row in cur]
 
     n_proteins = len(proteins)
-    max_len = 0
     _proteins = []
 
     if n_proteins:
@@ -2485,9 +2489,6 @@ def get_methods_matches(methods, **kwargs):
                     'methods': {}
                 }
 
-                if row[2] > max_len:
-                    max_len = row[2]
-
             method_ac = row[5]
 
             if method_ac in p['methods']:
@@ -2496,10 +2497,10 @@ def get_methods_matches(methods, **kwargs):
                 method_db = row[8]
                 if method_db is not None:
                     m = xref.find_ref(method_db, method_ac)
-                    method_db = {
-                        'link': m.gen_link(),
-                        'color': m.color
-                    }
+                    link = m.gen_link()
+                    color = m.color
+                else:
+                    link = color = None
 
                 m = p['methods'][method_ac] = {
                     'id': method_ac,
@@ -2507,7 +2508,8 @@ def get_methods_matches(methods, **kwargs):
                     'isCandidate': row[7] == 'Y',
                     'entryId': row[9],
                     'isSelected': method_ac in methods,
-                    'db': method_db,
+                    'link': link,
+                    'color': color,
                     'matches': []
                 }
 
@@ -2523,14 +2525,4 @@ def get_methods_matches(methods, **kwargs):
                                   key=lambda m: (0 if m['entryId'] else 1, m['entryId'], m['id']))
             _proteins.append(p)
 
-    return {
-        'count': n_proteins,
-        'proteins': _proteins,
-        'maxLength': max_len,
-        'taxon': get_taxon(kwargs.get['taxon'] if kwargs.get('taxon') else 1),
-        'database': kwargs['dbcode'] if kwargs.get('dbcode') else 'U',
-        'pageInfo': {
-            'page': page,
-            'pageSize': page_size
-        }
-    }
+    return n_proteins, _proteins

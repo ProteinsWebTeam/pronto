@@ -229,7 +229,7 @@ dl dd a[data-go-id]:hover {
     font-style: italic;
 }
 
-/* SVG elements */
+/* SVG elements (protein page) */
 g.ticks line {
     stroke-dasharray: 2, 2;
     stroke-width: 0.5px;
@@ -256,6 +256,27 @@ svg text.label, svg text.label a {
 }
 svg text.label:hover a {
     fill: #1a1a1a;
+}
+
+/* SVG elements (matches page) */
+svg g text.position {
+    font-size: 10px;
+    fill: #555555;
+    fill-opacity: 0;
+    text-anchor: middle;
+}
+svg g text.position:first-of-type {
+    text-anchor: end;
+}
+svg g:hover text.position {
+    fill-opacity: 1;
+}
+svg text.length {
+    fill: #888;
+    fill-opacity: 0.5;
+    font-size: 10px;
+    dominant-baseline: central;
+    text-anchor: start;
 }
 
 /* Matches tooltip */
@@ -302,4 +323,9 @@ td.nowrap, th.nowrap { white-space: nowrap; }
 input[type="range"] {
     display: block;
     width: 50%;
+}
+
+/* Add a bottom margin on floating pagination */
+.segment > .pagination.menu:last-child {
+    margin-bottom: 1em;
 }
