@@ -113,12 +113,7 @@ $(function () {
     }
 
     const methods = match[1].trim().split('/');
-
-    utils.setClass(document.querySelector('a[data-page="'+ match[2] +'"]'), 'active', true);
-
     const methodSelectionView = new utils.MethodsSelectionView(document.getElementById('methods'));
-
-    getMatches(methodSelectionView);
 
     // Radio events
     Array.from(document.querySelectorAll('input[type=radio]')).forEach(radio => {
@@ -136,5 +131,7 @@ $(function () {
     methods.forEach(method => { methodSelectionView.add(method); });
     methodSelectionView.render();
 
+    utils.setClass(document.querySelector('a[data-page="'+ match[2] +'"]'), 'active', true);
     document.title = 'Overlapping proteins ('+ methods.join(', ') +') | Pronto';
+    getMatches(methodSelectionView);
 });
