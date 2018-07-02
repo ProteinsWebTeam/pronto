@@ -69,7 +69,7 @@ function getTaxa(proteinsModal) {
             });
         }
 
-        proteinsModal.observe(table, (method, filter, search) => {
+        proteinsModal.observe(table.querySelectorAll('td a[data-method]'), (method, filter, search) => {
             const header = '<em>' + method + '</em> proteins<div class="sub header">Organism: <em>'+ filter +'</em></div>';
             proteinsModal.open(method, search, header);
         });
