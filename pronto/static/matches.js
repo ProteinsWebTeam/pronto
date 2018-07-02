@@ -87,6 +87,7 @@ function getMatches(methodSelectionView) {
             obj.page,
             obj.pageSize,
             obj.count,
+            null,
             (url, ) => {
                 history.replaceState(null, null, url);
                 getMatches(methodSelectionView);

@@ -46,6 +46,7 @@ function getMethods() {
             data.pageInfo.page,
             data.pageInfo.pageSize,
             data.count,
+            null,
             (url, ) => {
                 history.replaceState(null, null, url);
                 getMethods();
