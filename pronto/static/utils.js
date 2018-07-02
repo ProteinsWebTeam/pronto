@@ -471,8 +471,8 @@ export function ProteinsModal() {
         });
     })();
 
-    this.observe = function (table, callback) {
-        Array.from(table.querySelectorAll('td a[data-method]')).forEach(elem => {
+    this.observe = function (selector, callback) {
+        Array.from(selector).forEach(elem => {
             elem.addEventListener('click', e => {
                 e.preventDefault();
                 const method = e.target.getAttribute('data-method');
@@ -484,9 +484,9 @@ export function ProteinsModal() {
         });
     };
 
-    this.open = function (method, search, header) {
+    this.open = function (method, search, header, all) {
         this.method = method;
-        this.url = '/api/method/' + method + '/proteins/?' + search;
+        this.url = '/api/method/' + method + '/proteins/'+ (all ? 'all' : '') + (search ? '?' + search : '');
         this.modal.querySelector('.header').innerHTML = header ? header : '';
         const input = this.modal.querySelector('thead input');
         input.value = null;
