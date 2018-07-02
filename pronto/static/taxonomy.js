@@ -21,9 +21,17 @@ function getTaxa(proteinsModal) {
         // Table header
         if (filteredByTaxon)
             // Override Semantic UI's pointer-events: none
-            html += '<thead><tr><th style="pointer-events: auto";><a class="ui basic label">' + obj.taxon.fullName + '<i class="delete icon"></i></a></th>';
+            html += '<thead><tr><th style="pointer-events: auto;"><a class="ui basic label">' + obj.taxon.fullName + '<i class="delete icon"></i></a></th>';
         else
             html += '<thead><tr><th>'+ obj.taxon.fullName +'</th>';
+
+        if (obj.data.length) {
+            obj.data[0].methods.forEach(method => {
+                html += '<th><a href="" data-method="'+ method.accession +'">' + method.accession + '</a></th>';
+            });
+        } else
+            html += '<th>No results found</th>';
+        html += '</tr></thead>';
 
         obj.data[0].methods.forEach(method => {
             html += '<th>' + method.accession + '</th>';

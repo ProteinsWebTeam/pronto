@@ -12,10 +12,12 @@ function getDescriptions(proteinsModal) {
 
         // Table header
         let html = '<thead><tr><th>'+ obj.data.length +' descriptions</th>';
-        obj.data[0].methods.forEach(method => {
-            html += '<th><a href="" data-method="'+ method.accession +'">' + method.accession + '</a></th>';
-        });
-        html += '</thead>';
+        if (obj.data.length) {
+            obj.data[0].methods.forEach(method => {
+                html += '<th><a href="" data-method="'+ method.accession +'">' + method.accession + '</a></th>';
+            });
+        }
+        html += '</tr></thead>';
 
         // Table body
         const colors = utils.gradientPuBu;
