@@ -564,7 +564,7 @@ export function ProteinsModal() {
             button = this.modal.querySelector('.actions a');
             button.setAttribute(
                 'href',
-                '/methods/' + this.method + '/matches/' + encodeParams(extendObj(parseLocation(this.url), {search: false, page: 1, pageSize: false}), true)
+                '/methods/' + this.method + '/matches/' + encodeParams(extendObj(parseLocation(this.url), {search: false, page: false, pageSize: false}), true)
             );
 
             // Copy protein accessions for copy button
