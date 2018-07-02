@@ -172,22 +172,32 @@ def api_method_proteins(method_ac):
     if dbcode not in ('S', 'T'):
         dbcode = None
 
-    return jsonify(
-        api.get_method_matches(
-            method_ac=method_ac,
-            taxon=taxon,
-            dbcode=dbcode,
-            desc=desc_id,
-            topic=topic_id,
-            comment=comment_id,
-            go=request.args.get('term'),
-            ecno=request.args.get('ec'),
-            rank=request.args.get('rank'),
-            query=request.args.get('search', '').strip(),
-            page=page,
-            page_size=page_size
-        )
-    ), 200
+    # `proteins` is a list of dict, `accessions` is the list of ALL proteins
+    proteins, accessions = api.get_method_matches(
+        method_ac=method_ac,
+        taxon=taxon,
+        dbcode=dbcode,
+        desc=desc_id,
+        topic=topic_id,
+        comment=comment_id,
+        go=request.args.get('term'),
+        ecno=request.args.get('ec'),
+        rank=request.args.get('rank'),
+        query=request.args.get('search', '').strip(),
+        page=page,
+        page_size=page_size
+    )
+
+    return jsonify({
+        'data': {
+            'proteins': proteins,
+            'accessions': accessions
+        },
+        'meta': {
+            'page': page,
+            'pageSize': page_size
+        }
+    }), 200
 
 
 @app.route('/api/method/<method_ac>/prediction/')
@@ -337,12 +347,25 @@ def api_methods_taxonomy(methods):
     else:
         taxon = api.get_taxon(taxon)
 
-    return jsonify(api.get_methods_taxonomy(
+    try:
+        i = api.RANKS.index(request.args.get('rank'))
+    except ValueError:
+        i = 0
+    finally:
+        rank = api.RANKS[i]
+
+    taxa = api.get_methods_taxonomy(
         methods=[m.strip() for m in methods.split('/') if m.strip()],
+        rank=rank,
         taxon=taxon,
-        rank=request.args.get('rank'),
         allow_no_taxon=(request.args.get('notaxon') is not None)
-    )), 200
+    )
+
+    return jsonify({
+        'taxon': taxon if taxon else api.get_taxon(1),
+        'rank': rank,
+        'data': taxa
+    })
 
 
 @app.route('/api/methods/<path:methods>/descriptions/')

@@ -1717,7 +1717,6 @@ def get_methods_taxonomy(methods, rank=RANKS[0], taxon=None, allow_no_taxon=Fals
     )
 
     taxa = {}
-    max_prots = 0
     for row in cur:
         tax_id = row[0]
         n_prots = row[3]
@@ -1728,17 +1727,20 @@ def get_methods_taxonomy(methods, rank=RANKS[0], taxon=None, allow_no_taxon=Fals
             t = taxa[tax_id] = {
                 'id': tax_id,
                 'fullName': row[1] if tax_id else 'Others',
-                'methods': {}
+                'methods': [{'accession': method_ac, 'count': 0} for method_ac in methods]
             }
 
-        t['methods'][row[2]] = n_prots
-
-        if n_prots > max_prots:
-            max_prots = n_prots
+        try:
+            i = methods.index(row[2])
+        except ValueError:
+            pass
+        else:
+            t['methods'][i]['count'] = n_prots
 
     cur.close()
 
-    return sorted(taxa.values(), key=lambda x: (0 if x['id'] else 1, -sum(x['methods'].values())))
+    # Always place the "Others" category (organisms without taxon for a given rank) at the end
+    return sorted(taxa.values(), key=lambda x: (0 if x['id'] else 1, -sum([m['count'] for m in x['methods']])))
 
 
 def get_methods_descriptions(methods, dbcode):
@@ -2284,8 +2286,7 @@ def get_method_matches(method_ac, **kwargs):
 
     cur = get_db().cursor()
     cur.execute(sql, params)
-    proteins_all = [row[0] for row in cur]
-    count = len(proteins_all)
+    proteins_all = sorted([row[0] for row in cur])
 
     params['i_start'] = 1 + (page - 1) * page_size
     params['i_end'] = page * page_size
@@ -2328,7 +2329,7 @@ def get_method_matches(method_ac, **kwargs):
                 url = 'http://www.uniprot.org/uniprot/'
 
             proteins[protein_ac] = {
-                'id': protein_ac,
+                'accession': protein_ac,
                 'link': url + protein_ac,
                 'isReviewed': row[1] == 'S',
                 'length': row[2],
@@ -2348,16 +2349,7 @@ def get_method_matches(method_ac, **kwargs):
 
     cur.close()
 
-    return {
-        'list': sorted(proteins_all),
-        'results': sorted(proteins.values(), key=lambda x: x['id']),
-        'maxLength': max_length,
-        'count': count,
-        'pageInfo': {
-            'page': page,
-            'pageSize': page_size
-        }
-    }
+    return sorted(proteins.values(), key=lambda x: x['id']), proteins_all
 
 
 def get_methods_matches(methods, **kwargs):
