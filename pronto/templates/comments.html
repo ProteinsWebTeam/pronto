@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="/static/vendor/semantic.min.css" />
+    <link rel="stylesheet" href="/static/style.css" />
+    <link rel="icon" href="/static/favicon.png">
+</head>
+<body>
+
+{% include 'header.html' %}
+
+<div class="ui container basic vertical segment">
+    {% include 'methods.html' %}
+
+   <div class="ui sub header">Topic</div>
+    <select id="topics" class="ui search dropdown">
+        {% for topic in topics %}
+            <option value="{{ topic['id'] }}">{{ topic['value'] }}</option>
+        {% endfor %}
+    </select>
+
+    <table class="ui definition celled table"></table>
+</div>
+
+{% include 'footer.html' %}
+
+<script src="/static/vendor/jquery.min.js"></script>
+<script src="/static/vendor/semantic.min.js"></script>
+<script src="/static/comments.js" type="module"></script>
+
+</body>
+</html>

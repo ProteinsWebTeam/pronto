@@ -1863,13 +1863,23 @@ def get_methods_go(methods, aspects):
     }
 
 
-def get_methods_swissprot_comments(methods, topic=34):
-    params = {'meth' + str(i): method for i, method in enumerate(methods)}
-    params['topicid'] = topic
+def get_swissprot_topics():
+    cur = get_db().cursor()
+    cur.execute(
+        """
+        SELECT TOPIC_ID, TOPIC
+        FROM {}.CV_COMMENT_TOPIC
+        ORDER BY TOPIC
+        """.format(app.config['DB_SCHEMA'])
+    )
 
-    comments = {}
-    max_prot = 0
+    topics = [dict(zip(('id', 'value'), row)) for row in cur]
+    cur.close()
 
+    return topics
+
+
+def get_swissprot_topic(topic_id):
     cur = get_db().cursor()
     cur.execute(
         """
@@ -1877,59 +1887,58 @@ def get_methods_swissprot_comments(methods, topic=34):
         FROM {}.CV_COMMENT_TOPIC
         WHERE TOPIC_ID = :1
         """.format(app.config['DB_SCHEMA']),
-        (topic,)
+        (topic_id, )
     )
     row = cur.fetchone()
+    cur.close()
+    return row[0] if row else None
 
-    if row:
-        topic_value = row[0]
 
-        cur.execute(
-            """
-            SELECT M.METHOD_AC, M.COMMENT_ID, C.TEXT, M.N_PROT
-            FROM (
-                   SELECT PC.COMMENT_ID, M2P.METHOD_AC, COUNT(DISTINCT M2P.PROTEIN_AC) N_PROT
-                   FROM {0}.METHOD2PROTEIN M2P
-                     INNER JOIN {0}.PROTEIN_COMMENT PC ON M2P.PROTEIN_AC = PC.PROTEIN_AC
-                   WHERE M2P.METHOD_AC IN ({1})
-                         AND PC.TOPIC_ID = :topicid
-                   GROUP BY PC.COMMENT_ID, M2P.METHOD_AC
-                 ) M
-              INNER JOIN {0}.COMMENT_VALUE C ON M.COMMENT_ID = C.COMMENT_ID AND C.TOPIC_ID = :topicid
-            """.format(
-                app.config['DB_SCHEMA'],
-                ','.join([':meth' + str(i) for i in range(len(methods))])
-            ),
-            params
-        )
+def get_methods_swissprot_comments(methods, topic_id=34):
+    params = {'meth' + str(i): method for i, method in enumerate(methods)}
+    params['topicid'] = topic_id
 
-        for method_ac, comment_id, comment, n_prot in cur:
-            if comment_id in comments:
-                c = comments[comment_id]
-            else:
-                c = comments[comment_id] = {
-                    'id': comment_id,
-                    'value': comment,
-                    'methods': {}
-                }
+    cur = get_db().cursor()
+    comments = {}
+    cur.execute(
+        """
+        SELECT M.METHOD_AC, M.COMMENT_ID, C.TEXT, M.N_PROT
+        FROM (
+               SELECT PC.COMMENT_ID, M2P.METHOD_AC, COUNT(DISTINCT M2P.PROTEIN_AC) N_PROT
+               FROM {0}.METHOD2PROTEIN M2P
+                 INNER JOIN {0}.PROTEIN_COMMENT PC ON M2P.PROTEIN_AC = PC.PROTEIN_AC
+               WHERE M2P.METHOD_AC IN ({1})
+                     AND PC.TOPIC_ID = :topicid
+               GROUP BY PC.COMMENT_ID, M2P.METHOD_AC
+             ) M
+          INNER JOIN {0}.COMMENT_VALUE C ON M.COMMENT_ID = C.COMMENT_ID AND C.TOPIC_ID = :topicid
+        """.format(
+            app.config['DB_SCHEMA'],
+            ','.join([':meth' + str(i) for i in range(len(methods))])
+        ),
+        params
+    )
 
-            c['methods'][method_ac] = n_prot
+    for method_ac, comment_id, comment, n_prot in cur:
+        if comment_id in comments:
+            c = comments[comment_id]
+        else:
+            c = comments[comment_id] = {
+                'id': comment_id,
+                'value': comment,
+                'methods': [{'accession': method_ac, 'count': 0} for method_ac in methods]
+            }
 
-            if n_prot > max_prot:
-                max_prot = n_prot
-    else:
-        topic_value = None
+        try:
+            i = methods.index(method_ac)
+        except ValueError:
+            pass
+        else:
+            c['methods'][i]['count'] = n_prot
 
     cur.close()
 
-    return {
-        'topic': {
-            'id': topic,
-            'value': topic_value
-        },
-        'results': sorted(comments.values(), key=lambda x: -max(x['methods'].values())),
-        'max': max_prot
-    }
+    return sorted(comments.values(), key=lambda x: -sum([m['count'] for m in x['methods']]))
 
 
 def get_methods_matrix(methods):

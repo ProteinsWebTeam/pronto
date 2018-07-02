@@ -411,14 +411,31 @@ def api_methods_go(methods):
 @app.route('/api/methods/<path:methods>/comments/')
 def api_methods_comments(methods):
     try:
-        topic = int(request.args['topic'])
-    except (KeyError, ValueError):
-        topic = 34
+        topic_id = int(request.args.get('topic', 34))
+    except ValueError:
+        topic_id = 34
 
-    return jsonify(api.get_methods_swissprot_comments(
-        methods=[m.strip() for m in methods.split('/') if m.strip()],
-        topic=topic
-    )), 200
+    topic_value = api.get_swissprot_topic(topic_id)
+    if not topic_value:
+        return jsonify({
+            'status': False,
+            'message': 'Invalid or missing parameters.'
+        }), 400
+
+    comments = api.get_methods_swissprot_comments(
+        [m.strip() for m in methods.split('/') if m.strip()],
+        topic_id
+    )
+
+    return jsonify({
+        'data': comments,
+        'meta': {
+            'topic': {
+                'id': topic_id,
+                'value': topic_value
+            }
+        }
+    }), 200
 
 
 @app.route('/api/methods/<path:methods>/matrices/')
@@ -589,6 +606,14 @@ def v_taxonomy(accessions):
 @app.route('/methods/<path:accessions>/descriptions/')
 def v_descriptions(accessions):
     return render_template('descriptions.html', user=api.get_user(), schema=app.config['DB_SCHEMA'])
+
+
+@app.route('/methods/<path:accessions>/comments/')
+def v_comments(accessions):
+    return render_template('comments.html',
+                           topics=api.get_swissprot_topics(),
+                           user=api.get_user(),
+                           schema=app.config['DB_SCHEMA'])
 
 
 @app.route('/entry/<accession>/')
