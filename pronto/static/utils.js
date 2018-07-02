@@ -402,3 +402,25 @@ export function MethodsSelectionView(root) {
         });
     };
 }
+
+export const gradientPuBu = [
+    '#ffffff',
+    '#ece7f2',
+    '#d0d1e6',
+    '#a6bddb',
+    '#74a9cf',
+    '#3690c0',
+    '#0570b0',
+    '#045a8d',
+    '#023858'
+];
+
+$(function () {
+    const icon = document.querySelector('.ui.dimmer i.close');
+    if (icon) {
+        icon.addEventListener('click', () => {
+            _processResults = false;
+            dimmer(false);
+        });
+    }
+});
