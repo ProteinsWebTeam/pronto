@@ -137,4 +137,6 @@ $(function () {
     // Add current signature
     methods.forEach(method => { methodSelectionView.add(method); });
     methodSelectionView.render();
+
+    document.title = 'Overlapping proteins ('+ methods.join(', ') +') | Pronto';
 });
