@@ -233,10 +233,19 @@ export function getComments(div, type, id, size, callback) {
     });
 }
 
-export function paginate(element, page, pageSize, count, onClick) {
+export function paginate(element, page, pageSize, count, url, onClick) {
     const lastPage = Math.ceil(count / pageSize);
-    const pathName = location.pathname;
-    const params = parseLocation(location.search);
+    let pathName;
+    let params;
+
+    if (url) {
+        pathName = url.split('?')[0];
+        params = parseLocation(url);
+    } else {
+        pathName = location.pathname;
+        params = parseLocation(location.search);
+    }
+
     let html = '';
 
     const genLink = function(page) {
@@ -401,6 +410,170 @@ export function MethodsSelectionView(root) {
     this.toggle = function (page) {
         Array.from(this.root.querySelectorAll('.links a')).forEach(e => {
             setClass(e, 'active', e.getAttribute('data-page') === page);
+        });
+    };
+}
+
+export function ProteinsModal() {
+    this.modal = document.getElementById('proteins-modal');
+    this.method = null;
+    this.url = null;
+    this.search = null;
+    this.accessions = null;
+
+    const self = this;
+
+    // Init
+    (function () {
+        const input = self.modal.querySelector('thead input');
+        let counter = 0;
+
+        // Search
+        input.addEventListener('keydown', e => {
+            ++counter
+        });
+
+        input.addEventListener('keyup', e => {
+            setTimeout(() => {
+                const value = e.target.value.trim();
+                if (!--counter && self.search !== value) {
+                    self.search = value.length ? value : null;
+                    self.url = self.url.split('?')[0] + encodeParams(
+                        extendObj(
+                            parseLocation(self.url),
+                            {search: self.search, page: 1}
+                        ),
+                        false
+                    );
+                    self.update();
+                }
+            }, 350);
+        });
+
+        const button = self.modal.querySelector('.actions button');
+        button.addEventListener('click', e => {
+            const input = document.createElement('input');
+            input.value = self.accessions.join(' ');
+            input.style = 'position: absolute; left: -1000px; top: -1000px';
+            document.body.appendChild(input);
+
+            try {
+                input.select();
+                document.execCommand('copy');
+                setClass(button, 'green', true);
+                button.innerHTML = '<i class="smile icon"></i>&nbsp;Copied!';
+            } catch (err) {
+                setClass(button, 'red', true);
+                button.innerHTML = '<i class="frown icon"></i>&nbsp;Could not copy.';
+            } finally {
+                document.body.removeChild(input);
+            }
+        });
+    })();
+
+    this.observe = function (div, callback) {
+        Array.from(div.querySelectorAll('td a[data-method]')).forEach(elem => {
+            elem.addEventListener('click', e => {
+                e.preventDefault();
+                const method = e.target.getAttribute('data-method');
+                const row = e.target.closest('tr');
+                const filterName = row.getAttribute('data-filter');
+                const search = row.getAttribute('data-search');
+                callback(method, filterName, search);
+            });
+        });
+    };
+
+    this.open = function (method, search, header) {
+        this.method = method;
+        this.url = '/api/method/' + method + '/proteins/?' + search;
+        this.modal.querySelector('.header').innerHTML = header ? header : '';
+        const input = this.modal.querySelector('thead input');
+        input.value = null;
+        this.search = null;
+
+        this.update(obj => {
+            input.disabled = obj.data.accessions.length <= obj.meta.pageSize;
+        });
+    };
+
+    this.update = function (callback) {
+        dimmer(true);
+        getJSON(this.url, (obj, status) => {
+            // SVG globals
+            const svgWidth = 400;
+            const paddingLeft = 5;
+            const paddingRight = 20;
+
+            // Find longest protein
+            const maxLength = Math.max(
+                ...obj.data.proteins.map(item => { return item.length; })
+            );
+
+            // Update table
+            let html = '';
+            obj.data.proteins.forEach(protein => {
+                if (protein.isReviewed)
+                    html += '<tr><td class="nowrap"><a target="_blank" href="'+ protein.link +'"><i class="star icon"></i>'+ protein.accession +'&nbsp;<i class="external icon"></i></a></td>';
+                else
+                    html += '<tr><td class="nowrap"><a target="_blank" href="'+ protein.link +'">'+ protein.accession +'&nbsp;<i class="external icon"></i></a></td>';
+
+                html += '<td>'+ protein.shortName +'</td><td>'+ protein.name +'</td><td>'+ protein.taxon.fullName +'</td>';
+
+                const width = Math.floor(protein.length * (svgWidth - (paddingLeft + paddingRight)) / maxLength);
+                if (protein.matches !== null) {
+                    html += '<td><svg width="' + svgWidth + '" height="30" version="1.1" baseProfile="full" xmlns="http://www.w3.org/2000/svg">' +
+                        '<line x1="' + paddingLeft + '" y1="20" x2="'+width+'" y2="20" stroke="#888" stroke-width="1px" />' +
+                        '<text class="length" x="'+ (paddingLeft + width + 2) +'" y="20">'+ protein.length +'</text>';
+
+                    protein.matches.forEach(match => {
+                        const x = Math.round(match.start * width / protein.length) + paddingLeft;
+                        const w = Math.round((match.end - match.start) * width / protein.length);
+                        html += '<g><rect x="'+ x +'" y="15" width="'+ w +'" height="10" rx="1" ry="1" style="fill: #607D8B;"/>' +
+                            '<text class="position" x="'+ x +'" y="10">'+ match.start +'</text>' +
+                            '<text class="position" x="'+ (x + w) +'" y="10">'+ match.end +'</text></g>'
+                    });
+
+                    html += '</svg></td></tr>';
+                } else
+                    html += '<td></td></tr>';
+            });
+
+            this.modal.querySelector('tbody').innerHTML = html;
+
+            // Pagination
+            paginate(
+                this.modal.querySelector('table'),
+                obj.meta.page,
+                obj.meta.pageSize,
+                obj.data.accessions.length,
+                this.url,
+                (url, ) => {
+                    this.url = url;
+                    this.update(callback);
+                }
+            );
+
+            // Reset copy button
+            let button = this.modal.querySelector('.actions button');
+            button.innerHTML = '<i class="copy icon"></i>&nbsp;Copy to clipboard';
+            setClass(button, 'green', false);
+            setClass(button, 'red', false);
+
+            // Update overlapping proteins button
+            button = this.modal.querySelector('.actions a');
+            button.setAttribute(
+                'href',
+                '/methods/' + this.method + '/matches/' + encodeParams(extendObj(parseLocation(this.url), {search: false, page: 1, pageSize: false}), true)
+            );
+
+            // Copy protein accessions for copy button
+            this.accessions = obj.data.accessions;
+
+            dimmer(false);
+            $(this.modal).modal('show');
+
+            if (callback) callback(obj);
         });
     };
 }
