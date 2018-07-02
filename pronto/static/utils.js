@@ -73,13 +73,15 @@ export  function renderCheckbox(entryId, isChecked) {
         return '<div class="ui fitted checkbox"><input name="' + entryId + '" type="checkbox"><label></label></div>';
 }
 
-export function encodeParams(params, allowEmpty) {
+export function encodeParams(params, allowNull) {
     const arrParams = [];
     for (let p in params) {
         if (params.hasOwnProperty(p)) {
-            if (params[p] !== null)
+            if (params[p] === false)
+                continue;
+            else if (params[p] !== null)
                 arrParams.push(p + '=' + params[p]);
-            else if (allowEmpty)
+            else if (allowNull)
                 arrParams.push(p);
         }
     }
