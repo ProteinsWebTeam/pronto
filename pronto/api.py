@@ -1681,7 +1681,7 @@ def get_taxon(taxon_id):
     }
 
 
-def get_methods_taxonomy(methods, taxon=None, rank=None):
+def get_methods_taxonomy(methods, taxon=None, rank=None, allow_no_taxon=False):
     taxon = get_taxon(taxon) if isinstance(taxon, int) else None
 
     if rank not in RANKS:
@@ -1707,12 +1707,17 @@ def get_methods_taxonomy(methods, taxon=None, rank=None):
           M2P.METHOD_AC,
           COUNT(DISTINCT M2P.PROTEIN_AC)
         FROM {0}.METHOD2PROTEIN M2P
-          LEFT OUTER JOIN {0}.LINEAGE L ON M2P.LEFT_NUMBER = L.LEFT_NUMBER AND L.RANK = :rank
-          LEFT OUTER JOIN {0}.ETAXI E ON L.TAX_ID = E.TAX_ID
+          {2} JOIN {0}.LINEAGE L ON M2P.LEFT_NUMBER = L.LEFT_NUMBER AND L.RANK = :rank
+          {2} JOIN {0}.ETAXI E ON L.TAX_ID = E.TAX_ID
         WHERE M2P.METHOD_AC IN ({1})
-              {2}
+              {3}
         GROUP BY M2P.METHOD_AC, L.TAX_ID
-        """.format(app.config['DB_SCHEMA'], fmt, tax_cond),
+        """.format(
+            app.config['DB_SCHEMA'],
+            fmt,
+            'LEFT OUTER' if allow_no_taxon else 'INNER',
+            tax_cond
+        ),
         params
     )
 

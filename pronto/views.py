@@ -334,11 +334,14 @@ def api_methods_taxonomy(methods):
         taxon = int(request.args['taxon'])
     except (KeyError, ValueError):
         taxon = None
+    else:
+        taxon = api.get_taxon(taxon)
 
     return jsonify(api.get_methods_taxonomy(
         methods=[m.strip() for m in methods.split('/') if m.strip()],
         taxon=taxon,
-        rank=request.args.get('rank')
+        rank=request.args.get('rank'),
+        allow_no_taxon=(request.args.get('notaxon') is not None)
     )), 200
 
 
@@ -528,8 +531,13 @@ def v_method(accession):
 
 @app.route('/methods/<path:accessions>/matches/')
 def v_matches(accessions):
+    return render_template('matches.html', user=api.get_user(), schema=app.config['DB_SCHEMA'])
+
+
+@app.route('/methods/<path:accessions>/taxonomy/')
+def v_taxonomy(accessions):
     accessions = accessions.split('/')
-    return render_template('matches.html', accessions=accessions, user=api.get_user(), schema=app.config['DB_SCHEMA'])
+    return render_template('taxonomy.html', user=api.get_user(), schema=app.config['DB_SCHEMA'])
 
 
 @app.route('/entry/<accession>/')
