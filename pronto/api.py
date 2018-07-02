@@ -2349,7 +2349,7 @@ def get_method_matches(method_ac, **kwargs):
 
     cur.close()
 
-    return sorted(proteins.values(), key=lambda x: x['id']), proteins_all
+    return sorted(proteins.values(), key=lambda x: x['accession']), proteins_all
 
 
 def get_methods_matches(methods, **kwargs):
