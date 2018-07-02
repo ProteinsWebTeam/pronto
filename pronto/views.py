@@ -262,7 +262,22 @@ def api_method_references(method_ac, go_id):
 
 @app.route('/api/method/<method_ac>/proteins/all/')
 def api_method_proteins_all(method_ac):
-    return jsonify(api.get_method_proteins(method_ac, dbcode=request.args.get('db'))), 200
+    dbcode = request.args.get('db', '').upper()
+    if dbcode not in ('S', 'T'):
+        dbcode = None
+
+    proteins, accessions = api.get_method_proteins(method_ac, dbcode)
+
+    return jsonify({
+        'data': {
+            'proteins': proteins,
+            'accessions': accessions
+        },
+        'meta': {
+            'page': 1,
+            'pageSize': len(proteins)
+        }
+    }), 200
 
 
 @app.route('/api/methods/<path:methods>/matches/')
@@ -370,10 +385,19 @@ def api_methods_taxonomy(methods):
 
 @app.route('/api/methods/<path:methods>/descriptions/')
 def api_methods_descriptions(methods):
-    return jsonify(api.get_methods_descriptions(
+    dbcode = request.args.get('db', 'S').upper()
+    if dbcode not in ('S', 'T'):
+        dbcode = None
+
+    descriptions = api.get_methods_descriptions(
         methods=[m.strip() for m in methods.split('/') if m.strip()],
-        dbcode=request.args.get('db')
-    )), 200
+        dbcode=dbcode
+    )
+
+    return jsonify({
+        'data': descriptions,
+        'database': dbcode if dbcode else 'U',
+    }), 200
 
 
 @app.route('/api/methods/<path:methods>/go/')
@@ -559,8 +583,12 @@ def v_matches(accessions):
 
 @app.route('/methods/<path:accessions>/taxonomy/')
 def v_taxonomy(accessions):
-    accessions = accessions.split('/')
     return render_template('taxonomy.html', user=api.get_user(), schema=app.config['DB_SCHEMA'])
+
+
+@app.route('/methods/<path:accessions>/descriptions/')
+def v_descriptions(accessions):
+    return render_template('descriptions.html', user=api.get_user(), schema=app.config['DB_SCHEMA'])
 
 
 @app.route('/entry/<accession>/')

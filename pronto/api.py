@@ -1535,7 +1535,7 @@ def get_method_references(method_ac, go_id):
 
 
 def get_method_proteins(method_ac, dbcode=None):
-    if dbcode in ('S', 'T'):
+    if dbcode:
         source_cond = 'AND DBCODE = :2'
         params = (method_ac, dbcode)
     else:
@@ -1568,6 +1568,7 @@ def get_method_proteins(method_ac, dbcode=None):
     )
 
     proteins = []
+    accessions = []
     for row in cur:
         protein_ac = row[0]
 
@@ -1578,8 +1579,9 @@ def get_method_proteins(method_ac, dbcode=None):
             is_reviewed = False
             prefix = 'http://www.uniprot.org/uniprot/'
 
+        accessions.append(protein_ac)
         proteins.append({
-            'id': protein_ac,
+            'accession': protein_ac,
             'link': prefix + protein_ac,
             'isReviewed': is_reviewed,
             'length': row[2],
@@ -1590,16 +1592,8 @@ def get_method_proteins(method_ac, dbcode=None):
         })
 
     cur.close()
-    return {
-        'list': [p['id'] for p in proteins],
-        'results': proteins,
-        'maxLength': 0,
-        'count': len(proteins),
-        'pageInfo': {
-            'page': 1,
-            'pageSize': len(proteins)
-        }
-    }
+
+    return proteins, accessions
 
 
 def get_methods_enzymes(methods, dbcode=None):
@@ -1744,9 +1738,9 @@ def get_methods_taxonomy(methods, rank=RANKS[0], taxon=None, allow_no_taxon=Fals
 
 
 def get_methods_descriptions(methods, dbcode):
-    params = methods
+    params = [e for e in methods]
 
-    if dbcode in ('S', 'T'):
+    if dbcode:
         params.append(dbcode)
         source_cond = 'AND M2P.DBCODE = :' + str(len(params))
     else:
@@ -1775,7 +1769,6 @@ def get_methods_descriptions(methods, dbcode):
     )
 
     descriptions = {}
-    max_prot = 0
     for desc_id, desc, method_ac, n_prot in cur:
         if desc_id in descriptions:
             d = descriptions[desc_id]
@@ -1783,21 +1776,19 @@ def get_methods_descriptions(methods, dbcode):
             d = descriptions[desc_id] = {
                 'id': desc_id,
                 'value': desc,
-                'methods': {}
+                'methods': [{'accession': method_ac, 'count': 0} for method_ac in methods]
             }
 
-        d['methods'][method_ac] = n_prot
-
-        if n_prot > max_prot:
-            max_prot = n_prot
+        try:
+            i = methods.index(method_ac)
+        except ValueError:
+            pass
+        else:
+            d['methods'][i]['count'] = n_prot
 
     cur.close()
 
-    return {
-        'results': sorted(descriptions.values(), key=lambda x: (-max(x['methods'].values()), x['value'])),
-        'database': dbcode if dbcode in ('S', 'T') else 'U',
-        'max': max_prot
-    }
+    return sorted(descriptions.values(), key=lambda x: (-sum([m['count'] for m in x['methods']]), x['value']))
 
 
 def get_methods_go(methods, aspects):
