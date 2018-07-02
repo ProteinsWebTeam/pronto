@@ -1,6 +1,6 @@
 import * as utils from './utils.js';
 
-function getTaxa(proteinModal) {
+function getTaxa(proteinsModal) {
     const url = '/api' + location.pathname + location.search;
     utils.dimmer(true);
     utils.getJSON(url, (obj, status) => {
@@ -65,13 +65,13 @@ function getTaxa(proteinModal) {
                     true
                 );
                 history.replaceState(null, null, url);
-                getTaxa(proteinModal);
+                getTaxa(proteinsModal);
             });
         }
 
-        proteinModal.observe(table, (method, filter, search) => {
+        proteinsModal.observe(table, (method, filter, search) => {
             const header = '<em>' + method + '</em> proteins<div class="sub header">Organism: <em>'+ filter +'</em></div>';
-            proteinModal.open(method, search, header);
+            proteinsModal.open(method, search, header);
         });
 
         utils.dimmer(false);
@@ -87,7 +87,7 @@ $(function () {
 
     const methods = match[1].trim().split('/');
     const methodSelectionView = new utils.MethodsSelectionView(document.getElementById('methods'));
-    const proteinModal = new utils.ProteinsModal();
+    const proteinsModal = new utils.ProteinsModal();
 
     // Add current signature
     methods.forEach(method => { methodSelectionView.add(method); });
@@ -105,7 +105,7 @@ $(function () {
                 true
             );
             history.replaceState(null, null, url);
-            getTaxa(proteinModal);
+            getTaxa(proteinsModal);
         });
     });
 
@@ -120,7 +120,7 @@ $(function () {
             true
         );
         history.replaceState(null, null, url);
-        getTaxa(proteinModal);
+        getTaxa(proteinsModal);
     });
 
     // Set check status based on URL
@@ -128,5 +128,5 @@ $(function () {
 
     utils.setClass(document.querySelector('a[data-page="'+ match[2] +'"]'), 'active', true);
     document.title = 'Taxonomic origins ('+ methods.join(', ') +') | Pronto';
-    getTaxa(proteinModal);
+    getTaxa(proteinsModal);
 });
