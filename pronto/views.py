@@ -183,7 +183,7 @@ def api_method_proteins(method_ac):
         go=request.args.get('term'),
         ecno=request.args.get('ec'),
         rank=request.args.get('rank'),
-        query=request.args.get('search', '').strip(),
+        search=request.args.get('search', '').strip(),
         page=page,
         page_size=page_size
     )
