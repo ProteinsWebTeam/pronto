@@ -2,7 +2,7 @@ import * as utils from './utils.js';
 
 const svgWidth = 700;
 
-function getMatches() {
+function getMatches(methodSelectionView) {
     const url = '/api' + location.pathname + location.search;
     const params = utils.parseLocation(location.search);
     utils.dimmer(true);
@@ -52,6 +52,8 @@ function getMatches() {
                 else
                     html += '<td>'+ method.id + '</td>';
 
+                html += '<td class="collapsing"><a href="#" data-add-id="'+ method.id +'"><i class="cart plus icon"></i></a></td>';
+
                 html += '<td>'+ (method.name !== null ? method.name : '') + '</td>' +
                     '<td>'+ (method.isCandidate ? '&nbsp;<i class="checkmark box icon"></i>' : '') +'</td>';
 
@@ -78,6 +80,8 @@ function getMatches() {
         });
 
         document.querySelector('.segments').innerHTML = html;
+
+        // Pagination
         utils.paginate(
             document.querySelector('.ui.vertical.segment'),
             obj.page,
@@ -85,9 +89,17 @@ function getMatches() {
             obj.count,
             (url, ) => {
                 history.replaceState(null, null, url);
-                getMatches();
+                getMatches(methodSelectionView);
             }
         );
+
+                // Adding/removing signatures
+        Array.from(document.querySelectorAll('tbody a[data-add-id]')).forEach(elem => {
+            elem.addEventListener('click', e => {
+                e.preventDefault();
+                methodSelectionView.add(elem.getAttribute('data-add-id')).render();
+            });
+        });
 
         utils.dimmer(false);
     });
@@ -106,7 +118,9 @@ $(function () {
 
     const methods = match[1].trim().split('/');
 
-    getMatches();
+    const methodSelectionView = new utils.MethodsSelectionView(document.getElementById('methods'));
+
+    getMatches(methodSelectionView);
 
     // Radio events
     Array.from(document.querySelectorAll('input[type=radio]')).forEach(radio => {
@@ -120,7 +134,7 @@ $(function () {
         });
     });
 
-    const msv = new utils.MethodsSelectionView(document.getElementById('methods'));
-    methods.forEach(method => { msv.add(method); })
-    msv.render();
+    // Add current signature
+    methods.forEach(method => { methodSelectionView.add(method); });
+    methodSelectionView.render();
 });
