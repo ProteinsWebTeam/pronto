@@ -1716,16 +1716,16 @@ def get_methods_taxonomy(methods, rank=RANKS[0], taxon=None, allow_no_taxon=Fals
         params
     )
 
-    taxons = {}
+    taxa = {}
     max_prots = 0
     for row in cur:
         tax_id = row[0]
         n_prots = row[3]
 
-        if tax_id in taxons:
-            t = taxons[tax_id]
+        if tax_id in taxa:
+            t = taxa[tax_id]
         else:
-            t = taxons[tax_id] = {
+            t = taxa[tax_id] = {
                 'id': tax_id,
                 'fullName': row[1] if tax_id else 'Others',
                 'methods': {}
@@ -1738,7 +1738,7 @@ def get_methods_taxonomy(methods, rank=RANKS[0], taxon=None, allow_no_taxon=Fals
 
     cur.close()
 
-    return sorted(taxons.values(), key=lambda x: (0 if x['id'] else 1, -sum(x['methods'].values())))
+    return sorted(taxa.values(), key=lambda x: (0 if x['id'] else 1, -sum(x['methods'].values())))
 
 
 def get_methods_descriptions(methods, dbcode):
