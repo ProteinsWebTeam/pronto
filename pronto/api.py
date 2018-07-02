@@ -1681,12 +1681,7 @@ def get_taxon(taxon_id):
     }
 
 
-def get_methods_taxonomy(methods, taxon=None, rank=None, allow_no_taxon=False):
-    taxon = get_taxon(taxon) if isinstance(taxon, int) else None
-
-    if rank not in RANKS:
-        rank = RANKS[0]
-
+def get_methods_taxonomy(methods, rank=RANKS[0], taxon=None, allow_no_taxon=False):
     fmt = ','.join([':meth' + str(i) for i in range(len(methods))])
     params = {'meth' + str(i): method for i, method in enumerate(methods)}
     params['rank'] = rank
@@ -1743,12 +1738,7 @@ def get_methods_taxonomy(methods, taxon=None, rank=None, allow_no_taxon=False):
 
     cur.close()
 
-    return {
-        'taxon': taxon if taxon else get_taxon(1),
-        'rank': rank,
-        'results': sorted(taxons.values(), key=lambda x: (0 if x['id'] else 1, -sum(x['methods'].values()))),
-        'max': max_prots
-    }
+    return sorted(taxons.values(), key=lambda x: (0 if x['id'] else 1, -sum(x['methods'].values())))
 
 
 def get_methods_descriptions(methods, dbcode):
