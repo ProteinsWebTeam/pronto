@@ -18,12 +18,12 @@ p.hidden {
     display: none;
 }
 
-.ui.dimmer {
+#dimmer {
     /* default z-index set to 1000: lesser than modal's so dimmer is sent to background when opening a modal */
     z-index: 5000;
 }
 
-.ui.dimmer > .icon {
+#dimmer > .icon {
     z-index: 1000;
     position: absolute;
     top: 1rem;
