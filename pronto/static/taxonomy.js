@@ -110,7 +110,8 @@ $(function () {
     });
 
     // Toggle change event
-    document.querySelector('input[name=notaxon]').addEventListener('change', e => {
+    const input = document.querySelector('input[name=notaxon]');
+    input.addEventListener('change', e => {
         const url = location.pathname + utils.encodeParams(
             utils.extendObj(
                 utils.parseLocation(location.search),
@@ -121,6 +122,9 @@ $(function () {
         history.replaceState(null, null, url);
         getTaxa(proteinModal);
     });
+
+    // Set check status based on URL
+    input.checked = (utils.parseLocation(location.search).notaxon !== undefined);
 
     utils.setClass(document.querySelector('a[data-page="'+ match[2] +'"]'), 'active', true);
     document.title = 'Taxonomic origins ('+ methods.join(', ') +') | Pronto';
