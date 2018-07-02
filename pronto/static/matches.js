@@ -93,7 +93,7 @@ function getMatches(methodSelectionView) {
             }
         );
 
-                // Adding/removing signatures
+        // Adding/removing signatures
         Array.from(document.querySelectorAll('tbody a[data-add-id]')).forEach(elem => {
             elem.addEventListener('click', e => {
                 e.preventDefault();
@@ -107,16 +107,14 @@ function getMatches(methodSelectionView) {
 
 
 $(function () {
-    utils.setClass(document.querySelector('a[data-page="matches"]'), 'active', true);
-
-    const pathName = location.pathname;
-
-    const match = pathName.match(/^\/methods\/(.+)\/matches\/$/);
+    const match = location.pathname.match(/^\/methods\/(.+)\/([a-z]+)\/$/);
     if (!match) {
         return;
     }
 
     const methods = match[1].trim().split('/');
+
+    utils.setClass(document.querySelector('a[data-page="'+ match[2] +'"]'), 'active', true);
 
     const methodSelectionView = new utils.MethodsSelectionView(document.getElementById('methods'));
 
@@ -129,7 +127,7 @@ $(function () {
                 const params = utils.parseLocation(location.search);
                 const url = location.pathname + utils.encodeParams(utils.extendObj(params, {db: e.target.value}), false);
                 history.replaceState(null, null, url);
-                getMatches();
+                getMatches(methodSelectionView);
             }
         });
     });
