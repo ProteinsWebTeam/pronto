@@ -392,7 +392,7 @@ export function MethodsSelectionView(root) {
         }
 
         Array.from(this.root.querySelectorAll('.links a')).forEach(element => {
-            element.setAttribute('href', '/methods/' + this.methods.join('/') + '/' + element.getAttribute('data-page'));
+            element.setAttribute('href', '/methods/' + this.methods.join('/') + '/' + element.getAttribute('data-page') + '/');
         });
     };
 
