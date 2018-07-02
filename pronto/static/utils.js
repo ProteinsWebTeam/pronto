@@ -471,8 +471,8 @@ export function ProteinsModal() {
         });
     })();
 
-    this.observe = function (div, callback) {
-        Array.from(div.querySelectorAll('td a[data-method]')).forEach(elem => {
+    this.observe = function (table, callback) {
+        Array.from(table.querySelectorAll('td a[data-method]')).forEach(elem => {
             elem.addEventListener('click', e => {
                 e.preventDefault();
                 const method = e.target.getAttribute('data-method');
