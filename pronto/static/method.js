@@ -1,18 +1,5 @@
 import * as utils from './utils.js';
 
-function hex2rgb(hex) {
-    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    return result ? {
-        r: parseInt(result[1], 16),
-        g: parseInt(result[2], 16),
-        b: parseInt(result[3], 16)
-    } : null;
-}
-
-function rgb2hex(c) {
-    return '#' + ((1 << 24) + (Math.floor(c.r) << 16) + (Math.floor(c.g) << 8) + Math.floor(c.b)).toString(16).slice(1);
-}
-
 function calcPixelSlope(p1, p2, distance) {
     return {
         r: (p2.r - p1.r) / distance,
@@ -27,7 +14,6 @@ function calcPixelGradient(startingPixel, distance, slope) {
         g: startingPixel.g + slope.g * distance,
         b: startingPixel.b + slope.b * distance
     }
-
 }
 
 function drawHeatmap(pixels, numRect) {
@@ -67,23 +53,6 @@ function findPixel(pixels, x, y) {
     }
 
     return null;
-}
-
-function useWhiteText(bgHexColor) {
-    // Implementation of https://www.w3.org/TR/WCAG20/
-    const rgb = hex2rgb(bgHexColor);
-    ['r', 'g', 'b'].forEach(k => {
-        rgb[k] /= 255;
-
-        if (rgb[k] <= 0.03928)
-            rgb[k] /= 12.92;
-        else
-            rgb[k] = Math.pow((rgb[k] + 0.055) / 1.055, 2.4);
-    });
-
-    // luminance formula: https://www.w3.org/TR/WCAG20/#relativeluminancedef
-    const l = 0.2126 * rgb.r + 0.7152 * rgb.g + 0.0722 * rgb.b;
-    return l <= 0.179;
 }
 
 function getPredictions(methodID, overlapThreshold, pixels, numRect, getComments, methodSelectionView) {
@@ -128,8 +97,8 @@ function getPredictions(methodID, overlapThreshold, pixels, numRect, getComments
                 // '<td>'+ m.dbShort +'</td>' +
                 '<td>'+ m.nProtsCand.toLocaleString() +'</td>' +
                 '<td>'+ m.nBlobsCand.toLocaleString() +'</td>' +
-                '<td class="'+ (useWhiteText(c1) ? 'light' : 'dark') +'" style="background-color: '+ c1 +';">'+ m.nProts.toLocaleString() +'</td>' +
-                '<td class="'+ (useWhiteText(c2) ? 'light' : 'dark') +'" style="background-color: '+ c2 +';">'+ m.nBlobs.toLocaleString() +'</td>';
+                '<td class="'+ (utils.useWhiteText(c1) ? 'light' : 'dark') +'" style="background-color: '+ c1 +';">'+ m.nProts.toLocaleString() +'</td>' +
+                '<td class="'+ (utils.useWhiteText(c2) ? 'light' : 'dark') +'" style="background-color: '+ c2 +';">'+ m.nBlobs.toLocaleString() +'</td>';
 
             if (m.entryId) {
                 html += '<td class="nowrap"><div class="ui list">';
@@ -215,10 +184,10 @@ $(function () {
     const colors = heatmap.getAttribute('data-colors').split(',');
     const numRect = parseInt(heatmap.getAttribute('data-size'), 10);
     const pixels = [];
-    const topLeft = hex2rgb(colors[0]);
-    const topRight = hex2rgb(colors[1]);
-    const bottomLeft = hex2rgb(colors[2]);
-    const bottomRight = hex2rgb(colors[3]);
+    const topLeft = utils.hex2rgb(colors[0]);
+    const topRight = utils.hex2rgb(colors[1]);
+    const bottomLeft = utils.hex2rgb(colors[2]);
+    const bottomRight = utils.hex2rgb(colors[3]);
 
     // Color slopes
     const leftToRightTop = calcPixelSlope(topLeft, topRight, numRect);
@@ -235,7 +204,7 @@ $(function () {
             pixels.push({
                 x: x,  // origin is top left corner, but we want the bottom right corner
                 y: y,
-                c: rgb2hex(p)
+                c: utils.rgb2hex(p)
             });
         }
     }

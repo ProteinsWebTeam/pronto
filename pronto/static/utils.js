@@ -415,6 +415,38 @@ export const gradientPuBu = [
     '#023858'
 ];
 
+export function useWhiteText(bgHexColor) {
+    // Implementation of https://www.w3.org/TR/WCAG20/
+    const rgb = hex2rgb(bgHexColor);
+    ['r', 'g', 'b'].forEach(k => {
+        rgb[k] /= 255;
+
+        if (rgb[k] <= 0.03928)
+            rgb[k] /= 12.92;
+        else
+            rgb[k] = Math.pow((rgb[k] + 0.055) / 1.055, 2.4);
+    });
+
+    // luminance formula: https://www.w3.org/TR/WCAG20/#relativeluminancedef
+    const l = 0.2126 * rgb.r + 0.7152 * rgb.g + 0.0722 * rgb.b;
+    return l <= 0.179;
+}
+
+
+export function hex2rgb(hex) {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+    } : null;
+}
+
+export function rgb2hex(c) {
+    return '#' + ((1 << 24) + (Math.floor(c.r) << 16) + (Math.floor(c.g) << 8) + Math.floor(c.b)).toString(16).slice(1);
+}
+
+
 $(function () {
     const icon = document.querySelector('.ui.dimmer i.close');
     if (icon) {
