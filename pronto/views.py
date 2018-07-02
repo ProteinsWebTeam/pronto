@@ -255,7 +255,7 @@ def api_method_comments(method_ac):
     return jsonify(api.get_method_comments(method_ac, n)), 200
 
 
-@app.route('/api/method/<method_ac>/references/<go_id>')
+@app.route('/api/method/<method_ac>/references/<go_id>/')
 def api_method_references(method_ac, go_id):
     return jsonify(api.get_method_references(method_ac, go_id)), 200
 
@@ -402,10 +402,20 @@ def api_methods_descriptions(methods):
 
 @app.route('/api/methods/<path:methods>/go/')
 def api_methods_go(methods):
-    return jsonify(api.get_methods_go(
-        methods=[m.strip() for m in methods.split('/') if m.strip()],
-        aspects=request.args.get('aspect', '').upper().split(',')
-    )), 200
+    aspects = request.args.get('aspect', 'C,P,F').upper().split(',')
+    aspects = list(set(aspects) & {'C', 'P', 'F'})
+
+    terms = api.get_methods_go(
+        [m.strip() for m in methods.split('/') if m.strip()],
+        aspects
+    )
+
+    return jsonify({
+        'data': terms,
+        'meta': {
+            'aspects': aspects
+        }
+    }), 200
 
 
 @app.route('/api/methods/<path:methods>/comments/')
@@ -612,6 +622,13 @@ def v_descriptions(accessions):
 def v_comments(accessions):
     return render_template('comments.html',
                            topics=api.get_swissprot_topics(),
+                           user=api.get_user(),
+                           schema=app.config['DB_SCHEMA'])
+
+
+@app.route('/methods/<path:accessions>/go/')
+def v_go_terms(accessions):
+    return render_template('go.html',
                            user=api.get_user(),
                            schema=app.config['DB_SCHEMA'])
 

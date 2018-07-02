@@ -1791,17 +1791,14 @@ def get_methods_descriptions(methods, dbcode):
     return sorted(descriptions.values(), key=lambda x: (-sum([m['count'] for m in x['methods']]), x['value']))
 
 
-def get_methods_go(methods, aspects):
+def get_methods_go(methods, aspects=('C', 'P', 'F')):
     params = {'meth' + str(i): method for i, method in enumerate(methods)}
-    aspects = set(aspects) & {'C', 'P', 'F'}
 
     if 0 < len(aspects) < 3:
         aspect_cond = 'AND T.CATEGORY IN ({})'.format(','.join([':aspect' + str(i) for i in range(len(aspects))]))
         params.update({'aspect' + str(i): aspect for i, aspect in enumerate(aspects)})
-        aspects = list(aspects)
     else:
         aspect_cond = ''
-        aspects = ['C', 'P', 'F']
 
     cur = get_db().cursor()
     cur.execute(
@@ -1827,40 +1824,33 @@ def get_methods_go(methods, aspects):
             t = terms[go_id] = {
                 'id': go_id,
                 'value': term,
-                'methods': {},
+                'methods': [
+                    {'accession': method_ac, 'proteins': set(), 'references': set()}
+                    for method_ac in methods
+                ],
                 'aspect': aspect
             }
 
-        if method_ac in t['methods']:
-            m = t['methods'][method_ac]
+        try:
+            i = methods.index(method_ac)
+        except ValueError:
+            pass
         else:
-            m = t['methods'][method_ac] = {
-                'proteins': set(),
-                'references': set()
-            }
-
-        m['proteins'].add(protein_ac)
-        if ref_db == 'PMID':
-            m['references'].add(ref_id)
+            t['methods'][i]['proteins'].add(protein_ac)
+            if ref_db == 'PMID':
+                t['methods'][i]['references'].add(ref_id)
 
     cur.close()
 
-    max_prot = 0
     for t in terms.values():
-        for m in t['methods'].values():
-            n_prot = len(m['proteins'])
-            m['proteins'] = n_prot
-            m['references'] = len(m['references'])
+        for i, m in enumerate(t['methods']):
+            t['methods'][i].update({
+                'count': len(m.pop('proteins')),
+                'references': len(m['references']),
+            })
 
-            if n_prot > max_prot:
-                max_prot = n_prot
-
-    return {
-        # Sort by sum of proteins counts (desc), and GO ID (asc)
-        'results': sorted(terms.values(), key=lambda t: (-max(m['proteins'] for m in t['methods'].values()), t['id'])),
-        'aspects': aspects,
-        'max': max_prot
-    }
+    # Sort by sum of proteins counts (desc), and GO ID (asc)
+    return sorted(terms.values(), key=lambda x: (-sum(m['count'] for m in x['methods']), x['id']))
 
 
 def get_swissprot_topics():
