@@ -345,12 +345,20 @@ def api_methods_matches(methods):
 
 @app.route('/api/methods/<path:methods>/enzymes/')
 def api_methods_enzymes(methods):
-    return jsonify(
-        api.get_methods_enzymes(
-            methods=[m.strip() for m in methods.split('/') if m.strip()],
-            dbcode=request.args.get('db')
-        )
-    ), 200
+    dbcode = request.args.get('db', 'S').upper()
+    if dbcode not in ('S', 'T'):
+        dbcode = None
+
+    enzymes = api.get_methods_enzymes(
+        [m.strip() for m in methods.split('/') if m.strip()],
+        dbcode
+    )
+    return jsonify({
+        'data': enzymes,
+        'meta': {
+            'database': dbcode if dbcode else 'U'
+        }
+    }), 200
 
 
 @app.route('/api/methods/<path:methods>/taxonomy/')
@@ -636,6 +644,13 @@ def v_go_terms(accessions):
 @app.route('/methods/<path:accessions>/matrices/')
 def v_matrices(accessions):
     return render_template('matrices.html',
+                           user=api.get_user(),
+                           schema=app.config['DB_SCHEMA'])
+
+
+@app.route('/methods/<path:accessions>/enzymes/')
+def v_enzymes(accessions):
+    return render_template('enzymes.html',
                            user=api.get_user(),
                            schema=app.config['DB_SCHEMA'])
 

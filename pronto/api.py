@@ -1597,7 +1597,7 @@ def get_method_proteins(method_ac, dbcode=None):
 
 
 def get_methods_enzymes(methods, dbcode=None):
-    params = methods
+    params = [e for e in methods]
 
     if dbcode in ('S', 'T'):
         params.append(dbcode)
@@ -1626,28 +1626,25 @@ def get_methods_enzymes(methods, dbcode=None):
     )
 
     enzymes = {}
-    max_prot = 0
     for acc, ezno, n_prot in cur:
         if ezno in enzymes:
             e = enzymes[ezno]
         else:
             e = enzymes[ezno] = {
                 'id': ezno,
-                'methods': {}
+                'methods': [{'accession': method_ac, 'count': 0} for method_ac in methods]
             }
 
-        e['methods'][acc] = n_prot
-
-        if n_prot > max_prot:
-            max_prot = n_prot
+        try:
+            i = methods.index(acc)
+        except ValueError:
+            pass
+        else:
+            e['methods'][i]['count'] = n_prot
 
     cur.close()
 
-    return {
-        'results': sorted(enzymes.values(), key=lambda e: -max(e['methods'].values())),
-        'database': dbcode if dbcode in ('S', 'T') else 'U',
-        'max': max_prot
-    }
+    return sorted(enzymes.values(), key=lambda x: -sum([m['count'] for m in x['methods']]))
 
 
 def get_taxon(taxon_id):
