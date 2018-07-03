@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="/static/vendor/semantic.min.css" />
+    <link rel="stylesheet" href="/static/style.css" />
+    <link rel="icon" href="/static/favicon.png">
+    <title>Pronto</title>
+</head>
+<body>
+
+{% include 'header.html' %}
+
+<div class="ui container basic vertical segment">
+    <div class="ui divided grid">
+        <div class="row">
+            <div class="twelve wide column">
+                <table id="databases" class="ui selectable table">
+                    <thead>
+                    <tr>
+                        <th><i class="database icon"></i>Member databases</th>
+                        <th>Signatures</th>
+                        <th>Integrated</th>
+                        <th>Unintegrated</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                        {% for db in databases %}
+                            <tr>
+                            <td><a target="_blank" href="{{ db['home'] }}">{{ db['name'] }}&nbsp;{{ db['version'] }}&nbsp;<i class="external icon"></i></a></td>
+                            <td><a href="/database/{{ db['shortName'] }}/">{{ "{:,}".format(db['count']) }}</a></td>
+                            <td>{{ "{:,}".format(db['countIntegrated']) }}</td>
+                                <td><a href="/database/{{ db['shortName'] }}/unintegrated/">{{ "{:,}".format(db['countUnintegrated']) }}</a></td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="four wide column">
+                <h3 class="ui header">
+                    <i class="feed icon"></i>Latest integrations
+                </h3>
+                <div id="feed" class="ui feed"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="/static/vendor/jquery.min.js"></script>
+<script src="/static/vendor/semantic.min.js"></script>
+<script src="/static/modules/index.js" type="module"></script>
+
+</body>
+</html>

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="/static/vendor/semantic.min.css" />
+    <link rel="stylesheet" href="/static/style.css" />
+    <link rel="icon" href="/static/favicon.png">
+</head>
+<body>
+
+{% include 'header.html' %}
+
+<div class="ui container basic vertical segment">
+    {% include 'methods.html' %}
+
+    <div class="ui toggle checkbox">
+        <input name="notaxon" type="checkbox">
+        <label>Include organisms without a taxon for the taxonomic rank being looked at</label>
+    </div>
+
+    <div class="ui top attached tabular menu">
+        <a class="item" data-rank="superkingdom">Superkingdom</a>
+        <a class="item" data-rank="kingdom">Kingdom</a>
+        <a class="item" data-rank="phylum">Phylum</a>
+        <a class="item" data-rank="class">Class</a>
+        <a class="item" data-rank="order">Order</a>
+        <a class="item" data-rank="family">Family</a>
+        <a class="item" data-rank="genus">Genus</a>
+        <a class="item" data-rank="species">Species</a>
+    </div>
+    <div class="ui bottom attached segment">
+        <table class="ui definition celled table"></table>
+    </div>
+</div>
+
+{% include 'footer.html' %}
+
+<script src="/static/vendor/jquery.min.js"></script>
+<script src="/static/vendor/semantic.min.js"></script>
+<script src="/static/modules/taxonomy.js" type="module"></script>
+
+</body>
+</html>

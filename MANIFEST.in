@@ -1,0 +1,2 @@
+recursive-include pronto/static *
+recursive-include pronto/templates *

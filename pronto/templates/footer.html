@@ -1,0 +1,78 @@
+<div id="dimmer" class="ui page dimmer">
+    <i class="close icon"></i>
+    <div class="ui text loader">Loading</div>
+</div>
+
+<div id="error-modal" class="ui tiny modal">
+    <i class="close icon"></i>
+    <div class="ui icon header">
+        <i class="warning icon"></i>
+        Something is wrong
+    </div>
+    <div class="content">
+        <p></p>
+    </div>
+</div>
+
+<div id="confirm-modal" class="ui tiny modal">
+    <div class="header"></div>
+    <div class="content"></div>
+    <div class="actions">
+        <div class="ui black deny button">Cancel</div>
+        <div class="ui red approve button"></div>
+    </div>
+</div>
+
+<div id="tooltip" class="ui tooltip">
+    <i class="close icon"></i>
+    <div class="content">
+    </div>
+</div>
+
+<div id="proteins-modal" class="ui large modal">
+    <i class="close icon"></i>
+    <div class="ui header"></div>
+    <div class="scrolling content">
+        <table class="ui compact celled very small table">
+            <thead>
+            <tr>
+                <th colspan="5">
+                    <div class="ui secondary menu">
+                        <span class="item"></span>
+                        <div class="right menu">
+                            <div class="item">
+                                <div class="ui icon input">
+                                    <input placeholder="Search&hellip;" type="text" value="">
+                                    <i class="search link icon"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </th>
+            </tr>
+            <tr>
+                <th>Accession</th>
+                <th>Identifier</th>
+                <th>Name</th>
+                <th>Organism</th>
+                <th>Matches</th>
+            </tr>
+            </thead>
+            <tbody></tbody>
+            <tfoot>
+            <tr>
+                <th colspan="5">
+                    <div class="ui right floated pagination menu"></div>
+                </th>
+            </tr>
+            </tfoot>
+        </table>
+    </div>
+    <div class="actions">
+        <button class="ui button">
+        </button>
+        <a target="_blank" href="#" class="ui secondary button">
+            Overlapping proteins
+        </a>
+    </div>
+</div>

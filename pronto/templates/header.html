@@ -1,0 +1,46 @@
+<header class="ui menu">
+    <div class="ui container">
+        <a href="/" class="header item">
+            Pronto!
+        </a>
+
+        <div class="item">
+            <form class="ui action input" action="/search/" method="get" role="search" autocomplete="off">
+                <input name="q" placeholder="Search&hellip;" type="text" value="{{ query }}">
+                <button class="ui basic icon button">
+                    <i class="search icon"></i>
+                </button>
+            </form>
+        </div>
+
+        <div class="right menu">
+            <div class="item">
+                <div class="ui teal label">
+                    UniProt
+                    <div class="detail">{{ uniprot }}</div>
+                </div>
+            </div>
+
+            {% if user %}
+                <div class="ui simple dropdown item">
+                    <i class="user circle icon"></i> {{ user['name'] }}
+                    <i class="dropdown icon"></i>
+                    <div class="menu">
+                        <div class="item">
+                            <a href="/logout" class="icon">
+                                <i class="sign out icon"></i>&nbsp;Log out
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <a href="/login" class="icon item">
+                    <i class="sign in icon"></i>&nbsp;Log in
+                </a>
+            {% endif %}
+            {#            <div href="/help" class="disabled icon item">#}
+            {#                <i class="help icon"></i>&nbsp;Help#}
+            {#            </div>#}
+        </div>
+    </div>
+</header>

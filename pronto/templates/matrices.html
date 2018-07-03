@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="/static/vendor/semantic.min.css" />
+    <link rel="stylesheet" href="/static/style.css" />
+    <link rel="icon" href="/static/favicon.png">
+</head>
+<body>
+
+{% include 'header.html' %}
+
+<div class="ui container basic vertical segment">
+    {% include 'methods.html' %}
+
+    <div class="ui grid">
+        <div class="six wide column">
+            <h4 class="ui header">
+                Overlap
+                <div class="sub header">Number of proteins having both signatures overlapping (&ge; 50%)</div>
+            </h4>
+
+            <table id="overlap" class="ui small definition celled table"></table>
+        </div>
+        <div class="six wide column">
+            <h4 class="ui header">
+                Collocation
+                <div class="sub header">Number of proteins having both signatures occurring</div>
+            </h4>
+            <table id="collocation" class="ui small definition celled table"></table>
+        </div>
+        <div id="details" class="four wide column">
+        </div>
+    </div>
+</div>
+
+{% include 'footer.html' %}
+
+<script src="/static/vendor/jquery.min.js"></script>
+<script src="/static/vendor/semantic.min.js"></script>
+<script src="/static/modules/matrices.js" type="module"></script>
+
+</body>
+</html>

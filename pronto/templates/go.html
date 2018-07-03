@@ -1,5 +1,19 @@
-<div id="go" class="ui basic compare hidden segment">
-    <div class="ui form">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="/static/vendor/semantic.min.css" />
+    <link rel="stylesheet" href="/static/style.css" />
+    <link rel="icon" href="/static/favicon.png">
+</head>
+<body>
+
+{% include 'header.html' %}
+
+<div class="ui container basic vertical segment">
+    {% include 'methods.html' %}
+
+   <div class="ui form">
         <div class="inline fields">
             <label>Aspects</label>
             <div class="field">
@@ -23,8 +37,10 @@
         </div>
     </div>
 
-    <table class="ui small compact definition celled table"></table>
+    <table class="ui definition celled table"></table>
 </div>
+
+{% include 'footer.html' %}
 
 <div id="go-chart-modal" class="ui modal">
     <div class="image content">
@@ -46,3 +62,10 @@
         </a>
     </div>
 </div>
+
+<script src="/static/vendor/jquery.min.js"></script>
+<script src="/static/vendor/semantic.min.js"></script>
+<script src="/static/modules/go.js" type="module"></script>
+
+</body>
+</html>

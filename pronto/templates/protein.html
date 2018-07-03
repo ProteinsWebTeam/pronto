@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="/static/vendor/semantic.min.css" />
+    <link rel="stylesheet" href="/static/style.css" />
+    <link rel="icon" href="/static/favicon.png">
+    <title>{{ protein.name }} ({{ protein.id }}) | Pronto</title>
+</head>
+<body>
+
+{% include 'header.html' %}
+
+<div class="ui container basic vertical segment">
+    <h1 class="ui header">
+        {{ protein.name }}
+        <div class="sub header">
+            <a target="_blank" href="{{ protein.link }}">
+                {% if protein.isReviewed %}
+                    <i class="star icon"></i>
+                {%- endif -%}
+                {{ protein.id }}
+                <i class="external icon"></i>
+            </a>
+        </div>
+    </h1>
+    <div class="ui segment">
+        <div class="ui four tiny statistics">
+            <div class="statistic">
+                <div class="label">
+                    Organism
+                </div>
+                <div class="value">
+                    <abbr class="italic" title="{{ protein.taxon.scientificName }}">
+                        {# `wordat` is a custom filter #}
+                        {{ protein.taxon.scientificName[0] }} . {{ protein.taxon.scientificName|wordat(1) }}
+                    </abbr>
+                </div>
+            </div>
+            <div class="statistic">
+                <div class="label">
+                    Length
+                </div>
+                <div class="value">
+                    {{ '{:,}'.format(protein.length) }}
+                </div>
+            </div>
+            <div class="statistic">
+                <div class="label">
+                    Entries
+                </div>
+                <div class="value">
+                    {{ '{:,}'.format(protein.entries|numentries) }}
+                </div>
+            </div>
+            <div class="statistic">
+                <div class="label">
+                    Signatures
+                </div>
+                <div class="value">
+                    {{ '{:,}'.format(protein.entries|nummethods) }}
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="ui grid">
+        <div class="four wide column">
+            <div class="ui sticky">
+                <div class="ui vertical basic segment">
+                    <div class="ui fluid vertical menu">
+                        <a href="#families" class="active item">
+                            Protein families
+                        </a>
+                        <a href="#signatures" class="item">
+                            Detailed signatures matches
+                        </a>
+                        <a href="#others" class="item">
+                            Other features
+                        </a>
+                        <a href="#structures" class="item">
+                            Structural features and predictions
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="twelve wide column">
+            {% if protein.isFragment %}
+                <div class="ui warning message">
+                    <div class="header">Sequence fragment</div>
+                    The canonical sequence for this protein is a fragment. The protein is not considered when comparing signatures.
+                </div>
+            {% endif %}
+
+            <div class="ui basic vertical segment">
+                <h2 id="families" class="ui dividing header">Protein families</h2>
+                {% if protein.families %}
+                    <div class="ui list">
+                        {% for entry in protein.families recursive %}
+                            <div class="item">
+                                <div class="content">
+                                    <span class="ui tiny type-F circular label">F</span>
+                                    <a href="/entry/{{ entry.id }}/">{{ entry.id }}</a>
+                                    {{ entry.name }}
+                                </div>
+
+                                {% if entry.children %}
+                                    <div class="list">
+                                        {{ loop(entry.children) }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p>None</p>
+                {% endif %}
+            </div>
+            <div class="ui basic vertical segment">
+                <h2 id="signatures" class="ui dividing header">Detailed signatures matches</h2>
+                <div></div>
+            </div>
+            <div class="ui basic vertical segment">
+                <h2 id="others" class="ui dividing header">Other features</h2>
+                <div></div>
+            </div>
+            <div class="ui basic vertical segment">
+                <h2 id="structures" class="ui dividing header">Structural features and predictions</h2>
+                <div></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% include 'footer.html' %}
+
+<script src="/static/vendor/jquery.min.js"></script>
+<script src="/static/vendor/semantic.min.js"></script>
+<script src="/static/modules/protein.js" type="module"></script>
+<script>
+    const entries = {{ protein.entries|tojson }};
+    const methods = {{ protein.methods|tojson }};
+    const others = {{ protein.others|tojson }};
+    const structures = {{ protein.structures|tojson }};
+    const proteinLength = {{ protein.length|tojson }};
+</script>
+
+</body>
+</html>
