@@ -570,7 +570,7 @@ def api_database_unintegrated(dbshort):
 @app.route('/')
 def v_index():
     return render_template('index.html', databases=api.get_databases(),
-                           user=api.get_user(), schema=app.config['DB_SCHEMA'])
+                           user=api.get_user(), uniprot=api.get_uniprot_version())
 
 
 @app.route('/search/')
@@ -598,43 +598,43 @@ def v_search():
                                'pageSize': 20
                            },
                            user=api.get_user(),
-                           schema=app.config['DB_SCHEMA'])
+                           uniprot=api.get_uniprot_version())
 
 
 @app.route('/database/<dbcode>/')
 def v_database(dbcode):
-    return render_template('database.html', user=api.get_user(), schema=app.config['DB_SCHEMA'])
+    return render_template('database.html', user=api.get_user(), uniprot=api.get_uniprot_version())
 
 
 @app.route('/database/<dbcode>/unintegrated/')
 def v_database_unintegrated(dbcode):
-    return render_template('database2.html', user=api.get_user(), schema=app.config['DB_SCHEMA'])
+    return render_template('database2.html', user=api.get_user(), uniprot=api.get_uniprot_version())
 
 
 @app.route('/protein/<accession>/')
 def v_protein(accession):
     protein = api.get_protein(accession)
-    return render_template('protein.html', protein=protein, user=api.get_user(), schema=app.config['DB_SCHEMA'])
+    return render_template('protein.html', protein=protein, user=api.get_user(), uniprot=api.get_uniprot_version())
 
 
 @app.route('/method/<accession>/')
 def v_method(accession):
-    return render_template('method.html', method=accession, user=api.get_user(), schema=app.config['DB_SCHEMA'])
+    return render_template('method.html', method=accession, user=api.get_user(), uniprot=api.get_uniprot_version())
 
 
 @app.route('/methods/<path:accessions>/matches/')
 def v_matches(accessions):
-    return render_template('matches.html', user=api.get_user(), schema=app.config['DB_SCHEMA'])
+    return render_template('matches.html', user=api.get_user(), uniprot=api.get_uniprot_version())
 
 
 @app.route('/methods/<path:accessions>/taxonomy/')
 def v_taxonomy(accessions):
-    return render_template('taxonomy.html', user=api.get_user(), schema=app.config['DB_SCHEMA'])
+    return render_template('taxonomy.html', user=api.get_user(), uniprot=api.get_uniprot_version())
 
 
 @app.route('/methods/<path:accessions>/descriptions/')
 def v_descriptions(accessions):
-    return render_template('descriptions.html', user=api.get_user(), schema=app.config['DB_SCHEMA'])
+    return render_template('descriptions.html', user=api.get_user(), uniprot=api.get_uniprot_version())
 
 
 @app.route('/methods/<path:accessions>/comments/')
@@ -642,28 +642,28 @@ def v_comments(accessions):
     return render_template('comments.html',
                            topics=api.get_swissprot_topics(),
                            user=api.get_user(),
-                           schema=app.config['DB_SCHEMA'])
+                           uniprot=api.get_uniprot_version())
 
 
 @app.route('/methods/<path:accessions>/go/')
 def v_go_terms(accessions):
     return render_template('go.html',
                            user=api.get_user(),
-                           schema=app.config['DB_SCHEMA'])
+                           uniprot=api.get_uniprot_version())
 
 
 @app.route('/methods/<path:accessions>/matrices/')
 def v_matrices(accessions):
     return render_template('matrices.html',
                            user=api.get_user(),
-                           schema=app.config['DB_SCHEMA'])
+                           uniprot=api.get_uniprot_version())
 
 
 @app.route('/methods/<path:accessions>/enzymes/')
 def v_enzymes(accessions):
     return render_template('enzymes.html',
                            user=api.get_user(),
-                           schema=app.config['DB_SCHEMA'])
+                           uniprot=api.get_uniprot_version())
 
 
 @app.route('/entry/<accession>/')
@@ -678,7 +678,7 @@ def v_entry(accession):
     return render_template('entry.html',
                            entry=entry,
                            user=api.get_user(),
-                           schema=app.config['DB_SCHEMA'])
+                           uniprot=api.get_uniprot_version())
 
 
 @app.route('/login', methods=['GET', 'POST'])

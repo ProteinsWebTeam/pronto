@@ -13,11 +13,14 @@
             </form>
         </div>
 
-        <div class="item">
-            <i class="database icon"></i> {{ schema.lower() }}
-        </div>
-
         <div class="right menu">
+            <div class="item">
+                <div class="ui teal label">
+                    UniProt
+                    <div class="detail">{{ uniprot }}</div>
+                </div>
+            </div>
+
             {% if user %}
                 <div class="ui simple dropdown item">
                     <i class="user circle icon"></i> {{ user['name'] }}

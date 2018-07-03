@@ -115,6 +115,20 @@ def get_db():
     return g.oracle_db
 
 
+def get_uniprot_version():
+    cur = get_db().cursor()
+    cur.execute(
+        """
+        SELECT VERSION
+        FROM {}.CV_DATABASE
+        WHERE DBCODE = 'u'
+        """.format(app.config['DB_SCHEMA'])
+    )
+    row = cur.fetchone()
+    cur.close()
+    return row[0] if row else 'N/A'
+
+
 def build_method2protein_sql(methods, **kwargs):
     taxon = kwargs.get('taxon')
     dbcode = kwargs.get('dbcode')
