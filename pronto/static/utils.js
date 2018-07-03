@@ -249,7 +249,7 @@ export function paginate(element, page, pageSize, count, url, onClick) {
     let html = '';
 
     const genLink = function(page) {
-        return pathName + encodeParams(extendObj(params, {page: page, pageSize: pageSize}))
+        return pathName + encodeParams(extendObj(params, {page: page, pageSize: pageSize}), true)
     };
 
     if (page === 1)
