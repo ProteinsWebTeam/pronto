@@ -6,12 +6,13 @@ Pronto is a web application aiming to assist InterPro curators by displaying pro
  
 ## Getting started
 
-Pronto requires Python>=3.3, `cx_Oracle`, and `Flask`.
+Pronto requires Python>=3.3, `cx_Oracle`, `Flask`, and `Jinja2`.
 
 ```bash
 git clone https://github.com/ProteinsWebTeam/pronto.git
 cd pronto
 pip install -r requirements.txt
+python setup.py install
 ```
 
 ## Configuration
@@ -48,7 +49,8 @@ export PRONTO_CONFIG=/path/to/config.cfg
 *Easy to use and convenient for development, but not suitable for production.*
 
 ```bash
-python pronto.py
+export FLASK_APP=pronto
+flask run
 ```
 
 ### Gunicorn
