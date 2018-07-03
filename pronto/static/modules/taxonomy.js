@@ -1,4 +1,4 @@
-import * as utils from './utils.js';
+import * as utils from '../utils.js';
 
 function getTaxa(proteinsModal) {
     const url = '/api' + location.pathname + location.search;

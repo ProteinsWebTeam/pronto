@@ -1,4 +1,4 @@
-import * as utils from './utils.js';
+import * as utils from '../utils.js';
 
 function getMethods() {
     const url = location.pathname + location.search;

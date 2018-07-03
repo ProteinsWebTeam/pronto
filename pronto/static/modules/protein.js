@@ -1,4 +1,4 @@
-import * as utils from './utils.js';
+import * as utils from '../utils.js';
 
 // Global variables for SVG
 const paddingTop = 10;
