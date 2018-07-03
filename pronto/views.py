@@ -450,11 +450,11 @@ def api_methods_comments(methods):
 
 @app.route('/api/methods/<path:methods>/matrices/')
 def api_methods_matrix(methods):
-    return jsonify(
-        api.get_methods_matrix(
+    return jsonify({
+        'data': api.get_methods_matrix(
             methods=[m.strip() for m in methods.split('/') if m.strip()]
         )
-    ), 200
+    }), 200
 
 
 @app.route('/api/database/')
@@ -629,6 +629,13 @@ def v_comments(accessions):
 @app.route('/methods/<path:accessions>/go/')
 def v_go_terms(accessions):
     return render_template('go.html',
+                           user=api.get_user(),
+                           schema=app.config['DB_SCHEMA'])
+
+
+@app.route('/methods/<path:accessions>/matrices/')
+def v_matrices(accessions):
+    return render_template('matrices.html',
                            user=api.get_user(),
                            schema=app.config['DB_SCHEMA'])
 

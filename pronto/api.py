@@ -1951,12 +1951,12 @@ def get_methods_matrix(methods):
         {'meth' + str(i): method for i, method in enumerate(methods)}
     )
 
-    matrix = {}
+    data = {}
     for acc_1, n_prot, acc_2, n_coloc, avg_over, n_overlap in cur:
-        if acc_1 in matrix:
-            m = matrix[acc_1]
+        if acc_1 in data:
+            m = data[acc_1]
         else:
-            m = matrix[acc_1] = {
+            m = data[acc_1] = {
                 'prot': n_prot,
                 'methods': {}
             }
@@ -1969,10 +1969,19 @@ def get_methods_matrix(methods):
 
     cur.close()
 
-    return {
-        'matrix': matrix,
-        'max': max([m['prot'] for m in matrix.values()])
-    }
+    matrix = [
+        {
+            'accession': acc_1,
+            'count': data.get(acc_1, {}).get('prot', 0),
+            'data': [
+                data.get(acc_1, {}).get('methods', {}).get(acc_2, {'coloc': 0, 'over': 0, 'avgOver': 0})
+                for acc_2 in methods
+            ]
+        }
+        for acc_1 in methods
+    ]
+
+    return matrix
 
 
 def get_databases():
