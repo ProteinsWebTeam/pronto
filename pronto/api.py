@@ -298,19 +298,7 @@ def build_method2protein_sql(methods, **kwargs):
     return sql, params
 
 
-def search(query, page=1, page_size=20):
-    """
-    Search a given string.
-    Can be an InterPro accession ("IPR" is optional), a signature accession, or a protein accession.
-
-    Args:
-        query:
-        page:
-        page_size:
-
-    Returns:
-
-    """
+def search(query, in_db=True, in_ebi=True, page=1, page_size=20):
     # From DB
     entry_accs = []
     methods_accs = []
@@ -320,62 +308,64 @@ def search(query, page=1, page_size=20):
     hits = []
     hit_count = 0
 
-    cur = get_db().cursor()
-
     if query:
-        for term in query.split():
+        if in_db:
+            cur = get_db().cursor()
+
+            for term in query.split():
+                try:
+                    term = int(term)
+                except ValueError:
+                    pass
+                else:
+                    term = 'IPR{:06d}'.format(term)
+
+                cur.execute('SELECT ENTRY_AC FROM INTERPRO.ENTRY WHERE ENTRY_AC = :1', (term.upper(),))
+                row = cur.fetchone()
+                if row:
+                    entry_accs.append(row[0])
+                    continue
+
+                cur.execute('SELECT METHOD_AC from INTERPRO.METHOD WHERE UPPER(METHOD_AC) = :1', (term.upper(),))
+                row = cur.fetchone()
+                if row:
+                    methods_accs.append(row[0])
+                    continue
+
+                cur.execute(
+                    'SELECT PROTEIN_AC from {}.PROTEIN WHERE PROTEIN_AC = :1 OR NAME = :1'.format(app.config['DB_SCHEMA']),
+                    (term.upper(),)
+                )
+                row = cur.fetchone()
+                if row:
+                    proteins_accs.append(row[0])
+                    continue
+
+            cur.close()
+
+        if in_ebi:
+            params = urllib.parse.urlencode({
+                'query': query,
+                'format': 'json',
+                'fields': 'id,name,type',
+                'size': page_size,
+                'start': (page - 1) * page_size
+            })
+
             try:
-                term = int(term)
-            except ValueError:
+                req = urllib.request.urlopen('http://www.ebi.ac.uk/ebisearch/ws/rest/interpro?{}'.format(params))
+                res = json.loads(req.read().decode())
+            except (urllib.error.HTTPError, json.JSONDecodeError):
                 pass
             else:
-                term = 'IPR{:06d}'.format(term)
-
-            cur.execute('SELECT ENTRY_AC FROM INTERPRO.ENTRY WHERE ENTRY_AC = :1', (term.upper(),))
-            row = cur.fetchone()
-            if row:
-                entry_accs.append(row[0])
-                continue
-
-            cur.execute('SELECT METHOD_AC from INTERPRO.METHOD WHERE UPPER(METHOD_AC) = :1', (term.upper(),))
-            row = cur.fetchone()
-            if row:
-                methods_accs.append(row[0])
-                continue
-
-            cur.execute(
-                'SELECT PROTEIN_AC from {}.PROTEIN WHERE PROTEIN_AC = :1 OR NAME = :1'.format(app.config['DB_SCHEMA']),
-                (term.upper(),)
-            )
-            row = cur.fetchone()
-            if row:
-                proteins_accs.append(row[0])
-                continue
-
-        cur.close()
-
-        params = urllib.parse.urlencode({
-            'query': query,
-            'format': 'json',
-            'fields': 'id,name,type',
-            'size': page_size,
-            'start': (page - 1) * page_size
-        })
-
-        try:
-            req = urllib.request.urlopen('http://www.ebi.ac.uk/ebisearch/ws/rest/interpro?{}'.format(params))
-            res = json.loads(req.read().decode())
-        except (urllib.error.HTTPError, json.JSONDecodeError):
-            pass
-        else:
-            hit_count = res['hitCount']
-            for e in res['entries']:
-                hits.append({
-                    'id': e['id'],
-                    'name': e['fields']['name'][0],  # EBI search returns an array of name/type fields
-                    'type': e['fields']['type'][0][0].upper()
-                    # Take the first char only (will display a label on client)
-                })
+                hit_count = res['hitCount']
+                for e in res['entries']:
+                    hits.append({
+                        'id': e['id'],
+                        'name': e['fields']['name'][0],  # EBI search returns an array of name/type fields
+                        'type': e['fields']['type'][0][0].upper()
+                        # Take the first char only (will display a label on client)
+                    })
 
     return (
         list(sorted(set(entry_accs))),

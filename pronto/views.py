@@ -16,6 +16,38 @@ def api_feed():
     return jsonify(api.get_feed(n))
 
 
+@app.route('/api/search/')
+def api_search():
+    query = request.args.get('q', '').strip()
+
+    try:
+        page = int(request.args.get('page', 1))
+    except ValueError:
+        page = 1
+
+    page_size = 20
+
+    entries, methods, proteins, hits, hit_count = api.search(
+        query=query,
+        page=page,
+        page_size=page_size,
+        in_db=request.args.get('nodb') is None,
+        in_ebi=request.args.get('noebi') is None
+    )
+
+    return jsonify({
+        'entries': entries,
+        'methods': methods,
+        'proteins': proteins,
+        'ebisearch': {
+            'hits': hits,
+            'count': hit_count,
+            'page': page,
+            'pageSize': page_size
+        }
+    })
+
+
 @app.route('/api/protein/<protein_ac>/')
 def api_protein(protein_ac):
     r = {
@@ -545,14 +577,7 @@ def v_index():
 def v_search():
     query = request.args.get('q', '').strip()
 
-    try:
-        page = int(request.args['page'])
-    except (KeyError, ValueError):
-        page = 1
-
-    page_size = 20
-
-    entries, methods, proteins, hits, hit_count = api.search(query=query, page=page, page_size=page_size)
+    entries, methods, proteins, hits, hit_count = api.search(query=query, page=1, page_size=20)
 
     if len(entries) == 1 and not methods and not proteins:
         return redirect(url_for('v_entry', accession=entries[0]))
@@ -561,31 +586,17 @@ def v_search():
     elif not entries and not methods and len(proteins) == 1:
         return redirect(url_for('v_protein', accession=proteins[0]))
 
-    suggestions = []
-    if entries:
-        suggestions.append('<li>Entries: {}</li>'.format(
-            ', '.join(['<a href="/entry/{0}/">{0}</a>'.format(accession) for accession in entries])
-        ))
-
-    if methods:
-        suggestions.append('<li>Signatures: {}</li>'.format(
-            ', '.join(['<a href="/method/{0}/">{0}</a>'.format(accession) for accession in methods])
-        ))
-
-    if proteins:
-        suggestions.append('<li>Proteins: {}</li>'.format(
-            ', '.join(['<a href="/protein/{0}/">{0}</a>'.format(accession) for accession in proteins])
-        ))
-
     return render_template('search.html',
                            query=query,
                            entries=entries,
                            methods=methods,
                            proteins=proteins,
-                           hits=hits,
-                           hit_count=hit_count,
-                           page=page,
-                           page_size=page_size,
+                           ebisearch={
+                               'hits': hits,
+                               'count': hit_count,
+                               'page': 1,
+                               'pageSize': 20
+                           },
                            user=api.get_user(),
                            schema=app.config['DB_SCHEMA'])
 

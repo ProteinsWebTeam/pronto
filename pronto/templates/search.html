@@ -5,7 +5,7 @@
     <link rel="stylesheet" href="/static/vendor/semantic.min.css" />
     <link rel="stylesheet" href="/static/style.css" />
     <link rel="icon" href="/static/favicon.png">
-    <title>Pronto</title>
+    <title>Search &ldquo;{{ query }}&rdquo; | Pronto</title>
 </head>
 <body>
 
@@ -59,7 +59,7 @@
         <thead>
         <tr>
             <th colspan="2">
-                 {{ (page - 1) * page_size + 1 }} - {{ [page * page_size, hit_count]|min }} of {{ hit_count }} results
+                 <span></span>
             </th>
         </tr>
         <tr>
@@ -67,19 +67,7 @@
             <th>Name</th>
         </tr>
         </thead>
-        <tbody>
-        {% if hits %}
-            {% for entry in hits %}
-                <tr>
-                    <td><span class="ui tiny type-{{ entry['type'] }} circular label">{{ entry['type'] }}</span>&nbsp;<a href="/entry/{{ entry['id'] }}">{{ entry['id'] }}</a></td>
-                    <td>{{ entry['name'] }}</td>
-                </tr>
-            {% endfor %}
-        {% else %}
-            <tr><td colspan="2">No hits found by EBI Search</td></tr>
-        {% endif %}
-
-        </tbody>
+        <tbody></tbody>
         <tfoot>
         <tr>
             <th colspan="2">
@@ -90,7 +78,14 @@
     </table>
 </div>
 
+{% include 'footer.html' %}
+
 <script src="/static/vendor/jquery.min.js"></script>
 <script src="/static/vendor/semantic.min.js"></script>
+<script src="/static/modules/search.js" type="module"></script>
+<script>
+    const ebisearch = {{ ebisearch|tojson }};
+    const query = {{ query|tojson }};
+</script>
 </body>
 </html>
