@@ -618,8 +618,8 @@ def get_entry(entry_ac):
           ET.ABBREV,
           E.CHECKED,
           (
-            SELECT SUM(PROTEIN_COUNT)
-            FROM INTERPRO.MV_METHOD_MATCH
+            SELECT COUNT(DISTINCT PROTEIN_AC)
+            FROM INTERPRO_ANALYSIS.METHOD2PROTEIN
             WHERE METHOD_AC IN (
               SELECT METHOD_AC
               FROM INTERPRO.ENTRY2METHOD
@@ -648,8 +648,8 @@ def get_entry(entry_ac):
               ET.ABBREV,
               E.CHECKED,
               (
-                SELECT SUM(PROTEIN_COUNT)
-                FROM INTERPRO.MV_METHOD_MATCH
+                SELECT COUNT(DISTINCT PROTEIN_AC)
+                FROM INTERPRO_ANALYSIS.METHOD2PROTEIN
                 WHERE METHOD_AC IN (
                   SELECT METHOD_AC
                   FROM INTERPRO.ENTRY2METHOD

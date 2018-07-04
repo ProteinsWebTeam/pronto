@@ -124,6 +124,9 @@ $(function () {
         return;
     }
 
+    // Init Semantic-UI elements
+    $('[data-content]').popup();
+
     const entryID = match[1];
 
     utils.getComments(
