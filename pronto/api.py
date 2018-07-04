@@ -1122,6 +1122,8 @@ def add_comment(entry_ac, author, comment, comment_type='entry'):
     if comment_type == 'entry':
         col_name = 'ENTRY_AC'
         table_name = 'ENTRY_COMMENT'
+        # Replace link to GO GitHub issues
+        comment = re.sub(r'(?:https://)?github.com/geneontology/go-annotation/issues/(\d+)', r'#\1', comment)
     elif comment_type == 'method':
         col_name = 'METHOD_AC'
         table_name = 'METHOD_COMMENT'
