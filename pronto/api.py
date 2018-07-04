@@ -1694,16 +1694,22 @@ def get_methods_taxonomy(methods, rank=RANKS[0], taxon=None, allow_no_taxon=Fals
     cur.execute(
         """
         SELECT
-          L.TAX_ID,
-          MIN(E.FULL_NAME),
-          M2P.METHOD_AC,
-          COUNT(DISTINCT M2P.PROTEIN_AC)
-        FROM {0}.METHOD2PROTEIN M2P
-          {2} JOIN {0}.LINEAGE L ON M2P.LEFT_NUMBER = L.LEFT_NUMBER AND L.RANK = :rank
-          {2} JOIN {0}.ETAXI E ON L.TAX_ID = E.TAX_ID
-        WHERE M2P.METHOD_AC IN ({1})
-              {3}
-        GROUP BY M2P.METHOD_AC, L.TAX_ID
+          A.TAX_ID,
+          E.FULL_NAME,
+          A.METHOD_AC,
+          A.CT
+        FROM (
+          SELECT
+            L.TAX_ID,
+            M2P.METHOD_AC,
+            COUNT(DISTINCT M2P.PROTEIN_AC) CT
+          FROM {0}.METHOD2PROTEIN M2P
+            {2} JOIN {0}.LINEAGE L ON M2P.LEFT_NUMBER = L.LEFT_NUMBER AND L.RANK = :rank
+          WHERE M2P.METHOD_AC IN ({1})
+                {3}
+          GROUP BY M2P.METHOD_AC, L.TAX_ID
+        ) A
+        {2} JOIN {0}.ETAXI E ON A.TAX_ID = E.TAX_ID        
         """.format(
             app.config['DB_SCHEMA'],
             fmt,
