@@ -27,7 +27,7 @@ function getTaxa(proteinsModal) {
 
         if (obj.data.length) {
             obj.data[0].methods.forEach(method => {
-                html += '<th><a href="" data-method="'+ method.accession +'">' + method.accession + '</a></th>';
+                html += '<th>'+ method.accession +'</th>';
             });
         } else
             html += '<th>No results found</th>';
