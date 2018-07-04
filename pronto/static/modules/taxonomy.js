@@ -33,11 +33,6 @@ function getTaxa(proteinsModal) {
             html += '<th>No results found</th>';
         html += '</tr></thead>';
 
-        obj.data[0].methods.forEach(method => {
-            html += '<th>' + method.accession + '</th>';
-        });
-        html += '</thead>';
-
         // Table body
         const colors = utils.gradientPuBu;
         html += '<tbody>';
