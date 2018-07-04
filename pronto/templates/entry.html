@@ -25,7 +25,7 @@
         <div class="ui five tiny statistics">
             <div class="statistic">
                 <div class="label">
-                    UniProtKB Matches
+                    Protein count
                 </div>
                 <div class="value">
                     {{ '{:,}'.format(entry['proteinCount']) }}
@@ -167,10 +167,10 @@
                                 Abstract
                                 <i class="external icon"></i>
                             </a>
-{#                            <a target="_blank" href="http://www.ebi.ac.uk/talisman/Create?page=ipr_interpro2go/interpro2go.xml&url=IPRO&ac={{ entry['id'] }}" class="item">#}
-{#                                InterPro2GO#}
-{#                                <i class="external icon"></i>#}
-{#                            </a>#}
+                            {#                            <a target="_blank" href="http://www.ebi.ac.uk/talisman/Create?page=ipr_interpro2go/interpro2go.xml&url=IPRO&ac={{ entry['id'] }}" class="item">#}
+                            {#                                InterPro2GO#}
+                            {#                                <i class="external icon"></i>#}
+                            {#                            </a>#}
                             <a target="_blank" href="http://www.ebi.ac.uk/talisman/Create?page=ipr_entry/merge.xml&url=IPRO&ac={{ entry['id'] }}" class="item">
                                 Merge
                                 <i class="external icon"></i>
@@ -200,8 +200,9 @@
                 <table class="ui selectable table">
                     <thead>
                     <tr>
-                        <th>Accession</th>
+                        <th></th>
                         <th>Member database</th>
+                        <th>Accession</th>
                         <th>Name</th>
                         <th>Protein count</th>
                     </tr>
@@ -209,7 +210,13 @@
                     <tbody>
                     {% for method in entry['methods'] %}
                         <tr>
-                            <td><a href="/method/{{ method['id'] }}/">{{ method['id'] }}</a></td>
+                            <td class="collapsing">
+                                {% if method['color'] %}
+                                    <i class="database icon" style="color: {{ method['color'] }};"></i>
+                                {% else %}
+                                    <i class="database icon"></i>
+                                {% endif %}
+                            </td>
 
                             <td>
                                 {% if method['link'] %}
@@ -221,6 +228,7 @@
                                 {% endif %}
                             </td>
 
+                            <td><a href="/method/{{ method['id'] }}/">{{ method['id'] }}</a></td>
                             <td>{{ method['name'] }}</td>
                             <td>{{ '{:,}'.format(method['count']) }}</td>
                         </tr>

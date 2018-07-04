@@ -727,17 +727,20 @@ def get_entry(entry_ac):
         dbname = None
         home = None
         link = None
+        color = None
 
         db = xref.find_ref(dbcode, method_ac)
         if db:
             dbname = db.name
             home = db.home
             link = db.gen_link()
+            color = db.color
 
         entry['methods'].append({
             'dbname': dbname,
             'home': home,
             'link': link,
+            'color': color,
             'id': method_ac,
             'name': name,
             'count': count
