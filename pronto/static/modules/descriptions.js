@@ -11,7 +11,7 @@ function getDescriptions(proteinsModal) {
         }));
 
         // Table header
-        let html = '<thead><tr><th>'+ obj.data.length +' descriptions</th>';
+        let html = '<thead><tr data-search="db='+ obj.database +'"><th>'+ obj.data.length +' descriptions</th>';
         if (obj.data.length) {
             obj.data[0].methods.forEach(method => {
                 html += '<th><a href="" data-method="'+ method.accession +'">' + method.accession + '</a></th>';
