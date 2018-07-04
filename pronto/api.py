@@ -617,12 +617,19 @@ def get_entry(entry_ac):
           E.ENTRY_TYPE,
           ET.ABBREV,
           E.CHECKED,
-          NVL(EM.PROTEIN_COUNT, 0),
+          (
+            SELECT SUM(PROTEIN_COUNT)
+            FROM INTERPRO.MV_METHOD_MATCH
+            WHERE METHOD_AC IN (
+              SELECT METHOD_AC
+              FROM INTERPRO.ENTRY2METHOD
+              WHERE ENTRY_AC = :1
+            )
+          ) PROTEIN_COUNT,
           E.CREATED,
           E.TIMESTAMP
         FROM INTERPRO.ENTRY E
-        INNER JOIN INTERPRO.CV_ENTRY_TYPE ET ON E.ENTRY_TYPE = ET.CODE
-        LEFT OUTER JOIN INTERPRO.MV_ENTRY_MATCH EM ON E.ENTRY_AC = EM.ENTRY_AC
+          INNER JOIN INTERPRO.CV_ENTRY_TYPE ET ON E.ENTRY_TYPE = ET.CODE
         WHERE E.ENTRY_AC = :1
         """,
         (entry_ac,)
@@ -640,14 +647,21 @@ def get_entry(entry_ac):
               E.ENTRY_TYPE,
               ET.ABBREV,
               E.CHECKED,
-              NVL(EM.PROTEIN_COUNT, 0),
+              (
+                SELECT SUM(PROTEIN_COUNT)
+                FROM INTERPRO.MV_METHOD_MATCH
+                WHERE METHOD_AC IN (
+                  SELECT METHOD_AC
+                  FROM INTERPRO.ENTRY2METHOD
+                  WHERE ENTRY_AC = :1
+                )
+              ) PROTEIN_COUNT,
               E.CREATED,
               E.TIMESTAMP,
               E.ENTRY_AC
             FROM INTERPRO.ENTRY E
-            INNER JOIN INTERPRO.CV_ENTRY_TYPE ET ON E.ENTRY_TYPE = ET.CODE
-            LEFT OUTER JOIN INTERPRO.MV_ENTRY_MATCH EM ON E.ENTRY_AC = EM.ENTRY_AC
-            INNER JOIN INTERPRO.MV_SECONDARY S ON E.ENTRY_AC = S.ENTRY_AC
+              INNER JOIN INTERPRO.CV_ENTRY_TYPE ET ON E.ENTRY_TYPE = ET.CODE
+              INNER JOIN INTERPRO.MV_SECONDARY S ON E.ENTRY_AC = S.ENTRY_AC
             WHERE S.SECONDARY_AC = :1
             """,
             (entry_ac,)
