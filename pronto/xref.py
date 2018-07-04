@@ -276,10 +276,10 @@ def find_ref(dbcode, ac=None):
 
 def find_xref(dbcode):
     return {
+        'CATHGENE3D': 'http://www.cathdb.info/superfamily/{}',
         'CAZY': 'http://www.cazy.org/fam/{}.html',
         'COG': 'http://www.ncbi.nlm.nih.gov/COG/new/release/cow.cgi?cog={}',
         'EC': 'http://www.ebi.ac.uk/intenz/query?cmd=SearchEC&ec={}',
-        'CATHGENE3D': 'http://www.cathdb.info/superfamily/{}',
         'GENPROP': 'http://cmr.jcvi.org/cgi-bin/CMR/shared/GenomePropDefinition.cgi?prop_acc={}',
         'INTERPRO': '/entry/{}',
         'PDBE': 'http://www.ebi.ac.uk/pdbe/entry/pdb/{}',
