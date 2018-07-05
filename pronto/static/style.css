@@ -50,19 +50,8 @@ p.hidden {
 .ui.feed a.type-C, .ui.feed a.type-B, .ui.feed a.type-A, .ui.feed a.type-P {border-bottom: 2px solid #a333c8;}
 
 /* Circular labels in table */
-td > .ui.list > .item > .label {
-    display: table-cell;
-    margin: 0;
-    padding-top: 0;
-    padding-right: .28571429em;
-    vertical-align: top;
-    -webkit-transition: color .1s ease;
-    transition: color .1s ease;
-}
-td > .ui.list > .item > .label + .content {
-    display: table-cell;
-    padding: 0 0 0 .5em;
-    vertical-align: top;
+.item > .content > .label {
+    margin: 0 .25rem 0 0;
 }
 .ui.label.type-R {
     background-color: #f2711c;

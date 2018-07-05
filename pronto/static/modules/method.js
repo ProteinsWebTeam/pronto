@@ -104,15 +104,15 @@ function getPredictions(methodID, overlapThreshold, pixels, numRect, getComments
                 html += '<td class="nowrap"><div class="ui list">';
 
                 m.entryHierarchy.forEach(e => {
-                    html += '<div class="item"><i class="angle down icon"></i><div class="content"><a href="/entry/'+ e +'/">' + e + '</a></div></div>';
+                    html += '<div class="item"><div class="content"><i class="angle down icon"></i><a href="/entry/'+ e +'/">' + e + '</a></div></div>';
                 });
 
-                html += '<div class="item"><span class="ui circular mini label type-'+ m.entryType +'">'+ m.entryType +'</span><div class="content"><a href="/entry/'+ m.entryId +'/">' + m.entryId + '</a></div></div></td>';
+                html += '<div class="item"><div class="content"><span class="ui circular mini label type-'+ m.entryType +'">'+ m.entryType +'</span><a href="/entry/'+ m.entryId +'/">' + m.entryId + '</a>' +
+                    '<div class="extra">'+ (m.entryName.length <= 40 ? m.entryName : '<abbr title="'+ m.entryName +'">'+ m.entryName.substr(0, 40) +'&hellip;</abbr>') +'</div></div></div></td>';
             } else
                 html += '<td></td>';
 
-            html += '<td>'+ utils.nvl(m.entryName, '') +'</td>' +
-                '<td>'+ utils.renderCheckbox(m.entryId, m.isChecked) +'</td>';
+            html += '<td>'+ utils.renderCheckbox(m.entryId, m.isChecked) +'</td>';
         });
 
         document.querySelector('tbody').innerHTML = html;
