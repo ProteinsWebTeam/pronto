@@ -107,10 +107,10 @@ function getPredictions(methodID, overlapThreshold, pixels, numRect, getComments
                     html += '<div class="item"><div class="content"><i class="angle down icon"></i><a href="/entry/'+ e +'/">' + e + '</a></div></div>';
                 });
 
-                html += '<div class="item"><div class="content"><span class="ui circular mini label type-'+ m.entryType +'">'+ m.entryType +'</span><a href="/entry/'+ m.entryId +'/">' + m.entryId + '</a>' +
-                    '<div class="extra">'+ (m.entryName.length <= 20 ? m.entryName : '<abbr title="'+ m.entryName +'">'+ m.entryName.substr(0, 20) +'&hellip;</abbr>') +'</div></div></div></td>';
+                html += '<div class="item"><div class="content"><span class="ui circular mini label type-'+ m.entryType +'">'+ m.entryType +'</span><a href="/entry/'+ m.entryId +'/">' + m.entryId + '</a></div></div></td>';
+                html += '<td>' + m.entryName + '</td>';
             } else
-                html += '<td></td>';
+                html += '<td></td><td></td>';
 
             html += '<td>'+ utils.renderCheckbox(m.entryId, m.isChecked) +'</td>';
         });
@@ -121,7 +121,7 @@ function getPredictions(methodID, overlapThreshold, pixels, numRect, getComments
 
         // Get comments
         if (getComments) {
-            utils.getComments(document.querySelector('.ui.sticky .ui.comments'), 'method', methodID, 2, function () {
+            utils.getComments(document.querySelector('.ui.comments'), 'method', methodID, 2, function () {
                 drawHeatmap(pixels, numRect);
             });
         }
@@ -259,6 +259,10 @@ $(function () {
 
     // Instantiate selection view
     const msv = new utils.MethodsSelectionView(document.getElementById('methods'));
+
+    document.getElementById('toggle-sidebar').addEventListener('click', e => {
+        $('.ui.sidebar').sidebar('toggle');
+    });
 
     getPredictions(methodID, overlapThreshold, pixels, numRect, true, msv);
 });

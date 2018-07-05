@@ -49,6 +49,14 @@ p.hidden {
 .ui.feed a.type-F {border-bottom: 2px solid #db2828;}
 .ui.feed a.type-C, .ui.feed a.type-B, .ui.feed a.type-A, .ui.feed a.type-P {border-bottom: 2px solid #a333c8;}
 
+/* Sidebar */
+body.pushable {
+    background: none !important;
+}
+.ui.sidebar {
+    padding: 0 1rem;
+}
+
 /* Circular labels in table */
 .item > .content > .label {
     margin: 0 .25rem 0 0;
