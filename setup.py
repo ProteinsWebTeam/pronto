@@ -5,7 +5,7 @@ from setuptools import setup
 
 setup(
     name='pronto',
-    version='1.2',
+    version='1.2.1',
     packages=['pronto'],
     include_package_data=True,
     zip_safe=False,

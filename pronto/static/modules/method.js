@@ -108,7 +108,7 @@ function getPredictions(methodID, overlapThreshold, pixels, numRect, getComments
                 });
 
                 html += '<div class="item"><div class="content"><span class="ui circular mini label type-'+ m.entryType +'">'+ m.entryType +'</span><a href="/entry/'+ m.entryId +'/">' + m.entryId + '</a>' +
-                    '<div class="extra">'+ (m.entryName.length <= 40 ? m.entryName : '<abbr title="'+ m.entryName +'">'+ m.entryName.substr(0, 40) +'&hellip;</abbr>') +'</div></div></div></td>';
+                    '<div class="extra">'+ (m.entryName.length <= 20 ? m.entryName : '<abbr title="'+ m.entryName +'">'+ m.entryName.substr(0, 20) +'&hellip;</abbr>') +'</div></div></div></td>';
             } else
                 html += '<td></td>';
 
