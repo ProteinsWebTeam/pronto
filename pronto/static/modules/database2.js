@@ -28,11 +28,9 @@ function getMethods() {
                     html += '<div class="item">';
 
                     if (pred.type !== null)
-                        html += '<span class="ui circular mini label type-'+ pred.type +'">'+ pred.type +'</span>' +
-                            '<div class="content"><a href="/entry/'+ pred.id +'">'+ pred.id +'</a></div></div>';
+                        html += '<div class="content"><span class="ui circular mini label type-'+ pred.type +'">'+ pred.type +'</span><a href="/entry/'+ pred.id +'">'+ pred.id +'</a></div></div>';
                     else
-                        html += '<span class="ui circular mini label">&nbsp;</span>' +
-                            '<div class="content"><a href="/method/'+ pred.id +'">'+ pred.id +'</a></div></div>';
+                        html += '<div class="content"><span class="ui circular mini label">&nbsp;</span><a href="/method/'+ pred.id +'">'+ pred.id +'</a></div></div>';
                 });
 
                 html += '</div></td>' +
