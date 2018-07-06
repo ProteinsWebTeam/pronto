@@ -23,7 +23,7 @@ function getMethods() {
                     '<td><a href="/method/'+ m.id +'">'+ m.id +'</a></td>';
 
                 if (m.entry !== null) {
-                    html += '<td><span class="ui circular mini label type-'+ m.entry.type +'">'+ m.entry.type +'</span>' + m.entry.accession + '</td>';
+                    html += '<td><span class="ui circular mini label type-'+ m.entry.type +'">'+ m.entry.type +'</span><a href="/entry/'+ m.entry.accession +'/">'+ m.entry.accession +'</a></td>';
                     html += '<td>'+ utils.renderCheckbox(m.entry.accession, m.entry.checked) +'</td>';
                 } else {
                     html += '<td></td>';
