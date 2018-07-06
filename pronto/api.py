@@ -2157,10 +2157,18 @@ def get_database_methods(dbshort, **kwargs):
     for row in cur:
         methods.append({
             'id': row[0],
-            'entry': {'accession': row[1], 'checked': row[2] == 'Y', 'type': row[3]} if row[1] else None,
+            'entry': {
+                'accession': row[1],
+                'checked': row[2] == 'Y',
+                'type': row[3]
+            } if row[1] else None,
             'countNow': row[4],
             'countThen': row[5],
-            'latestComment': {'text': row[6], 'author': row[7], 'date': row[8].strftime('%Y-%m-%d %H:%M:%S')} if row[6] is not None else None
+            'latestComment': {
+                'text': row[6],
+                'author': row[7],
+                'date': row[8].strftime('%Y-%m-%d %H:%M:%S')
+            } if row[6] else None
         })
 
     cur.close()
