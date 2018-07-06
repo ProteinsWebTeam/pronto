@@ -377,10 +377,11 @@
                     <ol>
                         {% for pub in entry['references'] %}
                             <li id="{{ pub['id'] }}">
-                                {{ pub['authors'] }}
-                                {{ pub['title'] }}
-                                <em>{{ pub['journal'] }}</em>
-                                {{ pub['year'] }};{{ pub['volume'] }}:{{ pub['pages'] }}
+                                <div class="header">{{ pub['title'] }}</div>
+                                <div class="item">{{ pub['authors'] }}</div>
+                                <div class="item">
+                                    <em>{{ pub['journal'] }}</em> {{ pub['year'] }}, {{ pub['volume'] }}:{{ pub['pages'] }}
+                                </div>
 
                                 <div class="ui horizontal link list">
                                     {% if pub['doi'] %}
@@ -409,10 +410,11 @@
                     <ul class="ui list">
                         {% for pub in entry['suppReferences'] %}
                             <li id="{{ pub['id'] }}">
-                                {{ pub['authors'] }}
-                                {{ pub['title'] }}
-                                <em>{{ pub['journal'] }}</em>
-                                {{ pub['year'] }};{{ pub['volume'] }}:{{ pub['pages'] }}
+                                <div class="header">{{ pub['title'] }}</div>
+                                <div class="item">{{ pub['authors'] }}</div>
+                                <div class="item">
+                                    <em>{{ pub['journal'] }}</em> {{ pub['year'] }}, {{ pub['volume'] }}:{{ pub['pages'] }}
+                                </div>
 
                                 <div class="ui horizontal link list">
                                     {% if pub['doi'] %}
