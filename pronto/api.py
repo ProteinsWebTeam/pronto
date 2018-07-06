@@ -1009,7 +1009,7 @@ def get_entry(entry_ac):
         else:
             i = '?'
 
-        description = description.replace(m.group(0), '<a href=#{}>{}</a>'.format(ref, i))
+        description = description.replace(m.group(0), '<a data-ref href=#{}>{}</a>'.format(ref, i))
 
     entry.update({
         'description': description,

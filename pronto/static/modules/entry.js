@@ -177,5 +177,16 @@ $(function () {
             });
     });
 
+    Array.from(document.querySelectorAll('a[data-ref]')).forEach(elem => {
+        elem.addEventListener('click', e => {
+            let active = document.querySelector('li.active');
+            if (active) utils.setClass(active, 'active', false);
+
+            const id = e.target.getAttribute('href').substr(1);
+            active = document.getElementById(id);
+            utils.setClass(active, 'active', true);
+        });
+    });
+
     utils.listenMenu(document.querySelector('.ui.vertical.menu'));
 });
