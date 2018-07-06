@@ -374,7 +374,7 @@
             <div class="ui basic vertical segment">
                 <h2 id="references" class="ui dividing header">References</h2>
                 {% if entry['references'] %}
-                    <ol class="ui list">
+                    <ol>
                         {% for pub in entry['references'] %}
                             <li id="{{ pub['id'] }}">
                                 {{ pub['authors'] }}

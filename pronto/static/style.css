@@ -197,7 +197,7 @@ dl .ui.label {
 }
 
 /* Do not inline references links (DOI, PubMED) */
-.ui.list > li > .ui.horizontal.list {
+li > .ui.horizontal.list {
     display: block;
 }
 
