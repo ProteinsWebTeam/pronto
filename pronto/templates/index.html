@@ -18,30 +18,43 @@
                 <table id="databases" class="ui selectable table">
                     <thead>
                     <tr>
-                        <th><i class="database icon"></i>Member databases</th>
+                        <th colspan="2"><i class="database icon"></i>Member databases</th>
                         <th>Signatures</th>
                         <th>Integrated</th>
                         <th>Unintegrated</th>
                     </tr>
                     </thead>
                     <tbody>
-                        {% for db in databases %}
-                            <tr>
-                            <td><a target="_blank" href="{{ db['home'] }}">{{ db['name'] }}&nbsp;{{ db['version'] }}&nbsp;<i class="external icon"></i></a></td>
+                    {% for db in databases %}
+                        <tr>
+                            <td class="collapsing">
+                                <a target="_blank" href="{{ db['home'] }}">
+                                    {{ db['name'] }}
+                                    <i class="external icon"></i>
+                                </a>
+                            </td>
+                            <td>
+                                <span class="ui basic label">
+                                    {{ db['version'] }}
+                                    <span class="detail">
+                                        {{ db['date'].strftime('%b %Y') }}
+                                    </span>
+                                </span>
+                            </td>
                             <td><a href="/database/{{ db['shortName'] }}/">{{ "{:,}".format(db['count']) }}</a></td>
                             <td>{{ "{:,}".format(db['countIntegrated']) }}</td>
-                                <td><a href="/database/{{ db['shortName'] }}/unintegrated/">{{ "{:,}".format(db['countUnintegrated']) }}</a></td>
-                            </tr>
-                        {% endfor %}
+                            <td><a href="/database/{{ db['shortName'] }}/unintegrated/">{{ "{:,}".format(db['countUnintegrated']) }}</a></td>
+                        </tr>
+                    {% endfor %}
                     </tbody>
                 </table>
             </div>
-{#            <div class="four wide column">#}
-{#                <h3 class="ui header">#}
-{#                    <i class="feed icon"></i>Latest integrations#}
-{#                </h3>#}
-{#                <div id="feed" class="ui feed"></div>#}
-{#            </div>#}
+            {#            <div class="four wide column">#}
+            {#                <h3 class="ui header">#}
+            {#                    <i class="feed icon"></i>Latest integrations#}
+            {#                </h3>#}
+            {#                <div id="feed" class="ui feed"></div>#}
+            {#            </div>#}
         </div>
     </div>
 </div>

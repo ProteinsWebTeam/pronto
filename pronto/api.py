@@ -2031,6 +2031,7 @@ def get_databases():
           MIN(DB.DBNAME) DBNAME,
           MIN(DB.DBSHORT),
           MIN(DB.VERSION),
+          MIN(DB.FILE_DATE),
           COUNT(M.METHOD_AC),
           SUM(CASE WHEN E2M.ENTRY_AC IS NOT NULL THEN 1 ELSE 0 END),
           SUM(CASE WHEN E2M.ENTRY_AC IS NULL THEN 1 ELSE 0 END)
@@ -2049,10 +2050,11 @@ def get_databases():
             'name': row[1],
             'shortName': row[2].lower(),
             'version': row[3],
+            'date': row[4],
             'home': xref.find_ref(row[0]).home,
-            'count': row[4],
-            'countIntegrated': row[5],
-            'countUnintegrated': row[6],
+            'count': row[5],
+            'countIntegrated': row[6],
+            'countUnintegrated': row[7],
         })
 
     cur.close()
