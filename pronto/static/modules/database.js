@@ -20,10 +20,17 @@ function getMethods() {
         if (data.results.length) {
             data.results.forEach(m => {
                 html += '<tr data-id="'+ m.id +'">' +
-                    '<td><a href="/method/'+ m.id +'">'+ m.id +'</a></td>' +
-                    '<td>'+ utils.nvl(m.entryId, '', '<a href="/entry/'+ m.entryId +'">'+m.entryId+'</a>') +'</td>' +
-                    '<td>'+ utils.renderCheckbox(m.entryId, m.isChecked) +'</td>' +
-                    '<td>'+ utils.nvl(m.countNow, '') +'</td>' +
+                    '<td><a href="/method/'+ m.id +'">'+ m.id +'</a></td>';
+
+                if (m.entry !== null) {
+                    html += '<td><span class="ui circular mini label type-'+ m.entry.type +'">'+ m.entry.type +'</span>' + m.entry.accession + '</td>';
+                    html += '<td>'+ utils.renderCheckbox(m.entry.accession, m.entry.checked) +'</td>';
+                } else {
+                    html += '<td></td>';
+                    html += '<td>'+ utils.renderCheckbox(null, null) +'</td>';
+                }
+
+                html += '<td>'+ utils.nvl(m.countNow, '') +'</td>' +
                     '<td>'+ utils.nvl(m.countThen, '') +'</td>' +
                     '<td>'+ (m.countNow && m.countThen ? Math.floor(m.countNow / m.countThen * 1000) / 10 : '') +'</td>';
 

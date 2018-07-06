@@ -58,8 +58,8 @@ body.pushable {
 }
 
 /* Circular labels in table */
-.item > .content > .label {
-    margin: 0 .25rem 0 0;
+td > .ui.label, .item > .content > .label {
+    margin: 0 .25rem 0 0 !important;
 }
 .ui.label.type-R {
     background-color: #f2711c;

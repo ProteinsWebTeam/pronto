@@ -2106,6 +2106,7 @@ def get_database_methods(dbshort, **kwargs):
               M.METHOD_AC,
               EM.ENTRY_AC,
               E.CHECKED,
+              E.ENTRY_TYPE,
               MM_NOW.PROTEIN_COUNT,
               MM_THEN.PROTEIN_COUNT,
               C.VALUE,
@@ -2156,12 +2157,10 @@ def get_database_methods(dbshort, **kwargs):
     for row in cur:
         methods.append({
             'id': row[0],
-            'entryId': row[1],
-            'isChecked': row[2] == 'Y',
-            'countNow': row[3],
-            'countThen': row[4],
-            'latestComment': {'text': row[5], 'author': row[6], 'date': row[7].strftime('%Y-%m-%d %H:%M:%S')} if row[
-                                                                                                                     5] is not None else None
+            'entry': {'accession': row[1], 'checked': row[2] == 'Y', 'type': row[3]} if row[1] else None,
+            'countNow': row[4],
+            'countThen': row[5],
+            'latestComment': {'text': row[6], 'author': row[7], 'date': row[8].strftime('%Y-%m-%d %H:%M:%S')} if row[6] is not None else None
         })
 
     cur.close()
