@@ -56,7 +56,7 @@
                     GO terms
                 </div>
                 <a href="#go-terms" class="value">
-                    {{ '{:,}'.format(entry['go']|length) }}
+                    {{ '{:,}'.format(entry['go'].values()|map('length')|sum) }}
                 </a>
 
             </div>
@@ -98,7 +98,7 @@
                         <a href="#go-terms" class="item">
                             GO terms
                             <div class="ui label">
-                                {{ '{:,}'.format(entry['go']|length) }}
+                                {{ '{:,}'.format(entry['go'].values()|map('length')|sum) }}
                             </div>
                         </a>
                         <a href="#references" class="item">
