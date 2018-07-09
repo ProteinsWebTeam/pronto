@@ -225,7 +225,7 @@ $(function () {
                 modal.querySelector('.content p').innerHTML = data.message;
                 $(modal).modal('show');
             } else
-                utils.getComments(document.querySelector('.ui.sticky .ui.comments'), 'method', methodID, 2, function () {
+                utils.getComments(document.querySelector('.ui.comments'), 'method', methodID, 2, function () {
                     drawHeatmap(pixels, numRect);
                 });
         });
