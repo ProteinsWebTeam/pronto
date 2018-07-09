@@ -922,7 +922,7 @@ def get_entry(entry_ac):
     )
 
     missing_refs = []
-    description = ''
+    descriptions = []
 
     for row in cur:
         text = row[0].strip()
@@ -966,7 +966,7 @@ def get_entry(entry_ac):
                 '<a href="http://www.uniprot.org/taxonomy/{}">{}</a>'.format(m.group(1), m.group(2))
             )
 
-        description += text
+        descriptions.append(text)
 
     if missing_refs:
         # For some entries, the association entry-citation is missing in the INTERPRO.ENTRY2PUB
@@ -996,23 +996,26 @@ def get_entry(entry_ac):
     cur.close()
 
     ordered_ref = []
-    for m in re.finditer(r'<cite\s+id="(PUB\d+)"\s*/>', description):
-        ref = m.group(1)
-        pub = references.get(ref)
+    for i, text in enumerate(descriptions):
+        for m in re.finditer(r'<cite\s+id="(PUB\d+)"\s*/>', text):
+            ref = m.group(1)
+            pub = references.get(ref)
 
-        if pub:
-            if ref in ordered_ref:
-                i = ordered_ref.index(ref) + 1
+            if pub:
+                if ref in ordered_ref:
+                    j = ordered_ref.index(ref) + 1
+                else:
+                    ordered_ref.append(ref)
+                    j = len(ordered_ref)
             else:
-                ordered_ref.append(ref)
-                i = len(ordered_ref)
-        else:
-            i = '?'
+                j = '?'
 
-        description = description.replace(m.group(0), '<a data-ref href=#{}>{}</a>'.format(ref, i))
+            text = text.replace(m.group(0), '<a data-ref href=#{}>{}</a>'.format(ref, j))
+
+        descriptions[i] = text
 
     entry.update({
-        'description': description,
+        'descriptions': descriptions,
         'references': [references.pop(ref) for ref in ordered_ref],
         'suppReferences': [references[ref] for ref in sorted(references)]
     })
