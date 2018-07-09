@@ -194,7 +194,25 @@
             </div>
             <div class="ui basic vertical segment">
                 <h2 id="description" class="ui dividing header">Description</h2>
-                {{ entry['description']|safe }}
+                {% for descr in entry['descriptions'] %}
+                    <div class="ui top attached mini compact icon menu">
+                        <a class="item">
+                            <abbr title="Edit this abstract"><i class="edit icon"></i></abbr>
+                        </a>
+                        <a class="item">
+                            <abbr title="Move this abstract down"><i class="arrow down icon"></i></abbr>
+                        </a>
+                        <a class="item">
+                            <abbr title="Move this abstract up"><i class="arrow up icon"></i></abbr>
+                        </a>
+                        <a class="item">
+                            <abbr title="Delete this abstract"><i class="trash icon"></i></abbr>
+                        </a>
+                    </div>
+                    <div class="ui attached segment">
+                        {{ descr|safe }}
+                    </div>
+                {% endfor %}
             </div>
             <div class="ui basic vertical segment">
                 <h2 id="signatures" class="ui dividing header">Signatures</h2>

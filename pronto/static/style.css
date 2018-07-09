@@ -110,6 +110,14 @@ h1.ui.header > .sub.header i.icon {
     border-top: 2px solid #a333c8;
 }
 
+/* Descriptions (entry page) */
+.item > abbr[title] {
+    border-bottom: none;
+    text-decoration: none;
+    -webkit-text-decoration: none;
+    text-decoration: none;
+}
+
 /* Statistics */
 .ui.statistics .statistic > .label {
     font-weight: 400;
