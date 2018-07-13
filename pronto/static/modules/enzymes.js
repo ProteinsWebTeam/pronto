@@ -23,7 +23,7 @@ function getEnzymes(proteinsModal) {
         const colors = utils.gradientPuBu;
         html += '</thead><tbody>';
         obj.data.forEach(ecno => {
-            html += '<tr data-filter="'+ ecno.id +'" data-search="ec=' + ecno.id + '">' +
+            html += '<tr data-filter="'+ ecno.id +'" data-search="ec=' + ecno.id + '&db=' + obj.meta.database + '">' +
                 '<td><a target="_blank" href="https://enzyme.expasy.org/EC/'+ ecno.id +'">'+ ecno.id + '&nbsp;<i class="external icon"></i></a></td>';
 
             ecno.methods.forEach(method => {
