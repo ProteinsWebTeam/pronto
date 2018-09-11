@@ -260,9 +260,5 @@ $(function () {
     // Instantiate selection view
     const msv = new utils.MethodsSelectionView(document.getElementById('methods'));
 
-    document.getElementById('toggle-sidebar').addEventListener('click', e => {
-        $('.ui.sidebar').sidebar('toggle');
-    });
-
     getPredictions(methodID, overlapThreshold, pixels, numRect, true, msv);
 });

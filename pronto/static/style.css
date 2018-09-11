@@ -163,6 +163,11 @@ dl .ui.label {
     padding: .5em;
 }
 
+/* Override Semantic UI behaviour */
+.ui.comments {
+    max-width: none;
+}
+
 /* Keep icon and title on the same line */
 .ui.comments .ui.header > .icon {
     display: inline-block;
