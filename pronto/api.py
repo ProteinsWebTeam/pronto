@@ -477,7 +477,8 @@ def get_protein(protein_ac):
           ME.NAME,
           MA.DBCODE,
           MA.POS_FROM,
-          MA.POS_TO
+          MA.POS_TO,
+          MA.FRAGMENTS
         FROM {}.MATCH MA
         INNER JOIN INTERPRO.METHOD ME ON MA.METHOD_AC = ME.METHOD_AC
         LEFT OUTER JOIN INTERPRO.ENTRY2METHOD E2M ON MA.METHOD_AC = E2M.METHOD_AC
@@ -538,7 +539,15 @@ def get_protein(protein_ac):
                 'matches': []
             }
 
-        method['matches'].append({'start': row[8], 'end': row[9]})
+        if row[10]:
+            fragments = []
+            for f in row[10].split(','):
+                start, end, _ = f.split('-')
+                fragments.append({'start': int(start), 'end': int(end)})
+        else:
+            fragments = [{'start': row[8], 'end': row[9]}]
+
+        method['matches'].append(fragments)
 
     for entry_ac in entries:
         entries[entry_ac]['methods'] = sorted(entries[entry_ac]['methods'].values(), key=lambda x: x['id'])
@@ -591,7 +600,7 @@ def get_protein(protein_ac):
                 'matches': []
             }
 
-        fam['matches'].append({'start': start, 'end': end})
+        fam['matches'].append([{'start': start, 'end': end}])
 
     cur.close()
 
