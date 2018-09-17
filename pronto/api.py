@@ -619,7 +619,7 @@ def get_entry(entry_ac):
           E.CHECKED,
           (
             SELECT COUNT(DISTINCT PROTEIN_AC)
-            FROM INTERPRO_ANALYSIS.METHOD2PROTEIN
+            FROM {}.METHOD2PROTEIN
             WHERE METHOD_AC IN (
               SELECT METHOD_AC
               FROM INTERPRO.ENTRY2METHOD
@@ -631,7 +631,7 @@ def get_entry(entry_ac):
         FROM INTERPRO.ENTRY E
           INNER JOIN INTERPRO.CV_ENTRY_TYPE ET ON E.ENTRY_TYPE = ET.CODE
         WHERE E.ENTRY_AC = :1
-        """,
+        """.format(app.config['DB_SCHEMA']),
         (entry_ac,)
     )
 
@@ -649,7 +649,7 @@ def get_entry(entry_ac):
               E.CHECKED,
               (
                 SELECT COUNT(DISTINCT PROTEIN_AC)
-                FROM INTERPRO_ANALYSIS.METHOD2PROTEIN
+                FROM {}.METHOD2PROTEIN
                 WHERE METHOD_AC IN (
                   SELECT METHOD_AC
                   FROM INTERPRO.ENTRY2METHOD
@@ -663,7 +663,7 @@ def get_entry(entry_ac):
               INNER JOIN INTERPRO.CV_ENTRY_TYPE ET ON E.ENTRY_TYPE = ET.CODE
               INNER JOIN INTERPRO.MV_SECONDARY S ON E.ENTRY_AC = S.ENTRY_AC
             WHERE S.SECONDARY_AC = :1
-            """,
+            """.format(app.config['DB_SCHEMA']),
             (entry_ac,)
         )
 
@@ -846,10 +846,10 @@ def get_entry(entry_ac):
         """
         SELECT T.GO_ID, T.NAME, T.CATEGORY, T.DEFINITION, T.IS_OBSOLETE, T.REPLACED_BY
         FROM INTERPRO.INTERPRO2GO I
-          INNER JOIN INTERPRO_ANALYSIS.TERM T ON I.GO_ID = T.GO_ID
+          INNER JOIN {}.TERM T ON I.GO_ID = T.GO_ID
         WHERE I.ENTRY_AC = :1
         ORDER BY T.GO_ID
-        """,
+        """.format(app.config['DB_SCHEMA']),
         (entry_ac,)
     )
 
@@ -1065,10 +1065,10 @@ def get_entry_go(entry_ac):
         """
         SELECT T.GO_ID, T.NAME, T.CATEGORY, T.DEFINITION, T.IS_OBSOLETE, T.REPLACED_BY
         FROM INTERPRO.INTERPRO2GO I
-          INNER JOIN INTERPRO_ANALYSIS.TERM T ON I.GO_ID = T.GO_ID
+          INNER JOIN {}.TERM T ON I.GO_ID = T.GO_ID
         WHERE I.ENTRY_AC = :1
         ORDER BY T.GO_ID
-        """,
+        """.format(app.config['DB_SCHEMA']),
         (entry_ac,)
     )
 
