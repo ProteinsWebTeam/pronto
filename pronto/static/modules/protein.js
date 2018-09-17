@@ -1,10 +1,7 @@
 import * as utils from '../utils.js';
 
 // Global variables for SVG
-const paddingTop = 10;
-const paddingBottom = 10;
 const matchHeight = 10;
-const matchMarginBottom = 2;
 
 function initSVG (svgWidth, rectWidth, proteinLength, numLines) {
     const step = Math.pow(10, Math.floor(Math.log(proteinLength) / Math.log(10))) / 2;
@@ -19,7 +16,7 @@ function initSVG (svgWidth, rectWidth, proteinLength, numLines) {
     const textLength = svg.querySelector('text').getComputedTextLength();
     document.body.removeChild(svg);
 
-    const rectHeight = paddingTop + paddingBottom + numLines * matchHeight + (numLines - 1) * matchMarginBottom;
+    const rectHeight = numLines * matchHeight * 2 + matchHeight;
     let content = '<svg width="' + svgWidth + '" height="'+ (rectHeight + 10) +'" version="1.1" baseProfile="full" xmlns="http://www.w3.org/2000/svg">';
     content += '<rect x="0" y="0" height="'+ rectHeight +'" width="'+ rectWidth +'" style="fill: #eee;"/>';
     content += '<g class="ticks">';
@@ -50,14 +47,25 @@ function renderFeatures(svgWidth, rectWidth, proteinLength, features, labelKey, 
     let html = initSVG(svgWidth, rectWidth, proteinLength, features.length);
 
     features.forEach((feature, i) => {
-        const y = paddingTop + i * matchHeight + (i - 1) * matchMarginBottom;
+        const y = matchHeight + i * 2 * matchHeight;
 
-        feature.matches.forEach(match => {
-            const x = Math.round(match.start * rectWidth / proteinLength);
-            const w = Math.round((match.end - match.start) * rectWidth / proteinLength);
-            html += '<rect data-start="'+ match.start +'" data-end="'+ match.end +'" data-id="'+ feature.id +'" ' +
+        feature.matches.forEach(fragments => {
+            fragments.forEach((fragment, j) => {
+                const x = Math.round(fragment.start * rectWidth / proteinLength);
+                const w = Math.round((fragment.end - fragment.start) * rectWidth / proteinLength);
+
+                if (j) {
+                    // Discontinuous domain: draw arc
+                    const px = Math.round(fragments[j-1].end * rectWidth / proteinLength);
+                    const x1 = (px + x) / 2;
+                    const y1 = y - matchHeight;
+                    html += '<path d="M'+ px +' '+ y +' Q '+ [x1, y1, x, y].join(' ') +'" fill="none" stroke="'+ feature.color +'"/>'
+                }
+
+                html += '<rect data-start="'+ fragment.start +'" data-end="'+ fragment.end +'" data-id="'+ feature.id +'" ' +
                 'data-name="'+ (feature.name ? feature.name : '') +'" data-db="'+ feature.database +'" data-link="'+ feature.link +'" class="match" x="'+ x +'" y="' + y + '" ' +
                 'width="' + w + '" height="'+ matchHeight +'" rx="1" ry="1" style="fill: '+ feature.color +'"/>';
+            });
         });
 
         if (labelLink)
