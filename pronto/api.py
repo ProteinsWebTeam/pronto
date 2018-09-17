@@ -544,13 +544,20 @@ def get_protein(protein_ac):
             for f in row[10].split(','):
                 start, end, _ = f.split('-')
                 fragments.append({'start': int(start), 'end': int(end)})
+            fragments.sort(key=lambda x: (x['start'], x['end']))
         else:
             fragments = [{'start': row[8], 'end': row[9]}]
 
         method['matches'].append(fragments)
 
+    # Sort methods by accession, and matches by position
     for entry_ac in entries:
-        entries[entry_ac]['methods'] = sorted(entries[entry_ac]['methods'].values(), key=lambda x: x['id'])
+        _methods = []
+        for method in sorted(entries[entry_ac]['methods'].values(), key=lambda x: x['id']):
+            method['matches'].sort(key=lambda x: (x[0]['start'], x[0]['end']))
+            _methods.append(method)
+
+        entries[entry_ac]['methods'] = _methods
 
     tree = []
     while families:
