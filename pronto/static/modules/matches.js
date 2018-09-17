@@ -39,7 +39,7 @@ function getMatches(methodSelectionView) {
 
             html += '<table class="ui very basic compact table"><tbody>';
 
-            protein.methods.forEach((method, j) => {
+            protein.methods.forEach(method => {
                 html += method.isSelected ? '<tr class="selected">' : '<tr>';
 
                 if (method.entryId)
@@ -65,12 +65,22 @@ function getMatches(methodSelectionView) {
                     '<line x1="'+ paddingLeft +'" y1="20" x2="'+width+'" y2="20" stroke="#888" stroke-width="1px" />' +
                     '<text x="'+ (paddingLeft + width + 2) +'" y="20" class="length">'+ protein.length +'</text>';
 
-                method.matches.forEach(match => {
-                    const x = Math.round(match.start * width / protein.length) + paddingLeft;
-                    const w = Math.round((match.end - match.start) * width / protein.length);
-                    html += '<g><rect x="'+ x +'" y="15" width="'+ w +'" height="10" rx="1" ry="1" style="fill: '+ (method.color !== null ? method.color : '#bbb') +';"/>' +
-                        '<text x="'+ x +'" y="10" class="position">'+ match.start +'</text>' +
-                        '<text x="'+ (x + w) +'" y="10" class="position">'+ match.end +'</text></g>'
+                method.matches.forEach(fragments => {
+                    fragments.forEach((fragment, i) => {
+                        const x = Math.round(fragment.start * width / protein.length) + paddingLeft;
+                        const w = Math.round((fragment.end - fragment.start) * width / protein.length);
+
+                        if (i) {
+                            // Discontinuous domain: draw arc
+                            const px = Math.round(fragments[i-1].end * width / protein.length);
+                            const x1 = (px + x) / 2;
+                            html += '<path d="M'+ px +' '+ 15 +' Q '+ [x1, 0, x, 15].join(' ') +'" fill="none" stroke="'+ (method.color !== null ? method.color : '#bbb') +'"/>'
+                        }
+
+                        html += '<g><rect x="'+ x +'" y="15" width="'+ w +'" height="10" rx="1" ry="1" style="fill: '+ (method.color !== null ? method.color : '#bbb') +';"/>' +
+                            '<text x="'+ x +'" y="10" class="position">'+ fragment.start +'</text>' +
+                            '<text x="'+ (x + w) +'" y="10" class="position">'+ fragment.end +'</text></g>'
+                    });
                 });
 
                 html += '</svg></td></tr>';
