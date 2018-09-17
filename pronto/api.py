@@ -2490,7 +2490,7 @@ def get_methods_matches(methods, **kwargs):
             SELECT MA.PROTEIN_AC, P.DBCODE, P.LEN, D.TEXT, E.FULL_NAME,
               MA.METHOD_AC, ME.NAME, ME.CANDIDATE, ME.DBCODE,
               EM.ENTRY_AC,
-              MA.POS_FROM, MA.POS_TO
+              MA.POS_FROM, MA.POS_TO, MA.FRAGMENTS
             FROM {0}.MATCH MA
               INNER JOIN {0}.PROTEIN P ON MA.PROTEIN_AC = P.PROTEIN_AC
               INNER JOIN {0}.PROTEIN_DESC PD ON MA.PROTEIN_AC = PD.PROTEIN_AC
@@ -2553,16 +2553,26 @@ def get_methods_matches(methods, **kwargs):
                     'matches': []
                 }
 
-            m['matches'].append({'start': row[10], 'end': row[11]})
+            if row[12]:
+                fragments = []
+                for f in row[12].split(','):
+                    start, end, _ = f.split('-')
+                    fragments.append({'start': int(start), 'end': int(end)})
+                fragments.sort(key=lambda x: (x['start'], x['end']))
+            else:
+                fragments = [{'start': row[10], 'end': row[11]}]
+
+            m['matches'].append(fragments)
 
         cur.close()
 
-        for p in sorted(proteins.values(), key=lambda p: (-p['count'], p['id'])):
-            for m in p['methods'].values():
-                m['matches'].sort(key=lambda m: m['start'])
+        for p in sorted(proteins.values(), key=lambda x: (-x['count'], x['id'])):
+            _methods = []
+            for m in sorted(p['methods'].values(), key=lambda x: (0 if x['entryId'] else 1, x['entryId'], x['id'])):
+                m['matches'].sort(key=lambda x: (x[0]['start'], x[0]['end']))
+                _methods.append(m)
 
-            p['methods'] = sorted(p['methods'].values(),
-                                  key=lambda m: (0 if m['entryId'] else 1, m['entryId'], m['id']))
+            p['methods'] = _methods
             _proteins.append(p)
 
     return n_proteins, _proteins
