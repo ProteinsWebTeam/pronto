@@ -287,7 +287,7 @@ svg g text.position {
     font-size: 10px;
     fill: #555555;
     fill-opacity: 0;
-    text-anchor: middle;
+    text-anchor: start;
 }
 svg g text.position:first-of-type {
     text-anchor: end;
