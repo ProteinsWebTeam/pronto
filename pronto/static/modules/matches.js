@@ -72,7 +72,7 @@ function getMatches(methodSelectionView) {
 
                         if (i) {
                             // Discontinuous domain: draw arc
-                            const px = Math.round(fragments[i-1].end * width / protein.length);
+                            const px = Math.round(fragments[i-1].end * width / protein.length)  + paddingLeft;
                             const x1 = (px + x) / 2;
                             html += '<path d="M'+ px +' '+ 15 +' Q '+ [x1, 0, x, 15].join(' ') +'" fill="none" stroke="'+ (method.color !== null ? method.color : '#bbb') +'"/>'
                         }
