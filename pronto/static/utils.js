@@ -493,7 +493,8 @@ export function ProteinsModal() {
         this.search = null;
 
         this.update(obj => {
-            input.disabled = obj.data.accessions.length <= obj.meta.pageSize;
+            // disabled, 'cause why not?
+            //input.disabled = obj.data.accessions.length <= obj.meta.pageSize;
         });
     };
 
