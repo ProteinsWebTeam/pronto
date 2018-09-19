@@ -526,12 +526,22 @@ export function ProteinsModal() {
                         '<line x1="' + paddingLeft + '" y1="20" x2="'+width+'" y2="20" stroke="#888" stroke-width="1px" />' +
                         '<text class="length" x="'+ (paddingLeft + width + 2) +'" y="20">'+ protein.length +'</text>';
 
-                    protein.matches.forEach(match => {
-                        const x = Math.round(match.start * width / protein.length) + paddingLeft;
-                        const w = Math.round((match.end - match.start) * width / protein.length);
-                        html += '<g><rect x="'+ x +'" y="15" width="'+ w +'" height="10" rx="1" ry="1" style="fill: #607D8B;"/>' +
-                            '<text class="position" x="'+ x +'" y="10">'+ match.start +'</text>' +
-                            '<text class="position" x="'+ (x + w) +'" y="10">'+ match.end +'</text></g>'
+                    protein.matches.forEach(fragments => {
+                        fragments.forEach((fragment, i) => {
+                            const x = Math.round(fragment.start * width / protein.length) + paddingLeft;
+                            const w = Math.round((fragment.end - fragment.start) * width / protein.length);
+
+                            if (i) {
+                                // Discontinuous domain: draw arc
+                                const px = Math.round(fragments[i-1].end * width / protein.length) + paddingLeft;
+                                const x1 = (px + x) / 2;
+                                html += '<path d="M'+ px +' '+ 15 +' Q '+ [x1, 0, x, 15].join(' ') +'" fill="none" stroke="#607D8B"/>'
+                            }
+
+                            html += '<g><rect x="'+ x +'" y="15" width="'+ w +'" height="10" rx="1" ry="1" style="fill: #607D8B;"/>'
+                                + '<text class="position" x="'+ x +'" y="10">'+ fragment.start +'</text>'
+                                + '<text class="position" x="'+ (x + w) +'" y="10">'+ fragment.end +'</text></g>';
+                        });
                     });
 
                     html += '</svg></td></tr>';

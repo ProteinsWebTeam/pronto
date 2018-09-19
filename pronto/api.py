@@ -2347,7 +2347,7 @@ def get_method_matches(method_ac, **kwargs):
 
     cur.execute(
         """
-        SELECT P.PROTEIN_AC, P.DBCODE, P.LEN, P.NAME, DV.TEXT, E.TAX_ID, E.FULL_NAME, M.POS_FROM, M.POS_TO
+        SELECT P.PROTEIN_AC, P.DBCODE, P.LEN, P.NAME, DV.TEXT, E.TAX_ID, E.FULL_NAME, M.POS_FROM, M.POS_TO, M.FRAGMENTS
         FROM {0}.PROTEIN P
         INNER JOIN (
             SELECT *
@@ -2395,10 +2395,16 @@ def get_method_matches(method_ac, **kwargs):
             if row[2] > max_length:
                 max_length = row[2]
 
-        proteins[protein_ac]['matches'].append({
-            'start': row[7],
-            'end': row[8]
-        })
+        if row[9]:
+            fragments = []
+            for f in row[9].split(','):
+                start, end, _ = f.split('-')
+                fragments.append({'start': int(start), 'end': int(end)})
+            fragments.sort(key=lambda x: (x['start'], x['end']))
+        else:
+            fragments = [{'start': row[7], 'end': row[8]}]
+
+        proteins[protein_ac]['matches'].append(fragments)
 
     cur.close()
 
