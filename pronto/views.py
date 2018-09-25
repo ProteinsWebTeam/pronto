@@ -396,11 +396,9 @@ def api_methods_enzymes(methods):
 @app.route('/api/methods/<path:methods>/taxonomy/')
 def api_methods_taxonomy(methods):
     try:
-        taxon = int(request.args['taxon'])
+        tax_id = int(request.args['taxon'])
     except (KeyError, ValueError):
-        taxon = None
-    else:
-        taxon = api.get_taxon(taxon)
+        tax_id = None
 
     try:
         i = api.RANKS.index(request.args.get('rank'))
@@ -412,12 +410,12 @@ def api_methods_taxonomy(methods):
     taxa = api.get_methods_taxonomy(
         methods=[m.strip() for m in methods.split('/') if m.strip()],
         rank=rank,
-        taxon=taxon,
+        tax_id=tax_id,
         allow_no_taxon=(request.args.get('notaxon') is not None)
     )
 
     return jsonify({
-        'taxon': taxon if taxon else api.get_taxon(1),
+        'taxon': api.get_taxon(tax_id if tax_id else 1),
         'rank': rank,
         'data': taxa
     })

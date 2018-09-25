@@ -1714,67 +1714,53 @@ def get_taxon(taxon_id):
     }
 
 
-def get_methods_taxonomy(methods, rank=RANKS[0], taxon=None, allow_no_taxon=False):
+def get_methods_taxonomy(methods, rank=RANKS[0], tax_id=None, allow_no_taxon=False):
     fmt = ','.join([':meth' + str(i) for i in range(len(methods))])
     params = {'meth' + str(i): method for i, method in enumerate(methods)}
     params['rank'] = rank
 
-    if taxon:
-        params['ln'] = taxon['leftNumber']
-        params['rn'] = taxon['rightNumber']
-        tax_cond = 'AND M2P.LEFT_NUMBER BETWEEN :ln AND :rn'
+    if tax_id:
+        params['taxid'] = tax_id
+        tax_cond = 'INNER JOIN INTERPRO_ANALYSIS_LOAD.LINEAGE L ON E.LEFT_NUMBER = L.LEFT_NUMBER AND L.TAX_ID=:taxid'
     else:
         tax_cond = ''
 
     cur = get_db().cursor()
     cur.execute(
         """
-        SELECT
-          A.TAX_ID,
-          E.FULL_NAME,
-          A.METHOD_AC,
-          A.CT
-        FROM (
-          SELECT
-            L.TAX_ID,
-            M2P.METHOD_AC,
-            COUNT(DISTINCT M2P.PROTEIN_AC) CT
-          FROM {0}.METHOD2PROTEIN M2P
-            {2} JOIN {0}.LINEAGE L ON M2P.LEFT_NUMBER = L.LEFT_NUMBER AND L.RANK = :rank
-          WHERE M2P.METHOD_AC IN ({1})
-                {3}
-          GROUP BY M2P.METHOD_AC, L.TAX_ID
-        ) A
-        {2} JOIN {0}.ETAXI E ON A.TAX_ID = E.TAX_ID        
+        SELECT E.TAX_ID, E.FULL_NAME, MT.METHOD_AC, MT.PROTEIN_COUNT
+        FROM {0}.METHOD_TAXA MT
+        INNER JOIN {0}.ETAXI E ON MT.TAX_ID = E.TAX_ID
+        {1}
+        WHERE MT.METHOD_AC IN ({2}) AND MT.RANK = :rank
         """.format(
             app.config['DB_SCHEMA'],
-            fmt,
-            'LEFT OUTER' if allow_no_taxon else 'INNER',
-            tax_cond
+            tax_cond,
+            fmt
         ),
         params
     )
 
     taxa = {}
-    for row in cur:
-        tax_id = row[0]
-        n_prots = row[3]
-
+    for tax_id, full_name, method_ac, count in cur:
         if tax_id in taxa:
             t = taxa[tax_id]
         else:
             t = taxa[tax_id] = {
-                'id': tax_id,
-                'fullName': row[1] if tax_id else 'Others',
-                'methods': [{'accession': method_ac, 'count': 0} for method_ac in methods]
+                "id": tax_id,
+                "fullName": full_name if tax_id else "Others",
+                "methods": [
+                    {"accession": method_ac, "count": 0}
+                    for method_ac in methods
+                ]
             }
 
         try:
-            i = methods.index(row[2])
+            i = methods.index(method_ac)
         except ValueError:
             pass
         else:
-            t['methods'][i]['count'] = n_prots
+            t["methods"][i]["count"] = count
 
     cur.close()
 
