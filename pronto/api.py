@@ -550,15 +550,6 @@ def get_protein(protein_ac):
 
         method['matches'].append(fragments)
 
-    # Sort methods by accession, and matches by position
-    for entry_ac in entries:
-        _methods = []
-        for method in sorted(entries[entry_ac]['methods'].values(), key=lambda x: x['id']):
-            method['matches'].sort(key=lambda x: (x[0]['start'], x[0]['end']))
-            _methods.append(method)
-
-        entries[entry_ac]['methods'] = _methods
-
     tree = []
     while families:
         # Remove nodes, and keep only leaves (i.e. entries without children)
@@ -611,11 +602,25 @@ def get_protein(protein_ac):
 
     cur.close()
 
+    # Sort methods by accession, and matches by position
+    for entry_ac in entries:
+        _methods = []
+        for method in sorted(entries[entry_ac]['methods'].values(), key=lambda x: x['id'].lower()):
+            method['matches'].sort(key=lambda x: (x[0]['start'], x[0]['end']))
+            _methods.append(method)
+
+        entries[entry_ac]['methods'] = _methods
+
+    # Then sort other features (unintegrated, sequence features, structures)
+    for obj in (methods, others, structs):
+        for method_ac in obj:
+            obj[method_ac]['matches'].sort(key=lambda x: (x[0]['start'], x[0]['end']))
+
     protein.update({
-        'entries': sorted(entries.values(), key=lambda x: x['id']),
-        'methods': list(methods.values()),
-        'others': list(others.values()),
-        'structures': list(structs.values()),
+        'entries': sorted(entries.values(), key=lambda x: x['id'].lower()),
+        'methods': sorted(methods.values(), key=lambda x: x['id'].lower()),
+        'others': sorted(others.values(), key=lambda x: x['id'].lower()),
+        'structures': sorted(structs.values(), key=lambda x: x['id'].lower()),
         'families': families
     })
 
