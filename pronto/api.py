@@ -267,7 +267,7 @@ def build_method2protein_sql(methods, **kwargs):
         lineage_cond = ''
 
     sql = """
-        SELECT M2P.PROTEIN_AC, MIN(M2P.CONDENSE) CONDENSE, MIN(M2P.LEN) LEN, MIN(M2P.DESC_ID) DESC_ID
+        SELECT M2P.PROTEIN_AC, MIN(M2P.MD5) CONDENSE, MIN(M2P.LEN) LEN, MIN(M2P.DESC_ID) DESC_ID
         FROM {}.METHOD2PROTEIN M2P
         {}
         {}
