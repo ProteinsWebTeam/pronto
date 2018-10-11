@@ -1774,8 +1774,58 @@ def get_methods_taxonomy(methods, rank=RANKS[0], tax_id=None, allow_no_taxon=Fal
 
 
 def get_methods_descriptions(methods, dbcode):
-    params = [e for e in methods]
 
+    if dbcode == "S":
+        col = "M.REVIEWED_COUNT"
+        cond = "AND M.REVIEWED_COUNT > 0"
+    elif dbcode == "T":
+        col = "M.UNREVIEWED_COUNT"
+        cond = "AND M.UNREVIEWED_COUNT > 0"
+    else:
+        col = "M.REVIEWED_COUNT + M.UNREVIEWED_COUNT"
+        cond = ""
+
+    cur = get_db().cursor()
+    cur.execute(
+        """
+        SELECT 
+          M.DESC_ID, D.TEXT, M.METHOD_AC, {0}
+        FROM {1}.METHOD_DESC M
+        INNER JOIN {1}.DESC_VALUE D 
+          ON M.DESC_ID = D.DESC_ID
+        WHERE M.METHOD_AC IN ({2})
+        {3}
+        """.format(
+            col,
+            app.config['DB_SCHEMA'],
+            ','.join([':' + str(i + 1) for i in range(len(methods))]),
+            cond
+        ),
+        methods
+    )
+
+    descriptions = {}
+    for _id, text, method_ac, cnt in cur:
+        if _id in descriptions:
+            d = descriptions[_id]
+        else:
+            d = descriptions[_id] = {
+                "id": _id,
+                "value": text,
+                "methods": [
+                    {"accession": method_ac, "count": 0}
+                    for method_ac in methods
+                ]
+            }
+
+        j = methods.index(method_ac)
+        d["methods"][j]["count"] = cnt
+
+    cur.close()
+
+    return sorted(descriptions.values(), key=lambda x: (-sum([m['count'] for m in x['methods']]), x['value']))
+
+    params = [e for e in methods]
     if dbcode:
         params.append(dbcode)
         source_cond = 'AND M2P.DBCODE = :' + str(len(params))
