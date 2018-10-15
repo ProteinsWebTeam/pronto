@@ -402,3 +402,8 @@ thead .ui.compact.icon.button {
     border-color: #FF9E80;
     color: #fff;
 }
+
+/* Comment textarea */
+.ui.comments .reply.form textarea[rows] {
+    height: inherit;
+}
