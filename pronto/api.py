@@ -7,6 +7,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
+import MySQLdb
 import cx_Oracle
 from flask import g, session
 
@@ -72,7 +73,7 @@ def verify_user(username, password):
                 con2 = cx_Oracle.connect(
                     user=db_user,
                     password=password,
-                    dsn=app.config['DATABASE_HOST']
+                    dsn=app.config['ORACLE_DB']['dsn']
                 )
             except cx_Oracle.DatabaseError:
                 pass
@@ -107,12 +108,29 @@ def get_db():
         try:
             credentials = user['dbuser'] + '/' + user['password']
         except (TypeError, KeyError):
-            credentials = app.config['DATABASE_USER']
+            credentials = app.config['ORACLE_DB']['credentials']
         finally:
-            uri = credentials + '@' + app.config['DATABASE_HOST']
-
-        g.oracle_db = cx_Oracle.connect(uri, encoding='utf-8', nencoding='utf-8')
+            url = credentials + '@' + app.config['ORACLE_DB']['dsn']
+            g.oracle_db = cx_Oracle.connect(url, encoding='utf-8',
+                                            nencoding='utf-8')
     return g.oracle_db
+
+
+def get_mysql_db():
+    if not hasattr(g, 'mysql_db'):
+        g.mysql_db = MySQLdb.connect(**app.config['MYSQL_DB'])
+
+    return g.mysql_db
+
+
+@app.teardown_appcontext
+def close_db(error):
+    """Closes the database again at the end of the request."""
+    if hasattr(g, 'oracle_db'):
+        g.oracle_db.close()
+
+    if hasattr(g, 'mysql_db'):
+        g.mysql_db.close()
 
 
 def get_uniprot_version():
@@ -2163,60 +2181,101 @@ def get_database_methods(dbshort, **kwargs):
                }, 404
 
     cur = get_db().cursor()
-    sql = """
+
+    base_sql = """
+        FROM INTERPRO.METHOD M
+        LEFT OUTER JOIN INTERPRO.MV_METHOD_MATCH MM 
+            ON M.METHOD_AC = MM.METHOD_AC
+        LEFT OUTER JOIN INTERPRO.ENTRY2METHOD EM 
+            ON M.METHOD_AC = EM.METHOD_AC
+        LEFT OUTER JOIN INTERPRO.ENTRY E 
+            ON E.ENTRY_AC = EM.ENTRY_AC
+        LEFT OUTER JOIN (
             SELECT
-              M.METHOD_AC,
-              EM.ENTRY_AC,
-              E.CHECKED,
-              E.ENTRY_TYPE,
-              MM_NOW.PROTEIN_COUNT,
-              MM_THEN.PROTEIN_COUNT,
-              C.VALUE,
-              C.NAME,
-              C.CREATED_ON
-            FROM INTERPRO.METHOD M
-            LEFT OUTER JOIN INTERPRO.MV_METHOD_MATCH MM_NOW ON M.METHOD_AC = MM_NOW.METHOD_AC
-            LEFT OUTER JOIN INTERPRO.MV_METHOD_MATCH@IPREL MM_THEN ON M.METHOD_AC = MM_THEN.METHOD_AC
-            LEFT OUTER JOIN INTERPRO.ENTRY2METHOD EM ON M.METHOD_AC = EM.METHOD_AC
-            LEFT OUTER JOIN INTERPRO.ENTRY E ON E.ENTRY_AC = EM.ENTRY_AC
-            LEFT OUTER JOIN (
-                SELECT
-                  C.METHOD_AC,
-                  C.VALUE,
-                  P.NAME,
-                  C.CREATED_ON,
-                  ROW_NUMBER() OVER (PARTITION BY METHOD_AC ORDER BY C.CREATED_ON DESC) R
-                FROM INTERPRO.METHOD_COMMENT C
-                INNER JOIN INTERPRO.USER_PRONTO P ON C.USERNAME = P.USERNAME
-            ) C ON (M.METHOD_AC = C.METHOD_AC AND C.R = 1)
-            WHERE M.DBCODE = :1
-        """
+                C.METHOD_AC,
+                C.VALUE,
+                P.NAME,
+                C.CREATED_ON,
+                ROW_NUMBER() OVER (
+                    PARTITION BY METHOD_AC 
+                    ORDER BY C.CREATED_ON DESC
+                ) R
+            FROM INTERPRO.METHOD_COMMENT C
+            INNER JOIN INTERPRO.USER_PRONTO P 
+                ON C.USERNAME = P.USERNAME
+        ) C ON (M.METHOD_AC = C.METHOD_AC AND C.R = 1)
+        WHERE DBCODE = :dbcode
+    """
 
     if query:
-        sql += " AND M.METHOD_AC LIKE :2"
-        params = (dbcode, query + '%')
+        base_sql += " AND M.METHOD_AC LIKE :q"
+        params = {
+            "dbcode": dbcode,
+            "q": query + '%'
+        }
     else:
-        params = (dbcode,)
+        params = {
+            "dbcode": dbcode,
+        }
 
     if integrated:
-        sql += " AND EM.ENTRY_AC IS NOT NULL"
+        base_sql += " AND EM.ENTRY_AC IS NOT NULL"
     elif integrated is False:
-        sql += " AND EM.ENTRY_AC IS NULL"
+        base_sql += " AND EM.ENTRY_AC IS NULL"
 
     if checked:
-        sql += " AND E.CHECKED = 'Y'"
+        base_sql += " AND E.CHECKED = 'Y'"
     elif checked is False:
-        sql += " AND E.CHECKED = 'N'"
+        base_sql += " AND E.CHECKED = 'N'"
 
     if commented:
-        sql += " AND C.VALUE IS NOT NULL"
+        base_sql += " AND C.VALUE IS NOT NULL"
     elif commented is False:
-        sql += " AND C.VALUE IS NULL"
+        base_sql += " AND C.VALUE IS NULL"
 
-    cur.execute(sql, params)
+    cur.execute(
+        """
+        SELECT COUNT(*)
+        {}
+        """.format(base_sql),
+        params
+    )
+
+    count = cur.fetchone()[0]
+    params.update({
+        "i_start": (page - 1) * page_size,
+        "i_end": page * page_size
+    })
+
+    cur.execute(
+        """
+        SELECT *
+        FROM (
+            SELECT M.*, ROWNUM RN
+            FROM (
+                SELECT 
+                    M.METHOD_AC,
+                    EM.ENTRY_AC,
+                    E.CHECKED,
+                    E.ENTRY_TYPE,
+                    MM.PROTEIN_COUNT,
+                    C.VALUE,
+                    C.NAME,
+                    C.CREATED_ON
+                {}
+                ORDER BY M.METHOD_AC
+            ) M
+            WHERE ROWNUM <= :i_end        
+        )
+        WHERE RN > :i_start
+        """.format(base_sql),
+        params
+    )
 
     methods = []
+    match_counts = {}
     for row in cur:
+        match_counts[row[0]] = None
         methods.append({
             'id': row[0],
             'entry': {
@@ -2225,23 +2284,45 @@ def get_database_methods(dbshort, **kwargs):
                 'type': row[3]
             } if row[1] else None,
             'countNow': row[4],
-            'countThen': row[5],
+            'countThen': None,
             'latestComment': {
-                'text': row[6],
-                'author': row[7],
-                'date': row[8].strftime('%Y-%m-%d %H:%M:%S')
-            } if row[6] else None
+                'text': row[5],
+                'author': row[6],
+                'date': row[7].strftime('%Y-%m-%d %H:%M:%S')
+            } if row[5] else None
         })
 
     cur.close()
+
+    cur = get_mysql_db().cursor()
+    cur.execute(
+        """
+        SELECT UPPER(accession), counts
+        FROM webfront_entry
+        WHERE accession IN ({})
+        """.format(",".join(["%s" for _ in match_counts])),
+        match_counts.keys()
+    )
+    for accession, counts in cur:
+        try:
+            counts = json.loads(counts)
+        except TypeError:
+            continue
+        else:
+            match_counts[accession] = counts.get("matches")
+
+    cur.close()
+
+    for signature in methods:
+        signature["countThen"] = match_counts.get(signature["id"])
 
     return {
                'pageInfo': {
                    'page': page,
                    'pageSize': page_size
                },
-               'results': methods[(page-1)*page_size:page*page_size],
-               'count': len(methods),
+               'results': methods,
+               'count': count,
                'database': {
                    'name': dbname,
                    'version': dbversion
