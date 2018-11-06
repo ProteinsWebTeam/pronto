@@ -20,9 +20,9 @@ python setup.py install
 Edit `config.cfg`, and set the following options:
 
 * `DEBUG` - if `True`, displays debugging information, and restart the application when the code changes.
-* `DATABASE_USER` - Oracle connection credentials (`user/password`).
-* `DATABASE_HOST` - Oracle database (`host:port/service`).
-* `DB_SCHEMA` - Database schema (i.e. owner of tables).
+* `ORACLE_DB` - Oracle connection details (dictionary; keys: `dsn`, `credentials`).
+* `MYSQL_DB` - InterPro7 MySQL database (dictionary; keys: `host`, `user`, `passwd`, `port`, `db`).
+* `DB_SCHEMA` - Oracle database schema (i.e. owner of tables).
 * `SECRET_KEY` - key used to sign cookies (prevent forgery).
 
 ### Generate secret key
