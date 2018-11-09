@@ -13,6 +13,6 @@ setup(
         'cx_Oracle>=5.3',
         'Flask>=0.12.2',
         'Jinja2>=2.10',
-        'mysqlclient=>1.3'
+        'mysqlclient>=1.3'
     ],
 )
