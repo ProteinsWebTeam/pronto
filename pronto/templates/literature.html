@@ -13,6 +13,70 @@
 <div class="ui container basic vertical segment">
     {% include 'methods.html' %}
 
+    <div class="ui form">
+        <div class="two fields">
+            <div class="field">
+                <label for="classifier">Classifier</label>
+                <div class="inline fields">
+                    <div class="field">
+                        <div class="ui radio checkbox">
+                            <input name="classifier" value="function" type="radio">
+                            <label>Function</label>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <div class="ui radio checkbox">
+                            <input name="classifier" value="structure" type="radio">
+                            <label>Structure</label>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <div class="ui radio checkbox">
+                            <input name="classifier" value="genomic" type="radio">
+                            <label>Genomic</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="field">
+                <label for="entity-count">Entities</label>
+                <div class="inline fields">
+                    <div class="field">
+                        <div class="ui radio checkbox">
+                            <input name="entity-count" value="20" type="radio">
+                            <label>20</label>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <div class="ui radio checkbox">
+                            <input name="entity-count" value="40" type="radio">
+                            <label>40</label>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <div class="ui radio checkbox">
+                            <input name="entity-count" value="80" type="radio">
+                            <label>80</label>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <div class="ui radio checkbox">
+                            <input name="entity-count" value="160" type="radio">
+                            <label>160</label>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <div class="ui radio checkbox">
+                            <input name="entity-count" value="320" type="radio">
+                            <label>320</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <table class="ui definition celled table"></table>
 </div>
 
