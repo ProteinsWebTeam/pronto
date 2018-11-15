@@ -14,7 +14,9 @@ function joinTask(methods, taskID) {
                     renderLiterature(methods, obj);
             });
         }, 1000);
-    }();
+    };
+
+    join();
 }
 
 
@@ -37,7 +39,7 @@ function renderLiterature(methods, results) {
         return n;
     }).filter(pub => filteredMethods.every(accession => pub.families.hasOwnProperty(accession)));
 
-    let html = '<thead><tr><th>'+ results.length +' possible literature matches</th><th>Proteins</th>';
+    let html = '<thead><tr><th>'+ results.length +' literature matches</th><th>Proteins</th>';
     methods.forEach(methodAc => {
         html += '<th>';
         if (methods.length > 1) {
@@ -54,27 +56,25 @@ function renderLiterature(methods, results) {
     results.forEach(pub => {
         html += '<tr>'
             + '<td><a href="' + pub.url +'" target="_blank">' + pub.title + '</a></td>'
-            + '<td>';
+            + '<td>'
+            + '<div class="ui divided items">';
 
-        let divider = '';
         Object.keys(pub.upids_by_entity).forEach(entity => {
-            html += divider;
-
             let proteinNames = pub.upids_by_entity[entity];
             let match = pub.matches[entity];
             if (match) {
-                const proteins = new Map();
-                html += '<a class="ui label literature-match" data-match="' + match.term + '">' + match.term + '<i class="delete icon"></i></a> ';
-                html += '<div class="ui flowing popup top center transition hidden">';
-                html += '<div class="ui left aligned one wide">';
-                html += '<p>';
-
                 const literatureContext = 2;
                 const delta = literatureContext - Math.min(literatureContext, match.sindex);
                 const paragraph = match.paragraph.slice(
                     Math.max(0, match.sindex - literatureContext),
                     match.sindex + literatureContext
                 );
+
+                html += '<div class="item">'
+                    + '<div class="content">'
+                    + '<div class="meta">' +
+                    '<div class="ui label literature-match">'+ match.term +'&nbsp;<i class="delete icon"></i></div>'
+                    + '<div class="ui popup"><p>';
 
                 paragraph.forEach((sentence, i) => {
                     if (i !== (literatureContext - delta))
@@ -88,12 +88,12 @@ function renderLiterature(methods, results) {
                         sentence = before + '<span class="literature-match-phrase">' + match_text + '</span>' + after;
                     }
                     html += sentence;
-                    html += '</span>';
+                    html += '</span> ';
                 });
 
-                html += '</p></div>'
-                    + '</div>';
+                html += '</p></div></div>';  // close popup, then meta
 
+                const proteins = new Map();
                 proteinNames.forEach(name => {
                     const prefix = name.split('_')[0];
                     if (proteins.has(prefix)) {
@@ -102,25 +102,28 @@ function renderLiterature(methods, results) {
                         proteins.set(prefix, [name]);
                     }
                 });
+
+                html += '<div class="ui horizontal bulleted link list">';
                 Array.from(proteins).slice(0, 5).forEach(protein => {
                     const [prefix, names] = protein;
                     if (names.length > 1)
-                        html += '<p><a href="//www.uniprot.org/uniprot/' + names[0] + '" target="_blank">' + prefix + '</a></p>';
+                        html += '<a class="item" href="//www.uniprot.org/uniprot/' + names[0] + '" target="_blank">' + prefix;
                     else
-                        html += '<p><a href="//www.uniprot.org/uniprot/' + names[0] + '" target="_blank">' + names[0] + '</a></p>';
+                        html += '<a class="item" href="//www.uniprot.org/uniprot/' + names[0] + '" target="_blank">' + names[0];
+
+                    html += '&nbsp;<i class="external icon"></i></a>';
                 });
-                if (proteins.size > 10) {
-                    html += '<p>and ' + (proteins.size - 10) + ' more.</p>';
-                }
-                divider = '<div class="ui divider"></div>'
+
+                html += '</div>';
+                if (proteins.size > 10)
+                    html += '<div class="extra">and '+ (proteins.size - 10) +' more.</div>';
+                html += '</div></div>';  // close content, then item
             }
         });
-        html += '</td>';
+        html += '</div></td>';
         methods.forEach(methodAc => {
-
-            console.log(methodAc in pub.families);
             if (pub.families.hasOwnProperty(methodAc))
-                html += '<td style="background-color: rgba(255,150,150,' + (pub.score + 0.1) + ')">&checkmark;</td>';
+                html += '<td class="center aligned" style="background-color: rgba(129,199,132,' + (pub.score + 0.1) + ')"><i class="large checkmark icon"></i></td>';
             else
                 html += '<td></td>';
         });
@@ -131,6 +134,10 @@ function renderLiterature(methods, results) {
     html += '</tbody>';
     const table = document.querySelector('table');
     table.innerHTML = html;
+    $('.literature-match').popup({
+        hoverable: true,
+        position: "top center"
+    });
     utils.dimmer(false);
 }
 
