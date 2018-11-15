@@ -13,7 +13,7 @@ function joinTask(methods, taskID) {
                 else
                     renderLiterature(methods, obj);
             });
-        }, 1000);
+        }, 3000);
     };
 
     join();
@@ -25,7 +25,16 @@ function renderLiterature(methods, results) {
     const filteredEntities = url["filter-entities"] ? url["filter-entities"].split(',') : [];
     const filteredMethods = url["filter-methods"] ? url["filter-methods"].split(',') : [];
 
-    results = results.filter(pub => {
+    (function () {
+        let html = "";
+        filteredEntities.forEach(term => {
+            html += '<a class="ui basic small red label">'+ term +'<i data-term="'+ term +'" class="delete icon"></i></a>';
+        });
+        document.getElementById("entity-filters").innerHTML = html;
+    })();
+
+    // Deep copy
+    const filteredResults = JSON.parse(JSON.stringify(results)).filter(pub => {
         const matches = {};
         let n = 0;
         Object.keys(pub.matches)
@@ -39,7 +48,7 @@ function renderLiterature(methods, results) {
         return n;
     }).filter(pub => filteredMethods.every(accession => pub.families.hasOwnProperty(accession)));
 
-    let html = '<thead><tr><th>'+ results.length +' literature matches</th><th>Proteins</th>';
+    let html = '<thead><tr><th>'+ filteredResults.length +' literature matches</th><th>Proteins</th>';
     methods.forEach(methodAc => {
         html += '<th>';
         if (methods.length > 1) {
@@ -53,7 +62,7 @@ function renderLiterature(methods, results) {
     });
     html += '</thead><tbody>';
 
-    results.forEach(pub => {
+    filteredResults.forEach(pub => {
         html += '<tr>'
             + '<td><a href="' + pub.url +'" target="_blank">' + pub.title + '</a></td>'
             + '<td>'
@@ -73,7 +82,7 @@ function renderLiterature(methods, results) {
                 html += '<div class="item">'
                     + '<div class="content">'
                     + '<div class="meta">' +
-                    '<div class="ui label literature-match">'+ match.term +'&nbsp;<i class="delete icon"></i></div>'
+                    '<a class="ui basic label literature-match">'+ match.term +'<i data-term="'+ match.term +'" class="delete icon"></i></a>'
                     + '<div class="ui popup"><p>';
 
                 paragraph.forEach((sentence, i) => {
@@ -138,6 +147,43 @@ function renderLiterature(methods, results) {
         hoverable: true,
         position: "top center"
     });
+
+    Array.from(document.querySelectorAll(".literature-match i")).forEach(icon => {
+        icon.addEventListener("click", e => {
+            const term = e.target.dataset.term;
+            if (!filteredEntities.includes(term))
+                filteredEntities.push(term);
+
+            const url = location.pathname + utils.encodeParams(
+                utils.extendObj(
+                    utils.parseLocation(location.search),
+                    {"filter-entities": filteredEntities.join(',')}
+                )
+            );
+
+            history.replaceState(null, null, url);
+            renderLiterature(methods, results);
+        });
+    });
+
+    Array.from(document.querySelectorAll("#entity-filters i")).forEach(icon => {
+        icon.addEventListener("click", e => {
+            const term = e.target.dataset.term;
+            const i = filteredEntities.indexOf(term);
+            filteredEntities.splice(i, 1);
+
+            const url = location.pathname + utils.encodeParams(
+                utils.extendObj(
+                    utils.parseLocation(location.search),
+                    {"filter-entities": filteredEntities.join(',')}
+                )
+            );
+
+            history.replaceState(null, null, url);
+            renderLiterature(methods, results);
+        });
+    });
+
     utils.dimmer(false);
 }
 
@@ -165,6 +211,12 @@ function getLiterature(methods) {
                 + entityCount;
 
         utils.getJSON(grubblerURL, (obj, status) => {
+            history.replaceState(null, null, location.pathname + utils.encodeParams(
+                utils.extendObj(
+                    utils.parseLocation(location.search),
+                    {task: obj.id}
+                )
+            ));
             joinTask(methods, obj.id);
         });
     }
