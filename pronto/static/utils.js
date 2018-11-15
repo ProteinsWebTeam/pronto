@@ -25,7 +25,7 @@ export function parseLocation(url) {
 
     let params = {};
     if (search.length) {
-        const arr = search.substr(1).split('&');
+        const arr = decodeURI(search.substr(1)).split('&');
         arr.forEach(function (p) {
             if (p.trim()) {
                 const pArr = p.trim().split('=');
@@ -86,7 +86,7 @@ export function encodeParams(params, allowNull) {
         }
     }
 
-    return arrParams.length ? '?' + arrParams.join('&') : '';
+    return arrParams.length ? '?' + encodeURI(arrParams.join('&')) : '';
 }
 
 export function extendObj(original, options) {
