@@ -664,6 +664,13 @@ def v_enzymes(accessions):
                            uniprot=api.get_uniprot_version())
 
 
+@app.route('/methods/<path:accessions>/literature/')
+def v_literature(accessions):
+    return render_template('literature.html',
+                           user=api.get_user(),
+                           uniprot=api.get_uniprot_version())
+
+
 @app.route('/entry/<accession>/')
 def v_entry(accession):
     try:
