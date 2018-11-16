@@ -175,7 +175,9 @@ function renderLiterature(methods, results) {
             const url = location.pathname + utils.encodeParams(
                 utils.extendObj(
                     utils.parseLocation(location.search),
-                    {"filter-entities": filteredEntities.join(',')}
+                    {
+                        "filter-entities": filteredEntities.length ? filteredEntities.join(',') : false
+                    }
                 )
             );
 
