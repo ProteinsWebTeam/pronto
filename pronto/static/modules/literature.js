@@ -1,6 +1,8 @@
 import * as utils from '../utils.js';
 
 const baseURL = "http://ves-hx2-a0.ebi.ac.uk/bateman/searchsifter/grubbler";
+const defaultEntityCount = 80;
+const defaultClassifier = "function";
 
 function joinTask(methods, taskID) {
     let url = baseURL + "/grub/task/" + taskID;
@@ -54,10 +56,10 @@ function renderLiterature(methods, results) {
         if (methods.length > 1) {
             if (filteredMethods.includes(methodAc)) {
                 html += '<div class="ui checked checkbox">'
-                + '<input type="checkbox" tabindex="0" class="hidden" data-method="'+ methodAc +'" checked>';
+                    + '<input type="checkbox" tabindex="0" class="hidden" data-method="'+ methodAc +'" checked>';
             } else {
                 html += '<div class="ui checkbox">'
-                + '<input type="checkbox" tabindex="0" class="hidden" data-method="'+ methodAc +'">';
+                    + '<input type="checkbox" tabindex="0" class="hidden" data-method="'+ methodAc +'">';
             }
             html += '<label>'+ methodAc +'</label>'
                 + '</div>';
@@ -153,7 +155,7 @@ function renderLiterature(methods, results) {
         position: "top center"
     });
 
-    $(".ui.checkbox").checkbox({
+    $("table .ui.checkbox").checkbox({
         onChange: function() {
             const methodAc = this.dataset.method;
             const i = filteredMethods.indexOf(methodAc);
@@ -217,27 +219,17 @@ function renderLiterature(methods, results) {
 }
 
 
-function getLiterature(methods) {
-    const url = utils.parseLocation();
-
+function getLiterature(methods, task, classifier, entityCount) {
     utils.dimmer(true);
-    if (url.task)
-        joinTask(methods, url.task);
+    if (task)
+        joinTask(methods, task);
     else {
-        const entityCount = url["entity-count"] ? url["entity-count"] : 80;
-        let grubblerURL = baseURL;
-
-        if (url.classifier)
-            grubblerURL += "/grub/family/"
-                + url.classifier + '/'
-                + methods.join(',')
-                + '?max_entity_count='
-                + entityCount;
-        else
-            grubblerURL += "/grub/family/function/"
-                + methods.join(',')
-                + '?max_entity_count='
-                + entityCount;
+        const grubblerURL = baseURL
+            + "/grub/family/"
+            + classifier + '/'
+            + methods.join(',')
+            + '?max_entity_count='
+            + entityCount;
 
         utils.getJSON(grubblerURL, (obj, status) => {
             history.replaceState(null, null, location.pathname + utils.encodeParams(
@@ -267,5 +259,49 @@ $(function () {
     utils.setClass(document.querySelector('a[data-page="'+ match[2] +'"]'), 'active', true);
     document.title = 'Literature ('+ methods.join(', ') +') | Pronto';
 
-    getLiterature(methods);
+    const url = utils.parseLocation();
+    const classifier = url.classifier || defaultClassifier;
+    const entityCount = parseInt(url["entity-count"], 10) || defaultEntityCount;
+
+    Array.from(document.querySelectorAll("input[name=classifier]")).forEach(input => {
+        input.addEventListener("change", e => {
+            const classifier = e.target.value;
+            const currentURL = utils.parseLocation(location.search);
+            const newURL = location.pathname + utils.encodeParams(
+                utils.extendObj(
+                    currentURL,
+                    {
+                        "classifier": classifier,
+                        "task": false
+                    }
+                )
+            );
+            history.replaceState(null, null, newURL);
+            getLiterature(methods, null, classifier, parseInt(currentURL["entity-count"], 10) || defaultEntityCount);
+        });
+
+        input.checked = input.value === classifier;
+    });
+
+    Array.from(document.querySelectorAll("input[name=entity-count]")).forEach(input => {
+        input.addEventListener("change", e => {
+            const entityCount = parseInt(e.target.value, 10);
+            const currentURL = utils.parseLocation(location.search);
+            const newURL = location.pathname + utils.encodeParams(
+                utils.extendObj(
+                    currentURL,
+                    {
+                        "entity-count": entityCount,
+                        "task": false
+                    }
+                )
+            );
+            history.replaceState(null, null, newURL);
+            getLiterature(methods, null, currentURL.classifier || defaultEntityCount, entityCount);
+        });
+
+        input.checked = parseInt(input.value, 10) === entityCount;
+    });
+
+    getLiterature(methods, url.task, classifier, entityCount);
 });
