@@ -52,9 +52,14 @@ function renderLiterature(methods, results) {
     methods.forEach(methodAc => {
         html += '<th>';
         if (methods.length > 1) {
-            html += '<div class="ui checkbox">'
-                + '<input type="checkbox" class="hidden" data-id="'+ methodAc +'">'
-                + '<label>'+ methodAc +'</label>'
+            if (filteredMethods.includes(methodAc)) {
+                html += '<div class="ui checked checkbox">'
+                + '<input type="checkbox" tabindex="0" class="hidden" data-method="'+ methodAc +'" checked>';
+            } else {
+                html += '<div class="ui checkbox">'
+                + '<input type="checkbox" tabindex="0" class="hidden" data-method="'+ methodAc +'">';
+            }
+            html += '<label>'+ methodAc +'</label>'
                 + '</div>';
         } else
             html += methodAc;
@@ -148,6 +153,30 @@ function renderLiterature(methods, results) {
         position: "top center"
     });
 
+    $(".ui.checkbox").checkbox({
+        onChange: function() {
+            const methodAc = this.dataset.method;
+            const i = filteredMethods.indexOf(methodAc);
+
+            if (this.checked && i === -1)
+                filteredMethods.push(methodAc);
+            else if (!this.checked && i !== -1)
+                filteredMethods.splice(i, 1);
+            else
+                return;
+
+            const url = location.pathname + utils.encodeParams(
+                utils.extendObj(
+                    utils.parseLocation(location.search),
+                    {"filter-methods": filteredMethods.length ? filteredMethods.join(',') : false}
+                )
+            );
+
+            history.replaceState(null, null, url);
+            renderLiterature(methods, results);
+        }
+    });
+
     Array.from(document.querySelectorAll(".literature-match i")).forEach(icon => {
         icon.addEventListener("click", e => {
             const term = e.target.dataset.term;
@@ -157,7 +186,7 @@ function renderLiterature(methods, results) {
             const url = location.pathname + utils.encodeParams(
                 utils.extendObj(
                     utils.parseLocation(location.search),
-                    {"filter-entities": filteredEntities.join(',')}
+                    {"filter-entities": filteredEntities.length ? filteredEntities.join(',') : false}
                 )
             );
 
@@ -175,9 +204,7 @@ function renderLiterature(methods, results) {
             const url = location.pathname + utils.encodeParams(
                 utils.extendObj(
                     utils.parseLocation(location.search),
-                    {
-                        "filter-entities": filteredEntities.length ? filteredEntities.join(',') : false
-                    }
+                    {"filter-entities": filteredEntities.length ? filteredEntities.join(',') : false}
                 )
             );
 
