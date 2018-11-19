@@ -747,13 +747,13 @@ def get_entry(entry_ac):
           M.DBCODE,
           M.METHOD_AC,
           M.NAME,
-          NVL(MM.PROTEIN_COUNT, 0)
-        FROM INTERPRO.METHOD M
-        INNER JOIN INTERPRO.ENTRY2METHOD E2M ON M.METHOD_AC = E2M.METHOD_AC
-        LEFT OUTER JOIN INTERPRO.MV_METHOD_MATCH MM ON M.METHOD_AC = MM.METHOD_AC
+          NVL(MM.N_PROT, 0)
+        FROM {0}.METHOD M
+        INNER JOIN {0}.ENTRY2METHOD E2M ON M.METHOD_AC = E2M.METHOD_AC
+        LEFT OUTER JOIN {0}.METHOD_MATCH MM ON M.METHOD_AC = MM.METHOD_AC
         WHERE E2M.ENTRY_AC = :1
         ORDER BY M.METHOD_AC
-        """,
+        """.format(app.config['DB_SCHEMA']),
         (entry_ac, )
     )
 
@@ -2183,12 +2183,12 @@ def get_database_methods(dbshort, **kwargs):
     cur = get_db().cursor()
 
     base_sql = """
-        FROM INTERPRO.METHOD M
-        LEFT OUTER JOIN INTERPRO.MV_METHOD_MATCH MM 
+        FROM {0}.METHOD M
+        LEFT OUTER JOIN {0}.METHOD_MATCH MM 
             ON M.METHOD_AC = MM.METHOD_AC
-        LEFT OUTER JOIN INTERPRO.ENTRY2METHOD EM 
+        LEFT OUTER JOIN {0}.ENTRY2METHOD EM 
             ON M.METHOD_AC = EM.METHOD_AC
-        LEFT OUTER JOIN INTERPRO.ENTRY E 
+        LEFT OUTER JOIN {0}.ENTRY E 
             ON E.ENTRY_AC = EM.ENTRY_AC
         LEFT OUTER JOIN (
             SELECT
@@ -2200,12 +2200,12 @@ def get_database_methods(dbshort, **kwargs):
                     PARTITION BY METHOD_AC 
                     ORDER BY C.CREATED_ON DESC
                 ) R
-            FROM INTERPRO.METHOD_COMMENT C
-            INNER JOIN INTERPRO.USER_PRONTO P 
+            FROM {0}.METHOD_COMMENT C
+            INNER JOIN {0}.USER_PRONTO P 
                 ON C.USERNAME = P.USERNAME
         ) C ON (M.METHOD_AC = C.METHOD_AC AND C.R = 1)
         WHERE DBCODE = :dbcode
-    """
+    """.format(app.config['DB_SCHEMA'])
 
     if query:
         base_sql += " AND M.METHOD_AC LIKE :q"
@@ -2258,7 +2258,7 @@ def get_database_methods(dbshort, **kwargs):
                     EM.ENTRY_AC,
                     E.CHECKED,
                     E.ENTRY_TYPE,
-                    MM.PROTEIN_COUNT,
+                    MM.N_PROT,
                     C.VALUE,
                     C.NAME,
                     C.CREATED_ON
