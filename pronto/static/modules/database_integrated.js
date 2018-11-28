@@ -98,7 +98,14 @@ function getMethods() {
 }
 
 
+function getSignatures() {
+    fetch("/api" + location.pathname + location.search).then(response => response.json());
+}
+
+
 $(function () {
+    getSignatures();
+    return;
     getMethods();
 
     const params = utils.parseLocation(location.search);
