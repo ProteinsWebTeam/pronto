@@ -634,11 +634,27 @@ export function rgb2hex(c) {
 
 
 $(function () {
-    const icon = document.querySelector('.ui.dimmer i.close');
-    if (icon) {
-        icon.addEventListener('click', () => {
-            _processResults = false;
-            dimmer(false);
+    fetch("/api/uniprot/version/")
+        .then(response => response.json())
+        .then(response => {
+            document.getElementById("uniprot-version").innerHTML = response.version;
         });
-    }
+
+    fetch("/api/user/")
+        .then(response => response.json())
+        .then(response => {
+            let html;
+            if (response.user) {
+                html = '<div class="ui simple dropdown"><i class="user circle icon"></i> '
+                    + response.user
+                    + '<i class="dropdown icon"></i>'
+                    + '<div class="menu">'
+                    + '<a href="/logout/" class="icon"><i class="sign out icon"></i>&nbsp;Log out</a>'
+                    + '</div>'
+                    + '</div>';
+            } else
+                html = '<a href="/login" class="icon"><i class="sign in icon"></i>&nbsp;Log in</a>';
+
+            document.getElementById("user-info").innerHTML = html;
+        });
 });
