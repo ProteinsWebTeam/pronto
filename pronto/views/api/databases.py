@@ -64,6 +64,7 @@ def api_database(dbshort):
 
     search_query = request.args.get("search", "").strip()
 
+    # TODO: replace INTERPRO schema by `{0}` when synonyms created
     base_sql = """
             FROM {0}.METHOD M
             LEFT OUTER JOIN {0}.METHOD_MATCH MM 
@@ -82,8 +83,8 @@ def api_database(dbshort):
                         PARTITION BY METHOD_AC 
                         ORDER BY C.CREATED_ON DESC
                     ) R
-                FROM {0}.METHOD_COMMENT C
-                INNER JOIN {0}.USER_PRONTO P 
+                FROM INTERPRO.METHOD_COMMENT C
+                INNER JOIN INTERPRO.USER_PRONTO P 
                     ON C.USERNAME = P.USERNAME
             ) C ON (M.METHOD_AC = C.METHOD_AC AND C.R = 1)
             WHERE DBCODE = :dbcode
@@ -114,8 +115,6 @@ def api_database(dbshort):
         base_sql += " AND C.VALUE IS NOT NULL"
     elif commented is False:
         base_sql += " AND C.VALUE IS NULL"
-
-    print(base_sql)
 
     cur = db.get_oracle().cursor()
     cur.execute(
@@ -179,6 +178,7 @@ def api_database(dbshort):
 
     cur.close()
 
+    # Get the count from the latest InterPro release (using the MySQL DW)
     cur = db.get_mysql_db().cursor()
     cur.execute(
         """
@@ -188,6 +188,7 @@ def api_database(dbshort):
         """.format(",".join(["%s" for _ in match_counts])),
         match_counts.keys()
     )
+
     for accession, counts in cur:
         try:
             counts = json.loads(counts)
