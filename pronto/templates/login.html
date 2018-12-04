@@ -2,13 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Log in to Pronto</title>
     <link rel="stylesheet" href="/static/vendor/semantic.min.css" />
+    <link rel="icon" href="/static/favicon.png">
+    <title>Log in to Pronto</title>
     <style type="text/css">
-        body {
-            background-color: #CFD8DC;
-        }
-
         body > .grid {
             height: 100%;
         }
@@ -34,13 +31,16 @@
 </head>
 <body>
 
+{% include 'header.html' %}
+
+
 <div class="ui middle aligned center aligned grid">
     <div class="column">
         <h1 class="ui header">
             Log in to Pronto
         </h1>
         <div class="ui raised segment">
-            <form class="ui form" method="post" action="/login?next={{ referrer }}">
+            <form class="ui form" method="post" action="/login/?next={{ referrer }}">
                 {% if error %}
                 <div class="ui visible error message">{{ error|safe }}</div>
                 {% endif %}
@@ -73,5 +73,6 @@
 
 <script src="/static/vendor/jquery.min.js"></script>
 <script src="/static/vendor/semantic.min.js"></script>
+<script src="/static/modules/login.js" type="module"></script>
 </body>
 </html>
