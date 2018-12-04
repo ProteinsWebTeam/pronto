@@ -631,30 +631,3 @@ export function hex2rgb(hex) {
 export function rgb2hex(c) {
     return '#' + ((1 << 24) + (Math.floor(c.r) << 16) + (Math.floor(c.g) << 8) + Math.floor(c.b)).toString(16).slice(1);
 }
-
-
-$(function () {
-    fetch("/api/uniprot/version/")
-        .then(response => response.json())
-        .then(response => {
-            document.getElementById("uniprot-version").innerHTML = response.version;
-        });
-
-    fetch("/api/user/")
-        .then(response => response.json())
-        .then(response => {
-            let html;
-            if (response.user) {
-                html = '<div class="ui simple dropdown"><i class="user circle icon"></i> '
-                    + response.user
-                    + '<i class="dropdown icon"></i>'
-                    + '<div class="menu">'
-                    + '<a href="/logout/" class="icon"><i class="sign out icon"></i>&nbsp;Log out</a>'
-                    + '</div>'
-                    + '</div>';
-            } else
-                html = '<a href="/login" class="icon"><i class="sign in icon"></i>&nbsp;Log in</a>';
-
-            document.getElementById("user-info").innerHTML = html;
-        });
-});
