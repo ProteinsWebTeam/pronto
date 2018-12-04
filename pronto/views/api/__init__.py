@@ -1,7 +1,7 @@
 from flask import jsonify
 
 from pronto import app, get_user
-from . import databases, interpro, uniprot
+from . import databases, entry, interpro, signature, uniprot
 
 
 @app.route("/api/user/")
