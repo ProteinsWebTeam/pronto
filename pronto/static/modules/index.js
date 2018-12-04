@@ -1,7 +1,9 @@
-import * as utils from '../utils.js';
+import {finaliseHeader} from "../header.js"
 
 
 $(function () {
+    finaliseHeader();
+
     fetch('/api/interpro/databases/')
         .then(response => response.json())
         .then(databases => {
