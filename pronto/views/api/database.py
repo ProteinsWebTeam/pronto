@@ -28,7 +28,7 @@ def get_database(dbshort):
 
 
 @app.route("/api/database/<dbshort>/")
-def database_integrated(dbshort):
+def api_integrated_signatures(dbshort):
     db_name, db_code, db_version = get_database(dbshort)
     if not db_name:
         return jsonify({
@@ -218,7 +218,7 @@ def database_integrated(dbshort):
 
 
 @app.route("/api/database/<dbshort>/unintegrated/<mode>/")
-def database_unintegrated(dbshort, mode):
+def api_unintegrated_signatures(dbshort, mode):
     if mode not in ("integrated", "candidate", "norelation"):
         return jsonify({
             "results": [],

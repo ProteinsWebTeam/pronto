@@ -4,10 +4,10 @@ from pronto import app
 
 
 @app.route("/database/<dbcode>/")
-def integrated_signatures(dbcode):
+def view_integrated_signatures(dbcode):
     return render_template("database_integrated.html")
 
 
 @app.route("/database/<dbcode>/unintegrated/<mode>/")
-def unintegrated_signatures(dbcode, mode):
+def view_unintegrated_signatures(dbcode, mode):
     return render_template("database_unintegrated.html")
