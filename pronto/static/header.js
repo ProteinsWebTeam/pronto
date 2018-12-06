@@ -11,10 +11,11 @@ function getCurrentUser() {
     fetch("/api/user/")
         .then(response => response.json())
         .then(response => {
-            const div = document.getElementById("user-info");
-            let html;
+            let item;
             if (response.user) {
-                html = '<i class="user circle icon"></i> '
+                item = document.createElement("div");
+                item.className = "ui simple dropdown item";
+                item.innerHTML = '<i class="user circle icon"></i> '
                     + response.user.name
                     + '<i class="dropdown icon"></i>'
                     + '<div class="menu">'
@@ -24,12 +25,14 @@ function getCurrentUser() {
                     + '</a>'
                     + '</div>'
                     + '</div>';
-                div.innerHTML = html;
-                div.className = "ui simple dropdown item";
             } else {
-                div.innerHTML = '<a href="/login/" class="icon"><i class="sign in icon"></i>&nbsp;Log in</a>';
-                div.className = "item";
+                item = document.createElement("a");
+                item.className = "icon item";
+                item.href = "/login/";
+                item.innerHTML = '<i class="sign in icon"></i>&nbsp;Log in</a>';
             }
+
+            document.querySelector("header .right.menu").appendChild(item);
         });
 }
 
