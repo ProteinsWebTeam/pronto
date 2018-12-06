@@ -38,7 +38,7 @@ export function checkEntry(input) {
                     "Content-Type": "application/json; charset=utf-8",
                 },
                 body: JSON.stringify({
-                    checked: 1
+                    checked: input.checked ? 1 : 0
                 })
             }).then(response => response.json())
                 .then(result => {
