@@ -63,7 +63,7 @@ function callEBISearch(query, page, pageSize) {
                         + '</tr>';
                 });
             } else {
-                html = '<tr><td colspan="3">No hits found by EBI Search</td></tr>';
+                html = '<tr><td colspan="3" class="center aligned">No results found for <strong>'+ query +'</strong></td></tr>';
             }
 
             const table = document.querySelector("table");
