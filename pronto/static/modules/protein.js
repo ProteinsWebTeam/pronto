@@ -1,4 +1,5 @@
-import * as utils from '../utils.js';
+import * as ui from "../ui.js";
+import {finaliseHeader} from "../header.js";
 
 // Global variables for SVG
 const matchHeight = 10;
@@ -79,6 +80,50 @@ function renderFeatures(svgWidth, rectWidth, proteinLength, features, labelKey, 
 
 
 $(function () {
+    ui.dimmer(true);
+    finaliseHeader();
+
+    fetch("/api" + location.pathname)
+        .then(response => response.json())
+        .then(protein => {
+            if (protein === null) {
+                ui.dimmer(false);
+                return; // TODO: show error
+            }
+
+            // Header
+            (function () {
+                document.querySelector("h1.ui.header").innerHTML = protein.identifier
+                    + '<div class="sub header">'
+                    + '<a target="_blank" href="'+ protein.link +'">'
+                    + (protein.is_reviewed ? '<i class="star icon"></i>&nbsp;' : '') + protein.accession
+                    + '&nbsp;<i class="external icon"></i>'
+                    + '</a>'
+                    + '</div>';
+            })();
+
+            // Statistics
+            document.getElementById("organism").innerText = (function () {
+                const words = protein.taxon.full_name.split(' ');
+                return words[0].charAt(0) + '. ' + words.slice(1).join(' ');
+            })();
+            document.getElementById("length").innerText = protein.length.toLocaleString();
+            document.getElementById("entries").innerText = protein.entries.length;
+            document.getElementById("signatures").innerText = (function () {
+                const reducer = (acc, cur) => acc + cur.signatures.length;
+                return protein.unintegrated.length + protein.entries.reduce(reducer, 0);
+            })();
+
+
+            // Warning message about the sequence being a fragment
+            if (!protein.is_fragment)
+                ui.setClass(document.querySelector(".ui.warning.message"), "hidden", true);
+
+            ui.dimmer(false);
+        });
+
+    return;
+
     // First step is to find the page width
     const div = document.querySelector('#signatures + div');
     const svgWidth = div.offsetWidth;
