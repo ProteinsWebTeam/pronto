@@ -8,6 +8,6 @@ def integrated_signatures(dbcode):
     return render_template("database_integrated.html")
 
 
-@app.route("/database/<dbcode>/unintegrated/")
-def unintegrated_signatures(dbcode):
+@app.route("/database/<dbcode>/unintegrated/<mode>/")
+def unintegrated_signatures(dbcode, mode):
     return render_template("database_unintegrated.html")
