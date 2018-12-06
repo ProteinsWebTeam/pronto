@@ -80,8 +80,16 @@ function callEBISearch(query, page, pageSize) {
 
 
 $(function () {
-    const query = new URL(location.href).searchParams.get("q");
+    const url = new URL(location.href);
+    let query = url.searchParams.get("q");
+    if (!query || !query.length) {
+        query = "ESR1";
+        url.searchParams.set("q", query);
+        history.replaceState(null, null, url.toString());
+    }
+
     document.querySelector("header input[name=q]").value = query;
+    document.title = "Search '"+ query +"' | Pronto";
 
     finaliseHeader();
     ui.dimmer(true);
