@@ -94,3 +94,8 @@ def logout():
     """Clear the cookie, which logs the user out."""
     session.clear()
     return redirect(request.referrer)
+
+
+@app.route("/search/")
+def view_search():
+    return render_template("search.html")
