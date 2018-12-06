@@ -474,7 +474,7 @@ def get_protein(protein_ac):
         'name': row[0],
         'length': row[1],
         'isReviewed': row[2] == 'S',
-        'link': ('http://sp.isb-sib.ch/uniprot/' if row[2] == 'S' else 'http://www.uniprot.org/uniprot/') + protein_ac,
+        'link': ('ht//sp.isb-sib.ch/uniprot/' if row[2] == 'S' else 'http://www.uniprot.org/uniprot/') + protein_ac,
         'taxon': {
             'id': row[3],
             'fullName': row[4],
