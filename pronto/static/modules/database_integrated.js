@@ -1,9 +1,10 @@
-import * as utils from '../utils.js';
 import {finaliseHeader} from "../header.js"
-import {checkEntry, getSignatureComments, initSearchBox, openErrorModal, paginate, postSignatureComment} from "../uitoolbox.js";
+import * as events from '../events.js';
+import * as ui from "../ui.js";
+import {nvl} from '../utils.js';
 
 function getSignatures() {
-    utils.dimmer(true);
+    ui.dimmer(true);
     fetch("/api" + location.pathname + location.search)
         .then(response => response.json())
         .then(results => {
@@ -20,18 +21,18 @@ function getSignatures() {
             if (results.signatures.length) {
                 results.signatures.forEach(signature => {
                     html += '<tr data-id="'+ signature.accession +'">' +
-                        '<td><a href="/method/'+ signature.accession +'">'+ signature.accession +'</a></td>';
+                        '<td><a href="/method/'+ signature.accession +'/">'+ signature.accession +'</a></td>';
 
                     if (signature.entry !== null) {
                         html += '<td><span class="ui circular mini label type-'+ signature.entry.type +'">'+ signature.entry.type +'</span><a href="/entry/'+ signature.entry.accession +'/">'+ signature.entry.accession +'</a></td>';
-                        html += '<td>'+ utils.renderCheckbox(signature.entry.accession, signature.entry.checked) +'</td>';
+                        html += '<td>'+ ui.renderCheckbox(signature.entry.accession, signature.entry.checked) +'</td>';
                     } else {
                         html += '<td></td>';
-                        html += '<td>'+ utils.renderCheckbox(null, null) +'</td>';
+                        html += '<td>'+ ui.renderCheckbox(null, null) +'</td>';
                     }
 
-                    html += '<td class="right aligned">'+ utils.nvl(signature.count_now, '') +'</td>' +
-                        '<td class="right aligned">'+ utils.nvl(signature.count_then, '') +'</td>' +
+                    html += '<td class="right aligned">'+ nvl(signature.count_now, '') +'</td>' +
+                        '<td class="right aligned">'+ nvl(signature.count_then, '') +'</td>' +
                         '<td class="right aligned">'+ (signature.count_now && signature.count_then ? Math.floor(signature.count_now / signature.count_then * 1000) / 10 : '') +'</td>';
 
                     // Comment row
@@ -44,11 +45,11 @@ function getSignatures() {
                     html += '<div class="actions"><a class="reply">Leave a comment</a></div></div></div></td></tr>';
                 });
             } else
-                html = '<tr><td class="center aligned" colspan="7">No matching entries found</td></tr>';
+                html = '<tr><td class="center aligned" colspan="7">No matching signatures found</td></tr>';
 
             document.querySelector('tbody').innerHTML = html;
 
-            paginate(
+            ui.paginate(
                 document.querySelector("table"),
                 results.page_info.page,
                 results.page_info.page_size,
@@ -66,11 +67,11 @@ function getSignatures() {
                 elem.addEventListener('click', e => {
                     const accession = e.target.closest('tr').getAttribute('data-id');
                     const div = document.querySelector('.ui.sticky .ui.comments');
-                    getSignatureComments(accession, 2, div);
+                    events.getSignatureComments(accession, 2, div);
                 });
             });
 
-            utils.dimmer(false);
+            ui.dimmer(false);
         });
 }
 
@@ -80,7 +81,7 @@ $(function () {
     getSignatures();
 
     const url = new URL(location.href);
-    initSearchBox(
+    ui.initSearchBox(
         document.querySelector("thead input"),
         url.searchParams.get("search"),
         (value, ) => {
@@ -117,12 +118,12 @@ $(function () {
         const accession = form.getAttribute('data-id');
         const textarea = form.querySelector('textarea');
 
-        postSignatureComment(accession, textarea.value.trim())
+        events.postSignatureComment(accession, textarea.value.trim())
             .then(result => {
                 if (result.status)
-                    getSignatureComments(accession, 2, e.target.closest(".ui.comments"));
+                    events.getSignatureComments(accession, 2, e.target.closest(".ui.comments"));
                  else
-                    openErrorModal(result.message);
+                    ui.openErrorModal(result.message);
             });
     });
 });

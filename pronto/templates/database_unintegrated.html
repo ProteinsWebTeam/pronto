@@ -19,19 +19,19 @@
             <label>Predicted:</label>
             <div class="field">
                 <div class="ui radio checkbox">
-                    <input name="filter" value="exist" checked="checked" type="radio">
+                    <input name="filter" value="integrated" type="radio">
                     <label>Integrate with existing entry</label>
                 </div>
             </div>
             <div class="field">
                 <div class="ui radio checkbox">
-                    <input name="filter" value="newint" type="radio">
+                    <input name="filter" value="candidate" type="radio">
                     <label>Integrate with unintegrated candidate signatures</label>
                 </div>
             </div>
             <div class="field">
                 <div class="ui radio checkbox">
-                    <input name="filter" value="norel" type="radio">
+                    <input name="filter" value="norelation" type="radio">
                     <label>No relations</label>
                 </div>
             </div>
@@ -78,6 +78,6 @@
 
 <script src="/static/vendor/jquery.min.js"></script>
 <script src="/static/vendor/semantic.min.js"></script>
-<script src="/static/modules/database2.js" type="module"></script>
+<script src="/static/modules/database_unintegrated.js" type="module"></script>
 </body>
 </html>
