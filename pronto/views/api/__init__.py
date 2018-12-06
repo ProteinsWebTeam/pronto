@@ -14,7 +14,7 @@ def search_entry(cur, query):
         """
         SELECT ENTRY_AC
         FROM {}.ENTRY
-        WHERE ENTRY_AC = :q OR SHORT_NAME = :q
+        WHERE ENTRY_AC = :q
         """.format(app.config["DB_SCHEMA"]),
         {"q": query}
     )
@@ -38,7 +38,7 @@ def search_signature(cur, query):
         """
         SELECT METHOD_AC
         FROM {}.METHOD
-        WHERE METHOD_AC = :q OR NAME = :q
+        WHERE METHOD_AC = :q
         """.format(app.config["DB_SCHEMA"]),
         {"q": query}
     )
