@@ -178,29 +178,30 @@ def api_database(dbshort):
 
     cur.close()
 
-    # Get the count from the latest InterPro release (using the MySQL DW)
-    cur = db.get_mysql_db().cursor()
-    cur.execute(
-        """
-        SELECT UPPER(accession), counts
-        FROM webfront_entry
-        WHERE accession IN ({})
-        """.format(",".join(["%s" for _ in match_counts])),
-        match_counts.keys()
-    )
+    if match_counts:
+        # Get the count from the latest InterPro release (using the MySQL DW)
+        cur = db.get_mysql_db().cursor()
+        cur.execute(
+            """
+            SELECT UPPER(accession), counts
+            FROM webfront_entry
+            WHERE accession IN ({})
+            """.format(",".join(["%s" for _ in match_counts])),
+            list(match_counts.keys())
+        )
 
-    for accession, counts in cur:
-        try:
-            counts = json.loads(counts)
-        except TypeError:
-            continue
-        else:
-            match_counts[accession] = counts.get("matches")
+        for accession, counts in cur:
+            try:
+                counts = json.loads(counts)
+            except TypeError:
+                continue
+            else:
+                match_counts[accession] = counts.get("matches")
 
-    cur.close()
+        cur.close()
 
-    for s in signatures:
-        s["count_then"] = match_counts.get(s["accession"])
+        for s in signatures:
+            s["count_then"] = match_counts.get(s["accession"])
 
     return jsonify({
         "page_info": {
