@@ -153,6 +153,8 @@ $(function () {
                 return; // TODO: show error
             }
 
+            document.title = protein.identifier + " (" + protein.accession + ") | Pronto";
+
             // Header
             (function () {
                 document.querySelector("h1.ui.header").innerHTML = protein.identifier
