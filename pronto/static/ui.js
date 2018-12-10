@@ -120,7 +120,7 @@ export function initSearchBox(input, initValue, callback) {
     });
 }
 
-export  function renderCheckbox(entryId, isChecked) {
+export function renderCheckbox(entryId, isChecked) {
     if (!entryId)
         return '<div class="ui disabled fitted checkbox"><input disabled="disabled" type="checkbox"><label></label></div>';
     else if (isChecked)
@@ -131,4 +131,15 @@ export  function renderCheckbox(entryId, isChecked) {
 
 export function dimmer(show) {
     setClass(document.getElementById('dimmer'), 'active', show);
+}
+
+export function listenMenu(menu) {
+    const items = menu.querySelectorAll('a.item');
+    Array.from(items).forEach(item => {
+        item.addEventListener('click', e => {
+            Array.from(items).forEach(i => {
+                setClass(i, 'active', i === e.target);
+            });
+        });
+    });
 }
