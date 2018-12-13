@@ -133,6 +133,10 @@ h1.ui.header > .sub.header i.icon {
 .ui.statistics .statistic > a.value:hover {
     color: #1e70bf;
 }
+.ui.four.statistics .statistic {
+    /* on protein page, to break the words of too long organism names */
+    max-width: 25%;
+}
 
 /* Description lists */
 dt {
