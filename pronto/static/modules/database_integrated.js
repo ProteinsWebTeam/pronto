@@ -21,7 +21,7 @@ function getSignatures() {
             if (results.signatures.length) {
                 results.signatures.forEach(signature => {
                     html += '<tr data-id="'+ signature.accession +'">' +
-                        '<td><a href="/method/'+ signature.accession +'/">'+ signature.accession +'</a></td>';
+                        '<td><a href="/prediction/'+ signature.accession +'/">'+ signature.accession +'</a></td>';
 
                     if (signature.entry !== null) {
                         html += '<td><span class="ui circular mini label type-'+ signature.entry.type +'">'+ signature.entry.type +'</span><a href="/entry/'+ signature.entry.accession +'/">'+ signature.entry.accession +'</a></td>';

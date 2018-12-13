@@ -70,7 +70,7 @@ function renderFeatures(svgWidth, rectWidth, proteinLength, features, labelKey, 
         });
 
         if (labelLink)
-            html += '<text class="label" x="' + (rectWidth + 10) + '" y="'+ (y + matchHeight / 2) +'"><a href="/method/'+ feature[labelKey] +'/">'+ feature[labelKey] +'</a></text>';
+            html += '<text class="label" x="' + (rectWidth + 10) + '" y="'+ (y + matchHeight / 2) +'"><a href="/prediction/'+ feature[labelKey] +'/">'+ feature[labelKey] +'</a></text>';
         else
             html += '<text class="label" x="' + (rectWidth + 10) + '" y="'+ (y + matchHeight / 2) +'">'+ feature[labelKey] +'</text>';
     });
