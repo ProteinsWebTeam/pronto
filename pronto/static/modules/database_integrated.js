@@ -1,7 +1,7 @@
 import {finaliseHeader} from "../header.js"
-import * as events from '../events.js';
 import * as ui from "../ui.js";
 import {nvl} from '../utils.js';
+import {getSignatureComments, postSignatureComment} from "../comments.js";
 
 function getSignatures() {
     ui.dimmer(true);
@@ -67,7 +67,7 @@ function getSignatures() {
                 elem.addEventListener('click', e => {
                     const accession = e.target.closest('tr').getAttribute('data-id');
                     const div = document.querySelector('.ui.sticky .ui.comments');
-                    events.getSignatureComments(accession, 2, div);
+                    getSignatureComments(accession, 2, div);
                 });
             });
 
@@ -118,10 +118,10 @@ $(function () {
         const accession = form.getAttribute('data-id');
         const textarea = form.querySelector('textarea');
 
-        events.postSignatureComment(accession, textarea.value.trim())
+        postSignatureComment(accession, textarea.value.trim())
             .then(result => {
                 if (result.status)
-                    events.getSignatureComments(accession, 2, e.target.closest(".ui.comments"));
+                    getSignatureComments(accession, 2, e.target.closest(".ui.comments"));
                  else
                     ui.openErrorModal(result.message);
             });
