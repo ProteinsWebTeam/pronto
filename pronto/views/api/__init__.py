@@ -9,6 +9,12 @@ def user():
     return jsonify({"user": get_user()})
 
 
+@app.route("/api/instance/")
+def instance():
+    dsn = app.config["ORACLE_DB"]["dsn"]
+    return jsonify({"instance": dsn.split("/")[-1].upper()})
+
+
 def search_entry(cur, query):
     cur.execute(
         """

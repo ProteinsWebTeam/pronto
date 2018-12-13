@@ -36,7 +36,16 @@ function getCurrentUser() {
         });
 }
 
+function getInstance() {
+    fetch("/api/instance/")
+        .then(response => response.json())
+        .then(response => {
+            document.getElementById("instance").innerHTML = response.instance;
+        });
+}
+
 export function finaliseHeader() {
     getUniProtVersion();
     getCurrentUser();
+    getInstance();
 }
