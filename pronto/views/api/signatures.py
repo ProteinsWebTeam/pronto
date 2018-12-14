@@ -422,7 +422,8 @@ def get_overlapping_proteins(accessions_str):
                 "link": database.gen_link(),
                 "color": database.color,
                 "integrated": row[11],
-                "matches": []
+                "matches": [],
+                "active": signature_acc in signatures
             }
 
         fragments = []
@@ -462,7 +463,7 @@ def get_overlapping_proteins(accessions_str):
 
     return jsonify({
         "count": n_proteins,
-        "proteins": proteins,
+        "proteins": _proteins,
         "source_database": dbcode,
         "page_info": {
             "page": page,
