@@ -65,6 +65,11 @@ export const selector = {
         Array.from(this.elem.querySelectorAll('.links a')).forEach(element => {
             element.setAttribute('href', '/signatures/' + this.signatures.join('/') + '/' + element.getAttribute('data-page') + '/');
         });
+    },
+    tab: function (tabName) {
+        Array.from(this.elem.querySelectorAll('.links a')).forEach(e => {
+            setClass(e, 'active', e.getAttribute('data-page') === tabName);
+        });
     }
 
 };
