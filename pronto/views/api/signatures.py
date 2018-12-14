@@ -77,7 +77,7 @@ def build_method2protein_query(signatures: dict, **kwargs):
         # Filter by MD5 (protein match structure)
         if md5 is not None:
             query += """
-                AND CONDENSE = :md5
+                AND MD5 = :md5
             """
             params["md5"] = md5
 
@@ -396,12 +396,12 @@ def get_overlapping_proteins(accessions_str):
                 link = "//sp.isb-sib.ch/uniprot/{}".format(protein_acc)
             else:
                 is_reviewed = False
-                link = "www.uniprot.org/uniprot/{}".format(protein_acc)
+                link = "//www.uniprot.org/uniprot/{}".format(protein_acc)
 
             p = proteins[protein_acc] = {
                 "accession": protein_acc,
                 "md5": row[1],
-                "num_similar": row[2],
+                "num_similar": row[2] - 1 if row[2] is not None else None,
                 "reviewed": is_reviewed,
                 "link": link,
                 "length": row[4],
@@ -473,7 +473,10 @@ def get_overlapping_proteins(accessions_str):
 
 
 def _prot_key(p):
-    return -p["num_similar"], p["accession"]
+    if p["num_similar"] is None:
+        return p["accession"]
+    else:
+        return -p["num_similar"], p["accession"]
 
 
 def _sign_key(s):
