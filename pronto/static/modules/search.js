@@ -1,40 +1,6 @@
 import {finaliseHeader} from "../header.js"
 import * as ui from "../ui.js";
 
-function renderHits(query, results) {
-    const table = document.querySelector('table');
-    let html = '';
-
-    if (results.count) {
-        results.hits.forEach(entry => {
-            html += '<tr>' +
-                '<td><span class="ui tiny type-'+ entry.type +' circular label">'+ entry.type +'</span>&nbsp;<a href="/entry/'+ entry.id +'/">'+ entry.id +'</a></td>' +
-                '<td>'+ entry.name +'</td>' +
-                '</tr>';
-        });
-    } else {
-        html += '<tr><td colspan="2">No hits found by EBI Search</td></tr>';
-    }
-
-    table.querySelector('tbody').innerHTML = html;
-
-    utils.paginate(
-        table,
-        results.page,
-        results.pageSize,
-        results.count,
-        '/api/search/' + utils.encodeParams({q: query, nodb: null}, true),
-        (url => {
-            utils.dimmer(true);
-            utils.getJSON(url, (results, status) => {
-                renderHits(query, results.ebisearch);
-                utils.dimmer(false);
-            });
-        })
-    );
-}
-
-
 function callEBISearch(query, page, pageSize) {
     const url = new URL("https://www.ebi.ac.uk/ebisearch/ws/rest/interpro7");
     url.searchParams.set("query", query);
