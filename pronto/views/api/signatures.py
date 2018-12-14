@@ -462,7 +462,12 @@ def get_overlapping_proteins(accessions_str):
 
     return jsonify({
         "count": n_proteins,
-        "proteins": proteins
+        "proteins": proteins,
+        "source_database": dbcode,
+        "page_info": {
+            "page": page,
+            "page_size": page_size
+        },
     })
 
 
