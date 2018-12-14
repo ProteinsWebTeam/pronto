@@ -58,7 +58,7 @@ def api_search():
     if search_query:
         cur = db.get_oracle().cursor()
         funcs = (search_entry, search_protein, search_signature)
-        types = ("entry", "protein", "method")
+        types = ("entry", "protein", "prediction")
         for f, t in zip(funcs, types):
             row = f(cur, search_query)
             if row is not None:
