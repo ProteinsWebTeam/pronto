@@ -21,7 +21,7 @@ def search_entry(cur, query):
         """
         SELECT ENTRY_AC
         FROM {}.ENTRY
-        WHERE ENTRY_AC = :q
+        WHERE ENTRY_AC = UPPER(:q)
         """.format(app.config["DB_SCHEMA"]),
         {"q": query}
     )
@@ -33,7 +33,7 @@ def search_protein(cur, query):
         """
         SELECT PROTEIN_AC
         FROM {}.PROTEIN
-        WHERE PROTEIN_AC = :q OR NAME = :q
+        WHERE PROTEIN_AC = UPPER(:q) OR NAME = UPPER(:q)
         """.format(app.config["DB_SCHEMA"]),
         {"q": query}
     )
@@ -54,7 +54,7 @@ def search_signature(cur, query):
 
 @app.route("/api/search/")
 def api_search():
-    search_query = request.args.get("q", "").strip().upper()
+    search_query = request.args.get("q", "").strip()
     hit = None
     if search_query:
         cur = db.get_oracle().cursor()
