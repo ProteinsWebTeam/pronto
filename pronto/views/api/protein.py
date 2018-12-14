@@ -44,7 +44,7 @@ def api_protein(accession):
     if protein["is_reviewed"]:
         protein["link"] = "//sp.isb-sib.ch/uniprot/{}".format(accession)
     else:
-        protein["link"] = "www.uniprot.org/uniprot/{}".format(accession)
+        protein["link"] = "//www.uniprot.org/uniprot/{}".format(accession)
 
     cur.execute(
         """
