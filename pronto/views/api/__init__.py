@@ -1,7 +1,8 @@
 from flask import jsonify, request
 
 from pronto import app, db, get_user
-from . import database, entry, interpro, protein, signature, uniprot
+from . import (database, entry, interpro, protein, signature, signatures,
+               uniprot)
 
 
 @app.route("/api/user/")
