@@ -143,3 +143,25 @@ export function listenMenu(menu) {
         });
     });
 }
+
+export function useWhiteText(rgb) {
+    // Implementation of https://www.w3.org/TR/WCAG20/
+
+    const color = JSON.parse(JSON.stringify(rgb));
+    ['r', 'g', 'b'].forEach(k => {
+        color[k] /= 255;
+
+        if (color[k] <= 0.03928)
+            color[k] /= 12.92;
+        else
+            color[k] = Math.pow((color[k] + 0.055) / 1.055, 2.4);
+    });
+
+    // luminance formula: https://www.w3.org/TR/WCAG20/#relativeluminancedef
+    const l = 0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b;
+    return l <= 0.179;
+}
+
+export function toRGB(color) {
+    return 'rgb('+ color.r +','+ color.g +','+ color.b +')';
+}

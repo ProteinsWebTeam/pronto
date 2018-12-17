@@ -1,4 +1,4 @@
-import {dimmer, renderCheckbox, openErrorModal} from "../ui.js";
+import {dimmer, renderCheckbox, openErrorModal, useWhiteText, toRGB} from "../ui.js";
 import {finaliseHeader} from "../header.js";
 import {getSignatureComments, postSignatureComment} from "../comments.js";
 import {nvl} from "../utils.js";
@@ -79,28 +79,6 @@ const overlapHeatmap = {
         svg.innerHTML = html;
     }
 };
-
-function useWhiteText(color) {
-    // Implementation of https://www.w3.org/TR/WCAG20/
-
-    const copy = JSON.parse(JSON.stringify(color));
-    ['r', 'g', 'b'].forEach(k => {
-        copy[k] /= 255;
-
-        if (copy[k] <= 0.03928)
-            copy[k] /= 12.92;
-        else
-            copy[k] = Math.pow((copy[k] + 0.055) / 1.055, 2.4);
-    });
-
-    // luminance formula: https://www.w3.org/TR/WCAG20/#relativeluminancedef
-    const l = 0.2126 * copy.r + 0.7152 * copy.g + 0.0722 * copy.b;
-    return l <= 0.179;
-}
-
-function toRGB(color) {
-    return 'rgb('+ color.r +','+ color.g +','+ color.b +')';
-}
 
 function getOverlap() {
     let overlap = parseFloat(new URL(location.href).searchParams.get("overlap"));
