@@ -2,6 +2,7 @@ from cx_Oracle import DatabaseError, IntegrityError
 from flask import jsonify, request
 
 from pronto import app, db, get_user, xref
+from .signatures import build_method2protein_query
 
 
 @app.route("/api/signature/<accession>/predictions/")
@@ -258,3 +259,273 @@ def add_signature_comment(accession):
             "status": True,
             "message": None
         }), 200
+
+
+@app.route("/api/signature/<accession>/matches/")
+def get_signature_matches(accession):
+    try:
+        page = int(request.args["page"])
+    except (KeyError, ValueError):
+        page = 1
+
+    try:
+        page_size = int(request.args["page_size"])
+    except (KeyError, ValueError):
+        page_size = 20
+
+    try:
+        taxon_id = int(request.args["taxon"])
+    except (KeyError, ValueError):
+        left_num = right_num = None
+    else:
+        cur = db.get_oracle().cursor()
+        cur.execute(
+            """
+            SELECT LEFT_NUMBER, RIGHT_NUMBER
+            FROM INTERPRO_ANALYSIS_LOAD.ETAXI
+            WHERE TAX_ID = :1
+            """,
+            (taxon_id,)
+        )
+        row = cur.fetchone()
+        cur.close()
+        if row:
+            left_num, right_num = row
+        else:
+            return jsonify({}), 400  # TODO: return error
+
+    try:
+        descr_id = int(request.args["description"])
+    except (KeyError, ValueError):
+        descr_id = None
+
+    try:
+        topic_id = int(request.args["topic"])
+        comment_id = int(request.args["comment"])
+    except (KeyError, ValueError):
+        topic_id = None
+        comment_id = None
+
+    dbcode = request.args.get("db")
+    if dbcode not in ("S", "T"):
+        dbcode = None
+
+    go_id = request.args.get("go")
+    ec_no = request.args.get("ec")
+    search = request.args.get("search", "").strip()
+    query, params = build_method2protein_query({accession: None},
+                                               left_num=left_num,
+                                               right_num=right_num,
+                                               dbcode=dbcode,
+                                               descr_id=descr_id,
+                                               topic_id=topic_id,
+                                               comment_id=comment_id,
+                                               go_id=go_id,
+                                               ec_no=ec_no,
+                                               search=search)
+
+    cur = db.get_oracle().cursor()
+    cur.execute(
+        """
+        SELECT COUNT(*)
+        FROM ({})
+        """.format(query),
+        params
+    )
+    n_proteins = cur.fetchone()[0]
+
+    params.update({
+        "min_row": max(0, (page - 1) * page_size),
+        "max_row": min(n_proteins, page * page_size),
+        "acc": accession
+    })
+    cur.execute(
+        """
+        SELECT 
+          M.PROTEIN_AC, P.DBCODE, P.LEN, P.NAME, DV.TEXT, E.TAX_ID, 
+          E.FULL_NAME, M.POS_FROM, M.POS_TO, M.FRAGMENTS
+        FROM {0}.MATCH M
+        INNER JOIN {0}.PROTEIN P 
+          ON M.PROTEIN_AC = P.PROTEIN_AC
+        INNER JOIN {0}.PROTEIN_DESC PD 
+          ON P.PROTEIN_AC = PD.PROTEIN_AC
+        INNER JOIN {0}.DESC_VALUE DV 
+          ON PD.DESC_ID = DV.DESC_ID
+        INNER JOIN {0}.ETAXI E
+          ON P.TAX_ID = E.TAX_ID
+        WHERE M.PROTEIN_AC IN (
+          SELECT PROTEIN_AC
+          FROM (
+              SELECT A.*, ROWNUM RN
+              FROM (
+                {1}
+                ORDER BY PROTEIN_AC
+              ) A
+              WHERE ROWNUM <= :max_row
+          )
+          WHERE RN > :min_row
+        ) AND M.METHOD_AC = :acc
+        """.format(app.config['DB_SCHEMA'], query),
+        params
+    )
+
+    proteins = {}
+    for row in cur:
+        protein_acc = row[0]
+        if protein_acc in proteins:
+            p = proteins[protein_acc]
+        else:
+            if row[1] == 'S':
+                is_reviewed = True
+                link = "//sp.isb-sib.ch/uniprot/{}".format(protein_acc)
+            else:
+                is_reviewed = False
+                link = "//www.uniprot.org/uniprot/{}".format(protein_acc)
+
+            p = proteins[protein_acc] = {
+                "accession": protein_acc,
+                "reviewed": is_reviewed,
+                "link": link,
+                "length": row[2],
+                "identifier": row[3],
+                "name": row[4],
+                "taxon": {
+                    "id": row[5],
+                    "name": row[6]
+                },
+                "matches": []
+            }
+
+        fragments = []
+        if row[9] is not None:
+            for f in row[9].split(','):
+                pos_start, pos_end, _ = f.split('')
+                pos_start = int(pos_start)
+                pos_end = int(pos_end)
+                if pos_start < pos_end:
+                    fragments.append({"start": pos_start, "end": pos_end})
+
+                fragments.sort(key=lambda x: (x["start"], x["end"]))
+
+        if not fragments:
+            fragments.append({"start": row[7], "end": row[8]})
+
+        p["matches"].append(fragments)
+
+    cur.close()
+
+    for p in proteins.values():
+        p["matches"].sort(key=lambda x: x[0]["start"])
+
+    return jsonify({
+        "count": n_proteins,
+        "proteins": sorted(proteins.values(), key=lambda x: x["accession"]),
+        "page_info": {
+            "page": page,
+            "page_size": page_size
+        }
+    })
+
+
+@app.route("/api/signature/<accession>/proteins/")
+def get_signature_proteins(accession):
+    try:
+        taxon_id = int(request.args["taxon"])
+    except (KeyError, ValueError):
+        left_num = right_num = None
+    else:
+        cur = db.get_oracle().cursor()
+        cur.execute(
+            """
+            SELECT LEFT_NUMBER, RIGHT_NUMBER
+            FROM INTERPRO_ANALYSIS_LOAD.ETAXI
+            WHERE TAX_ID = :1
+            """,
+            (taxon_id,)
+        )
+        row = cur.fetchone()
+        cur.close()
+        if row:
+            left_num, right_num = row
+        else:
+            return jsonify({}), 400  # TODO: return error
+
+    try:
+        descr_id = int(request.args["description"])
+    except (KeyError, ValueError):
+        descr_id = None
+
+    try:
+        topic_id = int(request.args["topic"])
+        comment_id = int(request.args["comment"])
+    except (KeyError, ValueError):
+        topic_id = None
+        comment_id = None
+
+    dbcode = request.args.get("db")
+    if dbcode not in ("S", "T"):
+        dbcode = None
+
+    go_id = request.args.get("go")
+    ec_no = request.args.get("ec")
+    search = request.args.get("search", "").strip()
+    query, params = build_method2protein_query({accession: None},
+                                               left_num=left_num,
+                                               right_num=right_num,
+                                               dbcode=dbcode,
+                                               descr_id=descr_id,
+                                               topic_id=topic_id,
+                                               comment_id=comment_id,
+                                               go_id=go_id,
+                                               ec_no=ec_no,
+                                               search=search)
+
+
+
+    cur = db.get_oracle().cursor()
+    cur.execute(
+        """
+        SELECT 
+          P.PROTEIN_AC, P.DBCODE, P.LEN, P.NAME, DV.TEXT, E.TAX_ID, 
+          E.FULL_NAME
+        FROM {0}.PROTEIN P 
+        INNER JOIN {0}.PROTEIN_DESC PD 
+          ON P.PROTEIN_AC = PD.PROTEIN_AC
+        INNER JOIN {0}.DESC_VALUE DV 
+          ON PD.DESC_ID = DV.DESC_ID
+        INNER JOIN {0}.ETAXI E
+          ON P.TAX_ID = E.TAX_ID
+        WHERE P.PROTEIN_AC IN (
+          SELECT PROTEIN_AC
+          FROM ({1})
+        ) 
+        ORDER BY P.PROTEIN_AC
+        """.format(app.config['DB_SCHEMA'], query),
+        params
+    )
+
+    proteins = []
+    for row in cur:
+        protein_acc = row[0]
+        if row[1] == 'S':
+            is_reviewed = True
+            link = "//sp.isb-sib.ch/uniprot/{}".format(protein_acc)
+        else:
+            is_reviewed = False
+            link = "//www.uniprot.org/uniprot/{}".format(protein_acc)
+
+        proteins.append({
+            "accession": protein_acc,
+            "reviewed": is_reviewed,
+            "link": link,
+            "length": row[2],
+            "identifier": row[3],
+            "name": row[4],
+            "taxon": {
+                "id": row[5],
+                "name": row[6]
+            }
+        })
+
+    cur.close()
+    return jsonify(proteins)
