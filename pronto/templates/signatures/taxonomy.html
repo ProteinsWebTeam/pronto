@@ -11,12 +11,7 @@
 {% include 'header.html' %}
 
 <div class="ui container basic vertical segment">
-    {% include 'methods.html' %}
-
-    <div class="ui toggle checkbox">
-        <input name="notaxon" type="checkbox">
-        <label>Include organisms without a taxon for the taxonomic rank being looked at</label>
-    </div>
+    {% include 'signatures/signature_selector.html' %}
 
     <div class="ui top attached tabular menu">
         <a class="item" data-rank="superkingdom">Superkingdom</a>
@@ -37,7 +32,7 @@
 
 <script src="/static/vendor/jquery.min.js"></script>
 <script src="/static/vendor/semantic.min.js"></script>
-<script src="/static/modules/taxonomy.js" type="module"></script>
+<script src="/static/modules/signatures/taxonomy.js" type="module"></script>
 
 </body>
 </html>
