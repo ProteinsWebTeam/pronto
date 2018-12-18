@@ -22,3 +22,7 @@ def view_uniprot_descriptions(accessions):
 def view_similarity_comments(accessions):
     return render_template("signatures/similarity.html")
 
+
+@app.route("/signatures/<path:accessions>/go/")
+def view_go_terms(accessions):
+    return render_template("signatures/go.html")

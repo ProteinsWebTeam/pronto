@@ -11,9 +11,9 @@
 {% include 'header.html' %}
 
 <div class="ui container basic vertical segment">
-    {% include 'methods.html' %}
+    {% include 'signatures/signature_selector.html' %}
 
-   <div class="ui form">
+    <div class="ui form">
         <div class="inline fields">
             <label>Aspects</label>
             <div class="field">
@@ -49,9 +49,7 @@
 
 <div id="go-references-modal" class="ui modal">
     <i class="close icon"></i>
-    <div class="ui icon header">
-
-    </div>
+    <div class="ui header"></div>
     <div class="scrolling content">
         <ol class="ui list"></ol>
     </div>
@@ -65,7 +63,7 @@
 
 <script src="/static/vendor/jquery.min.js"></script>
 <script src="/static/vendor/semantic.min.js"></script>
-<script src="/static/modules/go.js" type="module"></script>
+<script src="/static/modules/signatures/go.js" type="module"></script>
 
 </body>
 </html>
