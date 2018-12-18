@@ -38,9 +38,12 @@ def build_method2protein_query(signatures: dict, **kwargs):
     if may:
         query += """
             SELECT DISTINCT PROTEIN_AC
-            FROM INTERPRO_ANALYSIS_LOAD.METHOD2PROTEIN
+            FROM {}.METHOD2PROTEIN
             WHERE METHOD_AC IN ({})        
-        """.format(','.join([":may" + str(i) for i in range(len(may))]))
+        """.format(
+            app.config["DB_SCHEMA"],
+            ','.join([":may" + str(i) for i in range(len(may))])
+        )
         params.update({"may" + str(i): acc for i, acc in enumerate(may)})
 
         # Filter by description
@@ -91,12 +94,15 @@ def build_method2protein_query(signatures: dict, **kwargs):
             SELECT PROTEIN_AC
             FROM (
               SELECT PROTEIN_AC, COUNT(METHOD_AC) CT
-              FROM INTERPRO_ANALYSIS_LOAD.METHOD2PROTEIN
+              FROM {}.METHOD2PROTEIN
               WHERE METHOD_AC IN ({})
               GROUP BY PROTEIN_AC
             )   
             WHERE CT = :n_must    
-        """.format(','.join([":must" + str(i) for i in range(len(must))]))
+        """.format(
+            app.config["DB_SCHEMA"],
+            ','.join([":must" + str(i) for i in range(len(must))])
+        )
         params.update({"must" + str(i): acc for i, acc in enumerate(must)})
         params["n_must"] = len(must)
 
@@ -146,10 +152,12 @@ def build_method2protein_query(signatures: dict, **kwargs):
 
         query += """
                 SELECT DISTINCT PROTEIN_AC
-                FROM INTERPRO_ANALYSIS_LOAD.METHOD2PROTEIN
+                FROM {}.METHOD2PROTEIN
                 WHERE METHOD_AC IN ({})        
-        """.format(','.join([":mustnot" + str(i)
-                             for i in range(len(mustnot))]))
+        """.format(
+            app.config["DB_SCHEMA"],
+            ','.join([":mustnot" + str(i) for i in range(len(mustnot))])
+        )
         params.update({
             "mustnot" + str(i): acc for i, acc in enumerate(mustnot)
         })
@@ -159,9 +167,10 @@ def build_method2protein_query(signatures: dict, **kwargs):
         query += """
             INTERSECT
             SELECT PROTEIN_AC
-            FROM INTERPRO_ANALYSIS_LOAD.PROTEIN_COMMENT
+            FROM {}.PROTEIN_COMMENT
             WHERE TOPIC_ID = :topic_id AND COMMENT_ID = :comment_id
-        """
+        """.format(app.config["DB_SCHEMA"])
+
         params.update({
             "topic_id": topic_id,
             "comment_id": comment_id
@@ -172,9 +181,10 @@ def build_method2protein_query(signatures: dict, **kwargs):
         query += """
             INTERSECT
             SELECT DISTINCT PROTEIN_AC
-            FROM INTERPRO_ANALYSIS_LOAD.PROTEIN2GO
+            FROM {}.PROTEIN2GO
             WHERE GO_ID = :go_id
-        """
+        """.format(app.config["DB_SCHEMA"])
+
         params["go_id"] = go_id
 
     # Filter by EC number
@@ -182,9 +192,10 @@ def build_method2protein_query(signatures: dict, **kwargs):
         query += """
             INTERSECT
             SELECT DISTINCT PROTEIN_AC
-            FROM INTERPRO_ANALYSIS_LOAD.ENZYME
+            FROM {}.ENZYME
             WHERE ECNO = :ec_no
-        """
+        """.format(app.config["DB_SCHEMA"])
+
         params["ec_no"] = ec_no
 
     # Filter by taxonomic rank
@@ -192,22 +203,23 @@ def build_method2protein_query(signatures: dict, **kwargs):
         query += """
             INTERSECT
             SELECT DISTINCT PROTEIN_AC
-            FROM INTERPRO_ANALYSIS_LOAD.METHOD2PROTEIN
+            FROM {0}.METHOD2PROTEIN
             WHERE LEFT_NUMBER IN (
               SELECT LEFT_NUMBER
-              FROM INTERPRO_ANALYSIS_LOAD.LINEAGE
+              FROM {0}.LINEAGE
               WHERE RANK = :rank
             )
-        """
+        """.format(app.config["DB_SCHEMA"])
+
         params["rank"] = rank
 
     final_query = """
         SELECT DISTINCT PROTEIN_AC, MD5, LEN
-        FROM INTERPRO_ANALYSIS_LOAD.METHOD2PROTEIN
+        FROM {0}.METHOD2PROTEIN
         WHERE PROTEIN_AC IN (
-          {}
+          {1}
         )
-    """.format(query)
+    """.format(app.config["DB_SCHEMA"], query)
 
     return final_query, params
 
@@ -239,9 +251,9 @@ def get_overlapping_proteins(accessions_str):
         cur.execute(
             """
             SELECT LEFT_NUMBER, RIGHT_NUMBER
-            FROM INTERPRO_ANALYSIS_LOAD.ETAXI
+            FROM {}.ETAXI
             WHERE TAX_ID = :1
-            """,
+            """.format(app.config["DB_SCHEMA"]),
             (taxon_id,)
         )
         row = cur.fetchone()
@@ -371,26 +383,26 @@ def get_overlapping_proteins(accessions_str):
           SELECT PROTEIN_AC, MD5, N_PROT
           FROM (
               SELECT A.*, ROWNUM RN
-              FROM ({}) A
+              FROM ({0}) A
               WHERE ROWNUM <= :max_row
             )
             WHERE RN > :min_row      
         ) A
-        INNER JOIN INTERPRO_ANALYSIS_LOAD.PROTEIN P
+        INNER JOIN {1}.PROTEIN P
           ON A.PROTEIN_AC = P.PROTEIN_AC
-        INNER JOIN INTERPRO_ANALYSIS_LOAD.ETAXI E 
+        INNER JOIN {1}.ETAXI E 
           ON P.TAX_ID = E.TAX_ID
-        INNER JOIN INTERPRO_ANALYSIS_LOAD.PROTEIN_DESC PD 
+        INNER JOIN {1}.PROTEIN_DESC PD 
           ON P.PROTEIN_AC = PD.PROTEIN_AC
-        INNER JOIN INTERPRO_ANALYSIS_LOAD.DESC_VALUE D 
+        INNER JOIN {1}.DESC_VALUE D 
           ON PD.DESC_ID = D.DESC_ID
-        INNER JOIN INTERPRO_ANALYSIS_LOAD.MATCH MA 
+        INNER JOIN {1}.MATCH MA 
           ON A.PROTEIN_AC = MA.PROTEIN_AC
-        INNER JOIN INTERPRO_ANALYSIS_LOAD.METHOD ME 
+        INNER JOIN {1}.METHOD ME 
           ON MA.METHOD_AC = ME.METHOD_AC
-        LEFT OUTER JOIN INTERPRO_ANALYSIS_LOAD.ENTRY2METHOD EM 
+        LEFT OUTER JOIN {1}.ENTRY2METHOD EM 
           ON MA.METHOD_AC = EM.METHOD_AC
-        """.format(query),
+        """.format(query, app.config["DB_SCHEMA"]),
         params
     )
 
@@ -511,9 +523,9 @@ def get_taxonomic_origins(accessions_str):
         cur.execute(
             """
             SELECT FULL_NAME
-            FROM INTERPRO_ANALYSIS_LOAD.ETAXI
+            FROM {}.ETAXI
             WHERE TAX_ID = :1
-            """,
+            """.format(app.config["DB_SCHEMA"]),
             (taxon_id,)
         )
         row = cur.fetchone()

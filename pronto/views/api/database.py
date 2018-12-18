@@ -348,7 +348,7 @@ def api_unintegrated_signatures(dbshort, mode):
             FROM (
                 SELECT T.*, ROWNUM RN
                 FROM (
-                    {}
+                    {0}
                     ORDER BY METHOD_AC
                 ) T
                 WHERE ROWNUM <= :i_end
@@ -356,15 +356,15 @@ def api_unintegrated_signatures(dbshort, mode):
             WHERE RN > :i_start
         )
         SELECT MM.METHOD_AC, MP.METHOD_AC2, MP.RELATION, E.ENTRY_AC, E.ENTRY_TYPE
-        FROM INTERPRO_ANALYSIS_LOAD.METHOD_MATCH MM
-        LEFT OUTER JOIN INTERPRO_ANALYSIS_LOAD.METHOD_PREDICTION MP
+        FROM {1}.METHOD_MATCH MM
+        LEFT OUTER JOIN {1}.METHOD_PREDICTION MP
           ON MM.METHOD_AC = MP.METHOD_AC1
-        LEFT OUTER JOIN INTERPRO_ANALYSIS_LOAD.ENTRY2METHOD EM 
+        LEFT OUTER JOIN {1}.ENTRY2METHOD EM 
           ON MP.METHOD_AC2 = EM.METHOD_AC
         LEFT OUTER JOIN INTERPRO.ENTRY E 
           ON EM.ENTRY_AC = E.ENTRY_AC
         WHERE MM.METHOD_AC IN (SELECT METHOD_AC FROM FILTERV)
-        """.format(base_sql),
+        """.format(base_sql, app.config["DB_SCHEMA"]),
         params
     )
 

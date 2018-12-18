@@ -282,9 +282,9 @@ def get_signature_matches(accession):
         cur.execute(
             """
             SELECT LEFT_NUMBER, RIGHT_NUMBER
-            FROM INTERPRO_ANALYSIS_LOAD.ETAXI
+            FROM {}.ETAXI
             WHERE TAX_ID = :1
-            """,
+            """.format(app.config["DB_SCHEMA"]),
             (taxon_id,)
         )
         row = cur.fetchone()
@@ -365,7 +365,7 @@ def get_signature_matches(accession):
           )
           WHERE RN > :min_row
         ) AND M.METHOD_AC = :acc
-        """.format(app.config['DB_SCHEMA'], query),
+        """.format(app.config["DB_SCHEMA"], query),
         params
     )
 
@@ -438,9 +438,9 @@ def get_signature_proteins(accession):
         cur.execute(
             """
             SELECT LEFT_NUMBER, RIGHT_NUMBER
-            FROM INTERPRO_ANALYSIS_LOAD.ETAXI
+            FROM {}.ETAXI
             WHERE TAX_ID = :1
-            """,
+            """.format(app.config["DB_SCHEMA"]),
             (taxon_id,)
         )
         row = cur.fetchone()
