@@ -7,8 +7,6 @@ function getDescriptions(accessions) {
     fetch("/api" + location.pathname + location.search)
         .then(response => response.json())
         .then(result => {
-            console.log(result);
-
             // Find the highest protein count
             const maxProt = Math.max(...result.descriptions.map(d => Math.max(...Object.values(d.signatures))));
 
