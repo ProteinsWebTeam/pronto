@@ -697,7 +697,7 @@ def get_go_terms(accessions_str):
         if acc and acc not in accessions:
             accessions.append(acc)
 
-    aspects = request.args.get("aspect", "C,P,F").upper().split(',')
+    aspects = request.args.get("aspects", "C,P,F").upper().split(',')
     aspects = list(set(aspects) & {'C', 'P', 'F'})
 
     query = """
@@ -758,7 +758,10 @@ def get_go_terms(accessions_str):
             s["num_proteins"] = len(s.pop("proteins"))
             s["num_references"] = len(s.pop("references"))
 
-    return jsonify(sorted(terms.values(), key=_term_key))
+    return jsonify({
+        "terms": sorted(terms.values(), key=_term_key),
+        "aspects": aspects
+    })
 
 
 def _term_key(t):
