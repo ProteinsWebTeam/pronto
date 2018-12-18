@@ -31,3 +31,8 @@ def view_go_terms(accessions):
 @app.route("/signatures/<path:accessions>/matrices/")
 def view_matrices(accessions):
     return render_template("signatures/matrices.html")
+
+
+@app.route("/signatures/<path:accessions>/enzyme/")
+def view_enzyme_entries(accessions):
+    return render_template("signatures/enzyme.html")

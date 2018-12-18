@@ -827,3 +827,58 @@ def get_signature_matrices(accessions_str):
     cur.close()
 
     return jsonify(signatures)
+
+
+@app.route("/api/signatures/<path:accessions_str>/enzyme/")
+def get_enzyme_entries(accessions_str):
+    accessions = []
+    for acc in accessions_str.split("/"):
+        acc = acc.strip()
+        if acc and acc not in accessions:
+            accessions.append(acc)
+
+    dbcode = request.args.get("db", "S").upper()
+    if dbcode not in ("S", "T"):
+        dbcode = None
+
+    query = """
+        SELECT
+          EZ.ECNO,
+          MP.METHOD_AC,
+          COUNT(DISTINCT MP.PROTEIN_AC)
+        FROM {0}.METHOD2PROTEIN MP
+          INNER JOIN {0}.ENZYME EZ 
+          ON MP.PROTEIN_AC = EZ.PROTEIN_AC
+        WHERE MP.METHOD_AC IN ({1})    
+    """.format(
+        app.config["DB_SCHEMA"],
+        ','.join([":acc" + str(i) for i in range(len(accessions))])
+    )
+    params = {":acc" + str(i): acc for i, acc in enumerate(accessions)}
+
+    if dbcode:
+        query += " AND MP.DBCODE = :dbcode"
+        params["dbcode"] = dbcode
+
+    query += " GROUP BY EZ.ECNO, MP.METHOD_AC"
+
+    cur = db.get_oracle().cursor()
+    cur.execute(query, params)
+
+    enzymes = {}
+    for ecno, acc, num_proteins in cur:
+        if ecno in enzymes:
+            enzymes[ecno]["signatures"][acc] = num_proteins
+        else:
+            enzymes[ecno] = {
+                "id": ecno,
+                "signatures": {acc: num_proteins}
+            }
+
+    cur.close()
+
+    return jsonify({
+        "entries": sorted(enzymes.values(),
+                               key=lambda d: -sum(d["signatures"].values())),
+        "source_database": dbcode
+    })
