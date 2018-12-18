@@ -399,7 +399,7 @@ def get_signature_matches(accession):
         fragments = []
         if row[9] is not None:
             for f in row[9].split(','):
-                pos_start, pos_end, _ = f.split('')
+                pos_start, pos_end, _ = f.split('-')
                 pos_start = int(pos_start)
                 pos_end = int(pos_end)
                 if pos_start < pos_end:
@@ -480,8 +480,6 @@ def get_signature_proteins(accession):
                                                ec_no=ec_no,
                                                search=search)
 
-
-
     cur = db.get_oracle().cursor()
     cur.execute(
         """
@@ -529,3 +527,37 @@ def get_signature_proteins(accession):
 
     cur.close()
     return jsonify(proteins)
+
+
+@app.route('/api/signature/<accession>/references/<go_id>/')
+def get_signature_references(accession, go_id):
+    cur = db.get_oracle().cursor()
+    cur.execute(
+        """
+        SELECT ID, TITLE, FIRST_PUBLISHED_DATE
+        FROM {0}.PUBLICATION
+        WHERE ID IN (
+          SELECT DISTINCT REF_DB_ID
+          FROM {0}.PROTEIN2GO P
+            INNER JOIN {0}.METHOD2PROTEIN M 
+            ON P.PROTEIN_AC = M.PROTEIN_AC
+          WHERE M.METHOD_AC = :1
+                AND P.GO_ID = :2
+                AND REF_DB_CODE = 'PMID'
+        )
+        ORDER BY FIRST_PUBLISHED_DATE
+        """.format(app.config["DB_SCHEMA"]),
+        (accession, go_id)
+    )
+
+    references = []
+    for row in cur:
+        references.append({
+            "id": row[0],
+            "title": '' if row[1] is None else row[1],
+            "date": '' if row[2] is None else row[2].strftime("%d %b %Y")
+        })
+
+    cur.close()
+
+    return jsonify(references)
