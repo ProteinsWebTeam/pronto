@@ -40,7 +40,7 @@ function getTaxa(accessions) {
             results.taxa.forEach(taxon => {
                 if (taxon.id !== null) {
                     url.searchParams.set("taxon", taxon.id);
-                    html += '<tr data-label="'+ taxon.name +'" data-key="taxon" data-value="'+ taxon.id +'">'
+                    html += '<tr data-type="Taxon" data-filter="'+ taxon.name +'" data-params="taxon='+ taxon.id +'">'
                         + '<td>'
                         + '<a href="'+ url.toString() +'">'+ taxon.name +'</a>'
                         + '</td>';
@@ -78,12 +78,7 @@ function getTaxa(accessions) {
                 }
             })();
 
-            proteinViewer.observe(
-                document.querySelectorAll('td a[data-accession]'),
-                (accession, label, key, value) => {
-                    proteinViewer.open(accession, key, value, true);
-                }
-            );
+            proteinViewer.observe(document.querySelectorAll('td a[data-accession]'));
 
             dimmer(false);
         });

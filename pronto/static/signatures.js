@@ -90,21 +90,7 @@ export const proteinViewer = {
                 self.fetch();
             }
         });
-    },
-    observe: function (selector, callback) {
-        Array.from(selector).forEach(elem => {
-            elem.addEventListener('click', e => {
-                e.preventDefault();
-                const accession = e.target.getAttribute('data-accession');
-                const row = e.target.closest('tr');
-                const label = row.getAttribute('data-label');
-                const key = row.getAttribute('data-key');
-                const value = row.getAttribute('data-value');
-                callback(accession, label, key, value);
-            });
-        });
 
-        const self = this;
         const button = self.modal.querySelector('.actions button');
         button.addEventListener('click', e => {
             if (self.accessions === null) {
@@ -140,35 +126,59 @@ export const proteinViewer = {
             }
         });
     },
-    open: function (accession, key, value, matches) {
-        this.accession = accession;
-
-        // Update URL
-        const url = new URL(
-            location.origin +
-            "/api/signature/" + accession + "/" +
-            (matches === false ? "proteins/" : "matches/")
-        );
-        url.searchParams.set(key, value);
-
-        if (this.url === null || this.url.toString() !==url.toString()) {
-            this.url = url;
-
-            // Reset search
-            const input = this.modal.querySelector('thead input');
-            input.value = null;
-            this.search = null;
-
-            // Rest protein accession
-            this.accessions = null;
-
-            this.fetch().then((msg) => {
-                $(this.modal).modal('show')
+    observe: function (selector) {
+        const self = this;
+        Array.from(selector).forEach(elem => {
+            elem.addEventListener('click', e => {
+                e.preventDefault();
+                const accession = e.target.getAttribute('data-accession');
+                const row = e.target.closest('tr');
+                const type = row.getAttribute('data-type');
+                const filter = row.getAttribute('data-filter');
+                const params = row.getAttribute('data-params');
+                self.open(accession, params, true)
+                    .then(() => {
+                        self.modal.querySelector('.ui.header').innerHTML = accession + ' proteins<div class="sub header">'+ type +': <em>'+ filter +'</em></div>';
+                    })
             });
-        } else
-            $(this.modal).modal('show');
+        });
+    },
+    open: function (accession, params, matches) {
+        const self = this;
+        return new Promise(((resolve, reject) => {
+            self.accession = accession;
 
+            // Update URL
+            const url = new URL(
+                location.origin +
+                "/api/signature/" + accession + "/" +
+                (matches ? "matches/" : "proteins/")
+            );
+            params.split('&').map(item => {
+                const kv = item.split('=');
+                url.searchParams.set(kv[0], kv[1]);
+            });
 
+            if (self.url === null || self.url.toString() !==url.toString()) {
+                self.url = url;
+
+                // Reset search
+                const input = self.modal.querySelector('thead input');
+                input.value = null;
+                self.search = null;
+
+                // Rest protein accession
+                self.accessions = null;
+
+                self.fetch().then(() => {
+                    $(self.modal).modal('show');
+                    resolve();
+                });
+            } else {
+                $(self.modal).modal('show');
+                resolve();
+            }
+        }));
     },
     fetch: function () {
         const self = this;
@@ -250,7 +260,7 @@ export const proteinViewer = {
 
                     // Reset copy button
                     const button = self.modal.querySelector('.actions button');
-                    button.innerHTML = '<i class="download icon"></i>&nbsp;Download UniProt accessions';
+                    button.innerHTML = '<i class="download icon"></i>&nbsp;UniProt accessions';
                     setClass(button, 'green', false);
                     setClass(button, 'red', false);
 
@@ -264,7 +274,7 @@ export const proteinViewer = {
 
                     dimmer(false);
 
-                    resolve("heelo");
+                    resolve();
                 });
         }));
 
