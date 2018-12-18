@@ -536,7 +536,7 @@ def get_taxonomic_origins(accessions_str):
             FROM {0}.METHOD_TAXA MT
             LEFT OUTER JOIN {0}.ETAXI E 
               ON MT.TAX_ID = E.TAX_ID
-        """.format(app.config['DB_SCHEMA'])
+        """.format(app.config["DB_SCHEMA"])
 
     params = {"rank": rank}
     for i, acc in enumerate(accessions):
@@ -547,7 +547,7 @@ def get_taxonomic_origins(accessions_str):
             INNER JOIN {}.LINEAGE L
             ON E.LEFT_NUMBER = L.LEFT_NUMBER 
             AND L.TAX_ID = :taxid
-        """.format(app.config['DB_SCHEMA'])
+        """.format(app.config["DB_SCHEMA"])
         params["taxid"] = taxon_id
 
     query += """
@@ -614,8 +614,8 @@ def get_uniprot_descriptions(accessions_str):
         {3}
     """.format(
         column,
-        app.config['DB_SCHEMA'],
-        ','.join([":acc" + str(i) for i in range(len(accessions))]),
+        app.config["DB_SCHEMA"],
+        ','.join([":" + str(i) for i in range(len(accessions))]),
         condition
     )
 
@@ -667,8 +667,8 @@ def get_similarity_comments(accessions_str):
         INNER JOIN {0}.COMMENT_VALUE C 
         ON M.COMMENT_ID = C.COMMENT_ID AND C.TOPIC_ID = 34
         """.format(
-            app.config['DB_SCHEMA'],
-            ','.join([':acc' + str(i) for i in range(len(accessions))])
+            app.config["DB_SCHEMA"],
+            ','.join([':' + str(i) for i in range(len(accessions))])
         ),
         accessions
     )
@@ -687,3 +687,80 @@ def get_similarity_comments(accessions_str):
     cur.close()
     return jsonify(sorted(comments.values(),
                           key=lambda c: -sum(c["signatures"].values())))
+
+
+@app.route("/api/signatures/<path:accessions_str>/go/")
+def get_go_terms(accessions_str):
+    accessions = []
+    for acc in accessions_str.split("/"):
+        acc = acc.strip()
+        if acc and acc not in accessions:
+            accessions.append(acc)
+
+    aspects = request.args.get("aspect", "C,P,F").upper().split(',')
+    aspects = list(set(aspects) & {'C', 'P', 'F'})
+
+    query = """
+        SELECT 
+          T.GO_ID, T.NAME, T.CATEGORY, 
+          MP.METHOD_AC, MP.PROTEIN_AC, 
+          PG.REF_DB_CODE, PG.REF_DB_ID
+        FROM {0}.METHOD2PROTEIN MP
+        INNER JOIN {0}.PROTEIN2GO PG 
+          ON MP.PROTEIN_AC = PG.PROTEIN_AC
+        INNER JOIN {0}.TERM T
+          ON PG.GO_ID = T.GO_ID
+        WHERE MP.METHOD_AC IN ({1})
+    """.format(
+        app.config["DB_SCHEMA"],
+        ','.join([":acc" + str(i) for i in range(len(accessions))])
+    )
+
+    params = {"acc" + str(i): acc for i, acc in enumerate(accessions)}
+    if 0 < len(aspects) < 3:
+        query += """
+            AND T.CATEGORY IN ({})
+        """.format(','.join([":aspct" + str(i) for i in range(len(aspects))]))
+
+        for i, aspect in enumerate(aspects):
+            params["aspct" + str(i)] = aspect
+
+    cur = db.get_oracle().cursor()
+    cur.execute(query, params)
+
+    terms = {}
+    for go_id, name, cat, s_acc, p_acc, ref_db, ref_id in cur:
+        if go_id in terms:
+            t = terms[go_id]
+        else:
+            t = terms[go_id] = {
+                "id": go_id,
+                "name": name,
+                "aspect": cat,
+                "signatures": {}
+            }
+
+        if s_acc in t["signatures"]:
+            s = t["signatures"][s_acc]
+        else:
+            s = t["signatures"][s_acc] = {
+                "proteins": set(),
+                "references": set()
+            }
+        s["proteins"].add(p_acc)
+        if ref_db == "PMID":
+            s["references"].add(ref_id)
+
+    cur.close()
+
+    for t in terms.values():
+        for s in t["signatures"].values():
+            s["num_proteins"] = len(s.pop("proteins"))
+            s["num_references"] = len(s.pop("references"))
+
+    return jsonify(sorted(terms.values(), key=_term_key))
+
+
+def _term_key(t):
+    n = sum([s["num_proteins"] for s in t["signatures"].values()])
+    return -n, t["id"]
