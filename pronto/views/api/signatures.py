@@ -767,3 +767,53 @@ def get_go_terms(accessions_str):
 def _term_key(t):
     n = sum([s["num_proteins"] for s in t["signatures"].values()])
     return -n, t["id"]
+
+
+@app.route("/api/signatures/<path:accessions_str>/matrices/")
+def get_signature_matrices(accessions_str):
+    accessions = []
+    for acc in accessions_str.split("/"):
+        acc = acc.strip()
+        if acc and acc not in accessions:
+            accessions.append(acc)
+
+    cur = db.get_oracle().cursor()
+    cur.execute(
+        """
+        SELECT 
+          MM.METHOD_AC, MM.N_PROT, 
+          MO.METHOD_AC2, MO.N_PROT, MO.AVG_OVER, MO.N_PROT_OVER
+        FROM {0}.METHOD_MATCH MM
+        INNER JOIN (
+          SELECT METHOD_AC1, METHOD_AC2, N_PROT, AVG_OVER, N_PROT_OVER
+          FROM {0}.METHOD_OVERLAP MO
+          WHERE METHOD_AC1 IN ({1})
+          AND METHOD_AC2 IN ({1})
+        ) MO ON MM.METHOD_AC = MO.METHOD_AC1
+        WHERE METHOD_AC IN ({1})
+        """.format(
+            app.config["DB_SCHEMA"],
+            ','.join([":acc" + str(i) for i in range(len(accessions))])
+        ),
+        {"acc" + str(i): acc for i, acc in enumerate(accessions)}
+    )
+
+    signatures = {}
+    for acc_1, n_prot, acc_2, n_coloc, avg_over, n_overlap in cur:
+        if acc_1 in signatures:
+            s = signatures[acc_1]
+        else:
+            s = signatures[acc_1] = {
+                'num_proteins': n_prot,
+                'signatures': {}
+            }
+
+        s['signatures'][acc_2] = {
+            'num_coloc': n_coloc,
+            'num_overlap': n_overlap,
+            'avg_overlap': avg_over
+        }
+
+    cur.close()
+
+    return jsonify(signatures)

@@ -11,13 +11,13 @@
 {% include 'header.html' %}
 
 <div class="ui container basic vertical segment">
-    {% include 'methods.html' %}
+    {% include 'signatures/signature_selector.html' %}
 
     <div class="ui grid">
         <div class="six wide column">
             <h4 class="ui header">
                 Overlap
-                <div class="sub header">Number of proteins having both signatures overlapping (&ge; 50%)</div>
+                <div class="sub header">Number of proteins where two signatures overlap (&ge; 50%)</div>
             </h4>
 
             <table id="overlap" class="ui small definition celled table"></table>
@@ -38,7 +38,7 @@
 
 <script src="/static/vendor/jquery.min.js"></script>
 <script src="/static/vendor/semantic.min.js"></script>
-<script src="/static/modules/matrices.js" type="module"></script>
+<script src="/static/modules/signatures/matrices.js" type="module"></script>
 
 </body>
 </html>

@@ -26,3 +26,8 @@ def view_similarity_comments(accessions):
 @app.route("/signatures/<path:accessions>/go/")
 def view_go_terms(accessions):
     return render_template("signatures/go.html")
+
+
+@app.route("/signatures/<path:accessions>/matrices/")
+def view_matrices(accessions):
+    return render_template("signatures/matrices.html")
