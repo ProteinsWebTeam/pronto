@@ -64,7 +64,7 @@ function getTaxa(accessions) {
                 html += '</tr>';
             });
 
-            document.querySelector('table').innerHTML = html;
+            document.querySelector('table').innerHTML = html + '</tbody>';
 
             (function () {
                 const icon = document.querySelector('table a.label i.delete');
