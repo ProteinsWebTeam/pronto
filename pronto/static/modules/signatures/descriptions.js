@@ -1,5 +1,5 @@
-import {dimmer, setClass, useWhiteText, toRGB} from '../../ui.js';
 import {finaliseHeader} from "../../header.js";
+import {dimmer, useWhiteText, toRGB} from '../../ui.js';
 import {selector, gradientPuBu, proteinViewer} from "../../signatures.js";
 
 
@@ -145,26 +145,4 @@ $(function () {
 
     finaliseHeader();
     getDescriptions(accessions);
-    return;
-
-
-
-    // const match = location.pathname.match(/^\/methods\/(.+)\/([a-z]+)\/$/);
-    // if (!match) {
-    //     return;
-    // }
-
-    const methods = match[1].trim().split('/');
-    const methodSelectionView = new utils.MethodsSelectionView(document.getElementById('methods'));
-    const proteinsModal = new utils.ProteinsModal();
-
-    // Add current signature
-    methods.forEach(method => { methodSelectionView.add(method); });
-    methodSelectionView.render();
-
-
-
-    utils.setClass(document.querySelector('a[data-page="'+ match[2] +'"]'), 'active', true);
-    document.title = 'UniProt descriptions ('+ methods.join(', ') +') | Pronto';
-    getDescriptions(proteinsModal);
 });
