@@ -621,7 +621,8 @@ def get_uniprot_descriptions(accessions_str):
 
     descriptions = {}
     cur = db.get_oracle().cursor()
-    for _id, text, accession, n_proteins in cur.execute(query, accessions):
+    cur.execute(query, accessions)
+    for _id, text, accession, n_proteins in cur:
         if _id in descriptions:
             descriptions[_id]["signatures"][accession] = n_proteins
         else:
@@ -637,3 +638,52 @@ def get_uniprot_descriptions(accessions_str):
                                key=lambda d: -sum(d["signatures"].values())),
         "source_database": dbcode
     })
+
+
+@app.route("/api/signatures/<path:accessions_str>/similarity/")
+def get_similarity_comments(accessions_str):
+    accessions = []
+    for acc in accessions_str.split("/"):
+        acc = acc.strip()
+        if acc and acc not in accessions:
+            accessions.append(acc)
+
+    cur = db.get_oracle().cursor()
+    cur.execute(
+        """
+        SELECT M.COMMENT_ID, C.TEXT, M.METHOD_AC, M.N_PROT
+        FROM (
+          SELECT 
+            PC.COMMENT_ID, 
+            M2P.METHOD_AC, 
+            COUNT(DISTINCT M2P.PROTEIN_AC) N_PROT
+          FROM {0}.METHOD2PROTEIN M2P
+            INNER JOIN {0}.PROTEIN_COMMENT PC 
+            ON M2P.PROTEIN_AC = PC.PROTEIN_AC
+          WHERE M2P.METHOD_AC IN ({1})
+          AND PC.TOPIC_ID = 34
+          GROUP BY PC.COMMENT_ID, M2P.METHOD_AC
+        ) M
+        INNER JOIN {0}.COMMENT_VALUE C 
+        ON M.COMMENT_ID = C.COMMENT_ID AND C.TOPIC_ID = 34
+        """.format(
+            app.config['DB_SCHEMA'],
+            ','.join([':acc' + str(i) for i in range(len(accessions))])
+        ),
+        accessions
+    )
+
+    comments = {}
+    for _id, text, accession, n_proteins in cur:
+        if _id in comments:
+            comments[_id]["signatures"][accession] = n_proteins
+        else:
+            comments[_id] = {
+                "id": _id,
+                "value": text,
+                "signatures": {accession: n_proteins}
+            }
+
+    cur.close()
+    return jsonify(sorted(comments.values(),
+                          key=lambda c: -sum(c["signatures"].values())))

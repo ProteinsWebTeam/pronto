@@ -11,15 +11,7 @@
 {% include 'header.html' %}
 
 <div class="ui container basic vertical segment">
-    {% include 'methods.html' %}
-
-   <div class="ui sub header">Topic</div>
-    <select id="topics" class="ui search dropdown">
-        {% for topic in topics %}
-            <option value="{{ topic['id'] }}">{{ topic['value'] }}</option>
-        {% endfor %}
-    </select>
-
+    {% include 'signatures/signature_selector.html' %}
     <table class="ui definition celled table"></table>
 </div>
 
@@ -27,7 +19,7 @@
 
 <script src="/static/vendor/jquery.min.js"></script>
 <script src="/static/vendor/semantic.min.js"></script>
-<script src="/static/modules/comments.js" type="module"></script>
+<script src="/static/modules/signatures/similarity.js" type="module"></script>
 
 </body>
 </html>
