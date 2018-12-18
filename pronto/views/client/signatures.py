@@ -12,3 +12,8 @@ def view_overlapping_proteins(accessions):
 def view_taxonomic_origins(accessions):
     return render_template("signatures/taxonomy.html")
 
+
+@app.route("/signatures/<path:accessions>/descriptions/")
+def view_uniprot_descriptions(accessions):
+    return render_template("signatures/descriptions.html")
+

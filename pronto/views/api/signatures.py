@@ -584,3 +584,56 @@ def get_taxonomic_origins(accessions_str):
 
 def _taxa_key(t):
     return 1 if t["id"] is None else 0, -sum(t["signatures"].values())
+
+
+@app.route("/api/signatures/<path:accessions_str>/descriptions/")
+def get_uniprot_descriptions(accessions_str):
+    accessions = []
+    for acc in accessions_str.split("/"):
+        acc = acc.strip()
+        if acc and acc not in accessions:
+            accessions.append(acc)
+
+    dbcode = request.args.get("db", "S").upper()
+    if dbcode == "S":
+        column = "M.REVIEWED_COUNT"
+        condition = "AND M.REVIEWED_COUNT > 0"
+    elif dbcode == "T":
+        column = "M.UNREVIEWED_COUNT"
+        condition = "AND M.UNREVIEWED_COUNT > 0"
+    else:
+        column = "M.REVIEWED_COUNT + M.UNREVIEWED_COUNT"
+        condition = ""
+
+    query = """
+        SELECT M.DESC_ID, D.TEXT, M.METHOD_AC, {0}
+        FROM {1}.METHOD_DESC M
+        INNER JOIN {1}.DESC_VALUE D
+        ON M.DESC_ID = D.DESC_ID
+        WHERE M.METHOD_AC IN ({2})
+        {3}
+    """.format(
+        column,
+        app.config['DB_SCHEMA'],
+        ','.join([":acc" + str(i) for i in range(len(accessions))]),
+        condition
+    )
+
+    descriptions = {}
+    cur = db.get_oracle().cursor()
+    for _id, text, accession, n_proteins in cur.execute(query, accessions):
+        if _id in descriptions:
+            descriptions[_id]["signatures"][accession] = n_proteins
+        else:
+            descriptions[_id] = {
+                "id": _id,
+                "value": text,
+                "signatures": {accession: n_proteins}
+            }
+
+    cur.close()
+    return jsonify({
+        "descriptions": sorted(descriptions.values(),
+                               key=lambda d: -sum(d["signatures"].values())),
+        "source_database": dbcode
+    })
