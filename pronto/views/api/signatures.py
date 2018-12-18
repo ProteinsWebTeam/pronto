@@ -307,14 +307,29 @@ def get_overlapping_proteins(accessions_str):
                                                search=search,
                                                md5=md5)
 
+    cur = db.get_oracle().cursor()
+
+    # Get the total number of proteins
+    cur.execute(
+        """
+        SELECT COUNT(*)
+        FROM ({})
+        """.format(query),
+        params
+    )
+    n_proteins = cur.fetchone()[0]
+
     if md5:
-        # Query to group proteins by match structure
+        # Do not group by match structure
         query = """
             SELECT PROTEIN_AC, MD5, NULL N_PROT
             FROM ({})
+            ORDER BY PROTEIN_AC
         """.format(query)
+
+        n_groups = n_proteins
     else:
-        # Query to group proteins by match structure
+        # Group proteins by match structure
         query = """
             SELECT PROTEIN_AC, MD5, N_PROT
             FROM (
@@ -328,27 +343,22 @@ def get_overlapping_proteins(accessions_str):
             WHERE RN = 1
         """.format(query)
 
-    cur = db.get_oracle().cursor()
+        # Then count the number of groups
+        cur.execute(
+            """
+            SELECT COUNT(*)
+            FROM ({})
+            """.format(query),
+            params
+        )
+        n_groups = cur.fetchone()[0]
 
-    # Get the total number of proteins
-    cur.execute(
-        """
-        SELECT COUNT(*)
-        FROM ({})
-        """.format(query),
-        params
-    )
-    n_proteins = cur.fetchone()[0]
-
-    # Adding order clause (for pagination)
-    if md5:
-        query += " ORDER BY PROTEIN_AC"
-    else:
+        # Adding order clause (for pagination)
         query += " ORDER BY N_PROT DESC, PROTEIN_AC"
 
     params.update({
         "min_row": max(0, (page - 1) * page_size),
-        "max_row": min(n_proteins, page * page_size)
+        "max_row": min(n_groups, page * page_size)
     })
 
     cur.execute(
