@@ -19,8 +19,9 @@ function getProteins() {
             else
                 document.querySelector('input[name=dbcode][value=U]').checked = true;
 
-            // Number of groups (when grouping proteins by match structure)
-            document.querySelector('.statistic .value').innerHTML = response.count.toLocaleString();
+            // Set statistic counts
+            document.getElementById('num-proteins').innerHTML = response.num_proteins.toLocaleString();
+            document.getElementById('num-structures').innerHTML = response.num_structures.toLocaleString();
 
             // Find longest protein
             const maxLength = Math.max(...response.proteins.map(p => { return p.length }));
@@ -150,7 +151,7 @@ function getProteins() {
                 document.querySelector('.ui.vertical.segment'),
                 response.page_info.page,
                 response.page_info.page_size,
-                response.count,
+                response.num_structures,
                 (newURL, ) => {
                     history.replaceState(null, null, newURL);
                     getProteins();

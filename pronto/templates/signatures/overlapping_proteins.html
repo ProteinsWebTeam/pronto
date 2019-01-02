@@ -13,24 +13,6 @@
 <div class="ui container basic vertical segment">
     {% include 'signatures/signature_selector.html' %}
 
-    <div class="ui info icon message">
-        <i class="info circle icon"></i>
-        <div class="content">
-            <ul class="list">
-                <li>Reviewed proteins are identified by a star (<i class="fitted star icon"></i>).</li>
-                <li>Candidate signatures are identified by a checked box (<i class="fitted checkmark box icon"></i>).</li>
-                <li>Hover the pointer over a match to display its start/end locations.</li>
-            </ul>
-        </div>
-    </div>
-
-    <div class="ui horizontal statistic">
-        <div class="value"></div>
-        <div class="label">
-            proteins
-        </div>
-    </div>
-
     <div class="ui form">
         <div class="inline fields">
             <label>Source</label>
@@ -52,6 +34,28 @@
                     <label>Any</label>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <div class="ui info icon message">
+        <i class="info circle icon"></i>
+        <div class="content">
+            <ul class="list">
+                <li>Reviewed proteins are identified by a star (<i class="fitted star icon"></i>).</li>
+                <li>Candidate signatures are identified by a checked box (<i class="fitted checkmark box icon"></i>).</li>
+                <li>Hover the pointer over a match to display its start/end locations.</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="ui statistics">
+        <div class="ui horizontal statistic">
+            <div id="num-proteins" class="value"></div>
+            <div class="label">proteins</div>
+        </div>
+        <div class="ui horizontal statistic">
+            <div id="num-structures" class="value"></div>
+            <div class="label">structures</div>
         </div>
     </div>
 

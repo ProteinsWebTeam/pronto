@@ -119,13 +119,15 @@ h1.ui.header > .sub.header i.icon {
 }
 
 /* Statistics */
-.ui.statistics .statistic > .label {
+.ui.statistics .statistic > .value {
+    text-transform: none;
+}
+.ui.statistics .statistic.light > .label {
     font-weight: 400;
     font-size: .8em;
 }
-.ui.statistics .statistic > .value {
+.ui.statistics .statistic.light > .value {
     font-weight: 300;
-    text-transform: none;
 }
 .ui.statistics .statistic > a.value {
     color: #4183c4;
