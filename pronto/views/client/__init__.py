@@ -2,7 +2,7 @@ import cx_Oracle
 from flask import redirect, render_template, request, session, url_for
 
 from pronto import app, db, get_user
-from . import database, prediction, protein, signatures
+from . import database, entry, prediction, protein, signatures
 
 
 @app.route("/")

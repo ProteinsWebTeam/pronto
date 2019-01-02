@@ -5,71 +5,48 @@
     <link rel="stylesheet" href="/static/vendor/semantic.min.css" />
     <link rel="stylesheet" href="/static/style.css" />
     <link rel="icon" href="/static/favicon.png">
-    <title>{{ entry['name'] }} ({{ entry['id'] }}) | Pronto</title>
+    <title>Pronto</title>
+    <style type="text/css">
+        h2 + h3.ui.header {
+            margin-top: 0;
+        }
+        h3.ui.header {
+            margin: 1rem 0 .5rem;
+        }
+        .ui.list .list > .item > .content > .list, .ui.list > .item > .content > .list {
+            padding-left: 1rem;
+        }
+    </style>
 </head>
 <body>
 
 {% include 'header.html' %}
 
 <div class="ui container basic vertical segment">
-    <h1 class="ui header">
-        {{ entry['name'] }}
-        <div class="sub header">
-            {% if entry['isChecked'] %}
-                <i class="checkmark icon"></i>
-            {%- endif -%}
-            {{ entry['shortName'] }} ({{ entry['id'] }})
-        </div>
-    </h1>
-    <div class="ui segment type-{{ entry['typeCode'] }}">
+    <h1 class="ui header"></h1>
+    <div id="segment-statistics" class="ui segment">
         <div class="ui five tiny statistics">
-            <div class="statistic">
-                <div class="label">
-                    Protein count
-                    <i class="help circle icon" data-content="Only complete sequences are considered"></i>
-                </div>
-                <div class="value">
-                    {{ '{:,}'.format(entry['proteinCount']) }}
-                </div>
-
+            <div class="light statistic">
+                <div class="label">Type</div>
+                <div data-statistic="type" class="value"></div>
             </div>
-            <div class="statistic">
-                <div class="label">
-                    Type
-                </div>
-                <div class="value">
-                    {{ entry['type'].replace('_', '<br>')|safe }}
-                </div>
-
+            <div class="light statistic">
+                <div class="label">Last update</div>
+                <div data-statistic="update" class="value"></div>
             </div>
-            <div class="statistic">
-                <div class="label">
-                    Signatures
-                </div>
-                <a href="#signatures" class="value">
-                    {{ '{:,}'.format(entry['methods']|length) }}
-                </a>
-
+            <div class="light statistic">
+                <div class="label">Signatures</div>
+                <a data-statistic="signatures" href="#signatures" class="value"></a>
             </div>
-            <div class="statistic">
-                <div class="label">
-                    GO terms
-                </div>
-                <a href="#go-terms" class="value">
-                    {{ '{:,}'.format(entry['go'].values()|map('length')|sum) }}
-                </a>
-
+            <div class="light statistic">
+                <div class="label">GO terms</div>
+                <a data-statistic="go" href="#go-terms" class="value"></a>
             </div>
-            <div class="statistic">
-                <div class="label">
-                    References
-                </div>
-                <a href="#references" class="value">
-                    {{ '{:,}'.format(entry['references']|length) }}
-                </a>
+            <div class="light statistic">
+                <div class="label">References</div>
+                <a data-statistic="references" href="#references" class="value"></a>
             </div>
         </div>
-
     </div>
 
     <div class="ui grid">
@@ -85,27 +62,18 @@
                         </a>
                         <a href="#signatures" class="item">
                             Signatures
-                            <div class="ui label">
-                                {{ '{:,}'.format(entry['methods']|length) }}
-                            </div>
+                            <div data-statistic="signatures" class="ui label"></div>
                         </a>
                         <a href="#relationships" class="item">
                             Relationships
-                            <div class="ui label">
-                                {{ '{:,}'.format(entry['relationships']|length) }}
-                            </div>
                         </a>
                         <a href="#go-terms" class="item">
                             GO terms
-                            <div class="ui label">
-                                {{ '{:,}'.format(entry['go'].values()|map('length')|sum) }}
-                            </div>
+                            <div data-statistic="go" class="ui label"></div>
                         </a>
                         <a href="#references" class="item">
                             References
-                            <div class="ui label">
-                                {{ '{:,}'.format(entry['references']|length) }}
-                            </div>
+                            <div data-statistic="references" class="ui label"></div>
                         </a>
                     </div>
                 </div>
@@ -118,7 +86,7 @@
                         <div class="field">
                             <textarea placeholder="Write comment&hellip;"></textarea>
                         </div>
-                        <button class="ui blue labeled icon button"><i class="icon edit"></i> Add comment</button>
+                        <button class="ui blue labeled icon button"><i class="icon edit"></i>Add comment</button>
                     </form>
                 </div>
             </div>
@@ -127,96 +95,33 @@
             <div class="ui basic vertical segment">
                 <h2 id="curation" class="ui dividing header">Curation</h2>
 
-                <dl>
-                    <dt>Public website</dt>
-                    <dd><a target="_blank" href="http://www.ebi.ac.uk/interpro/entry/{{ entry['id'] }}">
-                        Entry
+                <h3 class="ui header">Public website</h3>
+                <div class="ui horizontal bulleted link list">
+                    <a target="_blank" data-public-href="https://www.ebi.ac.uk/interpro/entry/" class="item">
+                        InterPro 6
                         <i class="external icon"></i>
-                    </a></dd>
+                    </a>
+                    <a target="_blank" data-public-href="http://www.ebi.ac.uk/interpro/beta/entry/InterPro/" class="item">
+                        InterPro 7
+                        <i class="external icon"></i>
+                    </a>
+                </div>
 
-                    <dt>Signature comparison</dt>
-                    <dd>
-                        <div class="ui bulleted horizontal link list">
-                            <a href="/methods/{{ entry['methods']|map(attribute='id')|join("/") }}/matches/" class="item">
-                                Overlapping proteins
-                            </a>
-                            <a href="/methods/{{ entry['methods']|map(attribute='id')|join("/") }}/taxonomy/" class="item">
-                                Taxonomy
-                            </a>
-                            <a href="/methods/{{ entry['methods']|map(attribute='id')|join("/") }}/descriptions/" class="item">
-                                UniProt descriptions
-                            </a>
-                            <a href="/methods/{{ entry['methods']|map(attribute='id')|join("/") }}/comments/" class="item">
-                                Swiss-Prot comments
-                            </a>
-                            <a href="/methods/{{ entry['methods']|map(attribute='id')|join("/") }}/go/" class="item">
-                                GO terms
-                            </a>
-                            <a href="/methods/{{ entry['methods']|map(attribute='id')|join("/") }}/matrices/" class="item">
-                                Match matrices
-                            </a>
-                            <a href="/methods/{{ entry['methods']|map(attribute='id')|join("/") }}/enzymes/" class="item">
-                                ENZYME entries
-                            </a>
-                        </div>
-                    </dd>
+                <h3 class="ui header">Signatures comparison</h3>
+                <div class="ui horizontal bulleted link list">
+                    <a data-signatures-page="proteins" class="item">Overlapping proteins</a>
+                    <a data-signatures-page="taxonomy" class="item">Taxonomic origins</a>
+                    <a data-signatures-page="descriptions" class="item">UniProt descriptions</a>
+                    <a data-signatures-page="similarity" class="item">Similarity comments</a>
+                    <a data-signatures-page="go" class="item">GO terms</a>
+                    <a data-signatures-page="matrices" class="item">Matrices</a>
+                    <a data-signatures-page="enzyme" class="item">ENZYME</a>
+                    <a data-signatures-page="literature" class="item">Literature</a>
+                </div>
 
-                    <dt>Talisman</dt>
-                    <dd>
-                        <div class="ui bulleted horizontal link list">
-                            <a target="_blank" href="http://www.ebi.ac.uk/talisman/Create?page=ipr_commabs/annot_entry.xml&url=ipro&ac={{ entry['id'] }}" class="item">
-                                Abstract
-                                <i class="external icon"></i>
-                            </a>
-                            {#                            <a target="_blank" href="http://www.ebi.ac.uk/talisman/Create?page=ipr_interpro2go/interpro2go.xml&url=IPRO&ac={{ entry['id'] }}" class="item">#}
-                            {#                                InterPro2GO#}
-                            {#                                <i class="external icon"></i>#}
-                            {#                            </a>#}
-                            <a target="_blank" href="http://www.ebi.ac.uk/talisman/Create?page=ipr_entry/merge.xml&url=IPRO&ac={{ entry['id'] }}" class="item">
-                                Merge
-                                <i class="external icon"></i>
-                            </a>
-                            <a target="_blank" href="http://www.ebi.ac.uk/talisman/Create?page=ipr_reference/ref_manager.xml&url=IPRO&ac={{ entry['id'] }}" class="item">
-                                References
-                                <i class="external icon"></i>
-                            </a>
-                            <a target="_blank" href="http://www.ebi.ac.uk/talisman/Create?page=ipr_entry/new_relation.xml&url=IPRO&ac={{ entry['id'] }}" class="item">
-                                Relationship
-                                <i class="external icon"></i>
-                            </a>
-                            <a target="_blank" href="http://www.ebi.ac.uk/talisman/Create?page=ipr_entry/split2.xml&url=IPRO&ac={{ entry['id'] }}" class="item">
-                                Split
-                                <i class="external icon"></i>
-                            </a>
-                        </div>
-                    </dd>
-                </dl>
-            </div>
-            <div class="ui basic vertical segment">
                 <h2 id="description" class="ui dividing header">Description</h2>
-                {% for descr in entry['descriptions'] %}
-{#                    <div class="ui top attached mini compact icon menu">#}
-{#                        <a class="item">#}
-{#                            <abbr title="Edit this abstract"><i class="edit icon"></i></abbr>#}
-{#                        </a>#}
-{#                        <a class="item">#}
-{#                            <abbr title="Move this abstract down"><i class="arrow down icon"></i></abbr>#}
-{#                        </a>#}
-{#                        <a class="item">#}
-{#                            <abbr title="Move this abstract up"><i class="arrow up icon"></i></abbr>#}
-{#                        </a>#}
-{#                        <a class="item">#}
-{#                            <abbr title="Delete this abstract"><i class="trash icon"></i></abbr>#}
-{#                        </a>#}
-{#                    </div>#}
-{#                    <div class="ui attached segment">#}
-{#                        {{ descr|safe }}#}
-{#                    </div>#}
-                    {{ descr|safe }}
-                {% endfor %}
-            </div>
-            <div class="ui basic vertical segment">
-                <h2 id="signatures" class="ui dividing header">Signatures</h2>
+
+                <h2 id="signatures" class="ui dividing header">Contributing signatures</h2>
                 <table class="ui selectable table">
                     <thead>
                     <tr>
@@ -224,241 +129,58 @@
                         <th>Member database</th>
                         <th>Accession</th>
                         <th>Name</th>
-                        <th>Protein count</th>
+                        <th class="right aligned">Protein count</th>
+                        <th></th>
                     </tr>
                     </thead>
-                    <tbody>
-                    {% for method in entry['methods'] %}
-                        <tr>
-                            <td class="collapsing">
-                                {% if method['color'] %}
-                                    <i class="database icon" style="color: {{ method['color'] }};"></i>
-                                {% else %}
-                                    <i class="database icon"></i>
-                                {% endif %}
-                            </td>
-
-                            <td>
-                                {% if method['link'] %}
-                                    <a target="_blank" href="{{ method['link'] }}">{{ method['dbname'] }}&nbsp;<i class="external icon"></i></a>
-                                {% elif method['home'] %}
-                                    <a target="_blank" href="{{ method['home'] }}">{{ method['dbname'] }}&nbsp;<i class="external icon"></i></a>
-                                {% else %}
-                                    {{ method['dbname'] }}
-                                {% endif %}
-                            </td>
-
-                            <td><a href="/method/{{ method['id'] }}/">{{ method['id'] }}</a></td>
-                            <td>{{ method['name'] }}</td>
-                            <td>{{ '{:,}'.format(method['count']) }}</td>
-                        </tr>
-                    {% endfor %}
-                    </tbody>
+                    <tbody></tbody>
+                    <tfoot>
+                    <tr>
+                        <th colspan="6">
+                            <div class="ui secondary menu">
+                                <div class="right fitted item">
+                                    <div class="ui action input">
+                                        <input placeholder="Add signature" type="text">
+                                        <button class="ui icon primary button"><i class="plus icon"></i></button>
+                                    </div>
+                                </div>
+                            </div>
+                        </th>
+                    </tr>
+                    </tfoot>
                 </table>
-            </div>
-            <div class="ui basic vertical segment">
+
                 <h2 id="relationships" class="ui dividing header">InterPro relationships</h2>
-                {% if entry['relationships']['count'] %}
-                    {% if entry['relationships']['types']['parents'] %}
-                        <dt>Parents</dt>
-                        {% for e in entry['relationships']['types']['parents'] %}
-                            <dd>
-                                <span class="ui tiny label circular type-{{ e['typeCode'] }}">{{ e['typeCode'] }}</span>
-                                <a href="/entry/{{ e['id'] }}/">{{ e['id'] }}</a>
-                                {{ e['name'] }}
-                            </dd>
-                        {% endfor %}
-                    {% endif %}
-                    {% if entry['relationships']['types']['children'] %}
-                        <dt>Children</dt>
-                        {% for e in entry['relationships']['types']['children'] %}
-                            <dd>
-                                <span class="ui tiny label circular type-{{ e['typeCode'] }}">{{ e['typeCode'] }}</span>
-                                <a href="/entry/{{ e['id'] }}/">{{ e['id'] }}</a>
-                                {{ e['name'] }}
-                            </dd>
-                        {% endfor %}
-                    {% endif %}
-                    {% if entry['relationships']['types']['containers'] %}
-                        <dt>Found in</dt>
-                        {% for e in entry['relationships']['types']['containers'] %}
-                            <dd>
-                                <span class="ui tiny label circular type-{{ e['typeCode'] }}">{{ e['typeCode'] }}</span>
-                                <a href="/entry/{{ e['id'] }}/">{{ e['id'] }}</a>
-                                {{ e['name'] }}
-                            </dd>
-                        {% endfor %}
-                    {% endif %}
-                    {% if entry['relationships']['types']['components'] %}
-                        <dt>Contains</dt>
-                        {% for e in entry['relationships']['types']['components'] %}
-                            <dd>
-                                <span class="ui tiny label circular type-{{ e['typeCode'] }}">{{ e['typeCode'] }}</span>
-                                <a href="/entry/{{ e['id'] }}/">{{ e['id'] }}</a>
-                                {{ e['name'] }}
-                            </dd>
-                        {% endfor %}
-                    {% endif %}
-                {% else %}
-                    <p>This entry has no relationships.</p>
-                {% endif %}
-            </div>
-            <div class="ui basic vertical segment">
+                <div id="relationships-content"></div>
+
                 <h2 id="go-terms" class="ui dividing header">GO terms</h2>
                 <div id="add-terms" class="ui form">
                     <div class="field">
                         <label>Add GO term mapping</label>
-                        <div class="ui small action input">
+                        <div class="ui action input">
                             <input placeholder="Type one or several GO terms" type="text">
                             <button class="ui primary button">Add</button>
                         </div>
                     </div>
                 </div>
 
-                <dl id="interpro2go">
-                    <dt>Molecular Function</dt>
-                    {% if entry['go']['F'] %}
-                        {% for term in entry['go']['F'] %}
-                            <dd>
-                                <a target="_blank" href="http://www.ebi.ac.uk/QuickGO/GTerm?id={{ term['id'] }}">{{ term['id'] }}&nbsp;<i class="external icon"></i></a>
-                                {{ term['name'] }}
+                <h3 class="ui header">Molecular Functions</h3>
+                <div id="molecular-functions"></div>
 
-                                {% if term['isObsolete'] %}
-                                    <span class="ui tiny red label">Obsolete</span>
-                                {% endif %}
+                <h3 class="ui header">Biological Processes</h3>
+                <div id="biological-processes"></div>
 
-                                {% if term['replacedBy'] %}
-                                    <span class="ui tiny yellow label">Secondary</span>
-                                {% endif %}
+                <h3 class="ui header">Cellular Components</h3>
+                <div id="cellular-components"></div>
 
-                                <a data-go-id="{{ term['id'] }}"><i class="trash icon"></i></a>
 
-                                <i class="right-floated caret left icon"></i>
-                                <p class="hidden">{{ term['definition'] }}</p>
-                            </dd>
-                        {% endfor %}
-                    {% else %}
-                        <dd>No terms assigned in this category.</dd>
-                    {% endif %}
-                    <dt>Biological Process</dt>
-                    {% if entry['go']['P'] %}
-                        {% for term in entry['go']['P'] %}
-                            <dd>
-                                <a target="_blank" href="http://www.ebi.ac.uk/QuickGO/GTerm?id={{ term['id'] }}">{{ term['id'] }}&nbsp;<i class="external icon"></i></a>
-                                {{ term['name'] }}
-
-                                {% if term['isObsolete'] %}
-                                    <span class="ui tiny red label">Obsolete</span>
-                                {% endif %}
-
-                                {% if term['replacedBy'] %}
-                                    <span class="ui tiny yellow label">Secondary</span>
-                                {% endif %}
-
-                                <a data-go-id="{{ term['id'] }}"><i class="trash icon"></i></a>
-
-                                <i class="right-floated caret left icon"></i>
-                                <p class="hidden">{{ term['definition'] }}</p>
-                            </dd>
-                        {% endfor %}
-                    {% else %}
-                        <dd>No terms assigned in this category.</dd>
-                    {% endif %}
-                    <dt>Cellular Component</dt>
-                    {% if entry['go']['C'] %}
-                        {% for term in entry['go']['C'] %}
-                            <dd>
-                                <a target="_blank" href="http://www.ebi.ac.uk/QuickGO/GTerm?id={{ term['id'] }}">{{ term['id'] }}&nbsp;<i class="external icon"></i></a>
-                                {{ term['name'] }}
-
-                                {% if term['isObsolete'] %}
-                                    <span class="ui tiny red label">Obsolete</span>
-                                {% endif %}
-
-                                {% if term['replacedBy'] %}
-                                    <span class="ui tiny yellow label">Secondary</span>
-                                {% endif %}
-
-                                <a data-go-id="{{ term['id'] }}"><i class="trash icon"></i></a>
-
-                                <i class="right-floated caret left icon"></i>
-                                <p class="hidden">{{ term['definition'] }}</p>
-                            </dd>
-                        {% endfor %}
-                    {% else %}
-                        <dd>No terms assigned in this category.</dd>
-                    {% endif %}
-                </dl>
-            </div>
-            <div class="ui basic vertical segment">
                 <h2 id="references" class="ui dividing header">References</h2>
-                {% if entry['references'] %}
-                    <ol>
-                        {% for pub in entry['references'] %}
-                            <li id="{{ pub['id'] }}">
-                                <div class="header">{{ pub['title'] }}</div>
-                                <div class="item">{{ pub['authors'] }}</div>
-                                <div class="item">
-                                    <em>{{ pub['journal'] }}</em> {{ pub['year'] }}, {{ pub['volume'] }}:{{ pub['pages'] }}
-                                </div>
 
-                                <div class="ui horizontal link list">
-                                    {% if pub['doi'] %}
-                                        <a target="_blank" class="item" href="{{ pub['doi'] }}">View article
-                                            <i class="external icon"></i>
-                                        </a>
-                                    {% endif %}
-
-                                    {% if pub['pmid'] %}
-                                        <span class="item">Europe PMC:
-                                        <a target="_blank" class="item" href="http://europepmc.org/abstract/MED/{{ pub['pmid'] }}">{{ pub['pmid'] }}
-                                            <i class="external icon"></i>
-                                        </a>
-                                    </span>
-                                    {% endif %}
-                                </div>
-                            </li>
-                        {% endfor %}
-                    </ol>
-                {% else %}
-                    <p>This entry has no references.</p>
-                {% endif %}
-                <h2 id="supp-references" class="ui dividing header">Supplementary references</h2>
-                {% if entry['suppReferences'] %}
-                    <p>The following publications were not referred to in the description, but provide useful additional information.</p>
-                    <ul class="ui list">
-                        {% for pub in entry['suppReferences'] %}
-                            <li id="{{ pub['id'] }}">
-                                <div class="header">{{ pub['title'] }}</div>
-                                <div class="item">{{ pub['authors'] }}</div>
-                                <div class="item">
-                                    <em>{{ pub['journal'] }}</em> {{ pub['year'] }}, {{ pub['volume'] }}:{{ pub['pages'] }}
-                                </div>
-
-                                <div class="ui horizontal link list">
-                                    {% if pub['doi'] %}
-                                        <a target="_blank" class="item" href="{{ pub['doi'] }}">View article
-                                            <i class="external icon"></i>
-                                        </a>
-                                    {% endif %}
-
-                                    {% if pub['pmid'] %}
-                                        <span class="item">Europe PMC:
-                                        <a target="_blank" class="item" href="http://europepmc.org/abstract/MED/{{ pub['pmid'] }}">{{ pub['pmid'] }}
-                                            <i class="external icon"></i>
-                                        </a>
-                                    </span>
-                                    {% endif %}
-                                </div>
-                            </li>
-                        {% endfor %}
-                    </ul>
-                {% else %}
-                    <p>This entry has no additional references.</p>
-                {% endif %}
+                <h2 class="ui dividing header">Supplementary references</h2>
             </div>
         </div>
     </div>
+
 </div>
 
 {% include 'footer.html' %}

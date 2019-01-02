@@ -427,3 +427,16 @@ thead .ui.compact.icon.button {
     -webkit-transition: background .1s ease;
     transition: background .1s ease;
 }
+
+/*
+    Icon contained in list items
+    (Entry page)
+ */
+.ui.list > .item > i.icon {
+    cursor: pointer;
+    color: rgba(0,0,0,.4);
+}
+
+.ui.list > .item > i.icon:hover {
+    color: rgba(0,0,0,.8);
+}
