@@ -151,7 +151,6 @@ $(function () {
     fetch("/api" + location.pathname)
         .then(response => {
             ui.dimmer(false);
-            console.log(response.status);
             if (response.status === 200)
                 return response.json();
             else {
@@ -160,9 +159,11 @@ $(function () {
                     + '<div class="header">Protein not found</div>'
                     + '<strong>'+ acc +'</strong> is not a valid UniProtKB accession.'
                     + '</div>';
+                return null;
             }
         })
         .then(protein => {
+            if (protein === null) return;
             document.title = protein.identifier + " (" + protein.accession + ") | Pronto";
 
             // Header
