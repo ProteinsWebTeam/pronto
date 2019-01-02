@@ -19,14 +19,28 @@ function getProteins() {
             else
                 document.querySelector('input[name=dbcode][value=U]').checked = true;
 
+            let html;
+
             // Set statistic counts
-            document.getElementById('num-proteins').innerHTML = response.num_proteins.toLocaleString();
-            document.getElementById('num-structures').innerHTML = response.num_structures.toLocaleString();
+            html = '<div class="ui horizontal statistic">'
+                + '<div class="value">'+ response.num_proteins.toLocaleString() +'</div>'
+                + '<div class="label">proteins</div>'
+                + '</div>';
+
+            if (url.searchParams.get("md5") === null) {
+                // Display the number of different structures
+                html += '<div class="ui horizontal statistic">'
+                + '<div class="value">'+ response.num_structures.toLocaleString() +'</div>'
+                + '<div class="label">structures</div>'
+                + '</div>';
+            }
+
+            document.querySelector('.ui.statistics').innerHTML = html;
 
             // Find longest protein
             const maxLength = Math.max(...response.proteins.map(p => { return p.length }));
 
-            let html = '';
+            html = '';
             response.proteins.forEach(protein => {
                 url.searchParams.set("md5", protein.md5);
                 url.searchParams.delete("page");
