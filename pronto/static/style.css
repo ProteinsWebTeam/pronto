@@ -413,3 +413,17 @@ thead .ui.compact.icon.button {
 .ui.comments .reply.form textarea[rows] {
     height: inherit;
 }
+
+/*
+    Add same style than for .ui.label > .delete.icon
+    (Literature page)
+*/
+.ui.label > .filter.icon {
+    cursor: pointer;
+    margin-right: 0;
+    margin-left: .5em;
+    font-size: .92857143em;
+    opacity: .5;
+    -webkit-transition: background .1s ease;
+    transition: background .1s ease;
+}

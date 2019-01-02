@@ -36,3 +36,8 @@ def view_matrices(accessions):
 @app.route("/signatures/<path:accessions>/enzyme/")
 def view_enzyme_entries(accessions):
     return render_template("signatures/enzyme.html")
+
+
+@app.route("/signatures/<path:accessions>/literature/")
+def view_literature(accessions):
+    return render_template("signatures/literature.html")
