@@ -44,6 +44,9 @@ function renderFeatures(svgWidth, rectWidth, proteinLength, features, labelKey, 
     if (labelLink === undefined)
         labelLink = true;
 
+    if (!features.length)
+        return '<p>None</p>';
+
     // Create SVG and ticks
     let html = initSVG(svgWidth, rectWidth, proteinLength, features.length);
 
