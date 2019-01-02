@@ -2,7 +2,6 @@ import {finaliseHeader} from "../../header.js";
 import {dimmer, useWhiteText, toRGB} from '../../ui.js';
 import {selector, gradientPuBu, proteinViewer} from "../../signatures.js";
 
-
 function getEnzymes(accessions) {
     dimmer(true);
     fetch("/api" + location.pathname + location.search)
@@ -62,7 +61,6 @@ function getEnzymes(accessions) {
             dimmer(false);
         });
 }
-
 
 $(function () {
     const match = location.pathname.match(/^\/signatures\/(.+)\/enzyme\/$/i);

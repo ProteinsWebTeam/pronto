@@ -2,7 +2,6 @@ import {finaliseHeader} from "../../header.js";
 import {dimmer, useWhiteText, toRGB} from '../../ui.js';
 import {selector, gradientPuBu} from "../../signatures.js";
 
-
 function getMatrices(accessions) {
     dimmer(true);
     fetch("/api" + location.pathname + location.search)
@@ -152,7 +151,6 @@ function getMatrices(accessions) {
             dimmer(false);
         });
 }
-
 
 $(function () {
     const match = location.pathname.match(/^\/signatures\/(.+)\/matrices\/$/i);

@@ -2,7 +2,6 @@ import {finaliseHeader} from "../../header.js";
 import {dimmer, renderCheckbox, toRGB, useWhiteText} from '../../ui.js';
 import {gradientPuBu, proteinViewer, selector} from "../../signatures.js";
 
-
 function getGoTerms(accessions) {
     dimmer(true);
     fetch("/api" + location.pathname + location.search)
@@ -128,7 +127,6 @@ function getGoTerms(accessions) {
             dimmer(false);
         });
 }
-
 
 $(function () {
     const match = location.pathname.match(/^\/signatures\/(.+)\/go\/$/i);

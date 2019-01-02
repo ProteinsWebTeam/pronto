@@ -84,7 +84,6 @@ function getTaxa(accessions) {
         });
 }
 
-
 $(function () {
     const match = location.pathname.match(/^\/signatures\/(.+)\/taxonomy\/$/i);
     const accessions = match[1].split("/");

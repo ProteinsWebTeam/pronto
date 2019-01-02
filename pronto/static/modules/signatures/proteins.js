@@ -3,7 +3,6 @@ import {paginate} from "../../ui.js";
 import {selector} from "../../signatures.js";
 import {dimmer} from "../../ui.js";
 
-
 function getProteins() {
     const url = new URL(location.href);
 
@@ -175,7 +174,6 @@ function getProteins() {
             dimmer(false);
         })
 }
-
 
 $(function () {
     const url = new URL(location.href);
