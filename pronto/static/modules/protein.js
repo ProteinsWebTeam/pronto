@@ -149,13 +149,20 @@ $(function () {
     finaliseHeader();
 
     fetch("/api" + location.pathname)
-        .then(response => response.json())
-        .then(protein => {
-            if (protein === null) {
-                ui.dimmer(false);
-                return; // TODO: show error
+        .then(response => {
+            ui.dimmer(false);
+            console.log(response.status);
+            if (response.status === 200)
+                return response.json();
+            else {
+                const acc = location.pathname.match(/^\/protein\/([a-z0-9]+)\/$/i)[1];
+                document.querySelector('.ui.container.segment').innerHTML = '<div class="ui error message">'
+                    + '<div class="header">Protein not found</div>'
+                    + '<strong>'+ acc +'</strong> is not a valid UniProtKB accession.'
+                    + '</div>';
             }
-
+        })
+        .then(protein => {
             document.title = protein.identifier + " (" + protein.accession + ") | Pronto";
 
             // Header
@@ -249,6 +256,5 @@ $(function () {
             });
 
             ui.listenMenu(document.querySelector('.ui.vertical.menu'));
-            ui.dimmer(false);
         });
 });
