@@ -331,7 +331,7 @@ def get_entry_annotations(accession):
             "id": ann_id,
             "text": text,
             "comment": comment,
-            "count": count
+            "num_entries": count
         })
 
     if missing_refs:
