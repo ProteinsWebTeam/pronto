@@ -1,5 +1,6 @@
-import {dimmer, setClass} from "../ui.js";
+import {dimmer, setClass, openErrorModal, openConfirmModal} from "../ui.js";
 import {finaliseHeader} from "../header.js";
+import {getEntryComments, postEntryComment} from "../comments.js";
 
 function _getGOTerms(entryID) {
     utils.getJSON('/api/entry/' + entryID + '/go/', data => {
@@ -104,15 +105,24 @@ function addGOEvents(entryID) {
     });
 }
 
-function addGoTerms(entryID, ids, callback) {
-    utils.post('/api/entry/' + entryID + '/go/', {ids: ids}, data => {
-        if (!data.status) {
-            const modal = document.getElementById('error-modal');
-            modal.querySelector('.content p').innerHTML = data.message;
-            $(modal).modal('show');
-        } else if (callback)
-            callback();
-    });
+function addGoTerm(accession, termID) {
+    return new Promise(((resolve, reject) => {
+        return fetch('/api/entry/' + accession + '/go/' + termID + '/', {method: 'PUT'})
+            .then(response => response.json())
+            .then(result => {
+                const msg = document.getElementById('go-error');
+                if (result.status) {
+                    setClass(msg, 'hidden', true);
+                    getGOTerms(accession);
+                    resolve();
+                } else {
+                    msg.querySelector('.header').innerHTML = result.title;
+                    msg.querySelector('p').innerHTML = result.message;
+                    setClass(msg, 'hidden', false);
+                }
+            });
+    }));
+
 }
 
 function getSignatures(accession) {
@@ -156,25 +166,33 @@ function getSignatures(accession) {
                     + '</td>'
                     + '</tr>';
             });
-            const tbody = document.querySelector('#signatures + table tbody');
-            tbody.innerHTML = html
+            const tbody = document.getElementById('signatures-content');
+            tbody.innerHTML = html;
+            // todo: events to remove
         });
 }
 
-function renderGoTerms(terms, div) {
-
+function renderGoTerms(terms, div, accession) {
     let html = '';
     if (terms.length) {
         html = '<div class="ui list">';
         terms.forEach(term => {
-            html += '<div data-id="'+ term.id +'" class="item">'
-                + '<i class="trash icon"></i>'
+            html += '<div class="item">'
                 + '<div class="content">'
-                + '<a class="header" target="_blank" href="https://www.ebi.ac.uk/QuickGO/GTerm?id='+ term.id +'">'
-                + term.id
+                + '<div class="header">'
+                + '<a target="_blank" href="https://www.ebi.ac.uk/QuickGO/GTerm?id='+ term.id +'">'
+                + term.name + ' (' + term.id + ')'
                 + '&nbsp;<i class="external icon"></i>'
-                + '</a>'
-                + term.name
+                + '</a>';
+
+            if (term.is_obsolete)
+                html += '&nbsp;<span class="ui mini red label">Obsolete</span>';
+
+            if (term.secondary)
+                html += '&nbsp;<span class="ui mini yellow label">Secondary</span>';
+
+            html += '<i data-id="'+ term.id +'" class="right floated trash button icon"></i>'
+                + '</div>'
                 + '<div class="description">'+ term.definition +'</div>'
                 + '</div>'
                 + '</div>';
@@ -185,6 +203,28 @@ function renderGoTerms(terms, div) {
     }
 
     div.innerHTML = html;
+
+    Array.from(div.querySelectorAll('[data-id]')).forEach(elem => {
+        elem.addEventListener('click', e => {
+            const termID = elem.getAttribute('data-id');
+
+            openConfirmModal(
+                'Delete GO term?',
+                '<strong>' + termID + '</strong> will not be associated to <strong>'+ accession +'</strong> any more.',
+                'Delete',
+                () => {
+                    fetch('/api/entry/' + accession + '/go/' + termID + '/', {method: 'DELETE'})
+                        .then(response => response.json())
+                        .then(result => {
+                            if (result.status)
+                                getGOTerms(accession);
+                            else
+                                openErrorModal(result);
+                        });
+                }
+            );
+        });
+    });
 }
 
 function getGOTerms(accession) {
@@ -196,9 +236,9 @@ function getGOTerms(accession) {
                 elem.innerHTML = terms.length;
             });
 
-            renderGoTerms(terms.filter(t => t.category === 'F'), document.getElementById('molecular-functions'));
-            renderGoTerms(terms.filter(t => t.category === 'P'), document.getElementById('biological-processes'));
-            renderGoTerms(terms.filter(t => t.category === 'C'), document.getElementById('cellular-components'));
+            renderGoTerms(terms.filter(t => t.category === 'F'), document.getElementById('molecular-functions'), accession);
+            renderGoTerms(terms.filter(t => t.category === 'P'), document.getElementById('biological-processes'), accession);
+            renderGoTerms(terms.filter(t => t.category === 'C'), document.getElementById('cellular-components'), accession);
         });
 }
 
@@ -218,25 +258,54 @@ function getRelationships(accession) {
                     keys.forEach(key => {
                         const node = obj[key];
                         html += '<div class="item">'
-                            + '<div class="content">';
+                            + '<div class="content">'
+                            + '<div class="header">'
+                            + '<span class="ui mini label circular type-'+ node.type +'">'+ node.type +'</span>';
 
                         if (node.accession === accession)
-                            html += '<div class="header">'+ node.name + ' (' + node.accession + ')</div>';
-                        else
-                            html += '<a href="/entry/'+ node.accession +'/">'+ node.name + ' (' + node.accession + ')</a>';
+                            html += node.name + ' (' + node.accession + ')';
+                        else {
+                            html += '<a href="/entry/' + node.accession + '/">' + node.name + ' (' + node.accession + ')</a>';
 
+                            if (node.deletable)
+                                html += '<i data-id="'+ node.accession +'" class="button right floated trash icon"></i>';
+                        }
 
-                        html += nest(node.children, false, accession)
-                            + '</div>'
-                            + '</div>';
+                        html += '</div>'  // close header
+                            + nest(node.children, false, accession)
+                            + '</div>'  // close content
+                            + '</div>'  // close item;
                     });
                     html += '</div>';
-                }
+                } else if (isRoot)
+                    html += '<p>This entry has no relationships.</p>';
 
                 return html;
             };
 
-            document.getElementById('relationships-content').innerHTML = nest(relationships, true, accession);
+            const div = document.getElementById('relationships-content');
+            div.innerHTML = nest(relationships, true, accession);
+            Array.from(div.querySelectorAll('[data-id]')).forEach(elem => {
+                elem.addEventListener('click', e => {
+                    const accession2 = elem.getAttribute('data-id');
+
+                    openConfirmModal(
+                        'Delete relationship?',
+                        '<strong>' + accession + '</strong> and <strong>'+ accession2 +'</strong> will not be related any more.',
+                        'Delete',
+                        () => {
+                            fetch('/api/entry/' + accession + '/relationship/' + accession2 + '/', {method: 'DELETE'})
+                                .then(response => response.json())
+                                .then(result => {
+                                    if (result.status)
+                                        getRelationships(accession);
+                                    else
+                                        openErrorModal(result);
+                                });
+                        }
+                    );
+                });
+            });
         });
 }
 
@@ -285,7 +354,8 @@ $(function () {
             const promises = [
                 getSignatures(accession),
                 getGOTerms(accession),
-                getRelationships(accession)
+                getRelationships(accession),
+
             ];
 
             Promise.all(promises).then(value => {
@@ -293,7 +363,87 @@ $(function () {
                 dimmer(false);
             });
 
+            // Event to add comments
+            document.querySelector('.ui.comments form button').addEventListener('click', e => {
+                e.preventDefault();
+                const form = e.target.closest('form');
+                const accession = form.getAttribute('data-id');
+                const textarea = form.querySelector('textarea');
 
+                postEntryComment(accession, textarea.value.trim())
+                    .then(result => {
+                        if (result.status)
+                            getEntryComments(accession, 2, e.target.closest(".ui.comments"));
+                        else
+                            openErrorModal(result.message);
+                    });
+            });
+
+            // Get comments
+            getEntryComments(accession, 2, document.querySelector('.ui.comments'));
+
+            // Event to add GO annotations
+            (function () {
+                const form = document.getElementById('add-terms');
+                const input = form.querySelector('.ui.input input');
+                input.addEventListener('keyup', e => {
+                    if (e.which === 13 && e.target.value.trim().length) {
+                        addGoTerm(accession, e.target.value.trim())
+                            .then(() => {
+                                input.value = null;
+                            })
+                    }
+                });
+                form.querySelector('.ui.input button').addEventListener('click', e => {
+                    if (input.value.trim().length) {
+                        addGoTerm(accession, input.value.trim())
+                            .then(() => {
+                                input.value = null;
+                            })
+                    }
+
+                });
+            })();
+
+            // Event to add relationships
+            (function () {
+                const select = document.querySelector('#add-relationship .ui.dropdown');
+                select.innerHTML = '<option value="">Relationship type</option>'
+                    + '<option value="parent">Parent of '+ accession +'</option>'
+                    + '<option value="child">Child of '+ accession +'</option>';
+                $(select).dropdown();
+
+                // Using Semantic-UI form validation
+                $('#add-relationship').form({
+                    on: 'submit',
+                    fields: {
+                        accession: 'empty',
+                        type: 'empty'
+                    },
+                    onSuccess: function (event, fields) {
+                        let url;
+                        if (fields.type === 'parent')
+                            url = '/api/entry/' + fields.accession.trim() + '/child/' + accession + '/';
+                        else
+                            url = '/api/entry/' + accession + '/child/' + fields.accession.trim() + '/';
+
+                        fetch(url, {method: 'PUT'})
+                            .then(response => response.json())
+                            .then(result => {
+                                const msg = document.getElementById('relationship-error');
+                                if (result.status) {
+                                    $(this).form('clear');
+                                    setClass(msg, 'hidden', true);
+                                    getRelationships(accession);
+                                } else {
+                                    msg.querySelector('.header').innerHTML = result.title;
+                                    msg.querySelector('p').innerHTML = result.message;
+                                    setClass(msg, 'hidden', false);
+                                }
+                            });
+                    }
+                })
+            })();
         });
 
     return;
