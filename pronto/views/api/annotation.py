@@ -356,6 +356,32 @@ def update_annotations(ann_id):
         cur.close()
 
 
+@app.route("/api/annotation/<ann_id>/entries/")
+def get_annotation_entries(ann_id):
+    cur = db.get_oracle().cursor()
+    cur.execute(
+        """
+        SELECT EC.ENTRY_AC, E.NAME, E.ENTRY_TYPE
+        FROM INTERPRO.ENTRY2COMMON EC
+        INNER JOIN INTERPRO.ENTRY E 
+          ON EC.ENTRY_AC = E.ENTRY_AC
+        WHERE EC.ANN_ID = :1
+        ORDER BY EC.ENTRY_AC
+        """, (ann_id,)
+    )
+
+    entries = []
+    for row in cur:
+        entries.append({
+            "accession": row[0],
+            "name": row[1],
+            "type": row[2]
+        })
+
+    cur.close()
+    return jsonify(entries), 200
+
+
 @app.route("/api/annotation/search/")
 def search_annotations():
     search_query = request.args.get("q", "").strip()
