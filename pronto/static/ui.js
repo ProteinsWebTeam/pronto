@@ -17,9 +17,10 @@ export function openConfirmModal(header, content, approve, onApprove, onDeny) {
         .modal("show");
 }
 
-export function openErrorModal(message) {
+export function openErrorModal(error) {
     const modal = document.getElementById("error-modal");
-    modal.querySelector(".content p").innerHTML = message;
+    modal.querySelector(".header").innerHTML = error.title || 'Something when wrong';
+    modal.querySelector(".content p").innerHTML = error.message;
     $(modal).modal("show");
 }
 
