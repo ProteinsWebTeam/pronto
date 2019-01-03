@@ -243,7 +243,7 @@ function getAnnotations(accession) {
                         + '<a data-action="edit" class="item"><abbr title="Edit this annotation"><i class="edit icon"></i></abbr></a>'
                         + '<a data-action="movedown" class="item"><abbr title="Move this annotation down"><i class="arrow down icon"></i></abbr></a>'
                         + '<a data-action="moveup" class="item"><abbr title="Move this annotation up"><i class="arrow up icon"></i></abbr></a>'
-                        + '<a data-action="delete" class="item"><abbr title="Delete this annotation"><i class="trash icon"></i></abbr></a>'
+                        + '<a data-action="delete" class="item"><abbr title="Unlink this annotation"><i class="trash icon"></i></abbr></a>'
 
                         // Info menu (last edit comment and number of entries using this annotation)
                         + '<div class="right menu">'
@@ -275,6 +275,7 @@ function getAnnotations(accession) {
             document.getElementById('annotations').innerHTML = html;
 
             // Render references
+            html = '';
             if (orderedRefs.length) {
                 html += '<ol>';
                 orderedRefs.forEach(pubID => {
@@ -354,7 +355,7 @@ function getAnnotations(accession) {
 
             // Event listener on actions
             annotationEditor.reset();
-            Array.from(document.querySelectorAll('#annotations a[data-action]')).forEach(elem => {
+            Array.from(document.querySelectorAll('.annotation a[data-action]')).forEach(elem => {
                 elem.addEventListener('click', e => {
                     // Do not use e.target as it could be the <abbr> or <i> elements
 
@@ -378,6 +379,7 @@ function getAnnotations(accession) {
                         annotationEditor.save(accession, annID);
                     else if (action === 'cancel')
                         annotationEditor.close();
+
                 });
             });
         });
