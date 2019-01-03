@@ -247,7 +247,29 @@ def create_annotation():
             """,
             (ann_id, text, comment)
         )
-    except (DatabaseError, IntegrityError):
+    except IntegrityError:
+        res = {
+            "status": False,
+            "title": "Database error",
+            "message": "The annotation could not be created. "
+                       "Another annotation with the same text "
+                       "may already exist."
+        }
+
+        cur.execute(
+            """
+            SELECT ANN_ID
+            FROM INTERPRO.COMMON_ANNOTATION
+            WHERE TEXT = :1
+            """, (text,)
+        )
+        row = cur.fetchone()
+
+        if row is not None:
+            res["id"] = row[0]
+
+        return jsonify(res), 400
+    except DatabaseError:
         return jsonify({
             "status": False,
             "title": "Database error",
