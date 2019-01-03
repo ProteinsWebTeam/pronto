@@ -961,3 +961,44 @@ def get_entry_signatures(accession):
     cur.close()
     return jsonify(signatures), 200
 
+
+@app.route("/api/entry/<accession>/signatures/annotations/")
+def get_entry_signatures_annotations(accession):
+    cur = db.get_oracle().cursor()
+    # todo: use db_schema for METHOD table
+    cur.execute(
+        """
+        SELECT
+          METHOD_AC,
+          NAME,
+          ABSTRACT,
+          ABSTRACT_LONG
+        FROM INTERPRO.METHOD
+        WHERE METHOD_AC IN (
+          SELECT METHOD_AC
+          FROM INTERPRO.ENTRY2METHOD
+          WHERE ENTRY_AC = :1
+        )
+        ORDER BY METHOD_AC
+        """,
+        (accession,)
+    )
+
+    signatures = []
+    for row in cur:
+        if row[2] is not None:
+            text = row[2]
+        elif row[3] is not None:
+            text = row[3].read()  # CLOB object
+        else:
+            text = None
+
+        signatures.append({
+            "accession": row[0],
+            "name": row[1],
+            "text": text
+        })
+
+    cur.close()
+    return jsonify(signatures), 200
+
