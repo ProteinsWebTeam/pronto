@@ -161,7 +161,8 @@ const annotationEditor = {
 };
 
 function linkAnnotation(accession, annID) {
-
+    return fetch('/api/entry/' + accession + '/annotation/' + annID + '/', { method: 'PUT' })
+        .then(response => response.json())
 }
 
 function addHighlightEvenListeners(div) {
@@ -778,46 +779,64 @@ $(function () {
             (function () {
                 document.getElementById('search-annotations').addEventListener('keyup', e => {
                     if (e.which === 13) {
-                        const value = e.target.value.trim();
+                        const query = e.target.value.trim();
 
-                        if (value.length < 3)
+                        if (query.length < 3)
                             return;
 
+                        // Current annotations // TODO: rewrite not to use the DOM?
+                        const annotations = new Set(Array.from(document.querySelectorAll('.annotation')).map(elem => elem.getAttribute('id')));
+
                         dimmer(true);
-                        fetch('/api/annotation/search/?q=' + value)
+                        fetch('/api/annotation/search/?q=' + query)
                             .then(response => response.json())
                             .then(hits => {
                                 let html = '';
-                                hits.forEach(ann => {
-                                    if (1)
-                                        html += '<div data-annid="'+ ann.id +'" class="ui top attached secondary segment">' + escapeXmlTags(ann.text) + '</div>';
-                                    else
-                                        html += '<div data-annid="'+ ann.id +'" class="ui top attached segment">' + escapeXmlTags(ann.text) + '</div>';
 
-                                    html += '<div data-annid="'+ ann.id +'" class="ui bottom borderless attached mini menu">' +
-                                        '<span class="item">Associated to '+ ann.num_entries + ' entries</span>';
+                                if (hits.length) {
+                                    hits.forEach(ann => {
+                                        if (annotations.has(ann.id))
+                                            html += '<div data-annid="'+ ann.id +'" class="ui top attached secondary segment">' + escapeXmlTags(ann.text) + '</div>';
+                                        else
+                                            html += '<div data-annid="'+ ann.id +'" class="ui top attached segment">' + escapeXmlTags(ann.text) + '</div>';
 
-                                    if (!1)
-                                        html +=  '<div class="right item"><button class="ui primary button">Add</button></div>';
+                                        html += '<div data-annid="'+ ann.id +'" class="ui bottom borderless attached mini menu">' +
+                                            '<span class="item">Associated to '+ ann.num_entries + ' entries</span>';
 
-                                    html += '</div>';
-                                });
+                                        if (!annotations.has(ann.id))
+                                            html +=  '<div class="right item"><button class="ui primary button">Add</button></div>';
+
+                                        html += '</div>';
+                                    });
+                                } else {
+                                    html = "<p>No annotations found for '"+ query +"'</p>";
+                                }
 
                                 const modal = document.getElementById('modal-annotations');
                                 modal.querySelector('.header').innerHTML = 'Results found:&nbsp;'+ hits.length.toLocaleString();
                                 modal.querySelector('.content').innerHTML = html;
 
-                                // Array.from(modal.querySelectorAll('.content button')).forEach(elem => {
-                                //     elem.addEventListener('click', e => {
-                                //         const menu = e.target.closest('[data-annid]');
-                                //         const annID = menu.getAttribute('data-annid');
-                                //         linkAbstract(entryID, annID, menu, modal.querySelector('.ui.segment[data-annid="'+ annID +'"]'));
-                                //     });
-                                // });
+                                Array.from(modal.querySelectorAll('.content button')).forEach(elem => {
+                                    elem.addEventListener('click', e => {
+                                        const menu = e.target.closest('[data-annid]');
+                                        const annID = menu.getAttribute('data-annid');
+                                        linkAnnotation(accession, annID)
+                                            .then(result => {
+                                                if (result.status) {
+                                                    getAnnotations(accession);
 
+                                                    // Remove menu to prevent user to add the abstract a second time
+                                                    menu.parentNode.removeChild(menu);
+
+                                                    // Update segment's style
+                                                    const segment = modal.querySelector('.ui.segment[data-annid="'+ annID +'"]');
+                                                    segment.className = 'ui secondary segment';
+                                                }
+                                            });
+                                    });
+                                });
                                 dimmer(false);
                                 $(modal).modal('show');
-
                             });
                     }
                 });
