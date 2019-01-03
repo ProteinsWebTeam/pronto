@@ -765,6 +765,93 @@ $(function () {
                 });
             })();
 
+            // Event to list signatures annotations
+            (function () {
+                document.getElementById('signatures-annotations').addEventListener('click', e => {
+                    fetch('/api/entry/' + accession + '/signatures/annotations/')
+                        .then(response => response.json())
+                        .then(results => {
+                            const signatures = new Map();
+                            let html = '';
+                            if (results.length) {
+                                results.forEach(s => {
+                                    signatures.set(s.accession, s.text);
+                                    html += '<div class="ui top attached mini menu">'
+                                        + '<a href="/prediction/'+ s.accession +'/" class="header item">'+ s.accession +'</a>';
+
+                                    if (s.name)
+                                        html += '<span class="item">'+ s.name +'</span>';
+
+                                    html += '</div>';
+                                    if (s.text) {
+                                        html += '<div class="ui attached segment">' + escapeXmlTags(s.text) + '</div>'
+                                            + '<div class="ui bottom attached borderless mini menu">'
+                                            + '<span class="item message"></span>'
+                                            + '<div class="right item">'
+                                            + '<button data-id="'+ s.accession +'" class="ui primary button">Add</button>'
+                                            + '</div>'
+                                            + '</div>';
+                                    } else
+                                        html += '<div class="ui bottom attached secondary segment">No annotation available.</i></div>';
+                                });
+                            } else
+                                html = '<p><strong>' + accession + '</strong> does not have any signatures.</p>';
+
+                            const modal = document.getElementById('modal-annotations');
+                            modal.querySelector('.header').innerHTML = 'Signatures annotations';
+                            modal.querySelector('.content').innerHTML = html;
+
+                            Array.from(modal.querySelectorAll('.content button[data-id]')).forEach(btn => {
+                                btn.addEventListener('click', e => {
+                                    const acc = e.target.getAttribute('data-id');
+                                    if (!signatures.has(acc))
+                                        return;
+
+                                    const options = {
+                                        method: 'PUT',
+                                        headers: {
+                                            'Content-type': 'application/x-www-form-urlencoded; charset=UTF-8'
+                                        },
+                                        body: 'text=' + signatures.get(acc)
+                                    };
+
+                                    const menu = btn.closest('.ui.menu');
+                                    const msg = menu.querySelector('.item.message');
+
+                                    fetch('/api/annotation/', options)
+                                        .then(response => response.json())
+                                        .then(result => {
+                                            /*
+                                                Whether the annotation was created (code 200) or it already exists (code 400),
+                                                we want to link it to
+                                             */
+                                            if (result.id)
+                                                return linkAnnotation(accession, result.id);
+                                            else {
+                                                msg.innerHTML = result.message;
+                                                msg.className = 'item negative message';
+                                            }
+                                        })
+                                        .then(result => {
+                                            if (result.status) {
+                                                getAnnotations(accession);
+                                                $(modal).modal('hide');
+                                            } else {
+                                                msg.innerHTML = result.message;
+                                                msg.className = 'item negative message';
+                                            }
+                                        });
+
+                                    // Return false to prevent modal to close
+                                    return false;
+                                });
+                            });
+
+                            $(modal).modal('show');
+                        });
+                });
+            })();
+
             // Event to search annotations
             (function () {
                 document.getElementById('search-annotations').addEventListener('keyup', e => {
@@ -799,7 +886,7 @@ $(function () {
                                         html += '</div>';
                                     });
                                 } else {
-                                    html = "<p>No annotations found for '"+ query +"'</p>";
+                                    html = '<p>No annotations found for <strong>'+ query +'</strong>.</p>';
                                 }
 
                                 const modal = document.getElementById('modal-annotations');
