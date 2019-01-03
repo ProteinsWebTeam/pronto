@@ -736,38 +736,28 @@ $(function () {
                                     .then(result => {
                                         if (result.status) {
                                             setClass(msg, 'hidden', true);
-                                            // getGOTerms(accession);
-                                            // resolve();
-                                            return new Promise(((resolve, reject) => {
 
-                                            }));
+                                            // Annotation created: clear textarea
+                                            modal.querySelector('textarea').value = null;
+
+                                            // Return a promise to link the created annotation to the entry
+                                            return linkAnnotation(accession, result.id);
                                         } else {
-                                            console.log(msg);
                                             msg.querySelector('.header').innerHTML = result.title;
                                             msg.querySelector('p').innerHTML = result.message.replace(/</g, '&lt;').replace(/>/g, '&gt;');
                                             setClass(msg, 'hidden', false);
                                         }
-                                    });
-                                return false;
-
-                                utils.post(
-                                    '/api/abstract/',
-                                    {
-                                        text: modal.querySelector('textarea').value,
-                                        entry: entryID
-                                    },
-                                    res => {
-                                        if (res.error) {
-                                            msg.querySelector('.header').innerHTML = res.error.title;
-                                            msg.querySelector('p').innerHTML = res.error.message.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                                        } else {
+                                    })
+                                    .then(result => {
+                                        if (result.status) {
+                                            getAnnotations(accession);
                                             $(modal).modal('hide');
-                                            utils.setClass(msg, 'hidden', true);
-                                            modal.querySelector('textarea').value = null;
-                                            getAbstracts(entryID);
+                                        } else {
+                                            // todo: show error
                                         }
-                                    }
-                                );
+                                    });
+
+                                // Return false to prevent modal to close
                                 return false;
                             }
                         })
@@ -831,6 +821,8 @@ $(function () {
                                                     // Update segment's style
                                                     const segment = modal.querySelector('.ui.segment[data-annid="'+ annID +'"]');
                                                     segment.className = 'ui secondary segment';
+                                                } else {
+                                                    // todo: show error
                                                 }
                                             });
                                     });
