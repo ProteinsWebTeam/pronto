@@ -40,6 +40,10 @@
             max-height: none;
             padding: .5rem;
         }
+        #modal-entries {
+            top: 0;
+            margin-top: 5rem !important; /* overwritte Semantic UI stuff */
+        }
     </style>
 </head>
 <body>
@@ -269,12 +273,17 @@
     </div>
 </div>
 
-<div id="modal-annotations" class="ui large modal">
+<div id="modal-annotations" class="ui coupled large modal">
     <div class="header"></div>
     <div class="scrolling content"></div>
     <div class="actions">
         <div class="ui basic secondary cancel button">Close</div>
     </div>
+</div>
+
+<div id="modal-entries" class="ui coupled tiny modal">
+    <i class="close icon"></i>
+    <div class="scrolling content"></div>
 </div>
 
 {% include 'footer.html' %}

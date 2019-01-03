@@ -248,7 +248,7 @@ function getAnnotations(accession) {
                         // Info menu (last edit comment and number of entries using this annotation)
                         + '<div class="right menu">'
                         + nvl(ann.comment, '', '<span class="item">'+ ann.comment +'</span>')
-                        + '<span class="item">Associated to '+ ann.count + (ann.count > 1 ? "&nbsp;entries" : "&nbsp;entry") + '</span>'
+                        + '<a class="item"><i class="list icon"></i> Associated to '+ ann.num_entries + ' entries</a>'
                         + '</div>'
                         + '</div>'
 
@@ -380,6 +380,31 @@ function getAnnotations(accession) {
                     else if (action === 'cancel')
                         annotationEditor.close();
 
+                });
+            });
+
+            // Display entries associated to a given annotation
+            Array.from(document.querySelectorAll('.annotation .ui.top.menu > .right.menu > a')).forEach(elem => {
+                elem.addEventListener('click', e => {
+                    const annID = e.target.closest('.annotation').getAttribute('id');
+                    fetch('/api/annotation/' + annID + '/entries/')
+                        .then(response => response.json())
+                        .then(entries => {
+                            let html = '<table class="ui very basic table"><tbody>';
+                            entries.forEach(e => {
+                                html += '<tr>' +
+                                    '<td class="collapsing">' +
+                                    '<span class="ui label circular type-'+ e.type +'">'+ e.type +'</span>' +
+                                    '</td>'
+                                    + '<td><a href="/entry/'+ e.accession +'/">'+ e.accession +'</a></td>'
+                                    + '<td>'+ e.name +'</td></tr>';
+
+                            });
+
+                            const modal = document.getElementById('modal-entries');
+                            modal.querySelector('.content').innerHTML = html;
+                            $(modal).modal('show');
+                        });
                 });
             });
         });
@@ -579,6 +604,12 @@ function escapeXmlTags(text) {
 $(function () {
     finaliseHeader();
     const accession = location.pathname.match(/^\/entry\/(.+)\/$/)[1];
+
+    // Initialise coupled modals (one opened on top of the other)
+    $('.coupled.modal')
+        .modal({
+            allowMultiple: true
+        });
 
     dimmer(true);
     fetch('/api' + location.pathname)
@@ -879,8 +910,10 @@ $(function () {
                                         else
                                             html += '<div data-annid="'+ ann.id +'" class="ui top attached segment">' + escapeXmlTags(ann.text) + '</div>';
 
-                                        html += '<div data-annid="'+ ann.id +'" class="ui bottom borderless attached mini menu">' +
-                                            '<span class="item">Associated to '+ ann.num_entries + ' entries</span>';
+                                        html += '<div data-annid="'+ ann.id +'" class="ui bottom borderless attached mini menu">';
+
+                                        if (ann.num_entries)
+                                            html += '<a class="item"><i class="list icon"></i> Associated to '+ ann.num_entries + ' entries</a>';
 
                                         if (!annotations.has(ann.id))
                                             html +=  '<div class="right item"><button class="ui primary button">Add</button></div>';
@@ -894,6 +927,30 @@ $(function () {
                                 const modal = document.getElementById('modal-annotations');
                                 modal.querySelector('.header').innerHTML = 'Results found:&nbsp;'+ hits.length.toLocaleString();
                                 modal.querySelector('.content').innerHTML = html;
+
+                                Array.from(modal.querySelectorAll('.content .ui.bottom.menu > a')).forEach(elem => {
+                                    elem.addEventListener('click', e => {
+                                        const annID = e.target.closest('[data-annid]').getAttribute('data-annid');
+                                        fetch('/api/annotation/' + annID + '/entries/')
+                                            .then(response => response.json())
+                                            .then(entries => {
+                                                let html = '<table class="ui very basic table"><tbody>';
+                                                entries.forEach(e => {
+                                                    html += '<tr>' +
+                                                        '<td class="collapsing">' +
+                                                        '<span class="ui label circular type-'+ e.type +'">'+ e.type +'</span>' +
+                                                        '</td>'
+                                                        + '<td><a href="/entry/'+ e.accession +'/">'+ e.accession +'</a></td>'
+                                                        + '<td>'+ e.name +'</td></tr>';
+
+                                                });
+
+                                                const modal = document.getElementById('modal-entries');
+                                                modal.querySelector('.content').innerHTML = html;
+                                                $(modal).modal('show');
+                                            });
+                                    });
+                                });
 
                                 Array.from(modal.querySelectorAll('.content button')).forEach(elem => {
                                     elem.addEventListener('click', e => {
