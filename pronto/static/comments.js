@@ -90,9 +90,8 @@ function getComments(type, accession, max, div, callback) {
                         "This comment will be marked as obsolete, and highlighted in red",
                         "Flag",
                         () => {
-                            fetch("/api/"+ type +"/" + accession + "/comment/" + id + "/", {
-                                method: "DELETE"
-                            }).then(response => response.json())
+                            fetch("/api/"+ type +"/" + accession + "/comment/" + id + "/", { method: "DELETE" })
+                                .then(response => response.json())
                                 .then(result => {
                                     if (result.status)
                                         getComments(type, accession, max, div, callback);
