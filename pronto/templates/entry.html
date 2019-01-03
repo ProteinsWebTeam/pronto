@@ -24,6 +24,22 @@
             margin-left: 0;
             padding-left: 1.5rem;
         }
+        .annotation .ui.top.attached.menu { margin-top: 1rem; }
+        .annotation .ui.form textarea { max-height: none; }
+        .ui.hidden.menu { display: none; }
+        .ui.modal .content .ui.menu:last-child,
+        .ui.modal .content .ui.segment:last-child {
+            margin-bottom: 1rem;  /* by default, the last menu attached to modal's bottom border: change this */
+        }
+        .ui.menu .item.positive.message { color: #2c662d; }
+        .ui.menu .item.negative.message { color: #9f3a38; }
+        #new-annotation textarea {
+            width: 100%;
+            resize: vertical;
+            min-height: 150px;
+            max-height: none;
+            padding: .5rem;
+        }
     </style>
 </head>
 <body>
@@ -126,9 +142,26 @@
                     <a data-signatures-page="enzyme" class="item">ENZYME</a>
                     <a data-signatures-page="literature" class="item">Literature</a>
                 </div>
+            </div>
 
+            <div class="ui basic vertical segment">
                 <h2 id="description" class="ui dividing header">Description</h2>
+                <button id="create-annotation" class="ui basic button">
+                    <i class="pencil icon"></i>
+                    New annotation
+                </button>
+                <button id="signatures-annotations" class="ui basic button">
+                    <i class="th list icon"></i>
+                    Signatures annotations
+                </button>
+                <div class="ui left icon input">
+                    <input id="search-annotations" placeholder="Search annotations" type="text">
+                    <i class="search icon"></i>
+                </div>
+                <div id="annotations"></div>
+            </div>
 
+            <div class="ui basic vertical segment">
                 <h2 id="signatures" class="ui dividing header">Contributing signatures</h2>
                 <table id="signatures-content" class="ui selectable table">
                     <thead>
@@ -157,7 +190,9 @@
                     </tr>
                     </tfoot>
                 </table>
+            </div>
 
+            <div class="ui basic vertical segment">
                 <h2 id="relationships" class="ui dividing header">InterPro relationships</h2>
                 <div id="add-relationship" class="ui form">
                     <div class="two fields">
@@ -180,7 +215,9 @@
                     <p></p>
                 </div>
                 <div id="relationships-content"></div>
+            </div>
 
+            <div class="ui basic vertical segment">
                 <h2 id="go-terms" class="ui dividing header">GO terms</h2>
                 <div id="add-terms" class="ui form">
                     <div class="field">
@@ -204,15 +241,40 @@
 
                 <h3 class="ui header">Cellular Components</h3>
                 <div id="cellular-components"></div>
+            </div>
 
-
+            <div class="ui basic vertical segment">
                 <h2 id="references" class="ui dividing header">References</h2>
+                <div id="references-content"></div>
 
                 <h2 class="ui dividing header">Supplementary references</h2>
+                <div id="supp-references-content"></div>
             </div>
         </div>
     </div>
+</div>
 
+<div id="new-annotation" class="ui modal">
+    <div class="header">New annotation</div>
+    <div class="scrolling content">
+        <div class="ui hidden error message">
+            <div class="header"></div>
+            <p></p>
+        </div>
+        <textarea></textarea>
+    </div>
+    <div class="actions">
+        <div class="ui basic secondary cancel button">Discard</div>
+        <div class="ui primary ok button">Create</div>
+    </div>
+</div>
+
+<div id="modal-annotations" class="ui modal">
+    <div class="header"></div>
+    <div class="scrolling content"></div>
+    <div class="actions">
+        <div class="ui basic secondary cancel button">Close</div>
+    </div>
 </div>
 
 {% include 'footer.html' %}

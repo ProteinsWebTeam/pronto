@@ -1,106 +1,178 @@
 import {dimmer, setClass, openErrorModal, openConfirmModal} from "../ui.js";
 import {finaliseHeader} from "../header.js";
 import {getEntryComments, postEntryComment} from "../comments.js";
+import {nvl} from "../utils.js";
 
-function _getGOTerms(entryID) {
-    utils.getJSON('/api/entry/' + entryID + '/go/', data => {
-        let content = '<dt>Molecular Function</dt>';
-        if (data.hasOwnProperty('F')) {
-            data['F'].forEach(term => {
-                content += '<dd><a target="_blank" href="http://www.ebi.ac.uk/QuickGO/GTerm?id=' + term.id + '">' + term.id + '&nbsp;<i class="external icon"></i></a>&nbsp;' + term.name;
+const annotationEditor = {
+    element: null,
+    textareaText: null,
+    textFormatted: null,
+    reset: function () {
+        this.element = null;
+        this.textareaText = null;
+        this.textFormatted = null;
+    },
+    open: function (annID, text) {
+        const element = document.getElementById(annID);
+        let segment;
 
-                if (term.isObsolete)
-                    content += '&nbsp;<span class="ui tiny red label">Obsolete</span>';
+        if (this.element === element)
+            return;  // Current annotation is being edited: carry on
+        else if (this.element !== null) {
+            // Another annotation is already being edited
+            const textareaText = this.element.querySelector('.segment textarea').value;
 
-                if (term.replacedBy)
-                    content += '&nbsp;<span class="ui tiny yellow label">Secondary</span>';
+            if (textareaText !== this.textareaText) {
+                /*
+                    Annotation has been changed:
+                    need to save or discard changes before editing another annotation
+                 */
+                openErrorModal({
+                    title: 'Cannot edit multiple annotation',
+                    message: 'Another annotation is already being edited. Please save or discard changes before editing a second annotation.'
+                });
+                return;
+            }
+            else {
+                // Edited but not changed: just replace by formatted annotation and move on
+                this.close();
+            }
+        }
 
-                content += '&nbsp;<a data-go-id="'+ term.id +'"><i class="trash icon"></i></a>';
-                content += '<i class="right-floated caret left icon"></i><p class="hidden">'+ term.definition +'</p></dd>';
+        this.element = element;
+
+        const menu = this.element.querySelector('.ui.bottom.menu');
+
+        // Reset error message
+        const msg = menu.querySelector('.item.message');
+        msg.className = 'item message';
+        msg.innerHTML = null;
+
+        // Display bottom menu
+        setClass(menu, 'hidden', false);
+
+        // Save formatted annotation
+        segment = this.element.querySelector('.segment');
+        this.textFormatted = segment.innerHTML;
+
+        // Display raw annotation
+        segment.innerHTML = '<div class="ui form">' +
+            '<div class="field">' +
+            '<label>Reason for update</label>' +
+            '<select>' +
+            '<option value="Cross-references">Cross-references</option>' +
+            '<option value="References">Literature references</option>' +
+            '<option value="Text" selected>Text</option>' +
+            '<option value="Spelling">Typos, grammar errors, spelling mistakes</option>' +
+            '</select>' +
+            '</div>' +
+            '<div class="field"><textarea rows="15"></textarea></div></div>';
+
+        const textarea = this.element.querySelector('.segment textarea');
+        textarea.value = text;
+        // If the annotation contains weird characters, they may be reformatted, so we read back from textarea
+        this.textareaText = textarea.value;
+    },
+    close: function () {
+        if (this.element === null) return;
+
+        // Hide bottom menu
+        setClass(this.element.querySelector('.ui.bottom.menu'), 'hidden', true);
+
+        // Restore formatted annotation
+        const segment = this.element.querySelector('.segment');
+        segment.innerHTML = this.textFormatted;
+
+        // recreate highlight even listeners for THIS annotation only
+        addHighlightEvenListeners(segment);
+
+        this.reset();
+    },
+    reorder: function(accession, annID, x) {
+        fetch('/api/entry/' + accession + '/annotation/' + annID + '/order/' + x + '/', { method: 'POST' })
+            .then(response => response.json())
+            .then(result => {
+                if (result.status)
+                    getAnnotations(accession);
+                else
+                    openErrorModal(result);
             });
-        } else
-            content += '<dd>No terms assigned in this category.</dd>';
+    },
+    drop: function (accession, annID) {
+        openConfirmModal(
+            'Unlink annotation?',
+            'This annotation will not be associated to <strong>' + accession + '</strong> any more.',
+            'Unlink',
+            () => {
+                fetch('/api/entry/' + accession + '/annotation/' + annID + '/', {method: 'DELETE'})
+                    .then(response => response.json())
+                    .then(result => {
+                        if (result.status)
+                            getAnnotations(accession);
+                        else
+                            openErrorModal(result);
+                    });
+            }
+        );
+    },
+    save: function (accession, annID) {
+        if (this.element === null) return;
 
-        content += '<dt>Biological Process</dt>';
-        if (data.hasOwnProperty('P')) {
-            data['P'].forEach(term => {
-                content += '<dd><a target="_blank" href="http://www.ebi.ac.uk/QuickGO/GTerm?id=' + term.id + '">' + term.id + '&nbsp;<i class="external icon"></i></a>&nbsp;' + term.name;
+        const select = this.element.querySelector('select');
+        const reason = select.options[select.selectedIndex].value;
 
-                if (term.isObsolete)
-                    content += '&nbsp;<span class="ui tiny red label">Obsolete</span>';
+        if (reason.length)
+            setClass(select.parentNode, 'error', false);
+        else {
+            setClass(select.parentNode, 'error', true);
+            return;
+        }
 
-                if (term.replacedBy)
-                    content += '&nbsp;<span class="ui tiny yellow label">Secondary</span>';
+        // Raw text to save
+        const textarea = this.element.querySelector('textarea');
+        const textareaText = textarea.value;
+        if (textareaText === this.textareaText) {
+            // Text did not change: close
+            this.close();
+            return;
+        }
 
-                content += '&nbsp;<a data-go-id="'+ term.id +'"><i class="trash icon"></i></a>';
-                content += '<i class="right-floated caret left icon"></i><p class="hidden">'+ term.definition +'</p></dd>';
+        const options = {
+            method: 'POST',
+            headers: {
+                'Content-type': 'application/x-www-form-urlencoded; charset=UTF-8'
+            },
+            body: 'text=' + textareaText + '&reason=' + reason
+        };
+
+        // Update annotation
+        fetch('/api/annotation/' + annID + '/', options)
+            .then(response => response.json())
+            .then(result => {
+                if (result.status)
+                    getAnnotations(accession);
+                else {
+                    const msg = this.element.querySelector('.item.message');
+                    msg.innerHTML = result.message.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    msg.className = 'item negative message';
+                }
             });
-        } else
-            content += '<dd>No terms assigned in this category.</dd>';
+    }
+};
 
-        content += '<dt>Cellular Component</dt>';
-        if (data.hasOwnProperty('C')) {
-            data['C'].forEach(term => {
-                content += '<dd><a target="_blank" href="http://www.ebi.ac.uk/QuickGO/GTerm?id=' + term.id + '">' + term.id + '&nbsp;<i class="external icon"></i></a>&nbsp;' + term.name;
+function linkAnnotation(accession, annID) {
 
-                if (term.isObsolete)
-                    content += '&nbsp;<span class="ui tiny red label">Obsolete</span>';
-
-                if (term.replacedBy)
-                    content += '&nbsp;<span class="ui tiny yellow label">Secondary</span>';
-
-                content += '&nbsp;<a data-go-id="'+ term.id +'"><i class="trash icon"></i></a>';
-                content += '<i class="right-floated caret left icon"></i><p class="hidden">'+ term.definition +'</p></dd>';
-            });
-        } else
-            content += '<dd>No terms assigned in this category.</dd>';
-
-
-        document.getElementById('interpro2go').innerHTML = content;
-
-        addGOEvents(entryID);
-    });
 }
 
-function addGOEvents(entryID) {
-    // TODO: when adding/removing, the counters should be updated as well.
-
-    // Showing/hiding GO defintions
-    Array.from(document.querySelectorAll('dl i.right-floated')).forEach(elem => {
+function addHighlightEvenListeners(div) {
+    Array.from(div.querySelectorAll('a[data-ref]')).forEach(elem => {
         elem.addEventListener('click', e => {
-            const icon = e.target;
-            const block = icon.parentNode.querySelector('p');
+            let active = document.querySelector('li.active');
+            if (active) setClass(active, 'active', false);
 
-            if (block.className === 'hidden') {
-                block.className = '';
-                icon.className = 'right-floated caret down icon';
-            } else {
-                block.className = 'hidden';
-                icon.className = 'right-floated caret left icon';
-            }
-        });
-    });
-
-    Array.from(document.querySelectorAll('a[data-go-id]')).forEach(elem => {
-        elem.addEventListener('click', e => {
-            const goID = elem.getAttribute('data-go-id');
-
-            utils.openConfirmModal(
-                'Delete GO term?',
-                '<strong>' + goID + '</strong> will not be associated to <strong>'+ entryID +'</strong> any more.',
-                'Delete',
-                function () {
-                    utils.deletexhr('/api/entry/' + entryID + '/go/', {ids: goID}, data => {
-                        if (data.status)
-                            getGOTerms(entryID);
-                        else {
-                            const modal = document.getElementById('error-modal');
-                            modal.querySelector('.content p').innerHTML = data.message;
-                            $(modal).modal('show');
-                        }
-                    });
-                }
-            )
+            const id = e.target.getAttribute('href').substr(1);
+            active = document.getElementById(id);
+            setClass(active, 'active', true);
         });
     });
 }
@@ -123,6 +195,273 @@ function addGoTerm(accession, termID) {
             });
     }));
 
+}
+
+function getAnnotations(accession) {
+    return fetch('/api' + location.pathname + 'annotations/')
+        .then(response => response.json())
+        .then(results => {
+            const rePub = /<cite\s+id="(PUB\d+)"\s*\/>/g;
+            const orderedRefs = [];
+            const supplRefs = [];
+            const annotations = new Map();
+
+            let html = '';
+            if (results.annotations.length) {
+                results.annotations.forEach(ann => {
+                    let text = ann.text;
+                    annotations.set(ann.id, text);
+
+                    // Search all references in the text
+                    let arr;
+                    while ((arr = rePub.exec(text)) !== null) {
+                        const pubID = arr[1];
+
+                        if (results.references.hasOwnProperty(pubID)) {
+                            let i = orderedRefs.indexOf(pubID);
+                            if (i === -1) {
+                                // First occurrence of the reference in any text
+                                orderedRefs.push(pubID);
+                                i = orderedRefs.length;
+                            } else
+                                i++;
+
+                            text = text.replace(arr[0], '<a data-ref href="#'+ pubID +'">'+ i +'</a>');
+                        }
+                    }
+
+                    // Replace cross-ref tags by links
+                    results.cross_references.forEach(xref => {
+                        text = text.replace(xref.tag, '<a href="'+ xref.url +'">'+ xref.id +'</a>');
+                    });
+
+                    html += '<div id="'+ ann.id +'" class="annotation">'
+
+                        // Action menu
+                        + '<div class="ui top attached mini menu">'
+                        + '<a data-action="edit" class="item"><abbr title="Edit this annotation"><i class="edit icon"></i></abbr></a>'
+                        + '<a data-action="movedown" class="item"><abbr title="Move this annotation down"><i class="arrow down icon"></i></abbr></a>'
+                        + '<a data-action="moveup" class="item"><abbr title="Move this annotation up"><i class="arrow up icon"></i></abbr></a>'
+                        + '<a data-action="delete" class="item"><abbr title="Delete this annotation"><i class="trash icon"></i></abbr></a>'
+
+                        // Info menu (last edit comment and number of entries using this annotation)
+                        + '<div class="right menu">'
+                        + nvl(ann.comment, '', '<span class="item">'+ ann.comment +'</span>')
+                        + '<span class="item">Associated to '+ ann.count + (ann.count > 1 ? "&nbsp;entries" : "&nbsp;entry") + '</span>'
+                        + '</div>'
+                        + '</div>'
+
+                        // Text
+                        + '<div class="ui attached segment">' + text + '</div>'
+
+                        // Bottom menu
+                        + '<div class="hidden ui borderless bottom attached mini menu" data-annid="'+ ann.id +'">'
+                        + '<span class="item message"></span>'
+                        + '<div class="right menu">'
+                        + '<div class="item"><a data-action="cancel" class="ui basic secondary button">Cancel</a></div>'
+                        + '<div class="item"><a data-action="save" class="ui primary button">Save</a></div>'
+                        + '</div>'
+                        + '</div>'
+                        + '</div>';
+                });
+            } else {
+                html = '<div class="ui error message">'
+                    + '<div class="header">Missing description</div>'
+                    + '<p>This entry has not annotations. Please add one, or make sure that this entry is not checked.</p>'
+                    + '</div>';
+            }
+
+            document.getElementById('annotations').innerHTML = html;
+
+            // Render references
+            if (orderedRefs.length) {
+                html += '<ol>';
+                orderedRefs.forEach(pubID => {
+                    const pub = results.references[pubID];
+
+                    html += '<li id="'+ pubID +'">'
+                        + '<div class="header">'+ pub.title +'</div>'
+                        + '<div class="item">'+ pub.authors +'</div>'
+                        + '<div class="item"><em>'+ pub.journal +'</em> '+ pub.year +', '+ pub.volume +':'+ pub.pages +'</div>'
+                        + '<div class="ui horizontal link list">';
+
+                    if (pub.doi)
+                        html += '<a target="_blank" class="item" href="'+ pub.doi +'">View article&nbsp;<i class="external icon"></i></a>';
+
+                    if (pub.pmid) {
+                        html += '<span class="item">Europe PMC:&nbsp;'
+                            + '<a target="_blank" class="item" href="http://europepmc.org/abstract/MED/'+ pub.pmid +'/">'
+                            + pub.pmid +'&nbsp;<i class="external icon"></i>'
+                            + '</a>'
+                            + '</span>';
+                    }
+                });
+
+                html += '</ol>';
+            }  else
+                html = '<p>This entry has no references.</p>';
+
+            document.getElementById('references-content').innerHTML = html;
+
+            // Render suppl. references
+            for (let pubID in results.references) {
+                if (results.references.hasOwnProperty(pubID) && !orderedRefs.includes(pubID))
+                    supplRefs.push(results.references[pubID]);
+            }
+
+            if (supplRefs.length) {
+                // Sort chronologically (as they do not appear in annotations)
+                supplRefs.sort((a, b) => { return a.year - b.year; });
+
+                html = '<p>The following publications were not referred to in the description, but provide useful additional information.</p>' +
+                    '<ul class="ui list">';
+
+                supplRefs.forEach(pub => {
+                    html += '<li id="'+ pub.id +'">'
+                        + '<div class="header">'+ pub.title +'</div>'
+                        + '<div class="item">'+ pub.authors +'</div>'
+                        + '<div class="item"><em>'+ pub.journal +'</em> '+ pub.year +', '+ pub.volume +':'+ pub.pages +'</div>'
+                        + '<div class="ui horizontal link list">';
+
+                    if (pub.doi)
+                        html += '<a target="_blank" class="item" href="'+ pub.doi +'">View article&nbsp;<i class="external icon"></i></a>';
+
+                    if (pub.pmid) {
+                        html += '<span class="item">Europe PMC:&nbsp;'
+                            + '<a target="_blank" class="item" href="http://europepmc.org/abstract/MED/'+ pub.pmid +'/">'
+                            + pub.pmid +'&nbsp;<i class="external icon"></i>'
+                            + '</a>'
+                            + '</span>';
+                    }
+                });
+
+                html += '</ul>';
+            } else
+                html = '<p>This entry has no additional references.</p>';
+
+            document.getElementById('supp-references-content').innerHTML = html;
+
+            // Update references stats
+            Array.from(document.querySelectorAll('[data-statistic="references"]')).forEach(elem => {
+                elem.innerHTML = (orderedRefs.length + supplRefs.length).toLocaleString();
+            });
+
+            // Highlight selected reference
+            Array.from(document.querySelectorAll('.annotation')).forEach(elem => {
+                addHighlightEvenListeners(elem);
+            });
+
+            // Event listener on actions
+            annotationEditor.reset();
+            Array.from(document.querySelectorAll('#annotations a[data-action]')).forEach(elem => {
+                elem.addEventListener('click', e => {
+                    // Do not use e.target as it could be the <abbr> or <i> elements
+
+                    const annID = elem.closest('.annotation').getAttribute('id');
+                    if (!annotations.has(annID)) {
+                        // TODO: display error?
+                        return;
+                    }
+
+                    const action = elem.getAttribute('data-action');
+                    const text = annotations.get(annID);
+                    if (action === 'edit')
+                        annotationEditor.open(annID, text);
+                    else if (action === 'movedown')
+                        annotationEditor.reorder(accession, annID, 1);
+                    else if (action === 'moveup')
+                        annotationEditor.reorder(accession, annID, -1);
+                    else if (action === 'delete')
+                        annotationEditor.drop(accession, annID);
+                    else if (action === 'save')
+                        annotationEditor.save(accession, annID);
+                    else if (action === 'cancel')
+                        annotationEditor.close();
+                });
+            });
+        });
+}
+
+function getGOTerms(accession) {
+    return fetch('/api' + location.pathname + 'go/')
+        .then(response => response.json())
+        .then(terms => {
+            // Stats
+            Array.from(document.querySelectorAll('[data-statistic="go"]')).forEach(elem => {
+                elem.innerHTML = terms.length;
+            });
+
+            renderGoTerms(terms.filter(t => t.category === 'F'), document.getElementById('molecular-functions'), accession);
+            renderGoTerms(terms.filter(t => t.category === 'P'), document.getElementById('biological-processes'), accession);
+            renderGoTerms(terms.filter(t => t.category === 'C'), document.getElementById('cellular-components'), accession);
+        });
+}
+
+function getRelationships(accession) {
+    return fetch('/api' + location.pathname + 'relationships/')
+        .then(response => response.json())
+        .then(relationships => {
+            const nest = function(obj, isRoot, accession) {
+                let html = '';
+                const keys = Object.keys(obj).sort();
+                if (keys.length) {
+                    if (isRoot)
+                        html += '<div class="ui list">';
+                    else
+                        html += '<div class="list">';
+
+                    keys.forEach(key => {
+                        const node = obj[key];
+                        html += '<div class="item">'
+                            + '<div class="content">'
+                            + '<div class="header">'
+                            + '<span class="ui mini label circular type-'+ node.type +'">'+ node.type +'</span>';
+
+                        if (node.accession === accession)
+                            html += node.name + ' (' + node.accession + ')';
+                        else {
+                            html += '<a href="/entry/' + node.accession + '/">' + node.name + ' (' + node.accession + ')</a>';
+
+                            if (node.deletable)
+                                html += '<i data-id="'+ node.accession +'" class="button right floated trash icon"></i>';
+                        }
+
+                        html += '</div>'  // close header
+                            + nest(node.children, false, accession)
+                            + '</div>'  // close content
+                            + '</div>'  // close item;
+                    });
+                    html += '</div>';
+                } else if (isRoot)
+                    html += '<p>This entry has no relationships.</p>';
+
+                return html;
+            };
+
+            const div = document.getElementById('relationships-content');
+            div.innerHTML = nest(relationships, true, accession);
+            Array.from(div.querySelectorAll('[data-id]')).forEach(elem => {
+                elem.addEventListener('click', e => {
+                    const accession2 = elem.getAttribute('data-id');
+
+                    openConfirmModal(
+                        'Delete relationship?',
+                        '<strong>' + accession + '</strong> and <strong>'+ accession2 +'</strong> will not be related any more.',
+                        'Delete',
+                        () => {
+                            fetch('/api/entry/' + accession + '/relationship/' + accession2 + '/', {method: 'DELETE'})
+                                .then(response => response.json())
+                                .then(result => {
+                                    if (result.status)
+                                        getRelationships(accession);
+                                    else
+                                        openErrorModal(result);
+                                });
+                        }
+                    );
+                });
+            });
+        });
 }
 
 function getSignatures(accession) {
@@ -227,86 +566,11 @@ function renderGoTerms(terms, div, accession) {
     });
 }
 
-function getGOTerms(accession) {
-    return fetch('/api' + location.pathname + 'go/')
-        .then(response => response.json())
-        .then(terms => {
-            // Stats
-            Array.from(document.querySelectorAll('[data-statistic="go"]')).forEach(elem => {
-                elem.innerHTML = terms.length;
-            });
-
-            renderGoTerms(terms.filter(t => t.category === 'F'), document.getElementById('molecular-functions'), accession);
-            renderGoTerms(terms.filter(t => t.category === 'P'), document.getElementById('biological-processes'), accession);
-            renderGoTerms(terms.filter(t => t.category === 'C'), document.getElementById('cellular-components'), accession);
-        });
-}
-
-function getRelationships(accession) {
-    return fetch('/api' + location.pathname + 'relationships/')
-        .then(response => response.json())
-        .then(relationships => {
-            const nest = function(obj, isRoot, accession) {
-                let html = '';
-                const keys = Object.keys(obj).sort();
-                if (keys.length) {
-                    if (isRoot)
-                        html += '<div class="ui list">';
-                    else
-                        html += '<div class="list">';
-
-                    keys.forEach(key => {
-                        const node = obj[key];
-                        html += '<div class="item">'
-                            + '<div class="content">'
-                            + '<div class="header">'
-                            + '<span class="ui mini label circular type-'+ node.type +'">'+ node.type +'</span>';
-
-                        if (node.accession === accession)
-                            html += node.name + ' (' + node.accession + ')';
-                        else {
-                            html += '<a href="/entry/' + node.accession + '/">' + node.name + ' (' + node.accession + ')</a>';
-
-                            if (node.deletable)
-                                html += '<i data-id="'+ node.accession +'" class="button right floated trash icon"></i>';
-                        }
-
-                        html += '</div>'  // close header
-                            + nest(node.children, false, accession)
-                            + '</div>'  // close content
-                            + '</div>'  // close item;
-                    });
-                    html += '</div>';
-                } else if (isRoot)
-                    html += '<p>This entry has no relationships.</p>';
-
-                return html;
-            };
-
-            const div = document.getElementById('relationships-content');
-            div.innerHTML = nest(relationships, true, accession);
-            Array.from(div.querySelectorAll('[data-id]')).forEach(elem => {
-                elem.addEventListener('click', e => {
-                    const accession2 = elem.getAttribute('data-id');
-
-                    openConfirmModal(
-                        'Delete relationship?',
-                        '<strong>' + accession + '</strong> and <strong>'+ accession2 +'</strong> will not be related any more.',
-                        'Delete',
-                        () => {
-                            fetch('/api/entry/' + accession + '/relationship/' + accession2 + '/', {method: 'DELETE'})
-                                .then(response => response.json())
-                                .then(result => {
-                                    if (result.status)
-                                        getRelationships(accession);
-                                    else
-                                        openErrorModal(result);
-                                });
-                        }
-                    );
-                });
-            });
-        });
+function escapeXmlTags(text) {
+    return text
+        .replace(/<cite\s+id="(PUB\d+)"\s*\/>/g, '&lt;cite id="$1"/&gt;')
+        .replace(/<dbxref\s+db\s*=\s*"(\w+)"\s+id\s*=\s*"([\w.\-]+)"\s*\/>/g, '&ltdbxref db="$1" id="$2"/&gt;')
+        .replace(/<taxon\s+tax_id\s*=\s*"(\d+)"\s*>([^<]+)<\/taxon>/g, '&lttaxon tax_id="$1"&gt;$2&lt;/taxon&gt;');
 }
 
 $(function () {
@@ -355,11 +619,10 @@ $(function () {
                 getSignatures(accession),
                 getGOTerms(accession),
                 getRelationships(accession),
-
+                getAnnotations(accession)
             ];
 
             Promise.all(promises).then(value => {
-                console.log(value);
                 dimmer(false);
             });
 
@@ -444,6 +707,121 @@ $(function () {
                     }
                 })
             })();
+
+            // Event to create annotations
+            (function () {
+                document.getElementById('create-annotation').addEventListener('click', e => {
+                    const modal = document.getElementById('new-annotation');
+                    const msg = modal.querySelector('.message');
+
+                    $(modal)
+                        .modal({
+                            closable: false,
+                            onDeny: function() {
+                                modal.querySelector('textarea').value = null;
+                                setClass(msg, 'hidden', true);
+                            },
+                            onApprove: function() {
+                                const options = {
+                                    method: 'PUT',
+                                    headers: {
+                                        'Content-type': 'application/x-www-form-urlencoded; charset=UTF-8'
+                                    },
+                                    body: 'text=' + modal.querySelector('textarea').value
+                                };
+
+                                fetch('/api/annotation/', options)
+                                    .then(response => response.json())
+                                    .then(result => {
+                                        if (result.status) {
+                                            setClass(msg, 'hidden', true);
+                                            // getGOTerms(accession);
+                                            // resolve();
+                                            return new Promise(((resolve, reject) => {
+
+                                            }));
+                                        } else {
+                                            console.log(msg);
+                                            msg.querySelector('.header').innerHTML = result.title;
+                                            msg.querySelector('p').innerHTML = result.message.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                                            setClass(msg, 'hidden', false);
+                                        }
+                                    });
+                                return false;
+
+                                utils.post(
+                                    '/api/abstract/',
+                                    {
+                                        text: modal.querySelector('textarea').value,
+                                        entry: entryID
+                                    },
+                                    res => {
+                                        if (res.error) {
+                                            msg.querySelector('.header').innerHTML = res.error.title;
+                                            msg.querySelector('p').innerHTML = res.error.message.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                                        } else {
+                                            $(modal).modal('hide');
+                                            utils.setClass(msg, 'hidden', true);
+                                            modal.querySelector('textarea').value = null;
+                                            getAbstracts(entryID);
+                                        }
+                                    }
+                                );
+                                return false;
+                            }
+                        })
+                        .modal('show');
+                });
+            })();
+
+            // Event to search annotations
+            (function () {
+                document.getElementById('search-annotations').addEventListener('keyup', e => {
+                    if (e.which === 13) {
+                        const value = e.target.value.trim();
+
+                        if (value.length < 3)
+                            return;
+
+                        dimmer(true);
+                        fetch('/api/annotation/search/?q=' + value)
+                            .then(response => response.json())
+                            .then(hits => {
+                                let html = '';
+                                hits.forEach(ann => {
+                                    if (1)
+                                        html += '<div data-annid="'+ ann.id +'" class="ui top attached secondary segment">' + escapeXmlTags(ann.text) + '</div>';
+                                    else
+                                        html += '<div data-annid="'+ ann.id +'" class="ui top attached segment">' + escapeXmlTags(ann.text) + '</div>';
+
+                                    html += '<div data-annid="'+ ann.id +'" class="ui bottom borderless attached mini menu">' +
+                                        '<span class="item">Associated to '+ ann.num_entries + ' entries</span>';
+
+                                    if (!1)
+                                        html +=  '<div class="right item"><button class="ui primary button">Add</button></div>';
+
+                                    html += '</div>';
+                                });
+
+                                const modal = document.getElementById('modal-annotations');
+                                modal.querySelector('.header').innerHTML = 'Results found:&nbsp;'+ hits.length.toLocaleString();
+                                modal.querySelector('.content').innerHTML = html;
+
+                                // Array.from(modal.querySelectorAll('.content button')).forEach(elem => {
+                                //     elem.addEventListener('click', e => {
+                                //         const menu = e.target.closest('[data-annid]');
+                                //         const annID = menu.getAttribute('data-annid');
+                                //         linkAbstract(entryID, annID, menu, modal.querySelector('.ui.segment[data-annid="'+ annID +'"]'));
+                                //     });
+                                // });
+
+                                dimmer(false);
+                                $(modal).modal('show');
+
+                            });
+                    }
+                });
+            })();
         });
 
     return;
@@ -482,8 +860,6 @@ $(function () {
                 );
         });
     });
-
-    addGOEvents(entryID);
 
     const div = document.getElementById('add-terms');
     const input = div.querySelector('.ui.input input');
