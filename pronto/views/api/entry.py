@@ -45,6 +45,339 @@ def get_entry(accession):
         return jsonify(None), 404
 
 
+@app.route('/api/entry/<acc>/annotation/<ann_id>/', methods=["DELETE"])
+def unlink_annotation(acc, ann_id):
+    user = get_user()
+    if not user:
+        return jsonify({
+            "status": False,
+            "title": "Access denied",
+            "message": 'Please <a href="/login/">log in</a> '
+                       'to perform this operation.'
+        }), 401
+
+    con = db.get_oracle()
+    cur = con.cursor()
+
+    try:
+        cur.execute(
+            """
+            DELETE FROM INTERPRO.ENTRY2COMMON
+            WHERE ENTRY_AC = :1 AND ANN_ID = :2 
+            """,
+            (acc, ann_id)
+        )
+    except DatabaseError:
+        return jsonify({
+            "status": False,
+            "title": "Database error",
+            "message": "Could not unlink annotation."
+        }), 400
+    else:
+        con.commit()
+        return jsonify({
+            "status": True
+        }), 200
+    finally:
+        cur.close()
+
+
+@app.route('/api/entry/<acc>/annotation/<ann_id>/', methods=["PUT"])
+def link_annotation(acc, ann_id):
+    user = get_user()
+    if not user:
+        return jsonify({
+            "status": False,
+            "title": "Access denied",
+            "message": 'Please <a href="/login/">log in</a> '
+                       'to perform this operation.'
+        }), 401
+
+    con = db.get_oracle()
+    cur = con.cursor()
+    cur.execute(
+        """
+        SELECT MAX(ORDER_IN)
+        FROM INTERPRO.ENTRY2COMMON
+        WHERE ENTRY_AC = :1
+        """, (acc,)
+    )
+    order_in = cur.fetchone()[0]
+    if order_in is None:
+        order_in = 0
+    else:
+        order_in += 1
+
+    try:
+        cur.execute(
+            """
+            INSERT INTO INTERPRO.ENTRY2COMMON (ENTRY_AC, ANN_ID, ORDER_IN)
+            VALUES (:1, :2, :3) 
+            """,
+            (acc, ann_id, order_in)
+        )
+    except (DatabaseError, IntegrityError):
+        return jsonify({
+            "status": False,
+            "title": "Database error",
+            "message": "Could not link annotation."
+        }), 400
+    else:
+        con.commit()
+        return jsonify({
+            "status": True
+        }), 200
+    finally:
+        cur.close()
+
+
+@app.route('/api/entry/<acc>/annotation/<annid>/order/<x>/', methods=["POST"])
+def reorder_annotation(acc, annid, x):
+    try:
+        x = int(x)
+    except ValueError:
+        return jsonify({
+            "status": False,
+            "title": "Invalid parameter",
+            "message": "'x' must be an integer"
+        }), 400
+
+    user = get_user()
+    if not user:
+        return jsonify({
+            "status": False,
+            "title": "Access denied",
+            "message": 'Please <a href="/login/">log in</a> '
+                       'to perform this operation.'
+        }), 401
+
+    con = db.get_oracle()
+    cur = con.cursor()
+
+    # Get the position of every annotation
+    cur.execute(
+        """
+        SELECT ANN_ID, ORDER_IN
+        FROM INTERPRO.ENTRY2COMMON
+        WHERE ENTRY_AC = :1
+        """,
+        (acc,)
+    )
+    annotations = dict(cur.fetchall())
+
+    if annid not in annotations:
+        cur.close()
+        return jsonify({
+            "status": False,
+            "title": "Invalid parameters",
+            "message": "{} is not linked by {}".format(annid, acc)
+        }), 400
+
+
+    max_order = max(annotations.values())
+    min_order = min(annotations.values())
+
+    # Annotations in the current order
+    annotations = sorted(annotations, key=lambda k: annotations[k])
+
+    # Current index of the annotation to move
+    idx = annotations.index(annid)
+
+    # New index, forced to stay in the range [0, num_annotations-1]
+    new_idx = min(max(0, idx + x), len(annotations)-1)
+
+    if idx == new_idx:
+        # Nothing to change
+        cur.close()
+        return jsonify({
+            "status": True
+        }), 200
+
+    # Remove the annotation, then insert it at its new index
+    annotations.pop(idx)
+    annotations.insert(new_idx, annid)
+
+    """
+    We would like to use the range [0, num_annotations[
+    but that is only possible if max_order > min_order >= num_annotations.
+    If it is not, we are using the range [max_order+1, max_order+1+num_annotations[
+    """
+    if max_order > min_order >= len(annotations):
+        offset = 0
+    else:
+        offset = max_order + 1
+
+    for i, annid in enumerate(annotations):
+        cur.execute(
+            """
+            UPDATE INTERPRO.ENTRY2COMMON
+            SET ORDER_IN = :1
+            WHERE ENTRY_AC = :2 AND ANN_ID = :3
+            """, (i + offset, acc, annid)
+        )
+
+    con.commit()
+    cur.close()
+
+    return jsonify({
+        "status": True
+    }), 200
+
+
+@app.route('/api/entry/<accession>/annotations/')
+def get_entry_annotations(accession):
+    cur = db.get_oracle().cursor()
+    # References
+    cur.execute(
+        """
+        SELECT
+          C.PUB_ID,
+          C.TITLE,
+          C.YEAR,
+          C.VOLUME,
+          C.RAWPAGES,
+          C.DOI_URL,
+          C.PUBMED_ID,
+          C.ISO_JOURNAL,
+          C.MEDLINE_JOURNAL,
+          C.AUTHORS
+        FROM INTERPRO.CITATION C
+        WHERE C.PUB_ID IN (
+          SELECT PUB_ID
+          FROM INTERPRO.ENTRY2PUB
+          WHERE ENTRY_AC = :acc
+          UNION
+          SELECT M.PUB_ID
+          FROM INTERPRO.METHOD2PUB M
+          INNER JOIN INTERPRO.ENTRY2METHOD E ON E.METHOD_AC = M.METHOD_AC
+          WHERE ENTRY_AC = :acc
+          UNION
+          SELECT PUB_ID
+          FROM INTERPRO.PDB_PUB_ADDITIONAL
+          WHERE ENTRY_AC = :acc
+          UNION
+          SELECT SUPPLEMENTARY_REF.PUB_ID
+          FROM INTERPRO.SUPPLEMENTARY_REF
+          WHERE ENTRY_AC = :acc
+        )
+        """,
+        dict(acc=accession)
+    )
+
+    columns = ("id", "title", "year", "volume", "pages", "doi", "pmid",
+               "journal_iso", "journal_medline", "authors")
+    references = {row[0]: dict(zip(columns, row)) for row in cur}
+
+    # annotations
+    cur.execute(
+        """
+        SELECT A.ANN_ID, A.TEXT, A.COMMENTS, S.CT
+        FROM INTERPRO.COMMON_ANNOTATION A
+        INNER JOIN INTERPRO.ENTRY2COMMON E ON A.ANN_ID = E.ANN_ID
+        LEFT OUTER JOIN (
+          SELECT ANN_ID, COUNT(*) CT
+          FROM INTERPRO.ENTRY2COMMON
+          GROUP BY ANN_ID
+        ) S ON A.ANN_ID = S.ANN_ID
+        WHERE E.ENTRY_AC = :1
+        ORDER BY E.ORDER_IN
+        """,
+        (accession,)
+    )
+
+    annotations = []
+    missing_refs = set()
+    xrefs = []
+    prog_ref = r'<cite\s+id="(PUB\d+)"\s*/>'
+    prog_xref = r'<dbxref\s+db\s*=\s*"(\w+)"\s+id\s*=\s*"([\w\.\-]+)"\s*\/>'
+    prog_taxa = r'<taxon\s+tax_id="(\d+)">([^<]+)</taxon>'
+
+    for ann_id, text, comment, count in cur:
+        # Find missing references
+        for m in re.finditer(prog_ref, text):
+            ref = m.group(1)
+
+            if ref not in references:
+                missing_refs.add(ref)
+
+        # Find cross-references
+        for m in re.finditer(prog_xref, text):
+            match = m.group(0)
+            dbcode = m.group(1).upper()
+            xref_id = m.group(2)
+
+            url = xref.find_xref(dbcode)
+            if url:
+                url = url.format(xref_id)
+                xrefs.append({
+                    "tag": match,
+                    "url": url,
+                    "id": xref_id
+                })
+            else:
+                # TODO: what do we do with unknown cross-references?
+                continue
+
+        for m in re.finditer(prog_taxa, text):
+            xrefs.append({
+                "tag": m.group(0),
+                "url": "https://www.uniprot.org/taxonomy/{}/".format(
+                    m.group(1)
+                ),
+                "id": m.group(2)
+            })
+
+        annotations.append({
+            "id": ann_id,
+            "text": text,
+            "comment": comment,
+            "count": count
+        })
+
+    if missing_refs:
+        # Some associations entry-citation are missing in ENTRY2PUB
+        cur.execute(
+            """
+            SELECT
+              PUB_ID,
+              TITLE,
+              YEAR,
+              VOLUME,
+              RAWPAGES,
+              DOI_URL,
+              PUBMED_ID,
+              ISO_JOURNAL,
+              MEDLINE_JOURNAL,
+              AUTHORS
+            FROM INTERPRO.CITATION
+            WHERE PUB_ID IN ({})
+            """.format(','.join([':'+str(i+1)
+                                 for i in range(len(missing_refs))])),
+            tuple(missing_refs)
+        )
+
+        references.update({
+            row[0]: dict(zip(columns, row))
+            for row in cur
+        })
+
+    cur.close()
+    # Select journal (default: ISO, fallback to MEDLINE)
+    for ref, pub in references.items():
+        journal_iso = pub.pop("journal_iso")
+        journal_med = pub.pop("journal_medline")
+        if journal_iso:
+            references[ref]["journal"] = journal_iso
+        else:
+            references[ref]["journal"] = journal_med
+
+    return jsonify({
+        "annotations": annotations,
+        "references": references,
+        "cross_references": xrefs
+    }), 200
+
+
 @app.route("/api/entry/<accession>/check/", methods=["POST"])
 def check_entry(accession):
     content = request.get_json()
