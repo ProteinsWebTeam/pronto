@@ -53,7 +53,8 @@ def get_entry_signatures(accession):
         SELECT
           DBCODE,
           METHOD_AC,
-          NAME
+          NAME,
+          PROTEIN_COUNT
         FROM {0}.METHOD
         WHERE METHOD_AC IN (
           SELECT METHOD_AC
@@ -72,7 +73,7 @@ def get_entry_signatures(accession):
         signatures.append({
             "accession": row[1],
             "name": row[2],
-            "num_proteins": 0,  # TODO: get count from METHOD.PROTEIN_COUNT
+            "num_proteins": row[3],
             "link": database.gen_link(),
             "color": database.color,
             "database": database.name
@@ -106,13 +107,256 @@ def get_entry_go_terms(accession):
             "name": row[1],
             "category": row[2],
             "definition": row[3],
-            "is_obsolote": row[4] == 'Y',
-            "replaced_by": row[5]
+            "is_obsolete": row[4] == 'Y',
+            "secondary": row[5] is not None
         })
 
     cur.close()
 
     return jsonify(terms), 200
+
+
+@app.route("/api/entry/<accession>/go/<term_id>/", methods=['DELETE'])
+def delete_go_term(accession, term_id):
+    user = get_user()
+
+    if not user:
+        return jsonify({
+            "status": False,
+            "title": "Access denied",
+            "message": 'Please <a href="/login/">log in</a> '
+                       'to perform this operation.'
+        }), 401
+
+    con = db.get_oracle()
+    cur = con.cursor()
+    try:
+        cur.execute(
+            """
+            DELETE FROM INTERPRO.INTERPRO2GO
+            WHERE ENTRY_AC = :1 AND GO_ID = :2
+            """,
+            (accession, term_id)
+        )
+    except IntegrityError:
+        return jsonify({
+            "status": False,
+            "title": "Database error",
+            "message": "Could not delete GO term {} "
+                       "from InterPro entry {}".format(accession, term_id)
+        }), 400
+    else:
+        # row_count = cur.rowcount  # TODO: check that row_count == 1?
+        con.commit()
+        return jsonify({
+            "status": True,
+            "title": None,
+            "message": None
+        }), 200
+    finally:
+        cur.close()
+
+
+@app.route("/api/entry/<parent_acc>/child/<child_acc>/", methods=["PUT"])
+def add_child_relationship(parent_acc, child_acc):
+    user = get_user()
+    if not user:
+        return jsonify({
+            "status": False,
+            "title": "Access denied",
+            "message": 'Please <a href="/login/">log in</a> '
+                       'to perform this operation.'
+        }), 401
+
+    con = db.get_oracle()
+    cur = con.cursor()
+    cur.execute(
+        """
+        SELECT ENTRY_AC, ENTRY_TYPE
+        FROM INTERPRO.ENTRY 
+        WHERE ENTRY_AC = :1 OR ENTRY_AC = :2
+        """, (parent_acc, child_acc)
+    )
+    entries = dict(cur.fetchall())
+
+    if parent_acc not in entries:
+        cur.close()
+        return jsonify({
+            "status": False,
+            "title": "Invalid entry",
+            "message": "{} is not "
+                       "a valid InterPro accession.".format(parent_acc)
+        }), 400
+    elif child_acc not in entries:
+        cur.close()
+        return jsonify({
+            "status": False,
+            "title": "Invalid entry",
+            "message": "{} is not "
+                       "a valid InterPro accession.".format(child_acc)
+        }), 400
+    elif entries[parent_acc] != entries[child_acc]:
+        cur.close()
+        return jsonify({
+            "status": False,
+            "title": "Invalid relationship",
+            "message": "{} and {} do not have the same type.".format(
+                parent_acc, child_acc
+            )
+        }), 400
+
+    cur.execute(
+        """
+        SELECT COUNT(*) 
+        FROM INTERPRO.ENTRY2ENTRY
+        WHERE PARENT_AC = :1 AND ENTRY_AC = :2
+        """, (parent_acc, child_acc)
+    )
+    if cur.fetchone()[0]:
+        cur.close()
+        return jsonify({
+            "status": True
+        }), 200
+
+    try:
+        cur.execute(
+            """
+            INSERT INTO INTERPRO.ENTRY2ENTRY (ENTRY_AC, PARENT_AC, RELATION)
+            VALUES (:1, :2, :3)
+            """, (child_acc, parent_acc, "TY")
+        )
+    except (DatabaseError, IntegrityError):
+        return jsonify({
+            "status": False,
+            "title": "Database error",
+            "message": "Could not link {} to {}.".format(parent_acc, child_acc)
+        }), 400
+    else:
+        con.commit()
+        return jsonify({
+            "status": True
+        }), 200
+    finally:
+        cur.close()
+
+
+@app.route("/api/entry/<acc1>/relationship/<acc2>/", methods=['DELETE'])
+def delete_relationship(acc1, acc2):
+    user = get_user()
+
+    if not user:
+        return jsonify({
+            "status": False,
+            "title": "Access denied",
+            "message": 'Please <a href="/login/">log in</a> '
+                       'to perform this operation.'
+        }), 401
+
+    con = db.get_oracle()
+    cur = con.cursor()
+    try:
+        cur.execute(
+            """
+            DELETE FROM INTERPRO.ENTRY2ENTRY
+            WHERE (PARENT_AC = :acc1 AND ENTRY_AC = :acc2)
+            OR (PARENT_AC = :acc2 AND ENTRY_AC = :acc1)
+            """,
+            dict(acc1=acc1, acc2=acc2)
+        )
+    except IntegrityError:
+        return jsonify({
+            "status": False,
+            "title": "Database error",
+            "message": "Could not delete unlink {} and {}".format(acc1, acc2)
+        }), 400
+    else:
+        # row_count = cur.rowcount  # TODO: check that row_count == 1?
+        con.commit()
+        return jsonify({
+            "status": True,
+            "title": None,
+            "message": None
+        }), 200
+    finally:
+        cur.close()
+
+
+@app.route("/api/entry/<accession>/go/<term_id>/", methods=["PUT"])
+def add_go_term(accession, term_id):
+    user = get_user()
+    if not user:
+        return jsonify({
+            "status": False,
+            "title": "Access denied",
+            "message": 'Please <a href="/login/">log in</a> '
+                       'to perform this operation.'
+        }), 401
+
+    con = db.get_oracle()
+    cur = con.cursor()
+    cur.execute(
+        """
+        SELECT COUNT(*) 
+        FROM INTERPRO.ENTRY 
+        WHERE ENTRY_AC = :1
+        """, (accession,)
+    )
+    if not cur.fetchone()[0]:
+        cur.close()
+        return jsonify({
+            "status": False,
+            "title": "Invalid entry",
+            "message": "{} is not a valid InterPro accession.".format(accession)
+        }), 400
+
+    cur.execute(
+        """
+        SELECT COUNT(*) 
+        FROM {}.TERM 
+        WHERE GO_ID = :1
+        """.format(app.config["DB_SCHEMA"]), (term_id,)
+    )
+    if not cur.fetchone()[0]:
+        cur.close()
+        return jsonify({
+            "status": False,
+            "title": "Invalid GO term",
+            "message": "{} is not a valid GO term ID".format(term_id)
+        }), 400
+
+    cur.execute(
+        """
+        SELECT COUNT(*)
+        FROM INTERPRO.INTERPRO2GO
+        WHERE ENTRY_AC = :1 AND GO_ID = :2
+        """, (accession, term_id)
+    )
+    if cur.fetchone()[0]:
+        cur.close()
+        return jsonify({
+            "status": True
+        }), 200
+
+    try:
+        cur.execute(
+            """
+            INSERT INTO INTERPRO.INTERPRO2GO (ENTRY_AC, GO_ID, SOURCE)
+            VALUES (:1, :2, :3)
+            """, (accession, term_id, "MANU")
+        )
+    except (DatabaseError, IntegrityError):
+        return jsonify({
+            "status": False,
+            "title": "Database error",
+            "message": "Could not add {} to {}".format(term_id, accession)
+        }), 400
+    else:
+        con.commit()
+        return jsonify({
+            "status": True
+        }), 200
+    finally:
+        cur.close()
 
 
 @app.route("/api/entry/<accession>/relationships/")
@@ -175,7 +419,8 @@ def get_entry_relationships(accession):
                 "accession": parent_acc,
                 "name": parent_name,
                 "type": parent_type,
-                "children": {}
+                "children": {},
+                "deletable": child_acc == accession
             }
 
         if child_acc in hierarchy:
@@ -185,7 +430,8 @@ def get_entry_relationships(accession):
                 "accession": child_acc,
                 "name": child_name,
                 "type": child_type,
-                "children": {}
+                "children": {},
+                "deletable": parent_acc == accession
             }
 
         node["children"][child_acc] = child
