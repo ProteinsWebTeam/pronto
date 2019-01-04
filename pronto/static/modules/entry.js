@@ -473,7 +473,16 @@ function getRelationships(accession) {
 
             const div = document.querySelector('#relationships > .content');
             div.innerHTML = nest(relationships, true, accession);
-            Array.from(div.querySelectorAll('[data-id]')).forEach(elem => {
+
+            const directRelationships = Array.from(div.querySelectorAll('[data-id]'));
+
+            // Update relationships stats
+            Array.from(document.querySelectorAll('[data-statistic="relationships"]')).forEach(elem => {
+                elem.innerHTML = directRelationships.length.toLocaleString();
+            });
+
+            // Event to delete relationships
+            directRelationships.forEach(elem => {
                 elem.addEventListener('click', e => {
                     const accession2 = elem.getAttribute('data-id');
 
