@@ -363,29 +363,46 @@ def get_annotations(accession):
             "num_entries": count
         })
 
-    # Get references from the entry-pub table
+    """
+    Get references from ref tables
+    We consider that entries in ENTRY2PUB are update automatically
+        (i.e. when an annotation is updated, linked, unlinked)
+    and entries in SUPPLEMENTARY_REF are created by curators (i.e. deletable)
+    """
     cur.execute(
         """
-        SELECT
-          C.PUB_ID, C.TITLE, C.YEAR, C.VOLUME, C.RAWPAGES, C.DOI_URL,
+        SELECT 
+          PUB.PUB_ID, PUB.DELETABLE, 
+          C.TITLE, C.YEAR, C.VOLUME, C.RAWPAGES, C.DOI_URL,
           C.PUBMED_ID, C.ISO_JOURNAL, C.MEDLINE_JOURNAL, C.AUTHORS
-        FROM INTERPRO.CITATION C
-        WHERE C.PUB_ID IN (
-          SELECT PUB_ID
+        FROM (
+          SELECT PUB_ID, 'N' AS DELETABLE
           FROM INTERPRO.ENTRY2PUB
           WHERE ENTRY_AC = :acc
-          UNION
-          SELECT SUPPLEMENTARY_REF.PUB_ID
+          UNION ALL
+          SELECT SUPPLEMENTARY_REF.PUB_ID, 'Y' AS DELETABLE
           FROM INTERPRO.SUPPLEMENTARY_REF
-          WHERE ENTRY_AC = :acc
-        )
+          WHERE ENTRY_AC = :acc        
+        ) PUB
+        INNER JOIN INTERPRO.CITATION C
+          ON PUB.PUB_ID = C.PUB_ID
         """,
         dict(acc=accession)
     )
 
-    columns = ("id", "title", "year", "volume", "pages", "doi", "pmid",
-               "journal_iso", "journal_medline", "authors")
-    references = {row[0]: dict(zip(columns, row)) for row in cur}
+    references = {}
+    columns = ("id", "deletable",
+               "title", "year", "volume", "pages", "doi",
+               "pmid", "journal_iso", "journal_medline", "authors")
+    for row in cur:
+        pub_id = row[0]
+        pub = dict(zip(columns, row))
+        pub["deletable"] = pub["deletable"] == 'Y'
+
+        if pub_id not in references:
+            references[pub_id] = pub
+        elif pub["deletable"] and not references[pub_id]["deletable"]:
+            references[pub_id] = pub
 
     missing_references = text_references - set(references)
     if missing_references:
@@ -394,7 +411,8 @@ def get_annotations(accession):
         cur.execute(
             """
             SELECT
-              PUB_ID, TITLE, YEAR, VOLUME, RAWPAGES, DOI_URL,
+              PUB_ID, 'N', 
+              TITLE, YEAR, VOLUME, RAWPAGES, DOI_URL,
               PUBMED_ID, ISO_JOURNAL, MEDLINE_JOURNAL, AUTHORS
             FROM INTERPRO.CITATION
             WHERE PUB_ID IN ({})
@@ -851,10 +869,91 @@ def add_go_term(accession, term_id):
         cur.close()
 
 
-@app.route("/api/entry/<accession>/references/")
-def get_entry_references(accession):
-    pass
-    # todo implement
+@app.route("/api/entry/<accession>/reference/<pmid>/", methods=["PUT"])
+def link_reference(accession, pmid):
+    user = get_user()
+    if not user:
+        return jsonify({
+            "status": False,
+            "title": "Access denied",
+            "message": 'Please <a href="/login/">log in</a> '
+                       'to perform this operation.'
+        }), 401
+
+    con = db.get_oracle()
+    cur = con.cursor()
+    cur.execute(
+        """
+        SELECT PUB_ID
+        FROM INTERPRO.CITATION
+        WHERE PUBMED_ID = :1
+        """, (pmid,)
+    )
+    row = cur.fetchone()
+    if not row:
+        cur.close()
+        return jsonify({
+            "status": False,
+            "title": "Invalid reference",
+            "message": "<strong>{}</strong> is not "
+                       "a valid PubMed ID".format(pmid)
+        }), 401
+
+    pub_id = row[0]
+
+    try:
+        cur.execute(
+            """
+            INSERT INTO INTERPRO.SUPPLEMENTARY_REF (ENTRY_AC, PUB_ID) 
+            VALUES (:1, :2)
+            """, (accession, pub_id)
+        )
+    except DatabaseError:
+        return jsonify({
+            "status": False,
+            "title": "Database error",
+            "message": "Could not add {} to {}.".format(pmid, accession)
+        }), 500
+    else:
+        con.commit()
+        return jsonify({"status": True}), 200
+    finally:
+        cur.close()
+
+
+@app.route("/api/entry/<accession>/reference/<pub_id>/", methods=["DELETE"])
+def unlink_reference(accession, pub_id):
+    user = get_user()
+    if not user:
+        return jsonify({
+            "status": False,
+            "title": "Access denied",
+            "message": 'Please <a href="/login/">log in</a> '
+                       'to perform this operation.'
+        }), 401
+
+    con = db.get_oracle()
+    cur = con.cursor()
+    try:
+        cur.execute(
+            """
+            DELETE FROM INTERPRO.SUPPLEMENTARY_REF
+            WHERE ENTRY_AC = :1 AND PUB_ID = :2
+            """, (accession, pub_id)
+        )
+    except DatabaseError:
+        return jsonify({
+            "status": False,
+            "title": "Database error",
+            "message": "Could not unlink reference."
+        }), 500
+    else:
+        if cur.rowcount:
+            con.commit()
+        return jsonify({"status": True}), 200
+    finally:
+        cur.close()
+
 
 
 @app.route("/api/entry/<acc1>/relationship/<acc2>/", methods=['DELETE'])

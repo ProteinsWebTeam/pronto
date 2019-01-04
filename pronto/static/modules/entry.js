@@ -351,7 +351,7 @@ function getAnnotations(accession) {
             }  else
                 html = '<p>This entry has no references.</p>';
 
-            document.getElementById('references-content').innerHTML = html;
+            document.querySelector('#references .content').innerHTML = html;
 
             // Render suppl. references
             for (let pubID in results.references) {
@@ -367,9 +367,16 @@ function getAnnotations(accession) {
                     '<ul class="ui list">';
 
                 supplRefs.forEach(pub => {
-                    html += '<li id="'+ pub.id +'">'
-                        + '<div class="header">'+ pub.title +'</div>'
-                        + '<div class="item">'+ pub.authors +'</div>'
+                    html += '<li id="'+ pub.id +'" class="item">';
+
+                    if (pub.deletable) {
+                        html += '<div class="header">'+ pub.title
+                            + '<i data-id="'+ pub.id +'" class="right floated trash button icon"></i>'
+                            + '</div>';
+                    }else
+                        html += '<div class="header">'+ pub.title + '</div>';
+
+                    html += '<div class="item">'+ pub.authors +'</div>'
                         + '<div class="item"><em>'+ pub.journal +'</em> '+ pub.year +', '+ pub.volume +':'+ pub.pages +'</div>'
                         + '<div class="ui horizontal link list">';
 
@@ -389,7 +396,7 @@ function getAnnotations(accession) {
             } else
                 html = '<p>This entry has no additional references.</p>';
 
-            document.getElementById('supp-references-content').innerHTML = html;
+            document.querySelector('#supp-references .content').innerHTML = html;
 
             // Update annotations stats
             Array.from(document.querySelectorAll('[data-statistic="annotations"]')).forEach(elem => {
@@ -460,7 +467,31 @@ function getAnnotations(accession) {
                         });
                 });
             });
+
+            // Delete supplementary references
+            Array.from(document.querySelectorAll('#supp-references [data-id]')).forEach(elem => {
+                elem.addEventListener('click', e => {
+                    const pubID = elem.getAttribute('data-id');
+                    ui.openConfirmModal(
+                        'Delete reference?',
+                        'This reference will not be associated to this entry any more.',
+                        'Delete',
+                        () => {
+                            fetch('/api/entry/' + accession + '/reference/' + pubID + '/', {method: 'DELETE'})
+                                .then(response => response.json())
+                                .then(result => {
+                                    if (result.status)
+                                        getAnnotations(accession);
+                                    else
+                                        ui.openErrorModal(result);
+                                });
+                        }
+                    );
+                });
+            });
         });
+
+
 }
 
 function getGOTerms(accession) {
@@ -504,7 +535,7 @@ function getRelationships(accession) {
                             html += '<a href="/entry/' + node.accession + '/">' + node.name + ' (' + node.accession + ')</a>';
 
                             if (node.deletable)
-                                html += '<i data-id="'+ node.accession +'" class="button right floated trash icon"></i>';
+                                html += '<i data-id="'+ node.accession +'" class="right floated trash button icon"></i>';
                         }
 
                         html += '</div>'  // close header
@@ -1102,6 +1133,27 @@ $(function () {
                                 msg.querySelector('p').innerHTML = error.message;
                                 ui.setClass(msg, 'hidden', false);
                             });
+                }
+            });
+
+            /*
+                Event to add supp. references
+                Using Semantic-UI form validation
+             */
+            $('#supp-references .ui.form').form({
+                on: 'submit',
+                fields: { pmid: 'integer' },
+                onSuccess: function (event, fields) {
+                    return fetch('/api/entry/' + accession + '/reference/' + fields.pmid.trim() + '/', { method: 'PUT' })
+                        .then(response => response.json())
+                        .then(result => {
+                            if (result.status) {
+                                $(this).form('clear');
+                                getAnnotations(accession);
+                            }
+                            else
+                                ui.openErrorModal(result);
+                        });
                 }
             });
         });

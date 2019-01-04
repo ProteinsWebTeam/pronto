@@ -53,6 +53,9 @@
         .ui.six.statistics .statistic {
             max-width: 16.66666667%;
         }
+        .ui.form + .content {
+            margin-top: 1rem;
+        }
     </style>
 </head>
 <body>
@@ -270,12 +273,23 @@
                 <div id="cellular-components"></div>
             </div>
 
-            <div class="ui basic vertical segment">
+            <div id="references" class="ui basic vertical segment">
                 <h2 id="references" class="ui dividing header">References</h2>
-                <div id="references-content"></div>
+                <div class="content"></div>
+            </div>
 
+            <div id="supp-references" class="ui basic vertical segment">
                 <h2 class="ui dividing header">Supplementary references</h2>
-                <div id="supp-references-content"></div>
+                <div class="ui form">
+                    <div class="field">
+                        <label>Add reference</label>
+                        <div class="ui action input">
+                            <input placeholder="PubMed ID (e.g. 19913036)" type="text" name="pmid">
+                            <button class="ui primary submit button">Add</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="content"></div>
             </div>
         </div>
     </div>
