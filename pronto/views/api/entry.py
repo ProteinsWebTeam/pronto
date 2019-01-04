@@ -6,6 +6,77 @@ from flask import jsonify, request
 from pronto import app, db, get_user, xref
 
 
+def update_references(accession):
+    con = db.get_oracle()
+    cur = con.cursor()
+
+    # Get references from the annotations
+    cur.execute(
+        """
+        SELECT TEXT
+        FROM INTERPRO.COMMON_ANNOTATION
+        WHERE ANN_ID IN (
+          SELECT ANN_ID
+          FROM INTERPRO.ENTRY2COMMON
+          WHERE ENTRY_AC = :1
+        )
+        """,
+        (accession, )
+    )
+
+    prog_ref = r'<cite\s+id="(PUB\d+)"\s*/>'
+    references_now = set()
+    for row in cur:
+        for m in re.finditer(prog_ref, row[0]):
+            references_now.add(m.group(1))
+
+    # Get references from the entry-pub table (needs to be updated)
+    references_old = {}
+    to_delete = []
+    cur.execute(
+        """
+        SELECT PUB_ID, ORDER_IN
+        FROM INTERPRO.ENTRY2PUB
+        WHERE ENTRY_AC = :1
+        """, (accession,)
+    )
+    for pub_id, order_in in cur:
+        if pub_id in references_now:
+            # Keep order_in to now the highest order
+            references_old[pub_id] = order_in
+        else:
+            # Not in annotations any more: can be deleted
+            to_delete.append(pub_id)
+
+    if to_delete:
+        # i + 2 --> 1-index + 1 for ENTRY_AC param
+        in_stmt = ','.join([':' + str(i+2) for i in range(len(to_delete))])
+        cur.execute(
+            """
+            DELETE FROM INTERPRO.ENTRY2PUB
+            WHERE ENTRY_AC = :1
+            AND PUB_ID IN ({})
+            """.format(in_stmt),
+            (accession,) + tuple(to_delete)
+        )
+
+    # Find references to insert
+    to_insert = references_now - set(references_old)
+    if to_insert:
+        start = max(references_old.values()) if references_old else 1
+        cur.executemany(
+            """
+            INSERT INTO INTERPRO.ENTRY2PUB (ENTRY_AC, ORDER_IN, PUB_ID) 
+            VALUES (:1, :2, :3)
+            """,
+            [(accession, start + i, pub_id)
+             for i, pub_id in enumerate(to_insert)]
+        )
+
+    con.commit()
+    cur.close()
+
+
 @app.route("/api/entry/<accession>/")
 def get_entry(accession):
     cur = db.get_oracle().cursor()
@@ -80,6 +151,7 @@ def unlink_annotation(acc, ann_id):
         }), 200
     finally:
         cur.close()
+        update_references(acc)
 
 
 @app.route('/api/entry/<acc>/annotation/<ann_id>/', methods=["PUT"])
@@ -128,6 +200,7 @@ def link_annotation(acc, ann_id):
             "status": True
         }), 200
     finally:
+        update_references(acc)
         cur.close()
 
 
@@ -225,48 +298,8 @@ def reorder_annotation(acc, annid, x):
 
 
 @app.route('/api/entry/<accession>/annotations/')
-def get_entry_annotations(accession):
+def get_annotations(accession):
     cur = db.get_oracle().cursor()
-    # References
-    cur.execute(
-        """
-        SELECT
-          C.PUB_ID,
-          C.TITLE,
-          C.YEAR,
-          C.VOLUME,
-          C.RAWPAGES,
-          C.DOI_URL,
-          C.PUBMED_ID,
-          C.ISO_JOURNAL,
-          C.MEDLINE_JOURNAL,
-          C.AUTHORS
-        FROM INTERPRO.CITATION C
-        WHERE C.PUB_ID IN (
-          SELECT PUB_ID
-          FROM INTERPRO.ENTRY2PUB
-          WHERE ENTRY_AC = :acc
-          UNION
-          SELECT M.PUB_ID
-          FROM INTERPRO.METHOD2PUB M
-          INNER JOIN INTERPRO.ENTRY2METHOD E ON E.METHOD_AC = M.METHOD_AC
-          WHERE ENTRY_AC = :acc
-          UNION
-          SELECT PUB_ID
-          FROM INTERPRO.PDB_PUB_ADDITIONAL
-          WHERE ENTRY_AC = :acc
-          UNION
-          SELECT SUPPLEMENTARY_REF.PUB_ID
-          FROM INTERPRO.SUPPLEMENTARY_REF
-          WHERE ENTRY_AC = :acc
-        )
-        """,
-        dict(acc=accession)
-    )
-
-    columns = ("id", "title", "year", "volume", "pages", "doi", "pmid",
-               "journal_iso", "journal_medline", "authors")
-    references = {row[0]: dict(zip(columns, row)) for row in cur}
 
     # annotations
     cur.execute(
@@ -286,19 +319,15 @@ def get_entry_annotations(accession):
     )
 
     annotations = []
-    missing_refs = set()
+    text_references = set()
     xrefs = []
     prog_ref = r'<cite\s+id="(PUB\d+)"\s*/>'
     prog_xref = r'<dbxref\s+db\s*=\s*"(\w+)"\s+id\s*=\s*"([\w\.\-]+)"\s*\/>'
     prog_taxa = r'<taxon\s+tax_id="(\d+)">([^<]+)</taxon>'
 
     for ann_id, text, comment, count in cur:
-        # Find missing references
         for m in re.finditer(prog_ref, text):
-            ref = m.group(1)
-
-            if ref not in references:
-                missing_refs.add(ref)
+            text_references.add(m.group(1))
 
         # Find cross-references
         for m in re.finditer(prog_xref, text):
@@ -334,34 +363,50 @@ def get_entry_annotations(accession):
             "num_entries": count
         })
 
-    if missing_refs:
-        # Some associations entry-citation are missing in ENTRY2PUB
+    # Get references from the entry-pub table
+    cur.execute(
+        """
+        SELECT
+          C.PUB_ID, C.TITLE, C.YEAR, C.VOLUME, C.RAWPAGES, C.DOI_URL,
+          C.PUBMED_ID, C.ISO_JOURNAL, C.MEDLINE_JOURNAL, C.AUTHORS
+        FROM INTERPRO.CITATION C
+        WHERE C.PUB_ID IN (
+          SELECT PUB_ID
+          FROM INTERPRO.ENTRY2PUB
+          WHERE ENTRY_AC = :acc
+          UNION
+          SELECT SUPPLEMENTARY_REF.PUB_ID
+          FROM INTERPRO.SUPPLEMENTARY_REF
+          WHERE ENTRY_AC = :acc
+        )
+        """,
+        dict(acc=accession)
+    )
+
+    columns = ("id", "title", "year", "volume", "pages", "doi", "pmid",
+               "journal_iso", "journal_medline", "authors")
+    references = {row[0]: dict(zip(columns, row)) for row in cur}
+
+    missing_references = text_references - set(references)
+    if missing_references:
+        # Some text references are (somehow) not in the entry-pub table
+        in_stmt = [':' + str(i+1) for i in range(len(missing_references))]
         cur.execute(
             """
             SELECT
-              PUB_ID,
-              TITLE,
-              YEAR,
-              VOLUME,
-              RAWPAGES,
-              DOI_URL,
-              PUBMED_ID,
-              ISO_JOURNAL,
-              MEDLINE_JOURNAL,
-              AUTHORS
+              PUB_ID, TITLE, YEAR, VOLUME, RAWPAGES, DOI_URL,
+              PUBMED_ID, ISO_JOURNAL, MEDLINE_JOURNAL, AUTHORS
             FROM INTERPRO.CITATION
             WHERE PUB_ID IN ({})
-            """.format(','.join([':'+str(i+1)
-                                 for i in range(len(missing_refs))])),
-            tuple(missing_refs)
+            """.format(','.join(in_stmt)),
+            tuple(missing_references)
         )
 
-        references.update({
-            row[0]: dict(zip(columns, row))
-            for row in cur
-        })
+        for row in cur:
+            references[row[0]] = dict(zip(columns, row))
 
     cur.close()
+
     # Select journal (default: ISO, fallback to MEDLINE)
     for ref, pub in references.items():
         journal_iso = pub.pop("journal_iso")
@@ -974,7 +1019,7 @@ def integrate_signature(e_acc, s_acc):
             "status": False,
             "title": "Invalid signature",
             "message": "<strong>{}</strong> is not a valid member database "
-                       "accession".format(s_acc)
+                       "accession.".format(s_acc)
         }), 401
 
     """
