@@ -268,7 +268,7 @@ def create_annotation():
         if row is not None:
             res["id"] = row[0]
 
-        return jsonify(res), 400
+        return jsonify(res), 500
     except DatabaseError:
         return jsonify({
             "status": False,
@@ -276,7 +276,7 @@ def create_annotation():
             "message": "The annotation could not be created. "
                        "Another annotation with the same text "
                        "may already exist."
-        }), 400
+        }), 500
     else:
         con.commit()
         return jsonify({
@@ -346,7 +346,7 @@ def update_annotations(ann_id):
             "status": False,
             "title": "Database error",
             "message": "Changes could not be saved."
-        }), 400
+        }), 500
     else:
         con.commit()
         return jsonify({
