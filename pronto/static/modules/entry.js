@@ -771,7 +771,7 @@ $(function () {
                         if (result.status)
                             getEntryComments(accession, 2, e.target.closest(".ui.comments"));
                         else
-                            ui.openErrorModal(result.message);
+                            ui.openErrorModal(result);
                     });
             });
 

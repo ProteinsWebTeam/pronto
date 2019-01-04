@@ -96,7 +96,7 @@ function getComments(type, accession, max, div, callback) {
                                     if (result.status)
                                         getComments(type, accession, max, div, callback);
                                     else
-                                        ui.openErrorModal(result.message);
+                                        ui.openErrorModal(result);
                                 });
                         }
                     );
