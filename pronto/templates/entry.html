@@ -179,6 +179,10 @@
 
             <div id="signatures" class="ui basic vertical segment">
                 <h2 class="ui dividing header">Contributing signatures</h2>
+                <div class="ui hidden message">
+                    <div class="header"></div>
+                    <p></p>
+                </div>
                 <table class="ui selectable table">
                     <thead>
                     <tr>
@@ -196,9 +200,13 @@
                         <th colspan="6">
                             <div class="ui secondary menu">
                                 <div class="right fitted item">
-                                    <div class="ui action input">
-                                        <input placeholder="Add signature" type="text">
-                                        <button class="ui icon primary button"><i class="plus icon"></i></button>
+                                    <div class="ui form">
+                                        <div class="field">
+                                            <div class="ui action input">
+                                                <input placeholder="Signature accession" type="text" name="accession">
+                                                <button class="ui primary submit button">Add</button>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

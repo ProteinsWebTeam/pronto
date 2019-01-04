@@ -160,6 +160,59 @@ const annotationEditor = {
     }
 };
 
+function integrateSignature(entryAcc, signatureAcc, moveIfIntegrated) {
+    const options = {
+        method: 'PUT',
+        headers: {
+            'Content-type': 'application/x-www-form-urlencoded; charset=UTF-8'
+        }
+    };
+
+    if (moveIfIntegrated)
+        options.body = 'confirm';
+
+    fetch('/api/entry/' + entryAcc + '/signature/' + signatureAcc + '/', options)
+        .then(response => response.json())
+        .then(result => {
+            const msg = document.querySelector('#signatures .ui.message');
+
+            if (!result.status) {
+                msg.querySelector('.header').innerHTML = result.title;
+                msg.querySelector('p').innerHTML = result.message;
+                msg.className = 'ui error message';
+            } else if (result.unchecked) {
+                /*
+                    Moved signature to one entry to another,
+                    and unchecked previous entry (no signature any more)
+                */
+                msg.querySelector('.header').innerHTML = 'Entry unchecked';
+                msg.querySelector('p').innerHTML = '<em><a href="/entry/'+ result.entry +'/">'+ result.entry +'</a></em> has been unchecked because it does not have any signatures.';
+                msg.className = 'ui info message';
+
+                getSignatures(entryAcc);
+                $('#signatures .ui.form').form('clear');
+            } else if (result.entry) {
+                // Signature already integrated: ask for confirmation
+
+                msg.querySelector('.header').innerHTML = 'Signature already integrated';
+                msg.querySelector('p').innerHTML = '<em>'+ result.signature +'</em> is integrated into '
+                    + '<em><a href="/entry/'+ result.entry +'/">'+ result.entry +'</a></em>. '
+                    + 'Click <strong><a href="#" data-confirm>here</a></strong> to move it to <em>'+ entryAcc +'</em>.';
+                msg.className = 'ui error message';
+
+                // Event listener to confirm re-integration
+                msg.querySelector('[data-confirm]').addEventListener('click', e => {
+                    e.preventDefault();
+                    integrateSignature(entryAcc, signatureAcc, true);
+                });
+            }  else {
+                ui.setClass(msg, 'hidden', true);
+                getSignatures(entryAcc);
+                $('#signatures .ui.form').form('clear');
+            }
+        });
+}
+
 function linkAnnotation(accession, annID) {
     return fetch('/api/entry/' + accession + '/annotation/' + annID + '/', { method: 'PUT' })
         .then(response => response.json())
@@ -520,31 +573,67 @@ function getSignatures(accession) {
 
             // Table of signatures
             let html = '';
-            signatures.forEach(s => {
-                html += '<tr>'
-                    + '<td class="collapsing">'
-                    + '<i class="database icon" style="color: '+ s.color +'"></i>'
-                    + '</td>'
-                    + '<td>'
-                    +'<a target="_blank" href="'+ s.link +'">'
-                    + s.database + '&nbsp;<i class="external icon"></i>'
-                    + '</a>'
-                    + '</td>'
-                    + '<td>'
-                    + '<a href="/prediction/'+ s.accession +'/">'+ s.accession +'</a>'
-                    + '</td>'
-                    + '<td>'+ s.name +'</td>'
-                    + '<td class="right aligned">'+ s.num_proteins.toLocaleString() +'</td>'
-                    + '<td class="collapsing">'
-                    + '<button data-accession="'+ s.accession +'" class="ui circular icon button">'
-                    + '<i class="icon trash"></i>'
-                    + '</button>'
-                    + '</td>'
-                    + '</tr>';
-            });
+            if (signatures.length) {
+                signatures.forEach(s => {
+                    html += '<tr>'
+                        + '<td class="collapsing">'
+                        + '<i class="database icon" style="color: '+ s.color +'"></i>'
+                        + '</td>'
+                        + '<td>'
+                        +'<a target="_blank" href="'+ s.link +'">'
+                        + s.database + '&nbsp;<i class="external icon"></i>'
+                        + '</a>'
+                        + '</td>'
+                        + '<td>'
+                        + '<a href="/prediction/'+ s.accession +'/">'+ s.accession +'</a>'
+                        + '</td>'
+                        + '<td>'+ s.name +'</td>'
+                        + '<td class="right aligned">'+ s.num_proteins.toLocaleString() +'</td>'
+                        + '<td class="collapsing">'
+                        + '<button data-accession="'+ s.accession +'" class="ui circular icon button">'
+                        + '<i class="icon trash"></i>'
+                        + '</button>'
+                        + '</td>'
+                        + '</tr>';
+                });
+            } else
+                html = '<tr><td colspan="6" class="center aligned">No integrated signatures</td></tr>';
+
             const tbody = document.querySelector('#signatures tbody');
             tbody.innerHTML = html;
-            // todo: events to remove
+
+            Array.from(tbody.querySelectorAll('[data-accession]')).forEach(elem => {
+                elem.addEventListener('click', e => {
+                    const signatureAcc = elem.getAttribute('data-accession');
+
+                    ui.openConfirmModal(
+                        'Unintegrate signature?',
+                        '<strong>' + signatureAcc + '</strong> will not be integrated into <strong>'+ accession +'</strong> any more.',
+                        'Unintegrate',
+                        () => {
+                            fetch('/api/entry/' + accession + '/signature/' + signatureAcc + '/', {method: 'DELETE'})
+                                .then(response => response.json())
+                                .then(result => {
+                                    const msg = document.querySelector('#signatures .ui.message');
+                                    if (result.unchecked) {
+                                        msg.querySelector('.header').innerHTML = 'Entry unchecked';
+                                        msg.querySelector('p').innerHTML = '<em>'+ accession +'</em> has been unchecked because it does not have any signatures.';
+                                        msg.className = 'ui info message';
+
+                                        getSignatures(accession);
+                                    } else if (result.status) {
+                                        ui.setClass(msg, 'hidden', true);
+                                        getSignatures(accession);
+                                    } else {
+                                        msg.querySelector('.header').innerHTML = result.title;
+                                        msg.querySelector('p').innerHTML = result.message;
+                                        msg.className = 'ui error message';
+                                    }
+                                });
+                        }
+                    );
+                });
+            });
         });
 }
 
@@ -933,7 +1022,19 @@ $(function () {
                 });
             })();
 
-            // TODO: event to add signature
+            /*
+                Event to integrate signatures
+                Using Semantic-UI form validation
+             */
+            $('#signatures .ui.form').form({
+                on: 'submit',
+                fields: { accession: 'empty' },
+                onSuccess: function (event, fields) {
+                    const signatureAcc = fields.accession.trim();
+                    if (signatureAcc.length)
+                        integrateSignature(accession, signatureAcc, false);
+                }
+            });
 
             // Event to add relationships
             (function () {
