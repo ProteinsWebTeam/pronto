@@ -44,6 +44,12 @@
             top: 0;
             margin-top: 5rem !important; /* overwritte Semantic UI stuff */
         }
+        #annotations .ui.error.message {
+            margin-top: 1rem;
+        }
+        .hl-search {
+            background-color: #C5E1B9;
+        }
     </style>
 </head>
 <body>
@@ -59,8 +65,8 @@
                 <div data-statistic="type" class="value"></div>
             </div>
             <div class="light statistic">
-                <div class="label">Last update</div>
-                <div data-statistic="update" class="value"></div>
+                <div class="label">Annotations</div>
+                <a data-statistic="annotations" href="#annotations" class="value"></a>
             </div>
             <div class="light statistic">
                 <div class="label">Signatures</div>
@@ -85,8 +91,9 @@
                         <a href="#curation" class="active item">
                             Curation
                         </a>
-                        <a href="#description" class="item">
-                            Description
+                        <a href="#annotations" class="item">
+                            Annotations
+                            <div data-statistic="annotations" class="ui label"></div>
                         </a>
                         <a href="#signatures" class="item">
                             Signatures
@@ -120,8 +127,8 @@
             </div>
         </div>
         <div class="twelve wide column">
-            <div class="ui basic vertical segment">
-                <h2 id="curation" class="ui dividing header">Curation</h2>
+            <div id="curation" class="ui basic vertical segment">
+                <h2 class="ui dividing header">Curation</h2>
 
                 <h3 class="ui header">Public website</h3>
                 <div class="ui horizontal bulleted link list">
@@ -148,26 +155,26 @@
                 </div>
             </div>
 
-            <div class="ui basic vertical segment">
-                <h2 id="description" class="ui dividing header">Description</h2>
+            <div id="annotations" class="ui basic vertical segment">
+                <h2 class="ui dividing header">Annotations</h2>
                 <button id="create-annotation" class="ui basic button">
                     <i class="pencil icon"></i>
                     New annotation
                 </button>
                 <button id="signatures-annotations" class="ui basic button">
-                    <i class="th list icon"></i>
+                    <i class="list icon"></i>
                     Signatures annotations
                 </button>
                 <div class="ui left icon input">
                     <input id="search-annotations" placeholder="Search annotations" type="text">
                     <i class="search icon"></i>
                 </div>
-                <div id="annotations"></div>
+                <div class="content"></div>
             </div>
 
-            <div class="ui basic vertical segment">
-                <h2 id="signatures" class="ui dividing header">Contributing signatures</h2>
-                <table id="signatures-content" class="ui selectable table">
+            <div id="signatures" class="ui basic vertical segment">
+                <h2 class="ui dividing header">Contributing signatures</h2>
+                <table class="ui selectable table">
                     <thead>
                     <tr>
                         <th></th>
@@ -196,9 +203,9 @@
                 </table>
             </div>
 
-            <div class="ui basic vertical segment">
-                <h2 id="relationships" class="ui dividing header">InterPro relationships</h2>
-                <div id="add-relationship" class="ui form">
+            <div id="relationships" class="ui basic vertical segment">
+                <h2 class="ui dividing header">InterPro relationships</h2>
+                <div class="ui form">
                     <div class="two fields">
                         <div class="field">
                             <label>Add relationship</label>
@@ -209,30 +216,30 @@
                             <label>&nbsp;</label>
                             <div class="ui action input ">
                                 <input placeholder="InterPro accession" type="text" name="accession">
-                                <button class="ui submit primary button">Add</button>
+                                <button class="ui primary submit button">Add</button>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div id="relationship-error" class="ui hidden error message">
+                <div class="ui hidden error message">
                     <div class="header"></div>
                     <p></p>
                 </div>
-                <div id="relationships-content"></div>
+                <div class="content"></div>
             </div>
 
-            <div class="ui basic vertical segment">
-                <h2 id="go-terms" class="ui dividing header">GO terms</h2>
-                <div id="add-terms" class="ui form">
+            <div id="go-terms" class="ui basic vertical segment">
+                <h2 class="ui dividing header">GO terms</h2>
+                <div class="ui form">
                     <div class="field">
                         <label>Add GO term mapping</label>
                         <div class="ui action input">
-                            <input placeholder="GO term ID (e.g. GO:0006915)" type="text">
-                            <button class="ui primary button">Add</button>
+                            <input placeholder="GO term ID (e.g. GO:0006915)" type="text" name="term">
+                            <button class="ui primary submit button">Add</button>
                         </div>
                     </div>
                 </div>
-                <div id="go-error" class="ui hidden error message">
+                <div class="ui hidden error message">
                     <div class="header"></div>
                     <p></p>
                 </div>

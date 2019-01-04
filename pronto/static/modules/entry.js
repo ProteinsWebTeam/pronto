@@ -272,7 +272,7 @@ function getAnnotations(accession) {
                     + '</div>';
             }
 
-            document.getElementById('annotations').innerHTML = html;
+            document.querySelector('#annotations > .content').innerHTML = html;
 
             // Render references
             html = '';
@@ -342,6 +342,11 @@ function getAnnotations(accession) {
                 html = '<p>This entry has no additional references.</p>';
 
             document.getElementById('supp-references-content').innerHTML = html;
+
+            // Update annotations stats
+            Array.from(document.querySelectorAll('[data-statistic="annotations"]')).forEach(elem => {
+                elem.innerHTML = annotations.size.toLocaleString();
+            });
 
             // Update references stats
             Array.from(document.querySelectorAll('[data-statistic="references"]')).forEach(elem => {
@@ -466,7 +471,7 @@ function getRelationships(accession) {
                 return html;
             };
 
-            const div = document.getElementById('relationships-content');
+            const div = document.querySelector('#relationships > .content');
             div.innerHTML = nest(relationships, true, accession);
             Array.from(div.querySelectorAll('[data-id]')).forEach(elem => {
                 elem.addEventListener('click', e => {
@@ -533,7 +538,7 @@ function getSignatures(accession) {
                     + '</td>'
                     + '</tr>';
             });
-            const tbody = document.getElementById('signatures-content');
+            const tbody = document.querySelector('#signatures tbody');
             tbody.innerHTML = html;
             // todo: events to remove
         });
@@ -641,7 +646,6 @@ $(function () {
             // Statistics
             setClass(document.getElementById('segment-statistics'), 'type-' + entry.type.code, true);
             document.querySelector('[data-statistic="type"]').innerHTML = entry.type.name;
-            document.querySelector('[data-statistic="update"]').innerHTML = entry.last_modification;
 
             // Links to public website
             Array.from(document.querySelectorAll('a[data-public-href]')).forEach(elem => {
@@ -678,69 +682,6 @@ $(function () {
 
             // Get comments
             getEntryComments(accession, 2, document.querySelector('.ui.comments'));
-
-            // Event to add GO annotations
-            (function () {
-                const form = document.getElementById('add-terms');
-                const input = form.querySelector('.ui.input input');
-                input.addEventListener('keyup', e => {
-                    if (e.which === 13 && e.target.value.trim().length) {
-                        addGoTerm(accession, e.target.value.trim())
-                            .then(() => {
-                                input.value = null;
-                            })
-                    }
-                });
-                form.querySelector('.ui.input button').addEventListener('click', e => {
-                    if (input.value.trim().length) {
-                        addGoTerm(accession, input.value.trim())
-                            .then(() => {
-                                input.value = null;
-                            })
-                    }
-
-                });
-            })();
-
-            // Event to add relationships
-            (function () {
-                const select = document.querySelector('#add-relationship .ui.dropdown');
-                select.innerHTML = '<option value="">Relationship type</option>'
-                    + '<option value="parent">Parent of '+ accession +'</option>'
-                    + '<option value="child">Child of '+ accession +'</option>';
-                $(select).dropdown();
-
-                // Using Semantic-UI form validation
-                $('#add-relationship').form({
-                    on: 'submit',
-                    fields: {
-                        accession: 'empty',
-                        type: 'empty'
-                    },
-                    onSuccess: function (event, fields) {
-                        let url;
-                        if (fields.type === 'parent')
-                            url = '/api/entry/' + fields.accession.trim() + '/child/' + accession + '/';
-                        else
-                            url = '/api/entry/' + accession + '/child/' + fields.accession.trim() + '/';
-
-                        fetch(url, {method: 'PUT'})
-                            .then(response => response.json())
-                            .then(result => {
-                                const msg = document.getElementById('relationship-error');
-                                if (result.status) {
-                                    $(this).form('clear');
-                                    setClass(msg, 'hidden', true);
-                                    getRelationships(accession);
-                                } else {
-                                    msg.querySelector('.header').innerHTML = result.title;
-                                    msg.querySelector('p').innerHTML = result.message;
-                                    setClass(msg, 'hidden', false);
-                                }
-                            });
-                    }
-                })
-            })();
 
             // Event to create annotations
             (function () {
@@ -904,11 +845,17 @@ $(function () {
                                 let html = '';
 
                                 if (hits.length) {
+                                    // Create a regular expression to match the search query (case insensitive, and escaping special characters)
+                                    const re = new RegExp(query.replace(/([.?*+^$[\]\\(){}|-])/g, '\\$1'), 'gi');
+
                                     hits.forEach(ann => {
+                                        // Highlight search query in text
+                                        const text = escapeXmlTags(ann.text).replace(re, '<span class="hl-search">$&</span>');
+
                                         if (annotations.has(ann.id))
-                                            html += '<div data-annid="'+ ann.id +'" class="ui top attached secondary segment">' + escapeXmlTags(ann.text) + '</div>';
+                                            html += '<div data-annid="'+ ann.id +'" class="ui top attached secondary segment">' + text + '</div>';
                                         else
-                                            html += '<div data-annid="'+ ann.id +'" class="ui top attached segment">' + escapeXmlTags(ann.text) + '</div>';
+                                            html += '<div data-annid="'+ ann.id +'" class="ui top attached segment">' + text + '</div>';
 
                                         html += '<div data-annid="'+ ann.id +'" class="ui bottom borderless attached mini menu">';
 
@@ -979,6 +926,67 @@ $(function () {
                     }
                 });
             })();
+
+            // TODO: event to add signature
+
+            // Event to add relationships
+            (function () {
+                const select = document.querySelector('#relationships .ui.dropdown');
+                select.innerHTML = '<option value="">Relationship type</option>'
+                    + '<option value="parent">Parent of '+ accession +'</option>'
+                    + '<option value="child">Child of '+ accession +'</option>';
+                $(select).dropdown();
+
+                // Using Semantic-UI form validation
+                $('#relationships .ui.form').form({
+                    on: 'submit',
+                    fields: {
+                        accession: 'empty',
+                        type: 'empty'
+                    },
+                    onSuccess: function (event, fields) {
+                        let url;
+                        if (fields.type === 'parent')
+                            url = '/api/entry/' + fields.accession.trim() + '/child/' + accession + '/';
+                        else
+                            url = '/api/entry/' + accession + '/child/' + fields.accession.trim() + '/';
+
+                        fetch(url, {method: 'PUT'})
+                            .then(response => response.json())
+                            .then(result => {
+                                const msg = document.querySelector('#relationships .ui.error.message');
+                                if (result.status) {
+                                    $(this).form('clear');
+                                    setClass(msg, 'hidden', true);
+                                    getRelationships(accession);
+                                } else {
+                                    msg.querySelector('.header').innerHTML = result.title;
+                                    msg.querySelector('p').innerHTML = result.message;
+                                    setClass(msg, 'hidden', false);
+                                }
+                            });
+                    }
+                });
+            })();
+
+            /*
+                Event to add GO annotations
+                Using Semantic-UI form validation
+             */
+            $('#go-terms .ui.form').form({
+                on: 'submit',
+                fields: { term: 'empty' },
+                onSuccess: function (event, fields) {
+                    const termID = fields.term.trim();
+                    if (termID.length)
+                        return;
+
+                    addGoTerm(accession, termID)
+                        .then(() => {
+                            $(this).form('clear');
+                        });
+                }
+            });
         });
 
     return;
@@ -1018,7 +1026,9 @@ $(function () {
         });
     });
 
-    const div = document.getElementById('add-terms');
+
+
+    const div = document.querySelector('#go-terms .ui.form');
     const input = div.querySelector('.ui.input input');
     input.addEventListener('keyup', e => {
         if (e.which === 13 && e.target.value.trim().length)
