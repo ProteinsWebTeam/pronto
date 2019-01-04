@@ -431,6 +431,7 @@ def check_entry(accession):
     except (KeyError, ValueError):
         return jsonify({
             "status": False,
+            "title": "Bad request",
             "message": "Invalid or missing parameters."
         }), 400
 
@@ -439,7 +440,9 @@ def check_entry(accession):
     if not user:
         return jsonify({
             "status": False,
-            "message": "Please log in to perform this action."
+            "title": "Access denied",
+            "message": 'Please <a href="/login/">log in</a> '
+                       'to perform this operation.'
         }), 401
 
     con = db.get_oracle()
@@ -457,6 +460,7 @@ def check_entry(accession):
         cur.close()
         return jsonify({
             "status": False,
+            "title": "Database error",
             "message": "Could not update {}: {}".format(accession, e)
         }), 500
     else:
@@ -557,7 +561,9 @@ def add_entry_comment(accession):
     if not user:
         return jsonify({
             "status": False,
-            "message": "Please log in to perform this action."
+            "title": "Access denied",
+            "message": 'Please <a href="/login/">log in</a> '
+                       'to perform this operation.'
         }), 401
 
     content = request.get_json()
@@ -565,8 +571,8 @@ def add_entry_comment(accession):
     if len(text) < 3:
         return jsonify({
             "status": False,
-            "message": "Comment too short (must be at least "
-                       "three characters long)."
+            "title": "Comment to short",
+            "message": "Comment must be at least three characters long."
         }), 400
 
     con = db.get_oracle()
@@ -594,6 +600,7 @@ def add_entry_comment(accession):
         cur.close()
         return jsonify({
             "status": False,
+            "title": "Database error",
             "message": "Could not add comment "
                        "for {}: {}".format(accession, e)
         }), 500
@@ -612,7 +619,9 @@ def delete_entry_comment(accession, _id):
     if not user:
         return jsonify({
             "status": False,
-            "message": "Please log in to perform this action."
+            "title": "Access denied",
+            "message": 'Please <a href="/login/">log in</a> '
+                       'to perform this operation.'
         }), 401
 
     con = db.get_oracle()
@@ -630,6 +639,7 @@ def delete_entry_comment(accession, _id):
         cur.close()
         return jsonify({
             "status": False,
+            "title": "Database error",
             "message": "Could not delete comment "
                        "for {}: {}".format(accession, e)
         }), 500
