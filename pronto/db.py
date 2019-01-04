@@ -15,19 +15,21 @@ def get_mysql_db():
     return g.mysql_db
 
 
-def get_oracle():
+def get_oracle(require_auth=False):
     """
     Opens a new database connection if there is none yet
     for the current application context.
     """
     if not hasattr(g, "oracle_db"):
         user = get_user()
-        try:
+        if user:
             credentials = user["dbuser"] + "/" + user["password"]
-        except (TypeError, KeyError):
+        elif not require_auth:
             credentials = app.config["ORACLE_DB"]["credentials"]
-        finally:
-            url = credentials + "@" + app.config["ORACLE_DB"]["dsn"]
-            g.oracle_db = cx_Oracle.connect(url, encoding="utf-8",
-                                            nencoding="utf-8")
+        else:
+            raise RuntimeError()
+
+        url = credentials + "@" + app.config["ORACLE_DB"]["dsn"]
+        g.oracle_db = cx_Oracle.connect(url, encoding="utf-8",
+                                        nencoding="utf-8")
     return g.oracle_db
