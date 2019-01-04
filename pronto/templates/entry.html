@@ -56,6 +56,15 @@
         .ui.form + .content {
             margin-top: 1rem;
         }
+
+        .ui.segment > .ui.left.corner.label {
+            border-color: inherit;
+            color: #fff;
+        }
+
+        .ui.segment > .ui.left.corner.label > i:hover {
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -64,7 +73,11 @@
 
 <div class="ui container basic vertical segment">
     <h1 class="ui header"></h1>
+
     <div id="segment-statistics" class="ui segment">
+        <a class="ui left corner label">
+            <i class="pencil icon"></i>
+        </a>
         <div class="ui six tiny statistics">
             <div class="light statistic">
                 <div class="label">Type</div>
