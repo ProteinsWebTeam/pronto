@@ -1,4 +1,4 @@
-import {dimmer, setClass, openErrorModal, openConfirmModal} from "../ui.js";
+import * as ui from "../ui.js";
 import {finaliseHeader} from "../header.js";
 import {getEntryComments, postEntryComment} from "../comments.js";
 import {nvl} from "../utils.js";
@@ -27,7 +27,7 @@ const annotationEditor = {
                     Annotation has been changed:
                     need to save or discard changes before editing another annotation
                  */
-                openErrorModal({
+                ui.openErrorModal({
                     title: 'Cannot edit multiple annotation',
                     message: 'Another annotation is already being edited. Please save or discard changes before editing a second annotation.'
                 });
@@ -49,7 +49,7 @@ const annotationEditor = {
         msg.innerHTML = null;
 
         // Display bottom menu
-        setClass(menu, 'hidden', false);
+        ui.setClass(menu, 'hidden', false);
 
         // Save formatted annotation
         segment = this.element.querySelector('.segment');
@@ -77,7 +77,7 @@ const annotationEditor = {
         if (this.element === null) return;
 
         // Hide bottom menu
-        setClass(this.element.querySelector('.ui.bottom.menu'), 'hidden', true);
+        ui.setClass(this.element.querySelector('.ui.bottom.menu'), 'hidden', true);
 
         // Restore formatted annotation
         const segment = this.element.querySelector('.segment');
@@ -95,11 +95,11 @@ const annotationEditor = {
                 if (result.status)
                     getAnnotations(accession);
                 else
-                    openErrorModal(result);
+                    ui.openErrorModal(result);
             });
     },
     drop: function (accession, annID) {
-        openConfirmModal(
+        ui.openConfirmModal(
             'Unlink annotation?',
             'This annotation will not be associated to <strong>' + accession + '</strong> any more.',
             'Unlink',
@@ -110,7 +110,7 @@ const annotationEditor = {
                         if (result.status)
                             getAnnotations(accession);
                         else
-                            openErrorModal(result);
+                            ui.openErrorModal(result);
                     });
             }
         );
@@ -122,9 +122,9 @@ const annotationEditor = {
         const reason = select.options[select.selectedIndex].value;
 
         if (reason.length)
-            setClass(select.parentNode, 'error', false);
+            ui.setClass(select.parentNode, 'error', false);
         else {
-            setClass(select.parentNode, 'error', true);
+            ui.setClass(select.parentNode, 'error', true);
             return;
         }
 
@@ -169,11 +169,11 @@ function addHighlightEvenListeners(div) {
     Array.from(div.querySelectorAll('a[data-ref]')).forEach(elem => {
         elem.addEventListener('click', e => {
             let active = document.querySelector('li.active');
-            if (active) setClass(active, 'active', false);
+            if (active) ui.setClass(active, 'active', false);
 
             const id = e.target.getAttribute('href').substr(1);
             active = document.getElementById(id);
-            setClass(active, 'active', true);
+            ui.setClass(active, 'active', true);
         });
     });
 }
@@ -183,16 +183,11 @@ function addGoTerm(accession, termID) {
         return fetch('/api/entry/' + accession + '/go/' + termID + '/', {method: 'PUT'})
             .then(response => response.json())
             .then(result => {
-                const msg = document.getElementById('go-error');
                 if (result.status) {
-                    setClass(msg, 'hidden', true);
                     getGOTerms(accession);
                     resolve();
-                } else {
-                    msg.querySelector('.header').innerHTML = result.title;
-                    msg.querySelector('p').innerHTML = result.message;
-                    setClass(msg, 'hidden', false);
-                }
+                } else
+                    reject(result);
             });
     }));
 
@@ -486,7 +481,7 @@ function getRelationships(accession) {
                 elem.addEventListener('click', e => {
                     const accession2 = elem.getAttribute('data-id');
 
-                    openConfirmModal(
+                    ui.openConfirmModal(
                         'Delete relationship?',
                         '<strong>' + accession + '</strong> and <strong>'+ accession2 +'</strong> will not be related any more.',
                         'Delete',
@@ -497,7 +492,7 @@ function getRelationships(accession) {
                                     if (result.status)
                                         getRelationships(accession);
                                     else
-                                        openErrorModal(result);
+                                        ui.openErrorModal(result);
                                 });
                         }
                     );
@@ -589,7 +584,7 @@ function renderGoTerms(terms, div, accession) {
         elem.addEventListener('click', e => {
             const termID = elem.getAttribute('data-id');
 
-            openConfirmModal(
+            ui.openConfirmModal(
                 'Delete GO term?',
                 '<strong>' + termID + '</strong> will not be associated to <strong>'+ accession +'</strong> any more.',
                 'Delete',
@@ -600,7 +595,7 @@ function renderGoTerms(terms, div, accession) {
                             if (result.status)
                                 getGOTerms(accession);
                             else
-                                openErrorModal(result);
+                                ui.openErrorModal(result);
                         });
                 }
             );
@@ -625,7 +620,9 @@ $(function () {
             allowMultiple: true
         });
 
-    dimmer(true);
+    ui.listenMenu(document.querySelector('.ui.vertical.menu'));
+
+    ui.dimmer(true);
     fetch('/api' + location.pathname)
         .then(response => {
             if (response.status === 200)
@@ -635,7 +632,7 @@ $(function () {
                     + '<div class="header">Entry not found</div>'
                     + '<strong>'+ accession +'</strong> is not a valid InterPro accession.'
                     + '</div>';
-                dimmer(false);
+                ui.dimmer(false);
                 return null;
             }
         })
@@ -653,7 +650,7 @@ $(function () {
             document.querySelector('h1.header').innerHTML = html;
 
             // Statistics
-            setClass(document.getElementById('segment-statistics'), 'type-' + entry.type.code, true);
+            ui.setClass(document.getElementById('segment-statistics'), 'type-' + entry.type.code, true);
             document.querySelector('[data-statistic="type"]').innerHTML = entry.type.name;
 
             // Links to public website
@@ -670,7 +667,7 @@ $(function () {
             ];
 
             Promise.all(promises).then(value => {
-                dimmer(false);
+                ui.dimmer(false);
             });
 
             // Event to add comments
@@ -685,7 +682,7 @@ $(function () {
                         if (result.status)
                             getEntryComments(accession, 2, e.target.closest(".ui.comments"));
                         else
-                            openErrorModal(result.message);
+                            ui.openErrorModal(result.message);
                     });
             });
 
@@ -703,7 +700,7 @@ $(function () {
                             closable: false,
                             onDeny: function() {
                                 modal.querySelector('textarea').value = null;
-                                setClass(msg, 'hidden', true);
+                                ui.setClass(msg, 'hidden', true);
                             },
                             onApprove: function() {
                                 const options = {
@@ -718,7 +715,7 @@ $(function () {
                                     .then(response => response.json())
                                     .then(result => {
                                         if (result.status) {
-                                            setClass(msg, 'hidden', true);
+                                            ui.setClass(msg, 'hidden', true);
 
                                             // Annotation created: clear textarea
                                             modal.querySelector('textarea').value = null;
@@ -728,7 +725,7 @@ $(function () {
                                         } else {
                                             msg.querySelector('.header').innerHTML = result.title;
                                             msg.querySelector('p').innerHTML = result.message.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                                            setClass(msg, 'hidden', false);
+                                            ui.setClass(msg, 'hidden', false);
                                         }
                                     })
                                     .then(result => {
@@ -847,7 +844,7 @@ $(function () {
                         // Current annotations // TODO: rewrite not to use the DOM?
                         const annotations = new Set(Array.from(document.querySelectorAll('.annotation')).map(elem => elem.getAttribute('id')));
 
-                        dimmer(true);
+                        ui.dimmer(true);
                         fetch('/api/annotation/search/?q=' + query)
                             .then(response => response.json())
                             .then(hits => {
@@ -929,7 +926,7 @@ $(function () {
                                             });
                                     });
                                 });
-                                dimmer(false);
+                                ui.dimmer(false);
                                 $(modal).modal('show');
                             });
                     }
@@ -966,12 +963,12 @@ $(function () {
                                 const msg = document.querySelector('#relationships .ui.error.message');
                                 if (result.status) {
                                     $(this).form('clear');
-                                    setClass(msg, 'hidden', true);
+                                    ui.setClass(msg, 'hidden', true);
                                     getRelationships(accession);
                                 } else {
                                     msg.querySelector('.header').innerHTML = result.title;
                                     msg.querySelector('p').innerHTML = result.message;
-                                    setClass(msg, 'hidden', false);
+                                    ui.setClass(msg, 'hidden', false);
                                 }
                             });
                     }
@@ -987,84 +984,24 @@ $(function () {
                 fields: { term: 'empty' },
                 onSuccess: function (event, fields) {
                     const termID = fields.term.trim();
-                    if (termID.length)
+                    if (!termID.length)
                         return;
 
+                    const msg = document.querySelector('#go-terms .ui.error.message');
                     addGoTerm(accession, termID)
                         .then(() => {
                             $(this).form('clear');
-                        });
+                        })
+                        .then(
+                            () => {
+                                ui.setClass(msg, 'hidden', true);
+                            },
+                            error => {
+                                msg.querySelector('.header').innerHTML = error.title;
+                                msg.querySelector('p').innerHTML = error.message;
+                                ui.setClass(msg, 'hidden', false);
+                            });
                 }
             });
         });
-
-    return;
-
-
-
-    // Init Semantic-UI elements
-    $('[data-content]').popup();
-
-    const entryID = match[1];
-
-    utils.getComments(
-        document.querySelector('.ui.sticky .ui.comments'),
-        'entry', entryID, 2, null
-    );
-
-    // Adding comments
-    document.querySelector('.ui.comments form button').addEventListener('click', e => {
-        e.preventDefault();
-        const form = e.target.closest('form');
-        const textarea = form.querySelector('textarea');
-
-        utils.post('/api/entry/'+ entryID +'/comment/', {
-            comment: textarea.value.trim()
-        }, data => {
-            utils.setClass(textarea.closest('.field'), 'error', !data.status);
-
-            if (!data.status) {
-                const modal = document.getElementById('error-modal');
-                modal.querySelector('.content p').innerHTML = data.message;
-                $(modal).modal('show');
-            } else
-                utils.getComments(
-                    e.target.closest('.ui.comments'),
-                    'entry', entryID, 2, null
-                );
-        });
-    });
-
-
-
-    const div = document.querySelector('#go-terms .ui.form');
-    const input = div.querySelector('.ui.input input');
-    input.addEventListener('keyup', e => {
-        if (e.which === 13 && e.target.value.trim().length)
-            addGoTerms(entryID, e.target.value.trim(), function () {
-                getGOTerms(entryID);
-                input.value = null;
-            });
-    });
-
-    div.querySelector('.ui.input button').addEventListener('click', e => {
-        if (input.value.trim().length)
-            addGoTerms(entryID, input.value.trim(), function () {
-                getGOTerms(entryID);
-                input.value = null;
-            });
-    });
-
-    Array.from(document.querySelectorAll('a[data-ref]')).forEach(elem => {
-        elem.addEventListener('click', e => {
-            let active = document.querySelector('li.active');
-            if (active) utils.setClass(active, 'active', false);
-
-            const id = e.target.getAttribute('href').substr(1);
-            active = document.getElementById(id);
-            utils.setClass(active, 'active', true);
-        });
-    });
-
-    utils.listenMenu(document.querySelector('.ui.vertical.menu'));
 });
