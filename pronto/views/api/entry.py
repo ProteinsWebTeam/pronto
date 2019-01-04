@@ -72,7 +72,7 @@ def unlink_annotation(acc, ann_id):
             "status": False,
             "title": "Database error",
             "message": "Could not unlink annotation."
-        }), 400
+        }), 500
     else:
         con.commit()
         return jsonify({
@@ -121,7 +121,7 @@ def link_annotation(acc, ann_id):
             "status": False,
             "title": "Database error",
             "message": "Could not link annotation."
-        }), 400
+        }), 500
     else:
         con.commit()
         return jsonify({
@@ -413,7 +413,7 @@ def check_entry(accession):
         return jsonify({
             "status": False,
             "message": "Could not update {}: {}".format(accession, e)
-        }), 400
+        }), 500
     else:
         con.commit()
         cur.close()
@@ -496,7 +496,7 @@ def add_child_relationship(parent_acc, child_acc):
             "status": False,
             "title": "Database error",
             "message": "Could not link {} to {}.".format(parent_acc, child_acc)
-        }), 400
+        }), 500
     else:
         con.commit()
         return jsonify({
@@ -551,7 +551,7 @@ def add_entry_comment(accession):
             "status": False,
             "message": "Could not add comment "
                        "for {}: {}".format(accession, e)
-        }), 400
+        }), 500
     else:
         con.commit()
         cur.close()
@@ -587,7 +587,7 @@ def delete_entry_comment(accession, _id):
             "status": False,
             "message": "Could not delete comment "
                        "for {}: {}".format(accession, e)
-        }), 400
+        }), 500
     else:
         con.commit()
         cur.close()
@@ -705,7 +705,7 @@ def delete_go_term(accession, term_id):
             "title": "Database error",
             "message": "Could not delete GO term {} "
                        "from InterPro entry {}".format(accession, term_id)
-        }), 400
+        }), 500
     else:
         # row_count = cur.rowcount  # TODO: check that row_count == 1?
         con.commit()
@@ -759,7 +759,7 @@ def add_go_term(accession, term_id):
             "status": False,
             "title": "Invalid GO term",
             "message": "{} is not a valid GO term ID".format(term_id)
-        }), 400
+        }), 401
 
     cur.execute(
         """
@@ -786,7 +786,7 @@ def add_go_term(accession, term_id):
             "status": False,
             "title": "Database error",
             "message": "Could not add {} to {}".format(term_id, accession)
-        }), 400
+        }), 500
     else:
         con.commit()
         return jsonify({
@@ -830,7 +830,7 @@ def delete_relationship(acc1, acc2):
             "status": False,
             "title": "Database error",
             "message": "Could not delete unlink {} and {}".format(acc1, acc2)
-        }), 400
+        }), 500
     else:
         # row_count = cur.rowcount  # TODO: check that row_count == 1?
         con.commit()
@@ -922,6 +922,252 @@ def get_entry_relationships(accession):
 
     cur.close()
     return jsonify(hierarchy), 200
+
+
+@app.route("/api/entry/<e_acc>/signature/<s_acc>/", methods=['PUT'])
+def integrate_signature(e_acc, s_acc):
+    # If True, move a signature from one entry to another
+    move_signature = request.form.get("confirm") is not None
+
+    user = get_user()
+    if not user:
+        return jsonify({
+            "status": False,
+            "title": "Access denied",
+            "message": 'Please <a href="/login/">log in</a> '
+                       'to perform this operation.'
+        }), 401
+
+    con = db.get_oracle()
+    cur = con.cursor()
+    cur.execute(
+        """
+        SELECT COUNT(*)
+        FROM INTERPRO.ENTRY
+        WHERE ENTRY_AC = :1
+        """.format(app.config["DB_SCHEMA"]),
+        (e_acc,)
+    )
+    if not cur.fetchone()[0]:
+        cur.close()
+        return jsonify({
+            "status": False,
+            "title": "Invalid entry",
+            "message": "<strong>{}</strong> is not "
+                       "a valid InterPro accession".format(s_acc)
+        }), 401
+
+    cur.execute(
+        """
+        SELECT M.METHOD_AC, EM.ENTRY_AC
+        FROM {0}.METHOD M
+        LEFT OUTER JOIN {0}.ENTRY2METHOD EM 
+          ON M.METHOD_AC = EM.METHOD_AC
+        WHERE UPPER(M.METHOD_AC) = :acc OR UPPER(M.NAME) = :acc
+        """.format(app.config["DB_SCHEMA"]),
+        dict(acc=s_acc.upper())
+    )
+    row = cur.fetchone()
+    if not row:
+        cur.close()
+        return jsonify({
+            "status": False,
+            "title": "Invalid signature",
+            "message": "<strong>{}</strong> is not a valid member database "
+                       "accession".format(s_acc)
+        }), 401
+
+    """
+    Set to True if:
+        - the signature is already integrated into another entry
+        - we move the signature from this entry to `e_acc`
+        - the signature was the *last* signature of the other entry
+                -> the other entry must be unchecked 
+    """
+    unchecked = False
+
+    s_acc, in_entry_acc = row
+    if in_entry_acc == e_acc:
+        # Already integrated in this entry: do noting
+        cur.close()
+        return jsonify({"status": True}), 200
+    elif in_entry_acc:
+        # Already integrated in an other entry
+
+        if move_signature:
+            try:
+                cur.execute(
+                    """
+                    DELETE FROM {}.ENTRY2METHOD
+                    WHERE ENTRY_AC = :1 AND METHOD_AC = :2
+                    """.format(app.config["DB_SCHEMA"]),
+                    (in_entry_acc, s_acc)
+                )
+            except DatabaseError:
+                cur.close()
+                return jsonify({
+                    "status": False,
+                    "title": "Database error",
+                    "message": "Could not unintegrated "
+                               "{} from {}".format(s_acc, in_entry_acc)
+                }), 500
+
+            cur.execute(
+                """
+                SELECT COUNT(*)
+                FROM {}.ENTRY2METHOD
+                WHERE ENTRY_AC  =:1
+                """.format(app.config["DB_SCHEMA"]),
+                (in_entry_acc,)
+            )
+
+            if not cur.fetchone()[0]:
+                # Need to uncheck the entry
+                try:
+                    cur.execute(
+                        """
+                        UPDATE {}.ENTRY
+                        SET CHECKED = 'N'
+                        WHERE ENTRY_AC = :1
+                        """.format(app.config["DB_SCHEMA"]),
+                        (in_entry_acc,)
+                    )
+                except DatabaseError:
+                    cur.close()
+                    return jsonify({
+                        "status": False,
+                        "title": "Database error",
+                        "message": "Could not uncheck {}".format(in_entry_acc)
+                    }), 500
+                else:
+                    unchecked = True
+        else:
+            # Ask for confirmation
+            cur.close()
+            return jsonify({
+                "status": True,
+                "signature": s_acc,
+                "entry": in_entry_acc
+            }), 200
+
+    try:
+        cur.execute(
+            """
+            INSERT INTO {}.ENTRY2METHOD (ENTRY_AC, METHOD_AC, EVIDENCE) 
+            VALUES (:1, :2, 'MAN')
+            """.format(app.config["DB_SCHEMA"]),
+            (e_acc, s_acc)
+        )
+    except DatabaseError:
+        return jsonify({
+            "status": False,
+            "title": "Database error",
+            "message": "Could not integrated "
+                       "{} into {}".format(s_acc, e_acc)
+        }), 500
+    else:
+        con.commit()
+        if unchecked:
+            res = {
+                "status": True,
+                "unchecked": unchecked,
+                "entry": in_entry_acc
+            }
+        else:
+            res = {
+                "status": True
+            }
+
+        return jsonify(res), 200
+    finally:
+        cur.close()
+
+
+@app.route("/api/entry/<e_acc>/signature/<s_acc>/", methods=['DELETE'])
+def unintegrate_signature(e_acc, s_acc):
+    user = get_user()
+    if not user:
+        return jsonify({
+            "status": False,
+            "title": "Access denied",
+            "message": 'Please <a href="/login/">log in</a> '
+                       'to perform this operation.'
+        }), 401
+
+    con = db.get_oracle()
+    cur = con.cursor()
+    cur.execute(
+        """
+        SELECT COUNT(*)
+        FROM INTERPRO.ENTRY
+        WHERE ENTRY_AC = :1
+        """.format(app.config["DB_SCHEMA"]),
+        (e_acc,)
+    )
+    if not cur.fetchone()[0]:
+        cur.close()
+        return jsonify({
+            "status": False,
+            "title": "Invalid entry",
+            "message": "<strong>{}</strong> is not "
+                       "a valid InterPro accession".format(s_acc)
+        }), 401
+
+    try:
+        cur.execute(
+            """
+            DELETE FROM {}.ENTRY2METHOD
+            WHERE ENTRY_AC = :1 AND METHOD_AC = :2
+            """.format(app.config["DB_SCHEMA"]),
+            (e_acc, s_acc)
+        )
+    except DatabaseError:
+        cur.close()
+        return jsonify({
+            "status": False,
+            "title": "Database error",
+            "message": "Could not unintegrated "
+                       "{} from {}".format(s_acc, e_acc)
+        }), 500
+
+    cur.execute(
+        """
+        SELECT COUNT(*)
+        FROM {}.ENTRY2METHOD
+        WHERE ENTRY_AC  =:1
+        """.format(app.config["DB_SCHEMA"]),
+        (e_acc,)
+    )
+
+    unchecked = False
+    if not cur.fetchone()[0]:
+        # Need to uncheck the entry
+        try:
+            cur.execute(
+                """
+                UPDATE {}.ENTRY
+                SET CHECKED = 'N'
+                WHERE ENTRY_AC = :1
+                """.format(app.config["DB_SCHEMA"]),
+                (e_acc,)
+            )
+        except DatabaseError:
+            con.rollback()  # rollback pending transactions
+            cur.close()
+            return jsonify({
+                "status": False,
+                "title": "Database error",
+                "message": "Could not uncheck {}".format(e_acc)
+            }), 500
+        else:
+            unchecked = True
+
+    con.commit()
+    cur.close()
+    return jsonify({
+        "status": True,
+        "unchecked": unchecked
+    }), 200
 
 
 @app.route("/api/entry/<accession>/signatures/")
