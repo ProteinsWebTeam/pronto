@@ -43,10 +43,10 @@ const annotationEditor = {
 
         const menu = this.element.querySelector('.ui.bottom.menu');
 
-        // Reset error message
-        const msg = menu.querySelector('.item.message');
-        msg.className = 'item message';
-        msg.innerHTML = null;
+        // // Reset error message
+        // const msg = menu.querySelector('.item.message');
+        // msg.className = 'item message';
+        // msg.innerHTML = null;
 
         // Display bottom menu
         ui.setClass(menu, 'hidden', false);
@@ -56,17 +56,19 @@ const annotationEditor = {
         this.textFormatted = segment.innerHTML;
 
         // Display raw annotation
-        segment.innerHTML = '<div class="ui form">' +
-            '<div class="field">' +
-            '<label>Reason for update</label>' +
-            '<select>' +
-            '<option value="Cross-references">Cross-references</option>' +
-            '<option value="References">Literature references</option>' +
-            '<option value="Text" selected>Text</option>' +
-            '<option value="Spelling">Typos, grammar errors, spelling mistakes</option>' +
-            '</select>' +
-            '</div>' +
-            '<div class="field"><textarea rows="15"></textarea></div></div>';
+        segment.innerHTML = '<div class="ui form">'
+            + '<div class="field">'
+            + '<label>Reason for update</label>'
+            + '<select>'
+            + '<option value="Cross-references">Cross-references</option>'
+            + '<option value="References">Literature references</option>'
+            + '<option value="Text" selected>Text</option>'
+            + '<option value="Spelling">Typos, grammar errors, spelling mistakes</option>'
+            + '</select>'
+            + '</div>'
+            + '<div class="field"><textarea rows="15"></textarea></div>'
+            + '<div class="ui error message"></div> '
+            + '</div>';
 
         const textarea = this.element.querySelector('.segment textarea');
         textarea.value = text;
@@ -152,9 +154,10 @@ const annotationEditor = {
                 if (result.status)
                     getAnnotations(accession);
                 else {
-                    const msg = this.element.querySelector('.item.message');
-                    msg.innerHTML = result.message.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                    msg.className = 'item negative message';
+                    const form = this.element.querySelector('.ui.form');
+                    form.querySelector('.ui.message').innerHTML = '<div class="header">'+ result.title +'</div><p>'+ result.message.replace(/</g, '&lt;').replace(/>/g, '&gt;') +'</p>';
+                    ui.setClass(textarea.parentNode, 'error', true);
+                    ui.setClass(form, 'error', true);
                 }
             });
     }
@@ -305,7 +308,6 @@ function getAnnotations(accession) {
 
                         // Bottom menu
                         + '<div class="hidden ui borderless bottom attached mini menu" data-annid="'+ ann.id +'">'
-                        + '<span class="item message"></span>'
                         + '<div class="right menu">'
                         + '<div class="item"><a data-action="cancel" class="ui basic secondary button">Cancel</a></div>'
                         + '<div class="item"><a data-action="save" class="ui primary button">Save</a></div>'
