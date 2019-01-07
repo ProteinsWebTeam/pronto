@@ -63,7 +63,7 @@ def update_references(accession):
     # Find references to insert
     to_insert = references_now - set(references_old)
     if to_insert:
-        start = max(references_old.values()) if references_old else 1
+        start = max(references_old.values()) + 1 if references_old else 1
         cur.executemany(
             """
             INSERT INTO INTERPRO.ENTRY2PUB (ENTRY_AC, ORDER_IN, PUB_ID) 
@@ -75,6 +75,11 @@ def update_references(accession):
 
     con.commit()
     cur.close()
+
+
+@app.route("/api/entry/", methods=["PUT"])
+def create_entry(accession):
+    raise NotImplementedError()
 
 
 @app.route("/api/entry/<accession>/")
@@ -114,6 +119,126 @@ def get_entry(accession):
         return jsonify(entry), 200
     else:
         return jsonify(None), 404
+
+
+@app.route("/api/entry/<accession>/", methods=["POST"])
+def update_entry(accession):
+    user = get_user()
+    if not user:
+        return jsonify({
+            "status": False,
+            "title": "Access denied",
+            "message": 'Please <a href="/login/">log in</a> '
+                       'to perform this operation.'
+        }), 401
+
+    try:
+        name = request.form["name"].strip()
+        assert 0 < len(name) <= 30
+    except (AssertionError, KeyError):
+        return jsonify({
+            "status": False,
+            "title": "Invalid or missing parameter",
+            "message": "'name' must be between 1 and 30 characters long."
+        }), 400
+
+    try:
+        description = request.form["description"].strip()
+        assert 0 < len(description) <= 100
+    except (AssertionError, KeyError):
+        return jsonify({
+            "status": False,
+            "title": "Invalid or missing parameter",
+            "message": "'description' must be between 1 "
+                       "and 100 characters long."
+        }), 400
+
+    try:
+        _type = request.form["type"].strip()
+    except KeyError:
+        return jsonify({
+            "status": False,
+            "title": "Missing parameter",
+            "message": "'type' must be provided."
+        }), 400
+
+    try:
+        is_checked = int(request.form["checked"].strip())
+    except (KeyError, ValueError):
+        return jsonify({
+            "status": False,
+            "title": "Invalid or missing parameter",
+            "message": "'checked' must be an integer."
+        }), 400
+
+    con = db.get_oracle()
+    cur = con.cursor()
+    cur.execute(
+        """
+        SELECT COUNT(*)
+        FROM INTERPRO.ENTRY
+        WHERE ENTRY_AC = :1
+        """, (accession,)
+    )
+    if not cur.fetchone()[0]:
+        cur.close()
+        return jsonify({
+            "status": False,
+            "title": "Invalid entry",
+            "message": "{} is not a "
+                       "valid InterPro accession.".format(accession)
+        }), 404
+
+    if is_checked:
+        cur.execute(
+            """
+            SELECT COUNT(*)
+            FROM INTERPRO.ENTRY2METHOD
+            WHERE ENTRY_AC = :1
+            """, (accession,)
+        )
+        if not cur.fetchone()[0]:
+            cur.close()
+            return jsonify({
+                "status": False,
+                "title": "Cannot check entry",
+                "message": "{} cannot be checked because it does not have "
+                           "any signatures.".format(accession)
+            }), 400
+
+    try:
+        cur.execute(
+            """
+            UPDATE INTERPRO.ENTRY
+            SET 
+              ENTRY_TYPE = :1, 
+              NAME = :2,
+              CHECKED = :3,
+              SHORT_NAME = :4
+            WHERE ENTRY_AC = :5
+            """,
+            (_type, description, 'Y' if is_checked else 'N', name, accession)
+        )
+    except DatabaseError as e:
+        print(e)
+        return jsonify({
+            "status": False,
+            "title": "Database error",
+            "message": "Could not update {}.".format(accession)
+        }), 500
+    else:
+        con.commit()
+        return jsonify({
+            "status": True
+        }), 200
+    finally:
+        cur.close()
+
+
+@app.route("/api/entry/<accession>/", methods=["DELETE"])
+def delete_entry(accession):
+    raise NotImplementedError()
+
 
 
 @app.route('/api/entry/<acc>/annotation/<ann_id>/', methods=["DELETE"])

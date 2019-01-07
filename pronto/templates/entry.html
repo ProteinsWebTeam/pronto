@@ -62,6 +62,10 @@
             color: #fff;
         }
 
+        .ui.hidden.segment {
+            display: none;
+        }
+
         .ui.segment > .ui.left.corner.label > i:hover {
             cursor: pointer;
         }
@@ -105,6 +109,53 @@
             </div>
         </div>
     </div>
+
+    <div id="edit-entry" class="ui hidden raised segment">
+        <div class="ui hidden error message"></div>
+        <div class="ui form">
+            <div class="fields">
+                <div class="three wide field">
+                    <label>Name</label>
+                    <input name="name" placeholder="Entry name" type="text" maxlength="30" data-countdown="countdown1">
+                    <p id="countdown1" class="help-text"></p>
+                </div>
+                <div class="ten wide field">
+                    <label>Description</label>
+                    <input name="description" placeholder="Entry description" type="text" maxlength="100" data-countdown="countdown2">
+                    <p id="countdown2" class="help-text"></p>
+                </div>
+                <div class="three wide field">
+                    <label>Type</label>
+                    <select class="ui dropdown" name="type">
+                        <option value="">Type</option>
+                        <option value="A">Active site</option>
+                        <option value="B">Binding site</option>
+                        <option value="C">Conserved site</option>
+                        <option value="D">Domain</option>
+                        <option value="F">Family</option>
+                        <option value="G">Region</option>
+                        <option value="H">Homologous superfamily</option>
+                        <option value="P">PTM</option>
+                        <option value="R">Repeat</option>
+                        <option value="U">Unknown</option>
+                    </select>
+                </div>
+            </div>
+            <div class="inline field">
+                <div class="ui checkbox">
+                    <input type="checkbox" name="checked">
+                    <label>Checked</label>
+                </div>
+            </div>
+
+            <div style="text-align: right;">
+                <div class="ui primary submit button">Update</div>
+                <div class="ui cancel button">Cancel</div>
+                <div class="ui negative button">Delete</div>
+            </div>
+        </div>
+    </div>
+
 
     <div class="ui grid">
         <div class="four wide column">
