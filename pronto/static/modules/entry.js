@@ -591,14 +591,6 @@ function getSignatures(accession) {
     return fetch('/api' + location.pathname + 'signatures/')
         .then(response => response.json())
         .then(signatures => {
-            const accessions = signatures.map(s => s.accession).join('/');
-
-            // Links to comparison pages
-            Array.from(document.querySelectorAll('a[data-signatures-page]')).forEach(elem => {
-                const page = elem.getAttribute('data-signatures-page');
-                elem.href = '/signatures/' + accessions + '/' + page + '/';
-            });
-
             // Stats
             Array.from(document.querySelectorAll('[data-statistic="signatures"]')).forEach(elem => {
                 elem.innerHTML = signatures.length;
@@ -607,6 +599,14 @@ function getSignatures(accession) {
             // Table of signatures
             let html = '';
             if (signatures.length) {
+                const accessions = signatures.map(s => s.accession).join('/');
+
+                // Links to comparison pages
+                Array.from(document.querySelectorAll('a[data-signatures-page]')).forEach(elem => {
+                    const page = elem.getAttribute('data-signatures-page');
+                    elem.href = '/signatures/' + accessions + '/' + page + '/';
+                });
+
                 signatures.forEach(s => {
                     html += '<tr>'
                         + '<td class="collapsing">'
@@ -629,8 +629,15 @@ function getSignatures(accession) {
                         + '</td>'
                         + '</tr>';
                 });
-            } else
+            } else {
+                // Links to comparison pages
+                Array.from(document.querySelectorAll('a[data-signatures-page]')).forEach(elem => {
+                    elem.href = '#';
+                });
+
                 html = '<tr><td colspan="6" class="center aligned">No integrated signatures</td></tr>';
+            }
+
 
             ui.setClass(document.querySelector('#edit-entry .negative.button'), 'disabled', signatures.length > 0);
 
@@ -773,7 +780,7 @@ const entryEditor = {
         });
 
         segment.querySelector('.negative.button').addEventListener('click', e => {
-            self.delete();
+            self.delete(self.accession);
         });
     },
     update: function (accession, name, description, type, isChecked) {
@@ -831,8 +838,26 @@ const entryEditor = {
     close: function () {
         ui.setClass(document.getElementById('edit-entry'), 'hidden', true);
     },
-    delete: function () {
-        // todo
+    delete: function (accession) {
+        console.log(accession);
+        fetch('/api/entry/' + accession + '/', {method: 'DELETE'})
+            .then(response => response.json())
+            .then(result => {
+                if (result.status) {
+                    // Redirect to home page
+                    const form = document.createElement("form");
+                    form.name = "gohomeyouredrunk";
+                    form.action = "/";
+                    document.body.appendChild(form);
+                    document.gohomeyouredrunk.submit();
+                }
+                else {
+                    const msg = document.querySelector('#edit-entry .ui.error.message');
+                    msg.innerHTML = '<div class="header">'+ result.title +'</div>'
+                        + '<p>'+ result.message +'</p>';
+                    ui.setClass(msg, 'hidden', false);
+                }
+            });
     }
 };
 

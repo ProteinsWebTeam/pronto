@@ -237,8 +237,70 @@ def update_entry(accession):
 
 @app.route("/api/entry/<accession>/", methods=["DELETE"])
 def delete_entry(accession):
-    raise NotImplementedError()
+    user = get_user()
+    if not user:
+        return jsonify({
+            "status": False,
+            "title": "Access denied",
+            "message": 'Please <a href="/login/">log in</a> '
+                       'to perform this operation.'
+        }), 401
 
+    con = db.get_oracle()
+    cur = con.cursor()
+    cur.execute(
+        """
+        SELECT COUNT(*)
+        FROM INTERPRO.ENTRY
+        WHERE ENTRY_AC = :1
+        """, (accession,)
+    )
+    if not cur.fetchone()[0]:
+        cur.close()
+        return jsonify({
+            "status": False,
+            "title": "Invalid entry",
+            "message": "{} is not a "
+                       "valid InterPro accession.".format(accession)
+        }), 404
+
+    cur.execute(
+        """
+        SELECT COUNT(*)
+        FROM INTERPRO.ENTRY2METHOD
+        WHERE ENTRY_AC = :1
+        """, (accession,)
+    )
+    n_signatures = cur.fetchone()[0]
+    if n_signatures:
+        cur.close()
+        return jsonify({
+            "status": False,
+            "title": "Cannot delete entry",
+            "message": "{} cannot be deleted because "
+                       "it has {} signatures".format(accession, n_signatures)
+        }), 400
+
+    try:
+        cur.execute(
+            """
+            DELETE FROM INTERPRO.ENTRY
+            WHERE ENTRY_AC = :1
+            """, (accession,)
+        )
+    except DatabaseError:
+        return jsonify({
+            "status": False,
+            "title": "Database error",
+            "message": "Could not delete {}.".format(accession)
+        }), 500
+    else:
+        con.commit()
+        return jsonify({
+            "status": True
+        }), 200
+    finally:
+        cur.close()
 
 
 @app.route('/api/entry/<acc>/annotation/<ann_id>/', methods=["DELETE"])
