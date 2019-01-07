@@ -395,7 +395,14 @@ def search_annotations():
             FROM INTERPRO.COMMON_ANNOTATION CA
             LEFT OUTER JOIN INTERPRO.ENTRY2COMMON EC 
               ON CA.ANN_ID = EC.ANN_ID
-            WHERE REGEXP_LIKE (CA.TEXT, :q, 'i') OR EC.ENTRY_AC = UPPER(:q) 
+            WHERE CA.ANN_ID IN (
+                SELECT DISTINCT CA.ANN_ID
+                FROM INTERPRO.COMMON_ANNOTATION CA
+                LEFT OUTER JOIN INTERPRO.ENTRY2COMMON EC 
+                  ON CA.ANN_ID = EC.ANN_ID
+                WHERE REGEXP_LIKE (CA.TEXT, :q, 'i') 
+                OR EC.ENTRY_AC = UPPER(:q)             
+            )
             GROUP BY CA.ANN_ID, CA.TEXT
             ORDER BY CNT DESC, CA.ANN_ID
             """,
