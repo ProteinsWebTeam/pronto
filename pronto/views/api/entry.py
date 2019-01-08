@@ -3,7 +3,26 @@ import re
 from cx_Oracle import DatabaseError, IntegrityError
 from flask import jsonify, request
 
-from pronto import app, db, get_user, xref
+from pronto import app, executor, db, get_user, xref
+
+
+def _delete_entry(user, dsn, accession):
+    con = db.connect_oracle(user, dsn)
+    cur = con.cursor()
+    try:
+        cur.execute(
+            """
+            DELETE FROM INTERPRO.ENTRY
+            WHERE ENTRY_AC = :1
+            """, (accession,)
+        )
+    except DatabaseError as e:
+        raise e
+    else:
+        con.commit()
+    finally:
+        cur.close()
+        con.close()
 
 
 def update_references(accession):
@@ -84,6 +103,9 @@ def create_entry(accession):
 
 @app.route("/api/entry/<accession>/")
 def get_entry(accession):
+    if executor.has(accession):
+        return jsonify(None), 404
+
     cur = db.get_oracle().cursor()
     cur.execute(
         """
@@ -175,12 +197,13 @@ def update_entry(accession):
     cur = con.cursor()
     cur.execute(
         """
-        SELECT COUNT(*)
+        SELECT ENTRY_TYPE
         FROM INTERPRO.ENTRY
         WHERE ENTRY_AC = :1
         """, (accession,)
     )
-    if not cur.fetchone()[0]:
+    row = cur.fetchone()
+    if not row:
         cur.close()
         return jsonify({
             "status": False,
@@ -188,6 +211,26 @@ def update_entry(accession):
             "message": "{} is not a "
                        "valid InterPro accession.".format(accession)
         }), 404
+    current_type = row[0]
+    if _type != current_type:
+        # Check that we do not have relationships with other entries
+        cur.execute(
+            """
+            SELECT COUNT(*)
+            FROM INTERPRO.ENTRY2ENTRY
+            WHERE ENTRY_AC = :acc
+            OR PARENT_AC = :acc
+            """,
+            dict(acc=accession)
+        )
+        if cur.fetchone()[0]:
+            cur.close()
+            return jsonify({
+                "status": False,
+                "title": "Cannot update type",
+                "message": "{} cannot have its type changed because "
+                           "it has InterPro relationships.".format(accession)
+            }), 400
 
     if is_checked:
         cur.execute(
@@ -272,35 +315,19 @@ def delete_entry(accession):
         """, (accession,)
     )
     n_signatures = cur.fetchone()[0]
+    cur.close()
+
     if n_signatures:
-        cur.close()
         return jsonify({
             "status": False,
             "title": "Cannot delete entry",
             "message": "{} cannot be deleted because "
                        "it has {} signatures".format(accession, n_signatures)
         }), 400
-
-    try:
-        cur.execute(
-            """
-            DELETE FROM INTERPRO.ENTRY
-            WHERE ENTRY_AC = :1
-            """, (accession,)
-        )
-    except DatabaseError:
-        return jsonify({
-            "status": False,
-            "title": "Database error",
-            "message": "Could not delete {}.".format(accession)
-        }), 500
     else:
-        con.commit()
-        return jsonify({
-            "status": True
-        }), 200
-    finally:
-        cur.close()
+        dsn = app.config["ORACLE_DB"]["dsn"]
+        executor.submit(accession, _delete_entry, user, dsn, accession)
+        return jsonify({"status": True}), 202
 
 
 @app.route('/api/entry/<acc>/annotation/<ann_id>/', methods=["DELETE"])

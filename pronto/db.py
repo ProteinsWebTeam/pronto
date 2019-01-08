@@ -15,6 +15,11 @@ def get_mysql_db():
     return g.mysql_db
 
 
+def connect_oracle(user: dict, dsn: str):
+    url = user["dbuser"] + "/" + user["password"] + "@" + dsn
+    return cx_Oracle.connect(url, encoding="utf-8", nencoding="utf-8")
+
+
 def get_oracle(require_auth=False):
     """
     Opens a new database connection if there is none yet
@@ -32,4 +37,5 @@ def get_oracle(require_auth=False):
         url = credentials + "@" + app.config["ORACLE_DB"]["dsn"]
         g.oracle_db = cx_Oracle.connect(url, encoding="utf-8",
                                         nencoding="utf-8")
+
     return g.oracle_db

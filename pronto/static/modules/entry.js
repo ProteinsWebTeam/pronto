@@ -846,10 +846,10 @@ const entryEditor = {
                 if (result.status) {
                     // Redirect to home page
                     const form = document.createElement("form");
-                    form.name = "gohomeyouredrunk";
+                    form.name = "gotohome";
                     form.action = "/";
                     document.body.appendChild(form);
-                    document.gohomeyouredrunk.submit();
+                    document.gotohome.submit();
                 }
                 else {
                     const msg = document.querySelector('#edit-entry .ui.error.message');

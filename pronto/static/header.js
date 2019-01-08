@@ -36,6 +36,33 @@ function getCurrentUser() {
         });
 }
 
+function getTasks() {
+    fetch('/api/tasks/')
+        .then(response => response.json())
+        .then(tasks => {
+            let html = '<i class="tasks icon"></i>'
+                + '<div class="menu">';
+
+            if (tasks.length) {
+                tasks.forEach(task => {
+                    html += '<div class="item">';
+
+                    if (task.status === null)
+                        html += '<i class="loading notched circle icon"></i>';
+                    else if (task.status)
+                        html += '<i class="green check circle icon"></i>';
+                    else
+                        html += '<i class="red exclamation circle icon"></i>';
+                    html += task.name + '</div>';
+                });
+            } else
+                html += '<div class="item">No tasks</div>';
+            html += '</div>';
+
+            document.getElementById('tasks').innerHTML = html;
+        })
+}
+
 function getInstance() {
     fetch("/api/instance/")
         .then(response => response.json())
@@ -48,4 +75,7 @@ export function finaliseHeader() {
     getUniProtVersion();
     getCurrentUser();
     getInstance();
+    getTasks();
+
+    document.getElementById('tasks').addEventListener('click', e => getTasks());
 }

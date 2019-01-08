@@ -1,6 +1,6 @@
 from flask import jsonify, request
 
-from pronto import app, db, get_user
+from pronto import app, db, executor, get_user
 from . import (annotation, database, entry, interpro, protein, signature,
                signatures, uniprot)
 
@@ -14,6 +14,11 @@ def user():
 def instance():
     dsn = app.config["ORACLE_DB"]["dsn"]
     return jsonify({"instance": dsn.split("/")[-1].upper()})
+
+
+@app.route("/api/tasks/")
+def get_tasks():
+    return jsonify(executor.tasks)
 
 
 def search_entry(cur, query):
