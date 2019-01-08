@@ -18,7 +18,7 @@ def get_signature(accession):
           ON M.METHOD_AC = EM.METHOD_AC
         WHERE UPPER(M.METHOD_AC) = :acc OR UPPER(M.NAME) = :acc
         """.format(app.config["DB_SCHEMA"]),
-        dict(acc=accession)
+        dict(acc=accession.upper())
     )
     row = cur.fetchone()
     cur.close()
