@@ -5,6 +5,45 @@ from pronto import app, db, get_user, xref
 from .signatures import build_method2protein_query
 
 
+@app.route("/api/signature/<accession>/")
+def get_signature(accession):
+    cur = db.get_oracle().cursor()
+    cur.execute(
+        """
+        SELECT 
+          M.METHOD_AC, M.NAME, M.DESCRIPTION, M.DBCODE, M.SIG_TYPE, 
+          M.PROTEIN_COUNT, EM.ENTRY_AC
+        FROM {0}.METHOD M
+        LEFT OUTER JOIN {0}.ENTRY2METHOD EM 
+          ON M.METHOD_AC = EM.METHOD_AC
+        WHERE UPPER(M.METHOD_AC) = :acc OR UPPER(M.NAME) = :acc
+        """.format(app.config["DB_SCHEMA"]),
+        dict(acc=accession)
+    )
+    row = cur.fetchone()
+    cur.close()
+
+    if row:
+        database = xref.find_ref(row[3], row[0])
+        return jsonify({
+            "accession": row[0],
+            "name": row[1],
+            "description": row[2],
+            "num_proteins": row[5],
+            "type": row[4],
+            "link": database.gen_link(),
+            "color": database.color,
+            "database": database.name,
+            "integrated": row[6]
+        }), 200
+    else:
+        return jsonify(None), 404
+        return jsonify({
+            "title": "Invalid signature",
+            "message": "".format(accession)
+        }), 404
+
+
 @app.route("/api/signature/<accession>/predictions/")
 def get_signature_predictions(accession):
     try:

@@ -166,3 +166,8 @@ export function useWhiteText(rgb) {
 export function toRGB(color) {
     return 'rgb('+ color.r +','+ color.g +','+ color.b +')';
 }
+
+export function updateCountdown(input) {
+    const maxLength = Number.parseInt(input.getAttribute('maxlength'), 10);
+    input.parentNode.querySelector('p').innerHTML = (maxLength - input.value.length) + ' remaining characters';
+}

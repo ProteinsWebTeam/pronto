@@ -1,6 +1,6 @@
 import re
 
-from cx_Oracle import DatabaseError, IntegrityError
+from cx_Oracle import DatabaseError, IntegrityError, STRING
 from flask import jsonify, request
 
 from pronto import app, executor, db, get_user, xref
@@ -97,8 +97,116 @@ def update_references(accession):
 
 
 @app.route("/api/entry/", methods=["PUT"])
-def create_entry(accession):
-    raise NotImplementedError()
+def create_entry():
+    user = get_user()
+    if not user:
+        return jsonify({
+            "status": False,
+            "title": "Access denied",
+            "message": 'Please <a href="/login/">log in</a> '
+                       'to perform this operation.'
+        }), 401
+
+    try:
+        entry_type = request.json["type"]
+        entry_name = request.json["name"]
+        entry_descr = request.json["description"]
+    except KeyError:
+        return jsonify({
+            'error': {
+                'title': 'Bad request',
+                'message': 'Invalid or missing parameters.'
+            }
+        }), 400
+
+    con = db.get_oracle()
+    cur = con.cursor()
+
+    # Create the entry
+    accession = cur.var(STRING)
+    try:
+        cur.execute(
+            """
+            INSERT INTO INTERPRO.ENTRY (ENTRY_AC, ENTRY_TYPE, NAME, SHORT_NAME) 
+            VALUES (INTERPRO.NEW_ENTRY_AC(), :1, :2, :3)
+            RETURNING ENTRY_AC INTO :4
+            """,
+            (entry_type, entry_descr, entry_name, accession)
+        )
+    except DatabaseError as e:
+        cur.close()
+        return jsonify({
+            "status": False,
+            "title": "Database error",
+            "message": str(e)
+        }), 401
+
+    # Get the new entry's accession
+    accession = accession.getvalue()
+
+    # Integrate signatures (if any to integrated)
+    signatures = set(request.json.get("signatures", []))
+    if signatures:
+        # Check first they all exist
+        cur.execute(
+            """
+            SELECT METHOD_AC
+            FROM {}.METHOD
+            WHERE METHOD_AC IN ({})
+            """.format(
+                app.config["DB_SCHEMA"],
+                ','.join([':'+str(i+1) for i in range(len(signatures))])
+            ),
+            tuple(signatures)
+        )
+        existing_signatures = {row[0] for row in cur}
+
+        for acc in signatures:
+            if acc not in existing_signatures:
+                cur.close()
+                return jsonify({
+                    "status": False,
+                    "title": "Invalid signature",
+                    "message": "<strong>{}</strong> is not a valid "
+                               "member database accession.".format(acc)
+                }), 401
+
+        try:
+            cur.execute(
+                """
+                DELETE FROM {}.ENTRY2METHOD
+                WHERE METHOD_AC IN ({})
+                """.format(
+                    app.config["DB_SCHEMA"],
+                    ','.join(
+                        [':' + str(i + 1) for i in range(len(signatures))])
+                ),
+                tuple(signatures)
+            )
+
+            cur.executemany(
+                """
+                INSERT INTO INTERPRO.ENTRY2METHOD (
+                  ENTRY_AC, METHOD_AC, EVIDENCE
+                )
+                VALUES (:1, :2, 'MAN')
+                """,
+                [(accession, acc) for acc in signatures]
+            )
+        except DatabaseError as e:
+            cur.close()
+            return jsonify({
+                "status": False,
+                "title": "Database error",
+                "message": str(e)
+            }), 401
+
+    con.commit()
+    cur.close()
+    return jsonify({
+        "status": True,
+        "accession": accession
+    }), 200
 
 
 @app.route("/api/entry/<accession>/")
@@ -249,6 +357,21 @@ def update_entry(accession):
                            "any signatures.".format(accession)
             }), 400
 
+        cur.execute(
+            """
+            SELECT COUNT(*)
+            FROM INTERPRO.ENTRY2COMMON
+            WHERE ENTRY_AC = :1
+            """, (accession,)
+        )
+        if not cur.fetchone()[0]:
+            cur.close()
+            return jsonify({
+                "status": False,
+                "title": "Cannot check entry",
+                "message": "{} cannot be checked because it does not have "
+                           "any annotations.".format(accession)
+            }), 400
     try:
         cur.execute(
             """
@@ -322,7 +445,7 @@ def delete_entry(accession):
             "status": False,
             "title": "Cannot delete entry",
             "message": "{} cannot be deleted because "
-                       "it has {} signatures".format(accession, n_signatures)
+                       "it has {} signatures.".format(accession, n_signatures)
         }), 400
     else:
         dsn = app.config["ORACLE_DB"]["dsn"]
@@ -679,6 +802,40 @@ def check_entry(accession):
 
     con = db.get_oracle()
     cur = con.cursor()
+
+    if is_checked:
+        cur.execute(
+            """
+            SELECT COUNT(*)
+            FROM INTERPRO.ENTRY2METHOD
+            WHERE ENTRY_AC = :1
+            """, (accession,)
+        )
+        if not cur.fetchone()[0]:
+            cur.close()
+            return jsonify({
+                "status": False,
+                "title": "Cannot check entry",
+                "message": "{} cannot be checked because it does not have "
+                           "any signatures.".format(accession)
+            }), 400
+
+        cur.execute(
+            """
+            SELECT COUNT(*)
+            FROM INTERPRO.ENTRY2COMMON
+            WHERE ENTRY_AC = :1
+            """, (accession,)
+        )
+        if not cur.fetchone()[0]:
+            cur.close()
+            return jsonify({
+                "status": False,
+                "title": "Cannot check entry",
+                "message": "{} cannot be checked because it does not have "
+                           "any annotations.".format(accession)
+            }), 400
+
     try:
         cur.execute(
             """
@@ -1342,7 +1499,7 @@ def integrate_signature(e_acc, s_acc):
             "status": False,
             "title": "Invalid signature",
             "message": "<strong>{}</strong> is not a valid member database "
-                       "accession.".format(s_acc)
+                       "accession or name.".format(s_acc)
         }), 401
 
     """

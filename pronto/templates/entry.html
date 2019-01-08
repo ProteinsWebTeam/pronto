@@ -13,13 +13,6 @@
         h3.ui.header {
             margin: 1rem 0 .5rem;
         }
-        i.button.icon {
-            cursor: pointer;
-            color: rgba(0,0,0,.4);
-        }
-        i.button.icon:hover {
-            color: rgba(0,0,0,.8);
-        }
         .ui.list .list > .item > .content > .list, .ui.list > .item > .content > .list {
             margin-left: 0;
             padding-left: 1.5rem;
@@ -27,9 +20,9 @@
         .annotation .ui.top.attached.menu { margin-top: 1rem; }
         .annotation .ui.form textarea { max-height: none; }
         .ui.hidden.menu { display: none; }
-        .ui.modal .content .ui.menu:last-child,
-        .ui.modal .content .ui.segment:last-child {
-            margin-bottom: 1rem;  /* by default, the last menu attached to modal's bottom border: change this */
+        .ui.modal .content > .ui.menu:last-child,
+        .ui.modal .content > .ui.segment:last-child {
+            margin-bottom: 1rem;
         }
         .ui.menu .item.positive.message { color: #2c662d; }
         .ui.menu .item.negative.message { color: #9f3a38; }
@@ -42,7 +35,7 @@
         }
         #modal-entries {
             top: 0;
-            margin-top: 5rem !important; /* overwritte Semantic UI stuff */
+            margin-top: 5rem !important; /* overwrite Semantic UI stuff */
         }
         #annotations .ui.error.message {
             margin-top: 1rem;
@@ -114,17 +107,17 @@
         <div class="ui hidden error message"></div>
         <div class="ui form">
             <div class="fields">
-                <div class="three wide field">
+                <div class="three wide required field">
                     <label>Name</label>
                     <input name="name" placeholder="Entry name" type="text" maxlength="30" data-countdown="countdown1">
                     <p id="countdown1" class="help-text"></p>
                 </div>
-                <div class="ten wide field">
+                <div class="ten wide required field">
                     <label>Description</label>
                     <input name="description" placeholder="Entry description" type="text" maxlength="100" data-countdown="countdown2">
                     <p id="countdown2" class="help-text"></p>
                 </div>
-                <div class="three wide field">
+                <div class="three wide required field">
                     <label>Type</label>
                     <select class="ui dropdown" name="type">
                         <option value="">Type</option>
@@ -149,9 +142,9 @@
             </div>
 
             <div style="text-align: right;">
-                <div class="ui primary submit button">Update</div>
-                <div class="ui cancel button">Cancel</div>
                 <div class="ui negative button">Delete</div>
+                <div class="ui cancel button">Cancel</div>
+                <div class="ui primary submit button">Update</div>
             </div>
         </div>
     </div>
@@ -369,7 +362,7 @@
         <textarea></textarea>
     </div>
     <div class="actions">
-        <div class="ui basic secondary cancel button">Discard</div>
+        <div class="ui cancel button">Cancel</div>
         <div class="ui primary ok button">Create</div>
     </div>
 </div>
@@ -378,7 +371,7 @@
     <div class="header"></div>
     <div class="scrolling content"></div>
     <div class="actions">
-        <div class="ui basic secondary cancel button">Close</div>
+        <div class="ui cancel button">Close</div>
     </div>
 </div>
 

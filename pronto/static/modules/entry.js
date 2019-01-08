@@ -638,9 +638,6 @@ function getSignatures(accession) {
                 html = '<tr><td colspan="6" class="center aligned">No integrated signatures</td></tr>';
             }
 
-
-            ui.setClass(document.querySelector('#edit-entry .negative.button'), 'disabled', signatures.length > 0);
-
             const tbody = document.querySelector('#signatures tbody');
             tbody.innerHTML = html;
 
@@ -734,12 +731,6 @@ function renderGoTerms(terms, div, accession) {
     });
 }
 
-function updateCountdown(input) {
-    const maxLength = Number.parseInt(input.getAttribute('maxlength'), 10);
-    const targetID = input.getAttribute('data-countdown');
-    document.getElementById(targetID).innerHTML = (maxLength - input.value.length) + ' remaining characters';
-}
-
 const entryEditor = {
     accession: null,
     name: null,
@@ -750,15 +741,11 @@ const entryEditor = {
         const fields = {
             type: 'empty'
         };
-        Array.from(document.querySelectorAll('[data-countdown]')).forEach(input => {
+        Array.from(document.querySelectorAll('#edit-entry [data-countdown]')).forEach(input => {
             const maxLength = input.getAttribute('maxlength');
             fields[input.name] = ['maxLength['+ maxLength +']', 'empty'];
-            updateCountdown(input);
-            input.addEventListener('input', e => {
-                updateCountdown(input);
-            })
+            ui.updateCountdown(input);
         });
-
         const self = this;
         const segment = document.getElementById('edit-entry');
         $(segment.querySelector('.ui.dropdown')).dropdown();
@@ -796,11 +783,11 @@ const entryEditor = {
 
         input = segment.querySelector('input[name="name"]');
         input.value = this.name;
-        updateCountdown(input);
+        ui.updateCountdown(input);
 
         input = segment.querySelector('input[name="description"]');
         input.value = this.description;
-        updateCountdown(input);
+        ui.updateCountdown(input);
 
         $(segment.querySelector('.ui.dropdown')).dropdown('set selected', this.type);
 
