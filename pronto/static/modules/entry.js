@@ -95,7 +95,7 @@ const annotationEditor = {
             .then(response => response.json())
             .then(result => {
                 if (result.status)
-                    getAnnotations(accession);
+                    getAnnotations(accession).then(() => { $('.ui.sticky').sticky(); });
                 else
                     ui.openErrorModal(result);
             });
@@ -110,7 +110,7 @@ const annotationEditor = {
                     .then(response => response.json())
                     .then(result => {
                         if (result.status)
-                            getAnnotations(accession);
+                            getAnnotations(accession).then(() => { $('.ui.sticky').sticky(); });
                         else
                             ui.openErrorModal(result);
                     });
@@ -152,7 +152,7 @@ const annotationEditor = {
             .then(response => response.json())
             .then(result => {
                 if (result.status)
-                    getAnnotations(accession);
+                    getAnnotations(accession).then(() => { $('.ui.sticky').sticky(); });
                 else {
                     const form = this.element.querySelector('.ui.form');
                     form.querySelector('.ui.message').innerHTML = '<div class="header">'+ result.title +'</div><p>'+ result.message.replace(/</g, '&lt;').replace(/>/g, '&gt;') +'</p>';
@@ -192,8 +192,9 @@ function integrateSignature(entryAcc, signatureAcc, moveIfIntegrated) {
                 msg.querySelector('p').innerHTML = '<em><a href="/entry/'+ result.entry +'/">'+ result.entry +'</a></em> has been unchecked because it does not have any signatures.';
                 msg.className = 'ui info message';
 
-                getSignatures(entryAcc);
                 $('#signatures .ui.form').form('clear');
+                getSignatures(entryAcc).then(() => { $('.ui.sticky').sticky(); });
+
             } else if (result.entry) {
                 // Signature already integrated: ask for confirmation
 
@@ -210,8 +211,8 @@ function integrateSignature(entryAcc, signatureAcc, moveIfIntegrated) {
                 });
             }  else {
                 ui.setClass(msg, 'hidden', true);
-                getSignatures(entryAcc);
                 $('#signatures .ui.form').form('clear');
+                getSignatures(entryAcc).then(() => { $('.ui.sticky').sticky(); });
             }
         });
 }
@@ -240,7 +241,7 @@ function addGoTerm(accession, termID) {
             .then(response => response.json())
             .then(result => {
                 if (result.status) {
-                    getGOTerms(accession);
+                    getGOTerms(accession).then(() => { $('.ui.sticky').sticky(); });
                     resolve();
                 } else
                     reject(result);
@@ -483,7 +484,7 @@ function getAnnotations(accession) {
                                 .then(response => response.json())
                                 .then(result => {
                                     if (result.status)
-                                        getAnnotations(accession);
+                                        getAnnotations(accession).then(() => { $('.ui.sticky').sticky(); });
                                     else
                                         ui.openErrorModal(result);
                                 });
@@ -576,7 +577,7 @@ function getRelationships(accession) {
                                 .then(response => response.json())
                                 .then(result => {
                                     if (result.status)
-                                        getRelationships(accession);
+                                        getRelationships(accession).then(() => { $('.ui.sticky').sticky(); });
                                     else
                                         ui.openErrorModal(result);
                                 });
@@ -659,10 +660,10 @@ function getSignatures(accession) {
                                         msg.querySelector('p').innerHTML = '<em>'+ accession +'</em> has been unchecked because it does not have any signatures.';
                                         msg.className = 'ui info message';
 
-                                        getSignatures(accession);
+                                        getSignatures(entryAcc).then(() => { $('.ui.sticky').sticky(); });
                                     } else if (result.status) {
                                         ui.setClass(msg, 'hidden', true);
-                                        getSignatures(accession);
+                                        getSignatures(entryAcc).then(() => { $('.ui.sticky').sticky(); });
                                     } else {
                                         msg.querySelector('.header').innerHTML = result.title;
                                         msg.querySelector('p').innerHTML = result.message;
@@ -721,7 +722,7 @@ function renderGoTerms(terms, div, accession) {
                         .then(response => response.json())
                         .then(result => {
                             if (result.status)
-                                getGOTerms(accession);
+                                getGOTerms(accession).then(() => { $('.ui.sticky').sticky(); });
                             else
                                 ui.openErrorModal(result);
                         });
@@ -826,25 +827,31 @@ const entryEditor = {
         ui.setClass(document.getElementById('edit-entry'), 'hidden', true);
     },
     delete: function (accession) {
-        console.log(accession);
-        fetch('/api/entry/' + accession + '/', {method: 'DELETE'})
-            .then(response => response.json())
-            .then(result => {
-                if (result.status) {
-                    // Redirect to home page
-                    const form = document.createElement("form");
-                    form.name = "gotohome";
-                    form.action = "/";
-                    document.body.appendChild(form);
-                    document.gotohome.submit();
-                }
-                else {
-                    const msg = document.querySelector('#edit-entry .ui.error.message');
-                    msg.innerHTML = '<div class="header">'+ result.title +'</div>'
-                        + '<p>'+ result.message +'</p>';
-                    ui.setClass(msg, 'hidden', false);
-                }
-            });
+        ui.openConfirmModal(
+            'Delete entry?',
+            'Are you sure you want to delete <strong>' + accession + '</strong>?',
+            'Delete',
+            () => {
+                fetch('/api/entry/' + accession + '/', {method: 'DELETE'})
+                    .then(response => response.json())
+                    .then(result => {
+                        if (result.status) {
+                            // Redirect to home page
+                            const form = document.createElement("form");
+                            form.name = "gotohome";
+                            form.action = "/";
+                            document.body.appendChild(form);
+                            document.gotohome.submit();
+                        }
+                        else {
+                            const msg = document.querySelector('#edit-entry .ui.error.message');
+                            msg.innerHTML = '<div class="header">'+ result.title +'</div>'
+                                + '<p>'+ result.message +'</p>';
+                            ui.setClass(msg, 'hidden', false);
+                        }
+                    });
+            }
+        );
     }
 };
 
@@ -983,7 +990,7 @@ $(function () {
                             })
                             .then(result => {
                                 if (result.status) {
-                                    getAnnotations(accession);
+                                    getAnnotations(accession).then(() => { $('.ui.sticky').sticky(); });
                                     $(modal).modal('hide');
                                 } else {
                                     // todo: show error
@@ -1067,7 +1074,7 @@ $(function () {
                                 })
                                 .then(result => {
                                     if (result.status) {
-                                        getAnnotations(accession);
+                                        getAnnotations(accession).then(() => { $('.ui.sticky').sticky(); });
                                         $(modal).modal('hide');
                                     } else {
                                         msg.innerHTML = result.message;
@@ -1165,10 +1172,12 @@ $(function () {
                                 linkAnnotation(accession, annID)
                                     .then(result => {
                                         if (result.status) {
-                                            getAnnotations(accession);
+                                            getAnnotations(accession).then(() => {
+                                                // Remove menu to prevent user to add the abstract a second time
+                                                menu.parentNode.removeChild(menu);
 
-                                            // Remove menu to prevent user to add the abstract a second time
-                                            menu.parentNode.removeChild(menu);
+                                                $('.ui.sticky').sticky();
+                                            });
 
                                             // Update segment's style
                                             const segment = modal.querySelector('.ui.segment[data-annid="'+ annID +'"]');
@@ -1229,7 +1238,7 @@ $(function () {
                         if (result.status) {
                             $(this).form('clear');
                             ui.setClass(msg, 'hidden', true);
-                            getRelationships(accession);
+                            getRelationships(accession).then(() => { $('.ui.sticky').sticky(); });
                         } else {
                             msg.querySelector('.header').innerHTML = result.title;
                             msg.querySelector('p').innerHTML = result.message;
@@ -1282,7 +1291,7 @@ $(function () {
                 .then(result => {
                     if (result.status) {
                         $(this).form('clear');
-                        getAnnotations(accession);
+                        getAnnotations(accession).then(() => { $('.ui.sticky').sticky(); });
                     }
                     else
                         ui.openErrorModal(result);
