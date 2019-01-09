@@ -9,24 +9,38 @@ from pronto import app, db, get_user, xref
 
 def verify_text(text):
     # Find missing opening/closing tags
-    for tag in ("b", "i", "li", "ol", "p", "pre", "sub", "sup", "ul"):
-        open_tag = "<{}>".format(tag)
-        close_tag = "</{}>".format(tag)
+    for el in ("b", "i", "li", "ol", "p", "pre", "sub", "sup", "ul"):
         is_open = False
-        for m in re.findall(r"</?{}>".format(tag), text, re.I):
-            m = m.lower()
-            if m == open_tag:
+        for tag in re.findall(r"</?{}>".format(el), text, re.I):
+            if tag[1] != '/':
+                # is an opening tag
                 if is_open:
-                    return "Mismatched {} element.".format(open_tag)
+                    # Already open
+                    return "Mismatched <{}> element.".format(el)
                 else:
                     is_open = True
             elif is_open:
+                # Closing tag after an opening tag
                 is_open = False
             else:
-                return "Mismatched {} element.".format(close_tag)
+                # Missing opening tag
+                return "Mismatched </{}> element.".format(el)
 
         if is_open:
-            return "Mismatched {} element.".format(open_tag)
+            # Missing closing tag
+            return "Mismatched <{}> element.".format(el)
+
+    # Find tags not allowed to be inside paragraphs
+    in_paragraph = False
+    for tag in re.findall(r"</?(?:p|ul|ol|li)>", text, re.I):
+        tag = tag.lower()
+        if tag == "<p>":
+            in_paragraph = True
+        elif tag == "</p>":
+            in_paragraph = False
+        elif in_paragraph:
+            return "{} elements are not allowed " \
+                   "inside a paragraph.".format(tag)
 
     # Find list items outside list
     lists = []
@@ -187,6 +201,20 @@ def lookup_pmid(text):
     return True, text
 
 
+def wrap_paragraphs(text):
+    blocks = []
+    for block in text.split("\n\n"):
+        block = block.strip()
+
+        if re.match(r"<(?:li|ol|p|pre|ul)>", block, re.I) is None:
+            # Does not start with a tag that cannot be included in <p></p>
+            blocks.append("<p>" + block + "</p>")
+        else:
+            blocks.append(block)
+
+    return "\n\n".join(blocks)
+
+
 @app.route("/api/annotation/", methods=["PUT"])
 def create_annotation():
     user = get_user()
@@ -223,6 +251,8 @@ def create_annotation():
             "title": "Invalid reference",
             "message": text
         }), 400
+
+    wrap_paragraphs(text)
 
     con = db.get_oracle()
     cur = con.cursor()
@@ -339,7 +369,7 @@ def update_annotations(ann_id):
             SET TEXT = :1, COMMENTS = :2
             WHERE ANN_ID = :3
             """,
-            (text, comment, ann_id)
+            (wrap_paragraphs(text), comment, ann_id)
         )
     except DatabaseError:
         return jsonify({
