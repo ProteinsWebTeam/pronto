@@ -119,6 +119,14 @@ def create_entry():
             }
         }), 400
 
+    if entry_type == 'U':
+        # Unknown type is not allowed
+        return jsonify({
+            "status": False,
+            "title": "Invalid type",
+            "message": "InterPro entries cannot be of type Unknown."
+        }), 400
+
     con = db.get_oracle()
     cur = con.cursor()
 
@@ -320,7 +328,15 @@ def update_entry(accession):
                        "valid InterPro accession.".format(accession)
         }), 404
     current_type = row[0]
-    if _type != current_type:
+    if _type == 'U':
+        # Unknown type is not allowed
+        cur.close()
+        return jsonify({
+            "status": False,
+            "title": "Invalid type",
+            "message": "InterPro entries cannot be of type Unknown."
+        }), 400
+    elif _type != current_type:
         # Check that we do not have relationships with other entries
         cur.execute(
             """
