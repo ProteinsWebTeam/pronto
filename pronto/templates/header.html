@@ -3,14 +3,17 @@
         <a href="/" class="header item">
             Pronto!
         </a>
-
         <div class="item">
-            <form class="ui action input" action="/search/" method="get" role="search" autocomplete="off">
-                <input name="q" placeholder="Search&hellip;" type="text" value="">
-                <button class="ui basic icon button">
-                    <i class="search icon"></i>
-                </button>
-            </form>
+            <div class="ui purple label">
+                InterPro
+                <div id="instance" class="detail"></div>
+            </div>
+        </div>
+        <div class="item">
+            <div class="ui violet blue label">
+                UniProt
+                <div id="uniprot-version" class="detail"></div>
+            </div>
         </div>
         <div class="item">
             <div id="new-entry-btn" class="ui primary compact button">Create</div>
@@ -18,16 +21,12 @@
 
         <div class="right menu">
             <div class="item">
-                <div class="ui violet label">
-                    InterPro
-                    <div id="instance" class="detail"></div>
-                </div>
-            </div>
-            <div class="item">
-                <div class="ui blue label">
-                    UniProt
-                    <div id="uniprot-version" class="detail"></div>
-                </div>
+                <form class="ui action input" action="/search/" method="get" role="search" autocomplete="off">
+                    <input name="q" placeholder="Search&hellip;" type="text" value="">
+                    <button class="ui basic icon button">
+                        <i class="search icon"></i>
+                    </button>
+                </form>
             </div>
             <div id="tasks" class="ui icon simple dropdown item"></div>
         </div>
