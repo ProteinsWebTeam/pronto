@@ -22,13 +22,21 @@ def get_tasks():
 
 
 def search_entry(cur, query):
+    try:
+        i = int(query)
+    except ValueError:
+        pass
+    else:
+        query = "IPR{:06}".format(i)
+
     cur.execute(
         """
         SELECT ENTRY_AC
         FROM {}.ENTRY
-        WHERE ENTRY_AC = UPPER(:q)
+        WHERE UPPER(ENTRY_AC) = :q
+        OR UPPER(SHORT_NAME) = :q
         """.format(app.config["DB_SCHEMA"]),
-        {"q": query}
+        dict(q=query.upper())
     )
     return cur.fetchone()
 
