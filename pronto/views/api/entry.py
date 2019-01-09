@@ -1326,7 +1326,6 @@ def unlink_reference(accession, pub_id):
         cur.close()
 
 
-
 @app.route("/api/entry/<acc1>/relationship/<acc2>/", methods=['DELETE'])
 def delete_relationship(acc1, acc2):
     user = get_user()
@@ -1772,4 +1771,3 @@ def get_entry_signatures_annotations(accession):
 
     cur.close()
     return jsonify(signatures), 200
-
