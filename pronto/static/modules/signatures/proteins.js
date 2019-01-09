@@ -82,7 +82,7 @@ function getProteins() {
                 html += '<table class="ui very basic compact table"><tbody>';
                 protein.signatures.forEach(signature => {
                     if (signature.active)
-                        html += '<tr class="positive">';
+                        html += '<tr class="active">';
                     else
                         html += '<tr>';
 
