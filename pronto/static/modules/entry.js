@@ -797,6 +797,7 @@ const entryEditor = {
         ui.setClass(document.querySelector('#edit-entry .ui.error.message'), 'hidden', true);
 
         ui.setClass(segment, 'hidden', false);
+        $('.ui.sticky').sticky();
     },
     save: function (fields) {
         const options = {
