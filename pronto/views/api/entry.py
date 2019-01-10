@@ -461,7 +461,7 @@ def delete_entry(accession):
             "status": False,
             "title": "Cannot delete entry",
             "message": "{} cannot be deleted because "
-                       "it has {} signatures.".format(accession, n_signatures)
+                       "it has one or more signatures.".format(accession)
         }), 400
     else:
         dsn = app.config["ORACLE_DB"]["dsn"]
