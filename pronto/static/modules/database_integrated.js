@@ -24,11 +24,18 @@ function getSignatures() {
                         '<td><a href="/prediction/'+ signature.accession +'/">'+ signature.accession +'</a></td>';
 
                     if (signature.entry !== null) {
-                        html += '<td><span class="ui circular mini label type-'+ signature.entry.type +'">'+ signature.entry.type +'</span><a href="/entry/'+ signature.entry.accession +'/">'+ signature.entry.accession +'</a></td>';
-                        html += '<td>'+ ui.renderCheckbox(signature.entry.accession, signature.entry.checked) +'</td>';
+                        html += '<td>'
+                            + '<span class="ui circular mini label type-'+ signature.entry.type +'">'+ signature.entry.type +'</span>'
+                            + '<a href="/entry/'+ signature.entry.accession +'/">'+ signature.entry.accession +'</a>'
+                            + '</td>'
+                            + '<td class="collapsing">'
+                            + ui.renderCheckbox(signature.entry.accession, signature.entry.checked)
+                            + '</td>';
                     } else {
-                        html += '<td></td>';
-                        html += '<td>'+ ui.renderCheckbox(null, null) +'</td>';
+                        html += '<td></td>'
+                            + '<td class="collapsing">'
+                            + ui.renderCheckbox(null, null)
+                            + '</td>';
                     }
 
                     html += '<td class="right aligned">'+ nvl(signature.count_now, '') +'</td>' +
