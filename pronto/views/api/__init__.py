@@ -1,3 +1,4 @@
+from cx_Oracle import DatabaseError
 from flask import jsonify, request
 
 from pronto import app, db, executor, get_user
@@ -6,14 +7,36 @@ from . import (annotation, database, entry, interpro, protein, signature,
 
 
 @app.route("/api/user/")
-def user():
+def _get_user():
     return jsonify({"user": get_user()})
 
 
 @app.route("/api/instance/")
-def instance():
+def get_instanse():
     dsn = app.config["ORACLE_DB"]["dsn"]
     return jsonify({"instance": dsn.split("/")[-1].upper()})
+
+
+@app.route("/api/status/")
+def get_status():
+    status = 503
+    cur = db.get_oracle().cursor()
+    try:
+        cur.execute(
+            """
+            SELECT COUNT(*)
+            FROM {}.CV_DATABASE
+            WHERE IS_READY = 'Y'
+            """.format(app.config["DB_SCHEMA"])
+        )
+    except DatabaseError:
+        pass
+    else:
+        if cur.fetchone()[0]:
+            status = 200
+    finally:
+        cur.close()
+        return '', status
 
 
 @app.route("/api/tasks/")
