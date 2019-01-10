@@ -1,6 +1,7 @@
 import {finaliseHeader} from "../header.js"
 import * as ui from "../ui.js";
 import {nvl} from '../utils.js';
+import {checkEntry} from '../events.js';
 import {getSignatureComments, postSignatureComment} from "../comments.js";
 
 function getSignatures() {
