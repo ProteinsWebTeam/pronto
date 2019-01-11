@@ -650,6 +650,108 @@ def reorder_annotation(acc, annid, x):
 
 
 @app.route('/api/entry/<accession>/annotations/')
+def get_annotations_new(accession):
+    cur = db.get_oracle().cursor()
+
+    # Annotations
+    cur.execute(
+        """
+        SELECT A.ANN_ID, A.TEXT, A.COMMENTS, S.CT
+        FROM INTERPRO.COMMON_ANNOTATION A
+        INNER JOIN INTERPRO.ENTRY2COMMON E ON A.ANN_ID = E.ANN_ID
+        LEFT OUTER JOIN (
+          SELECT ANN_ID, COUNT(*) CT
+          FROM INTERPRO.ENTRY2COMMON
+          GROUP BY ANN_ID
+        ) S ON A.ANN_ID = S.ANN_ID
+        WHERE E.ENTRY_AC = :1
+        ORDER BY E.ORDER_IN
+        """,
+        (accession,)
+    )
+
+    annotations = []
+    prog_ref = re.compile(r"\[([a-z]+):([a-z0-9\-.]+)]", re.I)
+
+    for ann_id, text, comment, n_entries in cur:
+        ext_refs = {}
+
+        for match in prog_ref.finditer(text):
+            ref_db, ref_id = match.groups()
+            ref_db = ref_db.upper()
+            base_url = xref.find_xref(ref_db)
+            if base_url:
+                whole_match = match.group()
+
+                ext_refs[whole_match] = {
+                    "match": whole_match,
+                    "id": ref_id,
+                    "url": base_url.format(ref_id)
+                }
+
+        annotations.append({
+            "id": ann_id,
+            "text": text,
+            "comment": comment,
+            "num_entries": n_entries,
+            "xrefs": list(ext_refs.values())
+        })
+
+    """
+    Get references from ref tables
+    We consider that entries in ENTRY2PUB are update automatically 
+        (i.e. when an annotation is updated, linked, unlinked)
+    and entries in SUPPLEMENTARY_REF are manually added by curators 
+        (i.e. deletable)
+    """
+    cur.execute(
+        """
+        SELECT 
+          PUB.PUB_ID, C.TITLE, C.YEAR, C.VOLUME, C.RAWPAGES, C.DOI_URL,
+          C.PUBMED_ID, C.ISO_JOURNAL, C.MEDLINE_JOURNAL, C.AUTHORS,
+          PUB.IS_SUPPL
+        FROM (
+          SELECT PUB_ID, 'N' AS IS_SUPPL
+          FROM INTERPRO.ENTRY2PUB
+          WHERE ENTRY_AC = :acc
+          UNION ALL
+          SELECT SUPPLEMENTARY_REF.PUB_ID, 'Y' AS IS_SUPPL
+          FROM INTERPRO.SUPPLEMENTARY_REF
+          WHERE ENTRY_AC = :acc        
+        ) PUB
+        INNER JOIN INTERPRO.CITATION C
+          ON PUB.PUB_ID = C.PUB_ID
+        """,
+        dict(acc=accession)
+    )
+
+    references = {}
+    for row in cur:
+        pub_id = row[0]
+        pub = {
+            "id": pub_id,
+            "title": row[1],
+            "year": row[2],
+            "volume": row[3],
+            "pages": row[4],
+            "doi": row[5],
+            "pmid": row[6],
+            "journal": row[7] if row[7] else row[8],
+            "authors": row[9],
+            "supplementary": row[10] == 'Y'
+        }
+
+        if pub_id not in references or pub["supplementary"]:
+            references[pub_id] = pub
+
+    cur.close()
+    return jsonify({
+        "annotations": annotations,
+        "references": references
+    })
+
+
+#@app.route('/api/entry/<accession>/annotations/')
 def get_annotations(accession):
     cur = db.get_oracle().cursor()
 

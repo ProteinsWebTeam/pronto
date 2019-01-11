@@ -280,6 +280,7 @@ def find_xref(dbcode):
         'CAZY': 'http://www.cazy.org/fam/{}.html',
         'COG': 'http://www.ncbi.nlm.nih.gov/COG/new/release/cow.cgi?cog={}',
         'EC': 'http://www.ebi.ac.uk/intenz/query?cmd=SearchEC&ec={}',
+        'INTENZ': 'http://www.ebi.ac.uk/intenz/query?cmd=SearchEC&ec={}',
         'GENPROP': 'http://cmr.jcvi.org/cgi-bin/CMR/shared/GenomePropDefinition.cgi?prop_acc={}',
         'INTERPRO': '/entry/{}',
         'PDBE': 'http://www.ebi.ac.uk/pdbe/entry/pdb/{}',
@@ -288,6 +289,7 @@ def find_xref(dbcode):
         'PROSITE': 'http://www.isrec.isb-sib.ch/cgi-bin/get_qdoc?{}',
         'PROSITEDOC': 'http://www.expasy.org/cgi-bin/nicedoc.pl?{}',
         'SSF': 'http://supfam.org/SUPERFAMILY/cgi-bin/scop.cgi?ipid={}',
+        'SUPERFAMILY': 'http://supfam.org/SUPERFAMILY/cgi-bin/scop.cgi?ipid={}',
         'SWISSPROT': 'http://www.uniprot.org/uniprot/{}',
         'TIGRFAMS': 'http://www.jcvi.org/cgi-bin/tigrfams/HmmReportPage.cgi?acc={}'
     }.get(dbcode)
