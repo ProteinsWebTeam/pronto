@@ -660,10 +660,10 @@ function getSignatures(accession) {
                                         msg.querySelector('p').innerHTML = '<em>'+ accession +'</em> has been unchecked because it does not have any signatures.';
                                         msg.className = 'ui info message';
 
-                                        getSignatures(entryAcc).then(() => { $('.ui.sticky').sticky(); });
+                                        getSignatures(accession).then(() => { $('.ui.sticky').sticky(); });
                                     } else if (result.status) {
                                         ui.setClass(msg, 'hidden', true);
-                                        getSignatures(entryAcc).then(() => { $('.ui.sticky').sticky(); });
+                                        getSignatures(accession).then(() => { $('.ui.sticky').sticky(); });
                                     } else {
                                         msg.querySelector('.header').innerHTML = result.title;
                                         msg.querySelector('p').innerHTML = result.message;
