@@ -17,7 +17,8 @@ def api_protein(accession):
           E.SCIENTIFIC_NAME,
           P.FRAGMENT
         FROM {0}.PROTEIN P
-        LEFT OUTER JOIN {0}.ETAXI E ON P.TAX_ID = E.TAX_ID
+        LEFT OUTER JOIN {0}.ETAXI E 
+          ON P.TAX_ID = E.TAX_ID
         WHERE PROTEIN_AC = :1
         """.format(app.config['DB_SCHEMA']),
         (accession,)
@@ -60,10 +61,14 @@ def api_protein(accession):
           MA.POS_TO,
           MA.FRAGMENTS
         FROM {0}.MATCH MA
-        INNER JOIN {0}.METHOD ME ON MA.METHOD_AC = ME.METHOD_AC
-        LEFT OUTER JOIN {0}.ENTRY2METHOD E2M ON MA.METHOD_AC = E2M.METHOD_AC
-        LEFT OUTER JOIN {0}.ENTRY E ON E2M.ENTRY_AC = E.ENTRY_AC
-        LEFT OUTER JOIN INTERPRO.CV_ENTRY_TYPE CET ON CET.CODE = E.ENTRY_TYPE
+        INNER JOIN {0}.METHOD ME 
+          ON MA.METHOD_AC = ME.METHOD_AC
+        LEFT OUTER JOIN INTERPRO.ENTRY2METHOD E2M 
+          ON MA.METHOD_AC = E2M.METHOD_AC
+        LEFT OUTER JOIN INTERPRO.ENTRY E 
+          ON E2M.ENTRY_AC = E.ENTRY_AC
+        LEFT OUTER JOIN INTERPRO.CV_ENTRY_TYPE CET 
+          ON CET.CODE = E.ENTRY_TYPE
         WHERE MA.PROTEIN_AC = :1        
         """.format(app.config['DB_SCHEMA']),
         (accession, )

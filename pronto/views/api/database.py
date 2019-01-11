@@ -64,14 +64,13 @@ def api_integrated_signatures(dbshort):
 
     search_query = request.args.get("search", "").strip()
 
-    # TODO: replace INTERPRO schema by `{0}` when synonyms created
     base_sql = """
             FROM {0}.METHOD M
             LEFT OUTER JOIN {0}.METHOD_MATCH MM 
                 ON M.METHOD_AC = MM.METHOD_AC
-            LEFT OUTER JOIN {0}.ENTRY2METHOD EM 
+            LEFT OUTER JOIN INTERPRO.ENTRY2METHOD EM 
                 ON M.METHOD_AC = EM.METHOD_AC
-            LEFT OUTER JOIN {0}.ENTRY E 
+            LEFT OUTER JOIN INTERPRO.ENTRY E 
                 ON E.ENTRY_AC = EM.ENTRY_AC
             LEFT OUTER JOIN (
                 SELECT
@@ -255,7 +254,7 @@ def api_unintegrated_signatures(dbshort, mode):
         base_sql = """
             SELECT DISTINCT MP.METHOD_AC1 AS METHOD_AC
             FROM {0}.METHOD_PREDICTION MP
-            INNER JOIN {0}.ENTRY2METHOD EM
+            INNER JOIN INTERPRO.ENTRY2METHOD EM
               ON MP.METHOD_AC2 = EM.METHOD_AC
             WHERE MP.RELATION = 'ADD_TO'
               AND MP.METHOD_AC1 IN (
@@ -265,7 +264,7 @@ def api_unintegrated_signatures(dbshort, mode):
               )
               AND MP.METHOD_AC1 NOT IN (
                 SELECT METHOD_AC
-                FROM {0}.ENTRY2METHOD
+                FROM INTERPRO.ENTRY2METHOD
               )    
         """.format(app.config["DB_SCHEMA"])
 
@@ -290,12 +289,12 @@ def api_unintegrated_signatures(dbshort, mode):
               )
               AND MP.METHOD_AC1 NOT IN (
                 SELECT METHOD_AC
-                FROM {0}.ENTRY2METHOD
+                FROM INTERPRO.ENTRY2METHOD
               )
               AND M.CANDIDATE = 'Y'
               AND MP.METHOD_AC2 NOT IN (
                 SELECT METHOD_AC
-                FROM {0}.ENTRY2METHOD
+                FROM INTERPRO.ENTRY2METHOD
               )    
         """.format(app.config["DB_SCHEMA"])
 
@@ -314,7 +313,7 @@ def api_unintegrated_signatures(dbshort, mode):
             )
             AND METHOD_AC NOT IN (
               SELECT METHOD_AC 
-              FROM {0}.ENTRY2METHOD
+              FROM INTERPRO.ENTRY2METHOD
             )
             AND METHOD_AC NOT IN (
               SELECT DISTINCT METHOD_AC1 
@@ -359,7 +358,7 @@ def api_unintegrated_signatures(dbshort, mode):
         FROM {1}.METHOD_MATCH MM
         LEFT OUTER JOIN {1}.METHOD_PREDICTION MP
           ON MM.METHOD_AC = MP.METHOD_AC1
-        LEFT OUTER JOIN {1}.ENTRY2METHOD EM 
+        LEFT OUTER JOIN INTERPRO.ENTRY2METHOD EM 
           ON MP.METHOD_AC2 = EM.METHOD_AC
         LEFT OUTER JOIN INTERPRO.ENTRY E 
           ON EM.ENTRY_AC = E.ENTRY_AC

@@ -182,10 +182,9 @@ def create_entry():
         try:
             cur.execute(
                 """
-                DELETE FROM {}.ENTRY2METHOD
+                DELETE FROM INTERPRO.ENTRY2METHOD
                 WHERE METHOD_AC IN ({})
                 """.format(
-                    app.config["DB_SCHEMA"],
                     ','.join(
                         [':' + str(i + 1) for i in range(len(signatures))])
                 ),
@@ -1394,18 +1393,20 @@ def get_entry_relationships(accession):
           R.ENTRY_AC, E2.NAME, E2.ENTRY_TYPE
         FROM (
             SELECT PARENT_AC, ENTRY_AC
-            FROM {0}.ENTRY2ENTRY
+            FROM INTERPRO.ENTRY2ENTRY
             START WITH ENTRY_AC = :accession
             CONNECT BY PRIOR PARENT_AC = ENTRY_AC
             UNION ALL
             SELECT PARENT_AC, ENTRY_AC
-            FROM {0}.ENTRY2ENTRY
+            FROM INTERPRO.ENTRY2ENTRY
             START WITH PARENT_AC = :accession
             CONNECT BY PRIOR ENTRY_AC = PARENT_AC        
         ) R
-        INNER JOIN {0}.ENTRY E1 ON R.PARENT_AC = E1.ENTRY_AC
-        INNER JOIN {0}.ENTRY E2 ON R.ENTRY_AC = E2.ENTRY_AC
-        """.format(app.config["DB_SCHEMA"]),
+        INNER JOIN INTERPRO.ENTRY E1 
+          ON R.PARENT_AC = E1.ENTRY_AC
+        INNER JOIN INTERPRO.ENTRY E2 
+          ON R.ENTRY_AC = E2.ENTRY_AC
+        """,
         dict(accession=accession)
     )
 
@@ -1485,7 +1486,7 @@ def integrate_signature(e_acc, s_acc):
         SELECT COUNT(*)
         FROM INTERPRO.ENTRY
         WHERE ENTRY_AC = :1
-        """.format(app.config["DB_SCHEMA"]),
+        """,
         (e_acc,)
     )
     if not cur.fetchone()[0]:
@@ -1500,10 +1501,11 @@ def integrate_signature(e_acc, s_acc):
     cur.execute(
         """
         SELECT M.METHOD_AC, EM.ENTRY_AC
-        FROM {0}.METHOD M
-        LEFT OUTER JOIN {0}.ENTRY2METHOD EM 
+        FROM {}.METHOD M
+        LEFT OUTER JOIN INTERPRO.ENTRY2METHOD EM 
           ON M.METHOD_AC = EM.METHOD_AC
-        WHERE UPPER(M.METHOD_AC) = :acc OR UPPER(M.NAME) = :acc
+        WHERE UPPER(M.METHOD_AC) = :acc 
+        OR UPPER(M.NAME) = :acc
         """.format(app.config["DB_SCHEMA"]),
         dict(acc=s_acc.upper())
     )
@@ -1538,9 +1540,9 @@ def integrate_signature(e_acc, s_acc):
             try:
                 cur.execute(
                     """
-                    DELETE FROM {}.ENTRY2METHOD
+                    DELETE FROM INTERPRO.ENTRY2METHOD
                     WHERE ENTRY_AC = :1 AND METHOD_AC = :2
-                    """.format(app.config["DB_SCHEMA"]),
+                    """,
                     (in_entry_acc, s_acc)
                 )
             except DatabaseError:
@@ -1555,9 +1557,9 @@ def integrate_signature(e_acc, s_acc):
             cur.execute(
                 """
                 SELECT COUNT(*)
-                FROM {}.ENTRY2METHOD
+                FROM INTERPRO.ENTRY2METHOD
                 WHERE ENTRY_AC  =:1
-                """.format(app.config["DB_SCHEMA"]),
+                """,
                 (in_entry_acc,)
             )
 
@@ -1566,10 +1568,10 @@ def integrate_signature(e_acc, s_acc):
                 try:
                     cur.execute(
                         """
-                        UPDATE {}.ENTRY
+                        UPDATE INTERPRO.ENTRY
                         SET CHECKED = 'N'
                         WHERE ENTRY_AC = :1
-                        """.format(app.config["DB_SCHEMA"]),
+                        """,
                         (in_entry_acc,)
                     )
                 except DatabaseError:
@@ -1593,9 +1595,9 @@ def integrate_signature(e_acc, s_acc):
     try:
         cur.execute(
             """
-            INSERT INTO {}.ENTRY2METHOD (ENTRY_AC, METHOD_AC, EVIDENCE) 
+            INSERT INTO INTERPRO.ENTRY2METHOD (ENTRY_AC, METHOD_AC, EVIDENCE) 
             VALUES (:1, :2, 'MAN')
-            """.format(app.config["DB_SCHEMA"]),
+            """,
             (e_acc, s_acc)
         )
     except DatabaseError:
@@ -1641,7 +1643,7 @@ def unintegrate_signature(e_acc, s_acc):
         SELECT COUNT(*)
         FROM INTERPRO.ENTRY
         WHERE ENTRY_AC = :1
-        """.format(app.config["DB_SCHEMA"]),
+        """,
         (e_acc,)
     )
     if not cur.fetchone()[0]:
@@ -1656,9 +1658,10 @@ def unintegrate_signature(e_acc, s_acc):
     try:
         cur.execute(
             """
-            DELETE FROM {}.ENTRY2METHOD
-            WHERE ENTRY_AC = :1 AND METHOD_AC = :2
-            """.format(app.config["DB_SCHEMA"]),
+            DELETE FROM INTERPRO.ENTRY2METHOD
+            WHERE ENTRY_AC = :1 
+            AND METHOD_AC = :2
+            """,
             (e_acc, s_acc)
         )
     except DatabaseError:
@@ -1673,9 +1676,9 @@ def unintegrate_signature(e_acc, s_acc):
     cur.execute(
         """
         SELECT COUNT(*)
-        FROM {}.ENTRY2METHOD
+        FROM INTERPRO.ENTRY2METHOD
         WHERE ENTRY_AC  =:1
-        """.format(app.config["DB_SCHEMA"]),
+        """,
         (e_acc,)
     )
 
@@ -1685,10 +1688,10 @@ def unintegrate_signature(e_acc, s_acc):
         try:
             cur.execute(
                 """
-                UPDATE {}.ENTRY
+                UPDATE INTERPRO.ENTRY
                 SET CHECKED = 'N'
                 WHERE ENTRY_AC = :1
-                """.format(app.config["DB_SCHEMA"]),
+                """,
                 (e_acc,)
             )
         except DatabaseError:
@@ -1720,10 +1723,10 @@ def get_entry_signatures(accession):
           METHOD_AC,
           NAME,
           PROTEIN_COUNT
-        FROM {0}.METHOD
+        FROM {}.METHOD
         WHERE METHOD_AC IN (
           SELECT METHOD_AC
-          FROM {0}.ENTRY2METHOD
+          FROM INTERPRO.ENTRY2METHOD
           WHERE ENTRY_AC = :1
         )
         ORDER BY METHOD_AC
@@ -1751,7 +1754,6 @@ def get_entry_signatures(accession):
 @app.route("/api/entry/<accession>/signatures/annotations/")
 def get_entry_signatures_annotations(accession):
     cur = db.get_oracle().cursor()
-    # todo: use db_schema for METHOD table
     cur.execute(
         """
         SELECT
@@ -1759,14 +1761,14 @@ def get_entry_signatures_annotations(accession):
           NAME,
           ABSTRACT,
           ABSTRACT_LONG
-        FROM INTERPRO.METHOD
+        FROM {}.METHOD
         WHERE METHOD_AC IN (
           SELECT METHOD_AC
           FROM INTERPRO.ENTRY2METHOD
           WHERE ENTRY_AC = :1
         )
         ORDER BY METHOD_AC
-        """,
+        """.format(app.config['DB_SCHEMA']),
         (accession,)
     )
 

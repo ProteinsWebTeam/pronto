@@ -13,8 +13,8 @@ def get_signature(accession):
         SELECT 
           M.METHOD_AC, M.NAME, M.DESCRIPTION, M.DBCODE, M.SIG_TYPE, 
           M.PROTEIN_COUNT, EM.ENTRY_AC
-        FROM {0}.METHOD M
-        LEFT OUTER JOIN {0}.ENTRY2METHOD EM 
+        FROM {}.METHOD M
+        LEFT OUTER JOIN INTERPRO.ENTRY2METHOD EM 
           ON M.METHOD_AC = EM.METHOD_AC
         WHERE UPPER(M.METHOD_AC) = :acc OR UPPER(M.NAME) = :acc
         """.format(app.config["DB_SCHEMA"]),
@@ -102,9 +102,9 @@ def get_signature_predictions(accession):
           ON MO.C_AC = M.METHOD_AC
         LEFT OUTER JOIN {0}.CV_DATABASE DB 
           ON M.DBCODE = DB.DBCODE
-        LEFT OUTER JOIN {0}.ENTRY2METHOD E2M 
+        LEFT OUTER JOIN INTERPRO.ENTRY2METHOD E2M 
           ON MO.C_AC = E2M.METHOD_AC
-        LEFT OUTER JOIN {0}.ENTRY E 
+        LEFT OUTER JOIN INTERPRO.ENTRY E 
           ON E2M.ENTRY_AC = E.ENTRY_AC
         ORDER BY MO.N_PROT_OVER DESC, MO.N_OVER DESC, MO.C_AC
         """.format(app.config["DB_SCHEMA"]),
@@ -152,8 +152,8 @@ def get_signature_predictions(accession):
     cur.execute(
         """
         SELECT ENTRY_AC, PARENT_AC
-        FROM {}.ENTRY2ENTRY
-        """.format(app.config['DB_SCHEMA'])
+        FROM INTERPRO.ENTRY2ENTRY
+        """
     )
     parent_of = dict(cur.fetchall())
     cur.close()
@@ -185,7 +185,8 @@ def get_signature_comments(accession):
         """
         SELECT C.ID, C.VALUE, C.CREATED_ON, C.STATUS, U.NAME
         FROM INTERPRO.METHOD_COMMENT C
-        INNER JOIN INTERPRO.USER_PRONTO U ON C.USERNAME = U.USERNAME
+        INNER JOIN INTERPRO.USER_PRONTO U 
+          ON C.USERNAME = U.USERNAME
         WHERE C.METHOD_AC = :1
         ORDER BY C.CREATED_ON DESC
         """,

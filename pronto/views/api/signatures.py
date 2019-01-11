@@ -400,7 +400,7 @@ def get_overlapping_proteins(accessions_str):
           ON A.PROTEIN_AC = MA.PROTEIN_AC
         INNER JOIN {1}.METHOD ME 
           ON MA.METHOD_AC = ME.METHOD_AC
-        LEFT OUTER JOIN {1}.ENTRY2METHOD EM 
+        LEFT OUTER JOIN INTERPRO.ENTRY2METHOD EM 
           ON MA.METHOD_AC = EM.METHOD_AC
         """.format(query, app.config["DB_SCHEMA"]),
         params
