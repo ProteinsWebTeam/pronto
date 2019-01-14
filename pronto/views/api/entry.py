@@ -43,7 +43,7 @@ def update_references(accession):
         (accession, )
     )
 
-    prog_ref = r'<cite\s+id="(PUB\d+)"\s*/>'
+    prog_ref = r"[cite:(PUB\d+)]"
     references_now = set()
     for row in cur:
         for m in re.finditer(prog_ref, row[0]):
@@ -556,17 +556,8 @@ def link_annotation(acc, ann_id):
         cur.close()
 
 
-@app.route('/api/entry/<acc>/annotation/<annid>/order/<x>/', methods=["POST"])
+@app.route('/api/entry/<acc>/annotation/<annid>/order/<int:x>/', methods=["POST"])
 def reorder_annotation(acc, annid, x):
-    try:
-        x = int(x)
-    except ValueError:
-        return jsonify({
-            "status": False,
-            "title": "Invalid parameter",
-            "message": "'x' must be an integer"
-        }), 400
-
     user = get_user()
     if not user:
         return jsonify({
@@ -597,7 +588,6 @@ def reorder_annotation(acc, annid, x):
             "title": "Invalid parameters",
             "message": "{} is not linked by {}".format(annid, acc)
         }), 400
-
 
     max_order = max(annotations.values())
     min_order = min(annotations.values())
