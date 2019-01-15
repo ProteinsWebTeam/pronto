@@ -290,15 +290,15 @@ function getAnnotations(accession) {
 
                         // Action menu
                         + '<div class="ui top attached mini menu">'
-                        + '<a data-action="edit" class="item"><abbr title="Edit this annotation"><i class="edit icon"></i></abbr></a>'
-                        + '<a data-action="movedown" class="item"><abbr title="Move this annotation down"><i class="arrow down icon"></i></abbr></a>'
-                        + '<a data-action="moveup" class="item"><abbr title="Move this annotation up"><i class="arrow up icon"></i></abbr></a>'
-                        + '<a data-action="delete" class="item"><abbr title="Unlink this annotation"><i class="trash icon"></i></abbr></a>'
+                        + '<a data-action="edit" class="item"><abbr title="Edit this annotation"><i class="edit fitted icon"></i></abbr></a>'
+                        + '<a data-action="movedown" class="item"><abbr title="Move this annotation down"><i class="arrow down fitted icon"></i></abbr></a>'
+                        + '<a data-action="moveup" class="item"><abbr title="Move this annotation up"><i class="arrow up fitted icon"></i></abbr></a>'
+                        + '<a data-action="delete" class="item"><abbr title="Unlink this annotation"><i class="trash fitted icon"></i></abbr></a>'
 
                         // Info menu (last edit comment and number of entries using this annotation)
                         + '<div class="right menu">'
                         + nvl(ann.comment, '', '<span class="item">'+ ann.comment +'</span>')
-                        + '<a class="item"><i class="list icon"></i> Associated to '+ ann.num_entries + ' entries</a>'
+                        + '<a data-action="list" class="item"><i class="list fitted icon"></i> Associated to '+ ann.num_entries + ' entries</a>'
                         + '</div>'
                         + '</div>'
 
@@ -437,32 +437,26 @@ function getAnnotations(accession) {
                         annotationEditor.save(accession, annID);
                     else if (action === 'cancel')
                         annotationEditor.close();
+                    else if (action === 'list') {
+                        fetch('/api/annotation/' + annID + '/entries/')
+                            .then(response => response.json())
+                            .then(entries => {
+                                let html = '<table class="ui very basic table"><tbody>';
+                                entries.forEach(e => {
+                                    html += '<tr>' +
+                                        '<td class="collapsing">' +
+                                        '<span class="ui label circular type-'+ e.type +'">'+ e.type +'</span>' +
+                                        '</td>'
+                                        + '<td><a href="/entry/'+ e.accession +'/">'+ e.accession +'</a></td>'
+                                        + '<td>'+ e.name +'</td></tr>';
 
-                });
-            });
+                                });
 
-            // Display entries associated to a given annotation
-            Array.from(document.querySelectorAll('.annotation .ui.top.menu > .right.menu > a')).forEach(elem => {
-                elem.addEventListener('click', e => {
-                    const annID = e.target.closest('.annotation').getAttribute('id');
-                    fetch('/api/annotation/' + annID + '/entries/')
-                        .then(response => response.json())
-                        .then(entries => {
-                            let html = '<table class="ui very basic table"><tbody>';
-                            entries.forEach(e => {
-                                html += '<tr>' +
-                                    '<td class="collapsing">' +
-                                    '<span class="ui label circular type-'+ e.type +'">'+ e.type +'</span>' +
-                                    '</td>'
-                                    + '<td><a href="/entry/'+ e.accession +'/">'+ e.accession +'</a></td>'
-                                    + '<td>'+ e.name +'</td></tr>';
-
+                                const modal = document.getElementById('modal-entries');
+                                modal.querySelector('.content').innerHTML = html;
+                                $(modal).modal('show');
                             });
-
-                            const modal = document.getElementById('modal-entries');
-                            modal.querySelector('.content').innerHTML = html;
-                            $(modal).modal('show');
-                        });
+                    }
                 });
             });
 
@@ -1548,8 +1542,6 @@ $(function () {
     document.querySelector('#segment-statistics .ui.corner.label').addEventListener('click', e => {
         entryEditor.open();
     });
-
-
 
     getEntry(accession);
 
