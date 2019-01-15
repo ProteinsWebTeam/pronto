@@ -615,6 +615,21 @@ def search_annotations():
 
     if search_query:
         cur = db.get_oracle().cursor()
+
+        if search_query.isdigit():
+            # Could be PubMed ID
+            cur.execute(
+                """
+                SELECT PUB_ID 
+                FROM INTERPRO.CITATION 
+                WHERE PUBMED_ID = :1
+                """,
+                (int(search_query),)
+            )
+            row = cur.fetchone()
+            if row:
+                search_query = row[0]
+
         cur.execute(
             """
             SELECT CA.ANN_ID, CA.TEXT, COUNT(EC.ENTRY_AC) AS CNT
@@ -644,4 +659,7 @@ def search_annotations():
 
         cur.close()
 
-    return jsonify(hits), 200
+    return jsonify({
+        "query": search_query,
+        "hits": hits
+    }), 200

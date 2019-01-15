@@ -1344,14 +1344,14 @@ $(function () {
                 ui.dimmer(true);
                 fetch('/api/annotation/search/?q=' + query)
                     .then(response => response.json())
-                    .then(hits => {
+                    .then(result => {
                         let html = '';
 
-                        if (hits.length) {
+                        if (result.hits.length) {
                             // Create a regular expression to match the search query (case insensitive, and escaping special characters)
-                            const re = new RegExp(query.replace(/([.?*+^$[\]\\(){}|-])/g, '\\$1'), 'gi');
+                            const re = new RegExp(result.query.replace(/([.?*+^$[\]\\(){}|-])/g, '\\$1'), 'gi');
 
-                            hits.forEach(ann => {
+                            result.hits.forEach(ann => {
                                 // Highlight search query in text
                                 const text = escapeXmlTags(ann.text).replace(re, '<span class="hl-search">$&</span>');
 
@@ -1375,7 +1375,7 @@ $(function () {
                         }
 
                         const modal = document.getElementById('modal-annotations');
-                        modal.querySelector('.header').innerHTML = 'Results found:&nbsp;'+ hits.length.toLocaleString();
+                        modal.querySelector('.header').innerHTML = 'Results found:&nbsp;'+ result.hits.length.toLocaleString();
                         modal.querySelector('.content').innerHTML = html;
 
                         Array.from(modal.querySelectorAll('.content .ui.bottom.menu > a')).forEach(elem => {
