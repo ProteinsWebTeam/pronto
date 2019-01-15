@@ -29,7 +29,27 @@ def update_references(accession):
     con = db.get_oracle()
     cur = con.cursor()
 
-    # Get references from the annotations
+    # Get references from the entry-pub table (may need to be updated)
+    cur.execute(
+        """
+        SELECT PUB_ID, ORDER_IN
+        FROM INTERPRO.ENTRY2PUB
+        WHERE ENTRY_AC = :1
+        """, (accession,)
+    )
+    # Keep order_in to now the highest order
+    cur_references = dict(cur.fetchall())
+    # for pub_id, order_in in cur:
+    #
+    #     cur_references[pub_id] = order_in
+    #     # if pub_id in new_references:
+    #     #
+    #     #
+    #     # else:
+    #     #     # Not in annotations any more: can be deleted
+    #     #     to_delete.append(pub_id)
+
+    # Get references from annotations
     cur.execute(
         """
         SELECT TEXT
@@ -43,53 +63,48 @@ def update_references(accession):
         (accession, )
     )
 
-    prog_ref = r"[cite:(PUB\d+)]"
-    references_now = set()
+    new_references = set()
+    prog_ref = re.compile(r"\[cite:(PUB\d+)\]", re.I)
     for row in cur:
-        for m in re.finditer(prog_ref, row[0]):
-            references_now.add(m.group(1))
+        for m in prog_ref.finditer(row[0]):
+            print(m)
+            new_references.add(m.group(1))
 
-    # Get references from the entry-pub table (needs to be updated)
-    references_old = {}
-    to_delete = []
-    cur.execute(
-        """
-        SELECT PUB_ID, ORDER_IN
-        FROM INTERPRO.ENTRY2PUB
-        WHERE ENTRY_AC = :1
-        """, (accession,)
-    )
-    for pub_id, order_in in cur:
-        if pub_id in references_now:
-            # Keep order_in to now the highest order
-            references_old[pub_id] = order_in
-        else:
-            # Not in annotations any more: can be deleted
-            to_delete.append(pub_id)
+    old_references = set()
+    for pub_id, order_id in cur_references.items():
+        try:
+            new_references.remove(pub_id)
+        except KeyError:
+            # Reference in table is not in annotations: has to be deleted
+            old_references.add(pub_id)
 
-    if to_delete:
-        # i + 2 --> 1-index + 1 for ENTRY_AC param
-        in_stmt = ','.join([':' + str(i+2) for i in range(len(to_delete))])
+    if old_references:
+        # references to be deleted from ENTRY2PUB
         cur.execute(
             """
             DELETE FROM INTERPRO.ENTRY2PUB
             WHERE ENTRY_AC = :1
             AND PUB_ID IN ({})
-            """.format(in_stmt),
-            (accession,) + tuple(to_delete)
+            """.format(
+                # i+2: 1-index and +1 for ENTRY_ACC param
+                ','.join([':' + str(i+2) for i in range(len(old_references))])
+            ),
+            (accession,) + tuple(old_references)
         )
 
-    # Find references to insert
-    to_insert = references_now - set(references_old)
-    if to_insert:
-        start = max(references_old.values()) + 1 if references_old else 1
+    if new_references:
+        # references to be inserted into ENTRY2PUB
+        start = max(cur_references.values()) + 1 if cur_references else 1
+        params = []
+        for i, pub_id in enumerate(new_references):
+            params.append((accession, start + i, pub_id))
+
         cur.executemany(
             """
             INSERT INTO INTERPRO.ENTRY2PUB (ENTRY_AC, ORDER_IN, PUB_ID) 
             VALUES (:1, :2, :3)
             """,
-            [(accession, start + i, pub_id)
-             for i, pub_id in enumerate(to_insert)]
+            params
         )
 
     con.commit()
@@ -556,8 +571,8 @@ def link_annotation(acc, ann_id):
         cur.close()
 
 
-@app.route('/api/entry/<acc>/annotation/<annid>/order/<int:x>/', methods=["POST"])
-def reorder_annotation(acc, annid, x):
+@app.route('/api/entry/<acc>/annotation/<ann_id>/order/<int:x>/', methods=["POST"])
+def reorder_annotation(acc, ann_id, x):
     user = get_user()
     if not user:
         return jsonify({
@@ -581,12 +596,12 @@ def reorder_annotation(acc, annid, x):
     )
     annotations = dict(cur.fetchall())
 
-    if annid not in annotations:
+    if ann_id not in annotations:
         cur.close()
         return jsonify({
             "status": False,
             "title": "Invalid parameters",
-            "message": "{} is not linked by {}".format(annid, acc)
+            "message": "{} is not linked by {}".format(ann_id, acc)
         }), 400
 
     max_order = max(annotations.values())
@@ -596,7 +611,7 @@ def reorder_annotation(acc, annid, x):
     annotations = sorted(annotations, key=lambda k: annotations[k])
 
     # Current index of the annotation to move
-    idx = annotations.index(annid)
+    idx = annotations.index(ann_id)
 
     # New index, forced to stay in the range [0, num_annotations-1]
     new_idx = min(max(0, idx + x), len(annotations)-1)
@@ -610,7 +625,7 @@ def reorder_annotation(acc, annid, x):
 
     # Remove the annotation, then insert it at its new index
     annotations.pop(idx)
-    annotations.insert(new_idx, annid)
+    annotations.insert(new_idx, ann_id)
 
     """
     We would like to use the range [0, num_annotations[
@@ -622,13 +637,13 @@ def reorder_annotation(acc, annid, x):
     else:
         offset = max_order + 1
 
-    for i, annid in enumerate(annotations):
+    for i, ann_id in enumerate(annotations):
         cur.execute(
             """
             UPDATE INTERPRO.ENTRY2COMMON
             SET ORDER_IN = :1
             WHERE ENTRY_AC = :2 AND ANN_ID = :3
-            """, (i + offset, acc, annid)
+            """, (i + offset, acc, ann_id)
         )
 
     con.commit()
