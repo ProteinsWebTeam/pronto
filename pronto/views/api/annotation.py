@@ -123,7 +123,7 @@ class Annotation(object):
 
         return True
 
-    def update_references(self) -> bool:
+    def update_references(self) -> int:
         s_refs = set()
         matches = []
 
@@ -145,7 +145,7 @@ class Annotation(object):
                     pmid = int(ref_id)
                 except ValueError:
                     self.error = "'{}': not a valid reference.".format(ref_id)
-                    return False
+                    return 400
 
                 if pmid not in pmids:
                     pmids.append(pmid)
@@ -217,7 +217,7 @@ class Annotation(object):
                     cur.close()
                     pmids = ", ".join(map(str, sorted(s_refs)))
                     self.error = "Invalid PubMed IDs: {}".format(pmids)
-                    return False
+                    return 400
 
                 # Insert new citation
                 for row in new_citations:
@@ -249,7 +249,7 @@ class Annotation(object):
                         cur.close()
                         self.error = ("Could not insert citation "
                                       "for PubMed ID {}".format(row[0]))
-                        return False
+                        return 500
                     else:
                         self.references[row[0]] = pub_id.getvalue()
 
@@ -268,7 +268,7 @@ class Annotation(object):
 
             self.text = self.text.replace(match, ", ".join(cite_tags))
 
-        return True
+        return 200
 
     def wrap(self) -> str:
         blocks = []
@@ -329,12 +329,14 @@ def create_annotation():
             "title": "Text error",
             "message": ann.error
         }), 400
-    elif not ann.update_references():
+
+    status = ann.update_references()
+    if status != 200:
         return jsonify({
             "status": False,
             "title": "Text error",
             "message": ann.error
-        }), 400
+        }), status
 
     con = db.get_oracle()
     cur = con.cursor()
@@ -426,12 +428,14 @@ def update_annotations(ann_id):
             "title": "Text error",
             "message": ann.error
         }), 400
-    elif not ann.update_references():
+
+    status = ann.update_references()
+    if status != 200:
         return jsonify({
             "status": False,
             "title": "Text error",
             "message": ann.error
-        }), 400
+        }), status
 
     con = db.get_oracle()
     cur = con.cursor()
