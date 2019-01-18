@@ -374,13 +374,11 @@ def create_annotation():
             res["id"] = row[0]
 
         return jsonify(res), 500
-    except DatabaseError:
+    except DatabaseError as e:
         return jsonify({
             "status": False,
             "title": "Database error",
-            "message": "The annotation could not be created. "
-                       "Another annotation with the same text "
-                       "may already exist."
+            "message": "The annotation could not be created ().".format(e)
         }), 500
     else:
         con.commit()
