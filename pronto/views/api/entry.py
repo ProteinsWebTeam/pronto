@@ -571,8 +571,17 @@ def link_annotation(acc, ann_id):
         cur.close()
 
 
-@app.route('/api/entry/<acc>/annotation/<ann_id>/order/<int:x>/', methods=["POST"])
+@app.route('/api/entry/<acc>/annotation/<ann_id>/order/<x>/', methods=["POST"])
 def reorder_annotation(acc, ann_id, x):
+    try:
+        x = int(x)
+    except ValueError:
+        return jsonify({
+            "status": False,
+            "title": "Invalid parameters",
+            "message": "Expected an integer."
+        }), 400
+
     user = get_user()
     if not user:
         return jsonify({
