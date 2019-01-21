@@ -95,7 +95,7 @@ const annotationEditor = {
             .then(response => response.json())
             .then(result => {
                 if (result.status)
-                    getAnnotations(accession).then(() => { $('.ui.sticky').sticky(); });
+                    getAnnotations(accession, true).then(() => { $('.ui.sticky').sticky(); });
                 else
                     ui.openErrorModal(result);
             });
@@ -110,7 +110,7 @@ const annotationEditor = {
                     .then(response => response.json())
                     .then(result => {
                         if (result.status)
-                            getAnnotations(accession).then(() => { $('.ui.sticky').sticky(); });
+                            getAnnotations(accession, true).then(() => { $('.ui.sticky').sticky(); });
                         else
                             ui.openErrorModal(result);
                     });
@@ -152,7 +152,7 @@ const annotationEditor = {
             .then(response => response.json())
             .then(result => {
                 if (result.status)
-                    getAnnotations(accession).then(() => { $('.ui.sticky').sticky(); });
+                    getAnnotations(accession, true).then(() => { $('.ui.sticky').sticky(); });
                 else {
                     const form = this.element.querySelector('.ui.form');
                     form.querySelector('.ui.message').innerHTML = '<div class="header">'+ result.title +'</div><p>'+ result.message.replace(/</g, '&lt;').replace(/>/g, '&gt;') +'</p>';
@@ -247,13 +247,79 @@ function addGoTerm(accession, termID) {
                     reject(result);
             });
     }));
-
 }
 
-function getAnnotations(accession) {
+function getSupplReferences(accession) {
+    return fetch('/api' + location.pathname + 'references/')
+        .then(response => response.json())
+        .then(references => {
+            let html = '';
+            if (references.length) {
+                html = '<p>The following publications were not referred to in the description, but provide useful additional information.</p>'
+                    + '<ul class="ui list">';
+
+                references.sort((a, b) => a.year - b.year)
+                    .forEach(pub => {
+                        html += '<li id="'+ pub.id +'" class="item">'
+                            + '<div class="header">'+ pub.title
+                            + '<i data-id="'+ pub.id +'" class="right floated trash button icon"></i>'
+                            + '</div>'
+                            + '<div class="item">'+ pub.authors +'</div>'
+                            + '<div class="item">'
+                            + '<em>'+ pub.journal +'</em> '+ pub.year +', '+ pub.volume +':'+ pub.pages
+                            + '</div>'
+                            + '<div class="ui horizontal link list">';
+
+                        if (pub.doi)
+                            html += '<a target="_blank" class="item" href="'+ pub.doi +'">View article&nbsp;<i class="external icon"></i></a>';
+
+                        if (pub.pmid) {
+                            html += '<span class="item">Europe PMC:&nbsp;'
+                                + '<a target="_blank" class="item" href="http://europepmc.org/abstract/MED/'+ pub.pmid +'/">'
+                                + pub.pmid +'&nbsp;<i class="external icon"></i>'
+                                + '</a>'
+                                + '</span>';
+                        }
+
+                        html += '</div></li>';
+                    });
+
+                html += '</ul>';
+            } else
+                html = '<p>This entry has no additional references.</p>';
+
+            document.querySelector('#supp-references .content').innerHTML = html;
+
+            Array.from(document.querySelectorAll('#supp-references [data-id]')).forEach(elem => {
+                elem.addEventListener('click', e => {
+                    const pubID = elem.getAttribute('data-id');
+                    ui.openConfirmModal(
+                        'Delete reference?',
+                        'This reference will not be associated to this entry any more.',
+                        'Delete',
+                        () => {
+                            fetch('/api/entry/' + accession + '/reference/' + pubID + '/', {method: 'DELETE'})
+                                .then(response => response.json())
+                                .then(result => {
+                                    if (result.status)
+                                        getSupplReferences(accession).then(() => { $('.ui.sticky').sticky(); });
+                                    else
+                                        ui.openErrorModal(result);
+                                });
+                        }
+                    );
+                });
+            });
+        });
+}
+
+
+function getAnnotations(accession, _editingMode) {
     return fetch('/api' + location.pathname + 'annotations/')
         .then(response => response.json())
         .then(results => {
+            const editingMode = _editingMode !== undefined ? _editingMode : $('#annotations .ui.toggle.checkbox').checkbox('is checked');
+
             const rePub = /\[cite:(PUB\d+)\]/gi;
             const mainRefs = [];
             const annotations = new Map();
@@ -286,7 +352,8 @@ function getAnnotations(accession) {
                         text = text.replace(xref.match, '<a target="_blank" href="'+ xref.url +'">'+ xref.id +'&nbsp;<i class="external icon"></i></a>');
                     });
 
-                    html += '<div id="'+ ann.id +'" class="annotation">'
+                    if (editingMode) {
+                        html += '<div id="'+ ann.id +'" class="annotation">'
 
                         // Action menu
                         + '<div class="ui top attached mini menu">'
@@ -313,6 +380,8 @@ function getAnnotations(accession) {
                         + '</div>'
                         + '</div>'
                         + '</div>';
+                    } else
+                        html += '<div class="ui vertical segment">' + text + '</div>';
                 });
             } else {
                 html = '<div class="ui error message">'
@@ -358,43 +427,7 @@ function getAnnotations(accession) {
 
             document.querySelector('#references .content').innerHTML = html;
 
-            // Render suppl. references
-            const supplRefs = [...references.values()].filter(pub => pub.supplementary);
-            if (supplRefs.length) {
-                html = '<p>The following publications were not referred to in the description, but provide useful additional information.</p>'
-                    + '<ul class="ui list">';
 
-                supplRefs.sort((a, b) => a.year - b.year)
-                    .forEach(pub => {
-                        html += '<li id="'+ pub.id +'" class="item">'
-                            + '<div class="header">'+ pub.title
-                            + '<i data-id="'+ pub.id +'" class="right floated trash button icon"></i>'
-                            + '</div>'
-                            + '<div class="item">'+ pub.authors +'</div>'
-                            + '<div class="item">'
-                            + '<em>'+ pub.journal +'</em> '+ pub.year +', '+ pub.volume +':'+ pub.pages
-                            + '</div>'
-                            + '<div class="ui horizontal link list">';
-
-                        if (pub.doi)
-                            html += '<a target="_blank" class="item" href="'+ pub.doi +'">View article&nbsp;<i class="external icon"></i></a>';
-
-                        if (pub.pmid) {
-                            html += '<span class="item">Europe PMC:&nbsp;'
-                                + '<a target="_blank" class="item" href="http://europepmc.org/abstract/MED/'+ pub.pmid +'/">'
-                                + pub.pmid +'&nbsp;<i class="external icon"></i>'
-                                + '</a>'
-                                + '</span>';
-                        }
-
-                        html += '</div></li>';
-                    });
-
-                html += '</ul>';
-            } else
-                html = '<p>This entry has no additional references.</p>';
-
-            document.querySelector('#supp-references .content').innerHTML = html;
 
             // Update annotations stats
             Array.from(document.querySelectorAll('[data-statistic="annotations"]')).forEach(elem => {
@@ -403,7 +436,7 @@ function getAnnotations(accession) {
 
             // Update references stats
             Array.from(document.querySelectorAll('[data-statistic="references"]')).forEach(elem => {
-                elem.innerHTML = (mainRefs.length + supplRefs.length).toLocaleString();
+                elem.innerHTML = mainRefs.length.toLocaleString();
             });
 
             // Highlight selected reference
@@ -457,275 +490,6 @@ function getAnnotations(accession) {
                                 $(modal).modal('show');
                             });
                     }
-                });
-            });
-
-            // Delete supplementary references
-            Array.from(document.querySelectorAll('#supp-references [data-id]')).forEach(elem => {
-                elem.addEventListener('click', e => {
-                    const pubID = elem.getAttribute('data-id');
-                    ui.openConfirmModal(
-                        'Delete reference?',
-                        'This reference will not be associated to this entry any more.',
-                        'Delete',
-                        () => {
-                            fetch('/api/entry/' + accession + '/reference/' + pubID + '/', {method: 'DELETE'})
-                                .then(response => response.json())
-                                .then(result => {
-                                    if (result.status)
-                                        getAnnotations(accession).then(() => { $('.ui.sticky').sticky(); });
-                                    else
-                                        ui.openErrorModal(result);
-                                });
-                        }
-                    );
-                });
-            });
-        });
-
-
-}
-
-function getAnnotations_(accession) {
-    return fetch('/api' + location.pathname + 'annotations/')
-        .then(response => response.json())
-        .then(results => {
-            const rePub = /<cite\s+id="(PUB\d+)"\s*\/>/g;
-            const orderedRefs = [];
-            const supplRefs = [];
-            const annotations = new Map();
-
-            let html = '';
-            if (results.annotations.length) {
-                results.annotations.forEach(ann => {
-                    let text = ann.text;
-                    annotations.set(ann.id, text);
-
-                    // Search all references in the text
-                    let arr;
-                    while ((arr = rePub.exec(text)) !== null) {
-                        const pubID = arr[1];
-
-                        if (results.references.hasOwnProperty(pubID)) {
-                            let i = orderedRefs.indexOf(pubID);
-                            if (i === -1) {
-                                // First occurrence of the reference in any text
-                                orderedRefs.push(pubID);
-                                i = orderedRefs.length;
-                            } else
-                                i++;
-
-                            text = text.replace(arr[0], '<a data-ref href="#'+ pubID +'">'+ i +'</a>');
-                        }
-                    }
-
-                    // Replace cross-ref tags by links
-                    results.cross_references.forEach(xref => {
-                        text = text.replace(xref.tag, '<a href="'+ xref.url +'">'+ xref.id +'</a>');
-                    });
-
-                    html += '<div id="'+ ann.id +'" class="annotation">'
-
-                        // Action menu
-                        + '<div class="ui top attached mini menu">'
-                        + '<a data-action="edit" class="item"><abbr title="Edit this annotation"><i class="edit icon"></i></abbr></a>'
-                        + '<a data-action="movedown" class="item"><abbr title="Move this annotation down"><i class="arrow down icon"></i></abbr></a>'
-                        + '<a data-action="moveup" class="item"><abbr title="Move this annotation up"><i class="arrow up icon"></i></abbr></a>'
-                        + '<a data-action="delete" class="item"><abbr title="Unlink this annotation"><i class="trash icon"></i></abbr></a>'
-
-                        // Info menu (last edit comment and number of entries using this annotation)
-                        + '<div class="right menu">'
-                        + nvl(ann.comment, '', '<span class="item">'+ ann.comment +'</span>')
-                        + '<a class="item"><i class="list icon"></i> Associated to '+ ann.num_entries + ' entries</a>'
-                        + '</div>'
-                        + '</div>'
-
-                        // Text
-                        + '<div class="ui attached segment">' + text + '</div>'
-
-                        // Bottom menu
-                        + '<div class="hidden ui borderless bottom attached mini menu" data-annid="'+ ann.id +'">'
-                        + '<div class="right menu">'
-                        + '<div class="item"><a data-action="cancel" class="ui basic secondary button">Cancel</a></div>'
-                        + '<div class="item"><a data-action="save" class="ui primary button">Save</a></div>'
-                        + '</div>'
-                        + '</div>'
-                        + '</div>';
-                });
-            } else {
-                html = '<div class="ui error message">'
-                    + '<div class="header">Missing description</div>'
-                    + '<p>This entry has not annotations. Please add one, or make sure that this entry is not checked.</p>'
-                    + '</div>';
-            }
-
-            document.querySelector('#annotations > .content').innerHTML = html;
-
-            // Render references
-            html = '';
-            if (orderedRefs.length) {
-                html += '<ol>';
-                orderedRefs.forEach(pubID => {
-                    const pub = results.references[pubID];
-
-                    html += '<li id="'+ pubID +'">'
-                        + '<div class="header">'+ pub.title +'</div>'
-                        + '<div class="item">'+ pub.authors +'</div>'
-                        + '<div class="item"><em>'+ pub.journal +'</em> '+ pub.year +', '+ pub.volume +':'+ pub.pages +'</div>'
-                        + '<div class="ui horizontal link list">';
-
-                    if (pub.doi)
-                        html += '<a target="_blank" class="item" href="'+ pub.doi +'">View article&nbsp;<i class="external icon"></i></a>';
-
-                    if (pub.pmid) {
-                        html += '<span class="item">Europe PMC:&nbsp;'
-                            + '<a target="_blank" class="item" href="http://europepmc.org/abstract/MED/'+ pub.pmid +'/">'
-                            + pub.pmid +'&nbsp;<i class="external icon"></i>'
-                            + '</a>'
-                            + '</span>';
-                    }
-                });
-
-                html += '</ol>';
-            }  else
-                html = '<p>This entry has no references.</p>';
-
-            document.querySelector('#references .content').innerHTML = html;
-
-            // Render suppl. references
-            for (let pubID in results.references) {
-                if (results.references.hasOwnProperty(pubID) && !orderedRefs.includes(pubID))
-                    supplRefs.push(results.references[pubID]);
-            }
-
-            if (supplRefs.length) {
-                // Sort chronologically (as they do not appear in annotations)
-                supplRefs.sort((a, b) => { return a.year - b.year; });
-
-                html = '<p>The following publications were not referred to in the description, but provide useful additional information.</p>' +
-                    '<ul class="ui list">';
-
-                supplRefs.forEach(pub => {
-                    html += '<li id="'+ pub.id +'" class="item">';
-
-                    if (pub.deletable) {
-                        html += '<div class="header">'+ pub.title
-                            + '<i data-id="'+ pub.id +'" class="right floated trash button icon"></i>'
-                            + '</div>';
-                    }else
-                        html += '<div class="header">'+ pub.title + '</div>';
-
-                    html += '<div class="item">'+ pub.authors +'</div>'
-                        + '<div class="item"><em>'+ pub.journal +'</em> '+ pub.year +', '+ pub.volume +':'+ pub.pages +'</div>'
-                        + '<div class="ui horizontal link list">';
-
-                    if (pub.doi)
-                        html += '<a target="_blank" class="item" href="'+ pub.doi +'">View article&nbsp;<i class="external icon"></i></a>';
-
-                    if (pub.pmid) {
-                        html += '<span class="item">Europe PMC:&nbsp;'
-                            + '<a target="_blank" class="item" href="http://europepmc.org/abstract/MED/'+ pub.pmid +'/">'
-                            + pub.pmid +'&nbsp;<i class="external icon"></i>'
-                            + '</a>'
-                            + '</span>';
-                    }
-                });
-
-                html += '</ul>';
-            } else
-                html = '<p>This entry has no additional references.</p>';
-
-            document.querySelector('#supp-references .content').innerHTML = html;
-
-            // Update annotations stats
-            Array.from(document.querySelectorAll('[data-statistic="annotations"]')).forEach(elem => {
-                elem.innerHTML = annotations.size.toLocaleString();
-            });
-
-            // Update references stats
-            Array.from(document.querySelectorAll('[data-statistic="references"]')).forEach(elem => {
-                elem.innerHTML = (orderedRefs.length + supplRefs.length).toLocaleString();
-            });
-
-            // Highlight selected reference
-            Array.from(document.querySelectorAll('.annotation')).forEach(elem => {
-                addHighlightEvenListeners(elem);
-            });
-
-            // Event listener on actions
-            annotationEditor.reset();
-            Array.from(document.querySelectorAll('.annotation a[data-action]')).forEach(elem => {
-                elem.addEventListener('click', e => {
-                    // Do not use e.target as it could be the <abbr> or <i> elements
-
-                    const annID = elem.closest('.annotation').getAttribute('id');
-                    if (!annotations.has(annID)) {
-                        // TODO: display error?
-                        return;
-                    }
-
-                    const action = elem.getAttribute('data-action');
-                    const text = annotations.get(annID);
-                    if (action === 'edit')
-                        annotationEditor.open(annID, text);
-                    else if (action === 'movedown')
-                        annotationEditor.reorder(accession, annID, 1);
-                    else if (action === 'moveup')
-                        annotationEditor.reorder(accession, annID, -1);
-                    else if (action === 'delete')
-                        annotationEditor.drop(accession, annID);
-                    else if (action === 'save')
-                        annotationEditor.save(accession, annID);
-                    else if (action === 'cancel')
-                        annotationEditor.close();
-
-                });
-            });
-
-            // Display entries associated to a given annotation
-            Array.from(document.querySelectorAll('.annotation .ui.top.menu > .right.menu > a')).forEach(elem => {
-                elem.addEventListener('click', e => {
-                    const annID = e.target.closest('.annotation').getAttribute('id');
-                    fetch('/api/annotation/' + annID + '/entries/')
-                        .then(response => response.json())
-                        .then(entries => {
-                            let html = '<table class="ui very basic table"><tbody>';
-                            entries.forEach(e => {
-                                html += '<tr>' +
-                                    '<td class="collapsing">' +
-                                    '<span class="ui label circular type-'+ e.type +'">'+ e.type +'</span>' +
-                                    '</td>'
-                                    + '<td><a href="/entry/'+ e.accession +'/">'+ e.accession +'</a></td>'
-                                    + '<td>'+ e.name +'</td></tr>';
-
-                            });
-
-                            const modal = document.getElementById('modal-entries');
-                            modal.querySelector('.content').innerHTML = html;
-                            $(modal).modal('show');
-                        });
-                });
-            });
-
-            // Delete supplementary references
-            Array.from(document.querySelectorAll('#supp-references [data-id]')).forEach(elem => {
-                elem.addEventListener('click', e => {
-                    const pubID = elem.getAttribute('data-id');
-                    ui.openConfirmModal(
-                        'Delete reference?',
-                        'This reference will not be associated to this entry any more.',
-                        'Delete',
-                        () => {
-                            fetch('/api/entry/' + accession + '/reference/' + pubID + '/', {method: 'DELETE'})
-                                .then(response => response.json())
-                                .then(result => {
-                                    if (result.status)
-                                        getAnnotations(accession).then(() => { $('.ui.sticky').sticky(); });
-                                    else
-                                        ui.openErrorModal(result);
-                                });
-                        }
-                    );
                 });
             });
         });
@@ -1143,7 +907,8 @@ function getEntry(accession) {
                 getSignatures(accession),
                 getGOTerms(accession),
                 getRelationships(accession),
-                getAnnotations(accession)
+                getAnnotations(accession, false),
+                getSupplReferences(accession)
             ];
 
             Promise.all(promises).then(value => {
@@ -1311,7 +1076,7 @@ $(function () {
                                 })
                                 .then(result => {
                                     if (result.status) {
-                                        getAnnotations(accession).then(() => { $('.ui.sticky').sticky(); });
+                                        getAnnotations(accession, false).then(() => { $('.ui.sticky').sticky(); });
                                         $(modal).modal('hide');
                                     } else {
                                         msg.innerHTML = result.message;
@@ -1528,11 +1293,24 @@ $(function () {
                 .then(result => {
                     if (result.status) {
                         $(this).form('clear');
-                        getAnnotations(accession).then(() => { $('.ui.sticky').sticky(); });
+                        getSupplReferences(accession).then(() => { $('.ui.sticky').sticky(); });
                     }
                     else
                         ui.openErrorModal(result);
                 });
+        }
+    });
+
+    /*
+        Event to enable/disable editing mode
+     */
+    $('#annotations .ui.toggle.checkbox').checkbox({
+        onChange: function () {
+            const checked = this.checked;
+            getAnnotations(accession, checked).then(() => {
+                ui.setClass(document.querySelector('#annotations div.header'), 'hidden', !checked);
+                $('.ui.sticky').sticky();
+            });
         }
     });
 
