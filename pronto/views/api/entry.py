@@ -1863,7 +1863,7 @@ def get_entry_signatures(accession):
           DBCODE,
           METHOD_AC,
           NAME,
-          0
+          PROTEIN_COUNT
         FROM {}.METHOD
         WHERE METHOD_AC IN (
           SELECT METHOD_AC
