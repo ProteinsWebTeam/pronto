@@ -664,6 +664,37 @@ def reorder_annotation(acc, ann_id, x):
     }), 200
 
 
+@app.route('/api/entry/<accession>/references/')
+def get_suppl_references(accession):
+    cur = db.get_oracle().cursor()
+    cur.execute(
+        """
+        SELECT 
+          S.PUB_ID, C.TITLE, C.YEAR, C.VOLUME, C.RAWPAGES, C.DOI_URL,
+          C.PUBMED_ID, C.ISO_JOURNAL, C.MEDLINE_JOURNAL, C.AUTHORS
+        FROM INTERPRO.SUPPLEMENTARY_REF S
+        INNER JOIN INTERPRO.CITATION C
+        ON S.PUB_ID = C.PUB_ID
+        WHERE S.ENTRY_AC = :1      
+        """, (accession,)
+    )
+    references = []
+    for row in cur:
+        references.append({
+            "id": row[0],
+            "title": row[1],
+            "year": row[2],
+            "volume": row[3],
+            "pages": row[4],
+            "doi": row[5],
+            "pmid": row[6],
+            "journal": row[7] if row[7] else row[8],
+            "authors": row[9]
+        })
+    cur.close()
+    return jsonify(references)
+
+
 @app.route('/api/entry/<accession>/annotations/')
 def get_annotations_new(accession):
     cur = db.get_oracle().cursor()
@@ -712,38 +743,22 @@ def get_annotations_new(accession):
             "xrefs": list(ext_refs.values())
         })
 
-    """
-    Get references from ref tables
-    We consider that entries in ENTRY2PUB are update automatically 
-        (i.e. when an annotation is updated, linked, unlinked)
-    and entries in SUPPLEMENTARY_REF are manually added by curators 
-        (i.e. deletable)
-    """
     cur.execute(
         """
         SELECT 
-          PUB.PUB_ID, C.TITLE, C.YEAR, C.VOLUME, C.RAWPAGES, C.DOI_URL,
-          C.PUBMED_ID, C.ISO_JOURNAL, C.MEDLINE_JOURNAL, C.AUTHORS,
-          PUB.IS_SUPPL
-        FROM (
-          SELECT PUB_ID, 'N' AS IS_SUPPL
-          FROM INTERPRO.ENTRY2PUB
-          WHERE ENTRY_AC = :acc
-          UNION ALL
-          SELECT SUPPLEMENTARY_REF.PUB_ID, 'Y' AS IS_SUPPL
-          FROM INTERPRO.SUPPLEMENTARY_REF
-          WHERE ENTRY_AC = :acc        
-        ) PUB
+          E.PUB_ID, C.TITLE, C.YEAR, C.VOLUME, C.RAWPAGES, C.DOI_URL,
+          C.PUBMED_ID, C.ISO_JOURNAL, C.MEDLINE_JOURNAL, C.AUTHORS
+        FROM INTERPRO.ENTRY2PUB E
         INNER JOIN INTERPRO.CITATION C
-          ON PUB.PUB_ID = C.PUB_ID
-        """,
-        dict(acc=accession)
+        ON E.PUB_ID = C.PUB_ID
+        WHERE E.ENTRY_AC = :1
+        """, (accession,)
     )
 
     references = {}
     for row in cur:
         pub_id = row[0]
-        pub = {
+        references[pub_id] = {
             "id": pub_id,
             "title": row[1],
             "year": row[2],
@@ -752,12 +767,8 @@ def get_annotations_new(accession):
             "doi": row[5],
             "pmid": row[6],
             "journal": row[7] if row[7] else row[8],
-            "authors": row[9],
-            "supplementary": row[10] == 'Y'
+            "authors": row[9]
         }
-
-        if pub_id not in references or pub["supplementary"]:
-            references[pub_id] = pub
 
     cur.close()
     return jsonify({
