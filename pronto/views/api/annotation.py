@@ -1,11 +1,86 @@
 import re
 from datetime import datetime
-from typing import Optional, Sized
+from typing import Optional, Sized, Collection
 
 from cx_Oracle import DatabaseError, IntegrityError, STRING
 from flask import jsonify, request
 
 from pronto import app, db, get_user, xref
+
+
+def get_citations(cur, pmids: Collection) -> dict:
+    cur.execute(
+        """
+        SELECT 
+          C.EXTERNAL_ID, I.VOLUME, I.ISSUE, I.PUBYEAR, C.TITLE, 
+          C.PAGE_INFO, J.MEDLINE_ABBREVIATION, J.ISO_ABBREVIATION, 
+          A.AUTHORS, U.URL
+        FROM CDB.CITATIONS@LITPUB C
+          LEFT OUTER JOIN CDB.JOURNAL_ISSUES@LITPUB I
+            ON C.JOURNAL_ISSUE_ID = I.ID
+          LEFT JOIN CDB.CV_JOURNALS@LITPUB J
+            ON I.JOURNAL_ID = J.ID
+          LEFT OUTER JOIN CDB.FULLTEXT_URL@LITPUB U
+            ON (
+                C.EXTERNAL_ID = U.EXTERNAL_ID AND
+                U.DOCUMENT_STYLE  ='DOI' AND
+                U.SOURCE = 'MED'
+            )
+          LEFT OUTER JOIN CDB.AUTHORS@LITPUB A
+            ON (
+              C.ID = A.CITATION_ID AND 
+              A.HAS_SPECIAL_CHARS = 'N'
+            )
+        WHERE C.EXTERNAL_ID IN ({})
+        """.format(Annotation.format_in(pmids)),
+        tuple(map(str, pmids))
+    )
+
+    citations = {}
+    for row in cur:
+        # tuple does not support item assignment
+        row = list(row)
+
+        # PMID stored as VARCHAR2 in LITPUB
+        row[0] = int(row[0])
+
+        citations[row[0]] = row
+
+    return citations
+
+
+def insert_citations(cur, citations: dict) -> Optional[str]:
+    for pmid, row in citations.items():
+        """
+        CITATION.TITLE: VARCHAR2(740)
+            -> we may have to truncate the title
+        """
+        if len(row[4]) > 740:
+            row[4] = row[4][:737] + "..."
+
+        pub_id = cur.var(STRING)
+        try:
+            cur.execute(
+                """
+                INSERT INTO INTERPRO.CITATION (
+                  PUB_ID, PUB_TYPE, PUBMED_ID, VOLUME, ISSUE, 
+                  YEAR, TITLE, RAWPAGES, MEDLINE_JOURNAL, 
+                  ISO_JOURNAL, AUTHORS, DOI_URL
+                ) VALUES (
+                  INTERPRO.NEW_PUB_ID(), 'J', :1, :2, :3, :4, :5, 
+                  :6, :7, :8, :9, :10
+                )
+                RETURNING PUB_ID INTO :11
+                """,
+                (*row, pub_id)
+            )
+        except DatabaseError:
+            cur.close()
+            return "Could not insert citation for PubMed ID {}".format(row[0])
+        else:
+            citations[pmid] = pub_id.getvalue()
+
+    return None
 
 
 class Annotation(object):
@@ -174,44 +249,9 @@ class Annotation(object):
 
             if s_refs:
                 # One or more PMID not found in our database -> use LITPUB
-                cur.execute(
-                    """
-                    SELECT 
-                      C.EXTERNAL_ID, I.VOLUME, I.ISSUE, I.PUBYEAR, C.TITLE, 
-                      C.PAGE_INFO, J.MEDLINE_ABBREVIATION, J.ISO_ABBREVIATION, 
-                      A.AUTHORS, U.URL
-                    FROM CDB.CITATIONS@LITPUB C
-                      LEFT OUTER JOIN CDB.JOURNAL_ISSUES@LITPUB I
-                        ON C.JOURNAL_ISSUE_ID = I.ID
-                      LEFT JOIN CDB.CV_JOURNALS@LITPUB J
-                        ON I.JOURNAL_ID = J.ID
-                      LEFT OUTER JOIN CDB.FULLTEXT_URL@LITPUB U
-                        ON (
-                            C.EXTERNAL_ID = U.EXTERNAL_ID AND
-                            U.DOCUMENT_STYLE  ='DOI' AND
-                            U.SOURCE = 'MED'
-                        )
-                      LEFT OUTER JOIN CDB.AUTHORS@LITPUB A
-                        ON (
-                          C.ID = A.CITATION_ID AND 
-                          A.HAS_SPECIAL_CHARS = 'N'
-                        )
-                    WHERE C.EXTERNAL_ID IN ({})
-                    """.format(self.format_in(s_refs)),
-                    tuple(map(str, s_refs))
-                )
-
-                new_citations = []
-                for row in cur:
-                    # tuple does not support item assignment
-                    row = list(row)
-
-                    # PMID stored as VARCHAR2 in LITPUB
-                    row[0] = int(row[0])
-
-                    s_refs.remove(row[0])
-                    new_citations.append(row)
-
+                new_citations = get_citations(cur, s_refs)
+                s_refs -= set(new_citations)
+                
                 if s_refs:
                     # Still unknown PubMed ID: cannot proceed
                     cur.close()
@@ -219,40 +259,13 @@ class Annotation(object):
                     self.error = "Invalid PubMed IDs: {}".format(pmids)
                     return 400
 
-                # Insert new citation
-                for row in new_citations:
-                    """
-                    CITATION.TITLE: VARCHAR2(740)
-                        -> we may have to truncate the title
-                    """
-                    if len(row[4]) > 740:
-                        row[4] = row[4][:737] + "..."
+                error = insert_citations(cur, new_citations)
+                if error:
+                    cur.close()
+                    self.error = error
+                    return 500
 
-                    pub_id = cur.var(STRING)
-
-                    try:
-                        cur.execute(
-                            """
-                            INSERT INTO INTERPRO.CITATION (
-                              PUB_ID, PUB_TYPE, PUBMED_ID, VOLUME, ISSUE, 
-                              YEAR, TITLE, RAWPAGES, MEDLINE_JOURNAL, 
-                              ISO_JOURNAL, AUTHORS, DOI_URL
-                            ) VALUES (
-                              INTERPRO.NEW_PUB_ID(), 'J', :1, :2, :3, :4, :5, 
-                              :6, :7, :8, :9, :10
-                            )
-                            RETURNING PUB_ID INTO :11
-                            """,
-                            (*row, pub_id)
-                        )
-                    except DatabaseError:
-                        cur.close()
-                        self.error = ("Could not insert citation "
-                                      "for PubMed ID {}".format(row[0]))
-                        return 500
-                    else:
-                        self.references[row[0]] = pub_id.getvalue()
-
+                self.references.update(new_citations)
                 con.commit()
                 cur.close()
 

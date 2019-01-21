@@ -4,6 +4,7 @@ from cx_Oracle import DatabaseError, IntegrityError, STRING
 from flask import jsonify, request
 
 from pronto import app, executor, db, get_user, xref
+from .annotation import get_citations, insert_citations
 
 
 def _delete_entry(user, dsn, accession):
@@ -1371,7 +1372,7 @@ def add_go_term(accession, term_id):
         cur.close()
 
 
-@app.route("/api/entry/<accession>/reference/<pmid>/", methods=["PUT"])
+@app.route("/api/entry/<accession>/reference/<int:pmid>/", methods=["PUT"])
 def link_reference(accession, pmid):
     user = get_user()
     if not user:
@@ -1392,16 +1393,29 @@ def link_reference(accession, pmid):
         """, (pmid,)
     )
     row = cur.fetchone()
-    if not row:
-        cur.close()
-        return jsonify({
-            "status": False,
-            "title": "Invalid reference",
-            "message": "<strong>{}</strong> is not "
-                       "a valid PubMed ID".format(pmid)
-        }), 401
+    if row:
+        pub_id = row[0]
+    else:
+        citations = get_citations(cur, [pmid])
+        if pmid not in citations:
+            cur.close()
+            return jsonify({
+                "status": False,
+                "title": "Invalid reference",
+                "message": "<strong>{}</strong> is not "
+                           "a valid PubMed ID".format(pmid)
+            }), 400
 
-    pub_id = row[0]
+        error = insert_citations(cur, citations)
+        if error:
+            cur.close()
+            return jsonify({
+                "status": False,
+                "title": "Database error",
+                "message": error
+            }), 500
+
+        pub_id = citations[pmid]
 
     try:
         cur.execute(
@@ -1838,7 +1852,7 @@ def get_entry_signatures(accession):
           DBCODE,
           METHOD_AC,
           NAME,
-          PROTEIN_COUNT
+          0
         FROM {}.METHOD
         WHERE METHOD_AC IN (
           SELECT METHOD_AC
