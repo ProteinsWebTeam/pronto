@@ -81,6 +81,36 @@ def link_reference(accession, pmid):
 
         pub_id = citations[pmid]
 
+    cur.execute(
+        """
+        SELECT PUB_ID
+        FROM INTERPRO.ENTRY2PUB
+        WHERE ENTRY_AC = :1
+        """, (accession,)
+    )
+    pub_ids = {row[0] for row in cur}
+    if pub_id in pub_ids:
+        cur.close()
+        return jsonify({
+            "status": False,
+            "title": "Existing reference",
+            "message": "<strong>{}</strong> cannot be a supplementary "
+                       "reference because it is already "
+                       "in the main references.".format(pmid)
+        }), 400
+
+    cur.execute(
+        """
+        SELECT COUNT(*) FROM INTERPRO.SUPPLEMENTARY_REF
+        WHERE ENTRY_AC = :1 AND PUB_ID = :2
+        """, (accession, pub_id)
+    )
+
+    if cur.fetchone()[0]:
+        # Already inserted: ignore
+        cur.close()
+        return jsonify({"status": True}), 200
+
     try:
         cur.execute(
             """
