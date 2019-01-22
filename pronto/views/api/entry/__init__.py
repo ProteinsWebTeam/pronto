@@ -158,13 +158,28 @@ def get_entry(accession):
           E.ENTRY_TYPE,
           ET.ABBREV,
           E.CHECKED,
-          E.TIMESTAMP
+          NVL(U.USERNAME, E.USERSTAMP),
+          E.CREATED,
+          A.USERSTAMP,
+          A.TIMESTAMP
         FROM INTERPRO.ENTRY E
-        INNER JOIN INTERPRO.CV_ENTRY_TYPE ET 
+        INNER JOIN INTERPRO.CV_ENTRY_TYPE ET
           ON E.ENTRY_TYPE = ET.CODE
-        WHERE E.ENTRY_AC = :1
-        """,
-        (accession,)
+        LEFT OUTER JOIN INTERPRO.USER_PRONTO U 
+          ON E.USERSTAMP = U.DB_USER
+        LEFT OUTER JOIN (
+          SELECT 
+            A.ENTRY_AC, 
+            NVL(U.NAME, A.DBUSER) AS USERSTAMP, 
+            A.TIMESTAMP, 
+            ROW_NUMBER() OVER (ORDER BY A.TIMESTAMP DESC) RN
+          FROM INTERPRO.ENTRY_AUDIT A
+          LEFT OUTER JOIN INTERPRO.USER_PRONTO U 
+            ON A.DBUSER = U.DB_USER
+          WHERE A.ENTRY_AC = :acc
+        ) A ON E.ENTRY_AC = A.ENTRY_AC AND A.RN = 1
+        WHERE E.ENTRY_AC = :acc
+        """, dict(acc=accession)
     )
 
     row = cur.fetchone()
@@ -179,7 +194,14 @@ def get_entry(accession):
                 "name": row[3].replace('_', ' ')
             },
             "is_checked": row[4] == 'Y',
-            "last_modification": row[5].strftime("%d %b %Y")
+            "creation": {
+                "user": row[5],
+                "date": row[6].strftime("%d %b %Y")
+            },
+            "last_modification": {
+                "user": row[7],
+                "date": row[8].strftime("%d %b %Y")
+            }
         }
         return jsonify(entry), 200
     else:
