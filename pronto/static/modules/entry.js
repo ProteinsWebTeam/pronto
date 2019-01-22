@@ -918,6 +918,20 @@ function getEntry(accession) {
                 elem.href = base + '/' + accession;
             });
 
+            // History
+            document.querySelector('.ui.feed').innerHTML = '<div class="event">'
+                + '<div class="content">'
+                + '<div class="date">'+ entry.last_modification.date +'</div>'
+                + '<a class="user">'+ entry.last_modification.user +'</a> edited the entry'
+                + '</div>'
+                + '</div>'
+                + '<div class="event">'
+                + '<div class="content">'
+                + '<div class="date">'+ entry.creation.date +'</div>'
+                + '<a class="user">'+ entry.creation.user +'</a> created the entry'
+                + '</div>'
+                + '</div>';
+
             const promises = [
                 getSignatures(accession),
                 getGOTerms(accession),
@@ -1340,5 +1354,4 @@ $(function () {
     });
 
     getEntry(accession);
-
 });
