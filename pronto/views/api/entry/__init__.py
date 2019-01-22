@@ -323,7 +323,8 @@ def update_entry(accession):
               ENTRY_TYPE = :1, 
               NAME = :2,
               CHECKED = :3,
-              SHORT_NAME = :4
+              SHORT_NAME = :4,
+              TIMESTAMP = SYSDATE
             WHERE ENTRY_AC = :5
             """,
             (_type, description, 'Y' if is_checked else 'N', name, accession)
