@@ -336,7 +336,7 @@ function getAnnotations(accession, _editingMode) {
             if (results.annotations.length) {
                 results.annotations.forEach(ann => {
                     let text = ann.text;
-                    annotations.set(ann.id, text);
+                    annotations.set(ann.id, {text: text, entries: ann.num_entries});
 
                     // Search all references in the text
                     let arr;
@@ -435,8 +435,6 @@ function getAnnotations(accession, _editingMode) {
 
             document.querySelector('#references .content').innerHTML = html;
 
-
-
             // Update annotations stats
             Array.from(document.querySelectorAll('[data-statistic="annotations"]')).forEach(elem => {
                 elem.innerHTML = annotations.size.toLocaleString();
@@ -465,7 +463,8 @@ function getAnnotations(accession, _editingMode) {
                     }
 
                     const action = elem.getAttribute('data-action');
-                    const text = annotations.get(annID);
+                    const ann = annotations.get(annID);
+                    const text = ann.text;
                     if (action === 'edit')
                         annotationEditor.open(annID, text);
                     else if (action === 'movedown')
@@ -474,9 +473,17 @@ function getAnnotations(accession, _editingMode) {
                         annotationEditor.reorder(accession, annID, -1);
                     else if (action === 'delete')
                         annotationEditor.drop(accession, annID);
-                    else if (action === 'save')
-                        annotationEditor.save(accession, annID);
-                    else if (action === 'cancel')
+                    else if (action === 'save') {
+                        if (ann.entries > 1) {
+                            ui.openConfirmModal(
+                                'Save changes?',
+                                'This annotation is used by <strong>' + ann.entries + ' entries</strong>. Changes will be visible for all entries.',
+                                'Save',
+                                () => annotationEditor.save(accession, annID)
+                            );
+
+                        }
+                    } else if (action === 'cancel')
                         annotationEditor.close();
                     else if (action === 'list') {
                         fetch('/api/annotation/' + annID + '/entries/')
