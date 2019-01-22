@@ -20,15 +20,6 @@ def update_references(accession):
     )
     # Keep order_in to now the highest order
     cur_references = dict(cur.fetchall())
-    # for pub_id, order_in in cur:
-    #
-    #     cur_references[pub_id] = order_in
-    #     # if pub_id in new_references:
-    #     #
-    #     #
-    #     # else:
-    #     #     # Not in annotations any more: can be deleted
-    #     #     to_delete.append(pub_id)
 
     # Get references from annotations
     cur.execute(
@@ -48,15 +39,37 @@ def update_references(accession):
     prog_ref = re.compile(r"\[cite:(PUB\d+)\]", re.I)
     for row in cur:
         for m in prog_ref.finditer(row[0]):
-            print(m)
             new_references.add(m.group(1))
+
+    # Get supplementary references to delete (because in text)
+    cur.execute(
+        """
+        SELECT PUB_ID
+        FROM INTERPRO.SUPPLEMENTARY_REF
+        WHERE ENTRY_AC = :1
+        """, (accession,)
+    )
+    supp = {row[0] for row in cur}
+    to_delete = supp & new_references
+    if to_delete:
+        cur.execute(
+            """
+            DELETE FROM INTERPRO.SUPPLEMENTARY_REF
+            WHERE ENTRY_AC = :1
+            AND PUB_ID IN ({})
+            """.format(
+                ','.join([':' + str(i+2) for i in range(len(to_delete))])
+            ),
+            (accession,) + tuple(to_delete)
+        )
 
     old_references = set()
     for pub_id, order_id in cur_references.items():
-        try:
+        if pub_id in new_references:
+            # reference in table is still in text: all good
             new_references.remove(pub_id)
-        except KeyError:
-            # Reference in table is not in annotations: has to be deleted
+        else:
+            # has to be deleted from the table
             old_references.add(pub_id)
 
     if old_references:

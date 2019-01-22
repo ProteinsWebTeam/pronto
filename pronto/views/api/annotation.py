@@ -251,7 +251,7 @@ class Annotation(object):
                 # One or more PMID not found in our database -> use LITPUB
                 new_citations = get_citations(cur, s_refs)
                 s_refs -= set(new_citations)
-                
+
                 if s_refs:
                     # Still unknown PubMed ID: cannot proceed
                     cur.close()
@@ -475,10 +475,49 @@ def update_annotations(ann_id):
     cur_references = ann.get_references(row[0])
     new_references = ann.get_references()
     old_references = cur_references - new_references
-    new_references = new_references - cur_references
+    # `cur_references` becomes all valid references in the *updated* text
+    cur_references, new_references = (new_references,
+                                      new_references - cur_references)
 
     if old_references or new_references:
         # Difference in references in text
+
+        """
+        Find supplementary annotations, 
+        as we want to delete suppl. references that are in the text
+        """
+        cur.execute(
+            """
+            SELECT ENTRY_AC, PUB_ID
+            FROM INTERPRO.SUPPLEMENTARY_REF
+            WHERE ENTRY_AC IN (
+                SELECT ENTRY_AC
+                FROM INTERPRO.ENTRY2COMMON
+                WHERE ANN_ID = :1                  
+            )
+            """, (ann_id,)
+        )
+        to_delete = []
+        for entry_ac, pub_id in cur:
+            if pub_id in cur_references:
+                # reference in the text: remove it from suppl. references
+                to_delete.append((entry_ac, pub_id))
+
+        if to_delete:
+            try:
+                cur.executemany(
+                    """
+                    DELETE FROM INTERPRO.SUPPLEMENTARY_REF
+                    WHERE ENTRY_AC = :1 AND PUB_ID = :2
+                    """, to_delete
+                )
+            except DatabaseError as e:
+                cur.close()
+                return jsonify({
+                    "status": False,
+                    "title": "Database error",
+                    "message": str(e)
+                }), 500
 
         """
         Parse all annotations associated to entries associated 
@@ -528,21 +567,20 @@ def update_annotations(ann_id):
                 if pub_id not in references:
                     to_insert.append((entry_ac, pub_id))
 
-        for entry_ac, pub_id in to_delete:
-            try:
-                cur.execute(
-                    """
-                    DELETE FROM INTERPRO.ENTRY2PUB
-                    WHERE ENTRY_AC = :1 AND PUB_ID = :2
-                    """, (entry_ac, pub_id)
-                )
-            except DatabaseError as e:
-                cur.close()
-                return jsonify({
-                    "status": False,
-                    "title": "Database error",
-                    "message": str(e)
-                }), 500
+        try:
+            cur.executemany(
+                """
+                DELETE FROM INTERPRO.ENTRY2PUB
+                WHERE ENTRY_AC = :1 AND PUB_ID = :2
+                """, to_delete
+            )
+        except DatabaseError as e:
+            cur.close()
+            return jsonify({
+                "status": False,
+                "title": "Database error",
+                "message": str(e)
+            }), 500
 
         for entry_ac, pub_id in to_insert:
             try:
