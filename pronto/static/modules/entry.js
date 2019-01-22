@@ -151,9 +151,17 @@ const annotationEditor = {
         fetch('/api/annotation/' + annID + '/', options)
             .then(response => response.json())
             .then(result => {
-                if (result.status)
-                    getAnnotations(accession, true).then(() => { $('.ui.sticky').sticky(); });
-                else {
+                if (result.status) {
+                    // Get annotations and supplementary references (may have changed)
+                    const promises = [
+                        getAnnotations(accession, true),
+                        getSupplReferences(accession)
+                    ];
+
+                    Promise.all(promises).then(value => {
+                        $('.ui.sticky').sticky();
+                    });
+                } else {
                     const form = this.element.querySelector('.ui.form');
                     form.querySelector('.ui.message').innerHTML = '<div class="header">'+ result.title +'</div><p>'+ result.message.replace(/</g, '&lt;').replace(/>/g, '&gt;') +'</p>';
                     ui.setClass(textarea.parentNode, 'error', true);
@@ -355,31 +363,31 @@ function getAnnotations(accession, _editingMode) {
                     if (editingMode) {
                         html += '<div id="'+ ann.id +'" class="annotation">'
 
-                        // Action menu
-                        + '<div class="ui top attached mini menu">'
-                        + '<a data-action="edit" class="item"><abbr title="Edit this annotation"><i class="edit fitted icon"></i></abbr></a>'
-                        + '<a data-action="movedown" class="item"><abbr title="Move this annotation down"><i class="arrow down fitted icon"></i></abbr></a>'
-                        + '<a data-action="moveup" class="item"><abbr title="Move this annotation up"><i class="arrow up fitted icon"></i></abbr></a>'
-                        + '<a data-action="delete" class="item"><abbr title="Unlink this annotation"><i class="trash fitted icon"></i></abbr></a>'
+                            // Action menu
+                            + '<div class="ui top attached mini menu">'
+                            + '<a data-action="edit" class="item"><abbr title="Edit this annotation"><i class="edit fitted icon"></i></abbr></a>'
+                            + '<a data-action="movedown" class="item"><abbr title="Move this annotation down"><i class="arrow down fitted icon"></i></abbr></a>'
+                            + '<a data-action="moveup" class="item"><abbr title="Move this annotation up"><i class="arrow up fitted icon"></i></abbr></a>'
+                            + '<a data-action="delete" class="item"><abbr title="Unlink this annotation"><i class="trash fitted icon"></i></abbr></a>'
 
-                        // Info menu (last edit comment and number of entries using this annotation)
-                        + '<div class="right menu">'
-                        + nvl(ann.comment, '', '<span class="item">'+ ann.comment +'</span>')
-                        + '<a data-action="list" class="item"><i class="list fitted icon"></i> Associated to '+ ann.num_entries + ' entries</a>'
-                        + '</div>'
-                        + '</div>'
+                            // Info menu (last edit comment and number of entries using this annotation)
+                            + '<div class="right menu">'
+                            + nvl(ann.comment, '', '<span class="item">'+ ann.comment +'</span>')
+                            + '<a data-action="list" class="item"><i class="list fitted icon"></i> Associated to '+ ann.num_entries + ' entries</a>'
+                            + '</div>'
+                            + '</div>'
 
-                        // Text
-                        + '<div class="ui attached segment">' + text + '</div>'
+                            // Text
+                            + '<div class="ui attached segment">' + text + '</div>'
 
-                        // Bottom menu
-                        + '<div class="hidden ui borderless bottom attached mini menu" data-annid="'+ ann.id +'">'
-                        + '<div class="right menu">'
-                        + '<div class="item"><a data-action="cancel" class="ui basic secondary button">Cancel</a></div>'
-                        + '<div class="item"><a data-action="save" class="ui primary button">Save</a></div>'
-                        + '</div>'
-                        + '</div>'
-                        + '</div>';
+                            // Bottom menu
+                            + '<div class="hidden ui borderless bottom attached mini menu" data-annid="'+ ann.id +'">'
+                            + '<div class="right menu">'
+                            + '<div class="item"><a data-action="cancel" class="ui basic secondary button">Cancel</a></div>'
+                            + '<div class="item"><a data-action="save" class="ui primary button">Save</a></div>'
+                            + '</div>'
+                            + '</div>'
+                            + '</div>';
                     } else
                         html += '<div class="ui vertical segment">' + text + '</div>';
                 });
@@ -1304,15 +1312,18 @@ $(function () {
     /*
         Event to enable/disable editing mode
      */
-    $('#annotations .ui.toggle.checkbox').checkbox({
-        onChange: function () {
-            const checked = this.checked;
-            getAnnotations(accession, checked).then(() => {
-                ui.setClass(document.querySelector('#annotations div.header'), 'hidden', !checked);
-                $('.ui.sticky').sticky();
-            });
-        }
-    });
+    $('#annotations .ui.toggle.checkbox')
+        .checkbox('uncheck')  // Force checkbox to be unchecked
+        .checkbox({
+            onChange: function () {
+                console.log(10);
+                const checked = this.checked;
+                getAnnotations(accession, checked).then(() => {
+                    ui.setClass(document.querySelector('#annotations div.header'), 'hidden', !checked);
+                    $('.ui.sticky').sticky();
+                });
+            }
+        });
 
     entryEditor.init();
 
