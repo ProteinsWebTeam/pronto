@@ -482,7 +482,8 @@ function getAnnotations(accession, _editingMode) {
                                 () => annotationEditor.save(accession, annID)
                             );
 
-                        }
+                        } else
+                            annotationEditor.save(accession, annID);
                     } else if (action === 'cancel')
                         annotationEditor.close();
                     else if (action === 'list') {
