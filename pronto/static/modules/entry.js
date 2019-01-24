@@ -1337,7 +1337,6 @@ $(function () {
         .checkbox('uncheck')  // Force checkbox to be unchecked
         .checkbox({
             onChange: function () {
-                console.log(10);
                 const checked = this.checked;
                 getAnnotations(accession, checked).then(() => {
                     ui.setClass(document.querySelector('#annotations div.header'), 'hidden', !checked);
