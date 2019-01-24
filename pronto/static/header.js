@@ -44,24 +44,40 @@ function getTasks() {
     fetch('/api/tasks/')
         .then(response => response.json())
         .then(tasks => {
-            let html = '<i class="tasks icon"></i>'
-                + '<div class="menu">';
+            let menu = '';
+            let errors = 0;
+            let success = 0;
 
             if (tasks.length) {
                 tasks.forEach(task => {
-                    html += '<div class="item">';
+                    menu += '<div class="item">';
 
                     if (task.status === null)
-                        html += '<i class="loading notched circle icon"></i>';
-                    else if (task.status)
-                        html += '<i class="green check circle icon"></i>';
-                    else
-                        html += '<i class="red exclamation circle icon"></i>';
-                    html += task.name + '</div>';
+                        menu += '<i class="loading notched circle icon"></i>';
+                    else if (task.status) {
+                        menu += '<i class="green check circle icon"></i>';
+                        success++;
+                    }
+                    else {
+                        menu += '<i class="red exclamation circle icon"></i>';
+                        errors++;
+                    }
+                    menu += task.name + '</div>';
                 });
             } else
-                html += '<div class="item">No tasks</div>';
-            html += '</div>';
+                menu += '<div class="item">No tasks</div>';
+
+            let html = '<i class="tasks icon"></i>&nbsp;Tasks';
+
+            if (errors)
+                html += '<a class="ui red mini circular label">'+ tasks.length +'</a>';
+            else if (success)
+                html += '<a class="ui green mini circular label">'+ tasks.length +'</a>';
+            else if (tasks.length)
+                html += '<a class="ui grey mini circular label">'+ tasks.length +'</a>';
+
+            html += '<i class="dropdown icon"></i>'
+                + '<div class="menu">' + menu + '</div>';
 
             document.getElementById('tasks').innerHTML = html;
         })
