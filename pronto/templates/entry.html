@@ -92,6 +92,10 @@
         div.header.hidden {
             display: none;
         }
+
+        h1.ui.header > .icon {
+            display: inline-block;
+        }
     </style>
 </head>
 <body>
@@ -225,19 +229,27 @@
         <div class="twelve wide column">
             <div id="curation" class="ui basic vertical segment">
                 <h2 class="ui dividing header">Curation</h2>
-                <div class="ui feed"></div>
-
-                <h3 class="ui header">Public website</h3>
-                <div class="ui horizontal bulleted link list">
-                    <a target="_blank" data-public-href="https://www.ebi.ac.uk/interpro/entry/" class="item">
-                        InterPro 6
-                        <i class="external icon"></i>
-                    </a>
-                    <a target="_blank" data-public-href="http://www.ebi.ac.uk/interpro/beta/entry/InterPro/" class="item">
-                        InterPro 7
-                        <i class="external icon"></i>
-                    </a>
+                <div class="ui grid">
+                    <div class="eight wide column">
+                        <h3 class="ui header">Public website</h3>
+                        <div class="ui horizontal bulleted link list">
+                            <a target="_blank" data-public-href="https://www.ebi.ac.uk/interpro/entry/" class="item">
+                                InterPro 6
+                                <i class="external icon"></i>
+                            </a>
+                            <a target="_blank" data-public-href="http://www.ebi.ac.uk/interpro/beta/entry/InterPro/" class="item">
+                                InterPro 7
+                                <i class="external icon"></i>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="eight wide column">
+                        <div class="ui feed"></div>
+                    </div>
                 </div>
+
+
+
 
                 <h3 class="ui header">Signatures comparison</h3>
                 <div class="ui horizontal bulleted link list">

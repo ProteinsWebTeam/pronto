@@ -899,13 +899,13 @@ function getEntry(accession) {
 
             entryEditor.update(accession, entry.short_name, entry.name, entry.type.code, entry.is_checked);
 
-            let html;
-
             // Header
-            html = entry.name + '<div class="sub header">';
+            let html = '';
             if (entry.is_checked)
                 html += '<i class="checkmark icon"></i>';
-            html += entry.short_name + ' (' + entry.accession + ')';
+
+            html += entry.name
+                + '<div class="sub header">' + entry.short_name + ' (' + entry.accession + ')' + '</div>';
             document.querySelector('h1.header').innerHTML = html;
 
             // Statistics
