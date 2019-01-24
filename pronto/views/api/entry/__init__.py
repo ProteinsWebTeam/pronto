@@ -158,7 +158,7 @@ def get_entry(accession):
           E.ENTRY_TYPE,
           ET.ABBREV,
           E.CHECKED,
-          NVL(U.USERNAME, E.USERSTAMP),
+          NVL(U.NAME, E.USERSTAMP),
           E.CREATED,
           A.USERSTAMP,
           A.TIMESTAMP
