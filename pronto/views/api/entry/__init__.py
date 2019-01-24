@@ -158,15 +158,24 @@ def get_entry(accession):
           E.ENTRY_TYPE,
           ET.ABBREV,
           E.CHECKED,
-          NVL(U.NAME, E.USERSTAMP),
-          E.CREATED,
-          A.USERSTAMP,
-          A.TIMESTAMP
+          CREATED.USERSTAMP,
+          CREATED.TIMESTAMP,
+          MODIFIED.USERSTAMP,
+          MODIFIED.TIMESTAMP
         FROM INTERPRO.ENTRY E
         INNER JOIN INTERPRO.CV_ENTRY_TYPE ET
           ON E.ENTRY_TYPE = ET.CODE
-        LEFT OUTER JOIN INTERPRO.USER_PRONTO U 
-          ON E.USERSTAMP = U.DB_USER
+        LEFT OUTER JOIN (
+          SELECT 
+            A.ENTRY_AC, 
+            NVL(U.NAME, A.DBUSER) AS USERSTAMP, 
+            A.TIMESTAMP, 
+            ROW_NUMBER() OVER (ORDER BY A.TIMESTAMP ASC) RN
+          FROM INTERPRO.ENTRY_AUDIT A
+          LEFT OUTER JOIN INTERPRO.USER_PRONTO U 
+            ON A.DBUSER = U.DB_USER
+          WHERE A.ENTRY_AC = :acc
+        ) CREATED ON E.ENTRY_AC = CREATED.ENTRY_AC AND CREATED.RN = 1
         LEFT OUTER JOIN (
           SELECT 
             A.ENTRY_AC, 
@@ -177,7 +186,7 @@ def get_entry(accession):
           LEFT OUTER JOIN INTERPRO.USER_PRONTO U 
             ON A.DBUSER = U.DB_USER
           WHERE A.ENTRY_AC = :acc
-        ) A ON E.ENTRY_AC = A.ENTRY_AC AND A.RN = 1
+        ) MODIFIED ON E.ENTRY_AC = MODIFIED.ENTRY_AC AND MODIFIED.RN = 1
         WHERE E.ENTRY_AC = :acc
         """, dict(acc=accession)
     )
