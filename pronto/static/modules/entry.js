@@ -389,7 +389,7 @@ function getAnnotations(accession, _editingMode) {
                             + '</div>'
                             + '</div>';
                     } else
-                        html += '<div class="ui vertical segment">' + text + '</div>';
+                        html += '<div class="ui vertical segment annotation">' + text + '</div>';
                 });
             } else {
                 html = '<div class="ui error message">'
