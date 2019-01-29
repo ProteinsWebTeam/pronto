@@ -1,3 +1,4 @@
+import re
 from cx_Oracle import DatabaseError
 from flask import jsonify, request
 
@@ -290,6 +291,24 @@ def get_entry_signatures(accession):
     return jsonify(signatures), 200
 
 
+def repl_dbxref(match):
+    db = match.group(1).lower().strip()
+    ac = match.group(2).strip()
+
+    if db == "ec":
+        db = "intenz"
+    elif db == "ssf":
+        db = "superfamily"
+
+    return "[{}:{}]".format(db, ac)
+
+
+def format_abstract(text):
+    text = re.sub(r"PMID:(\d+)", r"[cite:\1]", text, flags=re.I)
+    text = re.sub(r'<\s*cite\s*id="(PUB\d+)"\s*/?\s*>', r"[cite:\1]", text, flags=re.I)
+    return re.sub(r'<\s*dbxref\s*db="(.*?)"\s*id="(.*?)"\s*/>', repl_dbxref, text, flags=re.I)
+
+
 @app.route("/api/entry/<accession>/signatures/annotations/")
 def get_entry_signatures_annotations(accession):
     cur = db.get_oracle().cursor()
@@ -323,7 +342,7 @@ def get_entry_signatures_annotations(accession):
         signatures.append({
             "accession": row[0],
             "name": row[1],
-            "text": text
+            "text": format_abstract(text)
         })
 
     cur.close()
