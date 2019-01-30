@@ -142,12 +142,12 @@ export const proteinViewer = {
                     self.open(accession, params, true)
                         .then(() => {
                             self.modal.querySelector('.ui.header').innerHTML = accession + ' proteins<div class="sub header">'+ type +': <em>'+ filter +'</em></div>';
-                        })
+                        });
                 } else {
                     self.open(accession, params, false)
                         .then(() => {
                             self.modal.querySelector('.ui.header').innerHTML = accession + ' proteins</div>';
-                        })
+                        });
                 }
             });
         });
