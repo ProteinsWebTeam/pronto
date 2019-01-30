@@ -126,20 +126,29 @@ export const proteinViewer = {
             }
         });
     },
-    observe: function (selector) {
+    observe: function (selector, showMatches) {
         const self = this;
+        const matches = showMatches === undefined || showMatches;
         Array.from(selector).forEach(elem => {
             elem.addEventListener('click', e => {
                 e.preventDefault();
                 const accession = e.target.getAttribute('data-accession');
                 const row = e.target.closest('tr');
-                const type = row.getAttribute('data-type');
-                const filter = row.getAttribute('data-filter');
                 const params = row.getAttribute('data-params');
-                self.open(accession, params, true)
-                    .then(() => {
-                        self.modal.querySelector('.ui.header').innerHTML = accession + ' proteins<div class="sub header">'+ type +': <em>'+ filter +'</em></div>';
-                    })
+
+                if (matches) {
+                    const type = row.getAttribute('data-type');
+                    const filter = row.getAttribute('data-filter');
+                    self.open(accession, params, true)
+                        .then(() => {
+                            self.modal.querySelector('.ui.header').innerHTML = accession + ' proteins<div class="sub header">'+ type +': <em>'+ filter +'</em></div>';
+                        })
+                } else {
+                    self.open(accession, params, false)
+                        .then(() => {
+                            self.modal.querySelector('.ui.header').innerHTML = accession + ' proteins</div>';
+                        })
+                }
             });
         });
     },
@@ -154,10 +163,13 @@ export const proteinViewer = {
                 "/api/signature/" + accession + "/" +
                 (matches ? "matches/" : "proteins/")
             );
-            params.split('&').map(item => {
-                const kv = item.split('=');
-                url.searchParams.set(kv[0], kv[1]);
-            });
+
+            if (params) {
+                params.split('&').map(item => {
+                    const kv = item.split('=');
+                    url.searchParams.set(kv[0], kv[1]);
+                });
+            }
 
             if (self.url === null || self.url.toString() !==url.toString()) {
                 self.url = url;

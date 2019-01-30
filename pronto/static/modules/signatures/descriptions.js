@@ -12,11 +12,11 @@ function getDescriptions(accessions) {
 
             // Table header
             let html = '<thead>'
-                + '<tr>'
+                + '<tr data-params="db='+ result.source_database +'">'
                 + '<th>'+ result.descriptions.length.toLocaleString() +' descriptions</th>';
 
             accessions.map(acc => {
-                html += '<th>' + acc + '</th>';
+                html += '<th><a href="#" data-accession="'+ acc +'">' + acc + '</a></th>';
             });
             html += '</tr></thead>';
 
@@ -54,7 +54,8 @@ function getDescriptions(accessions) {
                 value = 'U';
             document.querySelector('input[name=dbcode][value="'+ value +'"]').checked = true;
 
-            proteinViewer.observe(document.querySelectorAll('td a[data-accession]'));
+            proteinViewer.observe(document.querySelectorAll('td a[data-accession]'), true);
+            proteinViewer.observe(document.querySelectorAll('th a[data-accession]'), false);
 
             dimmer(false);
         });
