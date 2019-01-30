@@ -566,7 +566,14 @@ def get_signature_proteins(accession):
         })
 
     cur.close()
-    return jsonify(proteins)
+    return jsonify({
+            "count": len(proteins),
+            "proteins": proteins,
+            "page_info": {
+                "page": 1,
+                "page_size": len(proteins)
+            }
+        })
 
 
 @app.route('/api/signature/<accession>/references/<go_id>/')
