@@ -424,3 +424,8 @@ i.button.icon {
 i.button.icon:hover {
     color: rgba(0,0,0,.8);
 }
+
+/* Hidden actions in modal */
+.modal .actions.hidden {
+    display: none;
+}

@@ -139,30 +139,36 @@ export const proteinViewer = {
                 if (matches) {
                     const type = row.getAttribute('data-type');
                     const filter = row.getAttribute('data-filter');
-                    self.open(accession, params, true)
+                    self.open([accession], 'matches', params)
                         .then(() => {
-                            self.modal.querySelector('.ui.header').innerHTML = accession + ' proteins<div class="sub header">'+ type +': <em>'+ filter +'</em></div>';
+                            self.setTitle(accession + ' proteins<div class="sub header">'+ type +': <em>'+ filter +'</em></div>');
                         });
                 } else {
-                    self.open(accession, params, false)
+                    self.open([accession], 'proteins', params)
                         .then(() => {
-                            self.modal.querySelector('.ui.header').innerHTML = accession + ' proteins</div>';
+                            self.setTitle(accession + ' proteins');
                         });
                 }
             });
         });
     },
-    open: function (accession, params, matches) {
+    open: function (accessions, mode, params, suffixURL) {
         const self = this;
         return new Promise(((resolve, reject) => {
-            self.accession = accession;
+            let url;
 
-            // Update URL
-            const url = new URL(
-                location.origin +
-                "/api/signature/" + accession + "/" +
-                (matches ? "matches/" : "proteins/")
-            );
+            if (mode === "common") {
+                url = new URL(location.origin + "/api/signatures/" + accessions.join('/') + suffixURL);
+                setClass(self.modal.querySelector('.actions'), 'hidden', true);
+            } else if (mode === "matches") {
+                setClass(self.modal.querySelector('.actions'), 'hidden', false);
+                url = new URL(location.origin + "/api/signature/" + accessions[0] + "/matches/");
+            } else {
+                setClass(self.modal.querySelector('.actions'), 'hidden', false);
+                url = new URL(location.origin + "/api/signature/" + accessions[0] + "/proteins/");
+            }
+
+            self.accession = accessions[0];
 
             if (params) {
                 params.split('&').map(item => {
@@ -290,6 +296,9 @@ export const proteinViewer = {
                 });
         }));
 
+    },
+    setTitle: function (title) {
+        this.modal.querySelector('.ui.header').innerHTML = title;
     }
 };
 proteinViewer.init();

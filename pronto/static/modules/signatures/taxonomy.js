@@ -33,7 +33,7 @@ function getTaxa(accessions) {
             accessions.map(acc => {
                 html += '<th>' + acc + '</th>';
             });
-            html += '</tr></thead>';
+            html += '<th></th></tr></thead>';
 
             // Table body
             html += '<tbody>';
@@ -61,7 +61,7 @@ function getTaxa(accessions) {
                         html += '<td></td>';
                 });
 
-                html += '</tr>';
+                html += '<td class="collapsing"><i class="fitted object ungroup button icon" data-taxon="'+ taxon.id +'"></i></td></tr>';
             });
 
             document.querySelector('table').innerHTML = html + '</tbody>';
@@ -78,7 +78,20 @@ function getTaxa(accessions) {
                 }
             })();
 
-            proteinViewer.observe(document.querySelectorAll('td a[data-accession]'));
+            proteinViewer.observe(document.querySelectorAll('td a[data-accession]'), true);
+
+            Array.from(document.querySelectorAll('i.ungroup.button.icon')).forEach(icon => {
+                icon.addEventListener('click', e => {
+                    e.preventDefault();
+                    proteinViewer.open(accessions, 'common', null, '/taxonomy/' + results.rank + '/' + e.target.getAttribute('data-taxon') + '/')
+                        .then(() => {
+                            const row = e.target.closest('tr');
+                            const type = row.getAttribute('data-type');
+                            const filter = row.getAttribute('data-filter');
+                            proteinViewer.setTitle('Common proteins<div class="sub header">'+ type +': <em>'+ filter +'</em></div>');
+                        });
+                });
+            });
 
             dimmer(false);
         });
