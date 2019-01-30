@@ -103,8 +103,8 @@ export const proteinViewer = {
                 button.innerHTML = '<i class="refresh loading icon"></i>&nbsp;Loading';
                 fetch(url.toString())
                     .then(response => response.json())
-                    .then(proteins => {
-                        self.accessions = proteins.map(x => x.accession).join(' ');
+                    .then(results => {
+                        self.accessions = results.proteins.map(x => x.accession).join(' ');
                         button.innerHTML = '<i class="copy icon"></i>&nbsp;Copy to clipboard';
                     });
             } else {
