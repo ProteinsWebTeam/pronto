@@ -949,10 +949,20 @@ function getEntry(accession) {
 }
 
 $(function () {
-    finaliseHeader();
     const accession = location.pathname.match(/^\/entry\/(.+)\/$/)[1];
-
     ui.dimmer(true);
+
+    finaliseHeader().then((isLogged) => {
+        const label = document.querySelector('#segment-statistics .ui.corner.label');
+
+        if (isLogged) {
+            // Open the hidden segment to edit the entry
+            label.addEventListener('click', e => {
+                entryEditor.open();
+            });
+        } else
+            label.parentNode.removeChild(label);
+    });
 
     // Initialise coupled modals (one opened on top of the other)
     $('.coupled.modal')
@@ -1347,11 +1357,6 @@ $(function () {
         });
 
     entryEditor.init();
-
-    // Open the hidden segment to edit the entry
-    document.querySelector('#segment-statistics .ui.corner.label').addEventListener('click', e => {
-        entryEditor.open();
-    });
 
     getEntry(accession);
 });
