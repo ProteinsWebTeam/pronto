@@ -171,7 +171,7 @@ export const proteinViewer = {
                 });
             }
 
-            if (self.url === null || self.url.toString() !==url.toString()) {
+            if (self.url === null || self.url.toString() !== url.toString()) {
                 self.url = url;
 
                 // Reset search
