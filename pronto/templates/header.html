@@ -59,37 +59,6 @@
     </div>
     <div class="content">
         <div class="ui hidden error message"></div>
-        <div class="ui form">
-            <div class="field">
-                <div class="fields">
-                    <div class="twelve wide required field">
-                        <label>Name</label>
-                        <input name="description" placeholder="Entry name" type="text" maxlength="100" data-countdown="countdown2">
-                        <p class="help-text"></p>
-                    </div>
-                    <div class="four wide required field">
-                        <label>Short name</label>
-                        <input name="name" placeholder="Entry short name" type="text" maxlength="30" data-countdown>
-                        <p class="help-text"></p>
-                    </div>
-                </div>
-            </div>
-            <div class="required field">
-                <label>Type</label>
-                <select class="ui dropdown" name="type">
-                    <option value="">Type</option>
-                    <option value="A">Active site</option>
-                    <option value="B">Binding site</option>
-                    <option value="C">Conserved site</option>
-                    <option value="D">Domain</option>
-                    <option value="F">Family</option>
-                    <option value="H">Homologous superfamily</option>
-                    <option value="P">PTM</option>
-                    <option value="R">Repeat</option>
-                    <option value="U">Unknown</option>
-                </select>
-            </div>
-        </div>
         <table class="ui selectable table">
             <thead>
             <tr>
@@ -131,6 +100,37 @@
             </tr>
             </tfoot>
         </table>
+        <div class="ui form">
+            <div class="field">
+                <div class="fields">
+                    <div class="twelve wide required field">
+                        <label>Name</label>
+                        <input name="description" placeholder="Entry name" type="text" maxlength="100" data-countdown="countdown2">
+                        <p class="help-text"></p>
+                    </div>
+                    <div class="four wide required field">
+                        <label>Short name</label>
+                        <input name="name" placeholder="Entry short name" type="text" maxlength="30" data-countdown>
+                        <p class="help-text"></p>
+                    </div>
+                </div>
+            </div>
+            <div class="required field">
+                <label>Type</label>
+                <select class="ui dropdown" name="type">
+                    <option value="">Type</option>
+                    <option value="A">Active site</option>
+                    <option value="B">Binding site</option>
+                    <option value="C">Conserved site</option>
+                    <option value="D">Domain</option>
+                    <option value="F">Family</option>
+                    <option value="H">Homologous superfamily</option>
+                    <option value="P">PTM</option>
+                    <option value="R">Repeat</option>
+                    <option value="U">Unknown</option>
+                </select>
+            </div>
+        </div>
     </div>
     <div class="actions">
         <div class="ui cancel button">Cancel</div>
