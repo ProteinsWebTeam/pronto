@@ -365,7 +365,7 @@ def create_annotation():
             VALUES (INTERPRO.NEW_ANN_ID(), :1, :2)
             RETURNING ANN_ID INTO :3
             """,
-            (text, comment, ann_id)
+            (ann.text, comment, ann_id)
         )
     except IntegrityError:
         res = {
@@ -381,7 +381,7 @@ def create_annotation():
             SELECT ANN_ID
             FROM INTERPRO.COMMON_ANNOTATION
             WHERE TEXT = :1
-            """, (text,)
+            """, (ann.text,)
         )
         row = cur.fetchone()
 
