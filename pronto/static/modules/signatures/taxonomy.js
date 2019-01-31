@@ -33,7 +33,8 @@ function getTaxa(accessions) {
             accessions.map(acc => {
                 html += '<th>' + acc + '</th>';
             });
-            html += '<th></th></tr></thead>';
+            // html += '<th></th></tr></thead>';
+            html += '</tr></thead>';
 
             // Table body
             html += '<tbody>';
@@ -61,7 +62,8 @@ function getTaxa(accessions) {
                         html += '<td></td>';
                 });
 
-                html += '<td class="collapsing"><i class="fitted object ungroup button icon" data-taxon="'+ taxon.id +'"></i></td></tr>';
+                //html += '<td class="collapsing"><i class="fitted object ungroup button icon" data-taxon="'+ taxon.id +'"></i></td></tr>';
+                html += '</tr>';
             });
 
             document.querySelector('table').innerHTML = html + '</tbody>';
