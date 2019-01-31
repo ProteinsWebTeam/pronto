@@ -1099,6 +1099,7 @@ $(function () {
 
                             const menu = btn.closest('.ui.menu');
                             const msg = menu.querySelector('.item.message');
+                            ui.setClass(btn, 'disabled', true);
 
                             fetch('/api/annotation/', options)
                                 .then(response => response.json())
@@ -1112,11 +1113,13 @@ $(function () {
                                     else {
                                         msg.innerHTML = result.message;
                                         msg.className = 'item negative message';
+                                        ui.setClass(btn, 'disabled', false);
                                     }
                                 })
                                 .then(result => {
+                                    ui.setClass(btn, 'disabled', false);
                                     if (result.status) {
-                                        getAnnotations(accession, false).then(() => { $('.ui.sticky').sticky(); });
+                                        getAnnotations(accession, true).then(() => { $('.ui.sticky').sticky(); });
                                         $(modal).modal('hide');
                                     } else {
                                         msg.innerHTML = result.message;
