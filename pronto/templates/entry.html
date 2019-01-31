@@ -33,7 +33,7 @@
             max-height: none;
             padding: .5rem;
         }
-        #modal-entries {
+        #modal-entries, #help-modal {
             top: 0;
             margin-top: 5rem !important; /* overwrite Semantic UI stuff */
         }
@@ -95,6 +95,13 @@
 
         h1.ui.header > .icon {
             display: inline-block;
+        }
+
+        code {
+            border: 1px solid rgba(10,10,10,.25);
+            border-radius: 3px;
+            padding: 1px 2px;
+            color: #c0392b;
         }
     </style>
 </head>
@@ -248,9 +255,6 @@
                     </div>
                 </div>
 
-
-
-
                 <h3 class="ui header">Signatures comparison</h3>
                 <div class="ui horizontal bulleted link list">
                     <a data-signatures-page="proteins" class="item">Overlapping proteins</a>
@@ -278,6 +282,10 @@
                     <button id="signatures-annotations" class="ui basic button">
                         <i class="list icon"></i>
                         Signatures annotations
+                    </button>
+                    <button id="help-format" class="ui basic button">
+                        <i class="help circle icon"></i>
+                        Formatting help
                     </button>
                     <div class="ui left icon input">
                         <input id="search-annotations" placeholder="Search annotations" type="text">
@@ -425,6 +433,35 @@
 <div id="modal-entries" class="ui coupled tiny modal">
     <i class="close icon"></i>
     <div class="scrolling content"></div>
+</div>
+
+<div id="help-modal" class="ui small modal">
+    <i class="close icon"></i>
+    <div class="header">Formatting Help</div>
+    <div class="content justified">
+        <p>
+            Create a link to an external resource by putting the identifier of the resource, followed by a colon and the entry's accession, between square brackets, e.g. <code>[pfam:PF00069]</code>.<br>
+            The following resources are supported:
+        </p>
+        <ul>
+            <li>CATH / Gene3D: <code>[cathgene3d:&hellip;]</code></li>
+            <li>CAZy: <code>[cazy:&hellip;]</code></li>
+            <li>COG: <code>[cog:&hellip;]</code></li>
+            <li>EC/INTENZ: <code>[intenz:&hellip;]</code></li>
+            <li>Genome Properties: <code>[genprop:&hellip;]</code></li>
+            <li>InterPro: <code>[interpro:&hellip;]</code></li>
+            <li>PDBe: <code>[pdbe:&hellip;]</code></li>
+            <li>PFAM: <code>[pfam:&hellip;]</code></li>
+            <li>PIRSF: <code>[pirsf:&hellip;]</code></li>
+            <li>PROSITE: <code>[prosite:&hellip;]</code></li>
+            <li>SUPERFAMILY: <code>[superfamily:&hellip;]</code></li>
+            <li>Swiss-Prot: <code>[swissprot:&hellip;]</code></li>
+            <li>TIGRFAMs: <code>[tigrefams:&hellip;]</code></li>
+        </ul>
+        <p>
+            Add a literature reference (citation) by putting <code>cite:</code>, followed by one or several PubMed IDs, in square brackets, e.g. <code>[cite:11298287]</code>. When adding several references, PubMed IDs should be separated by commas. When saving the annotation, PubMed IDs will be replaced by Publication IDs.
+        </p>
+    </div>
 </div>
 
 {% include 'footer.html' %}

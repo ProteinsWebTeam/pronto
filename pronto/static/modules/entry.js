@@ -1134,6 +1134,11 @@ $(function () {
         });
     })();
 
+    // Event to show formatting help
+    document.getElementById('help-format').addEventListener('click', e => {
+        $('#help-modal').modal('show');
+    });
+
     // Event to search annotations
     (function () {
         document.getElementById('search-annotations').addEventListener('keyup', e => {
