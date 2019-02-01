@@ -100,7 +100,7 @@ const annotationEditor = {
                     ui.openErrorModal(result);
             });
     },
-    drop: function (accession, annID) {
+    unlink: function (accession, annID) {
         ui.openConfirmModal(
             'Unlink annotation?',
             'This annotation will not be associated to <strong>' + accession + '</strong> any more.',
@@ -113,6 +113,24 @@ const annotationEditor = {
                             getAnnotations(accession, true).then(() => { $('.ui.sticky').sticky(); });
                         else
                             ui.openErrorModal(result);
+                    });
+            }
+        );
+    },
+    delete: function (annID, accession) {
+        ui.openConfirmModal(
+            'Delete annotation?',
+            'Are you sure you want to delete this annotation?',
+            'Delete',
+            () => {
+                fetch('/api/annotation/' + annID + '/', {method: 'DELETE'})
+                    .then(response => response.json())
+                    .then(result => {
+
+                        if (!result.status)
+                            ui.openErrorModal(result);
+                        else if (accession)
+                            getAnnotations(accession, true).then(() => { $('.ui.sticky').sticky(); });
                     });
             }
         );
@@ -368,10 +386,14 @@ function getAnnotations(accession, _editingMode) {
                             + '<a data-action="edit" class="item"><abbr title="Edit this annotation"><i class="edit fitted icon"></i></abbr></a>'
                             + '<a data-action="movedown" class="item"><abbr title="Move this annotation down"><i class="arrow down fitted icon"></i></abbr></a>'
                             + '<a data-action="moveup" class="item"><abbr title="Move this annotation up"><i class="arrow up fitted icon"></i></abbr></a>'
-                            + '<a data-action="delete" class="item"><abbr title="Unlink this annotation"><i class="unlinkify fitted icon"></i></abbr></a>'
+                            + '<a data-action="unlink" class="item"><abbr title="Unlink this annotation"><i class="unlinkify fitted icon"></i></abbr></a>';
 
-                            // Info menu (last edit comment and number of entries using this annotation)
-                            + '<div class="right menu">'
+                        if (ann.num_entries === 1) {
+                            html += '<a data-action="delete" class="item"><abbr title="Delete this annotation"><i class="trash fitted icon"></i></abbr></a>';
+                        }
+
+                        // Info menu (last edit comment and number of entries using this annotation)
+                        html += '<div class="right menu">'
                             + nvl(ann.comment, '', '<span class="item">'+ ann.comment +'</span>')
                             + '<a data-action="list" class="item"><i class="list fitted icon"></i> Associated to '+ ann.num_entries + ' entries</a>'
                             + '</div>'
@@ -471,8 +493,10 @@ function getAnnotations(accession, _editingMode) {
                         annotationEditor.reorder(accession, annID, 1);
                     else if (action === 'moveup')
                         annotationEditor.reorder(accession, annID, -1);
+                    else if (action === 'unlink')
+                        annotationEditor.unlink(accession, annID);
                     else if (action === 'delete')
-                        annotationEditor.drop(accession, annID);
+                        annotationEditor.delete(annID, accession);
                     else if (action === 'save') {
                         if (ann.entries > 1) {
                             ui.openConfirmModal(

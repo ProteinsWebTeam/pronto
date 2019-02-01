@@ -635,6 +635,49 @@ def update_annotations(ann_id):
         cur.close()
 
 
+@app.route("/api/annotation/<ann_id>/", methods=["DELETE"])
+def delete_annotations(ann_id):
+    user = get_user()
+    if not user:
+        return jsonify({
+            "status": False,
+            "title": "Access denied",
+            "message": 'Please <a href="/login/">log in</a> '
+                       'to perform this operation.'
+        }), 401
+
+    con = db.get_oracle()
+    cur = con.cursor()
+
+    try:
+        cur.execute(
+            """
+            DELETE FROM INTERPRO.ENTRY2COMMON
+            WHERE ANN_ID = :1
+            """, (ann_id,)
+        )
+
+        cur.execute(
+            """
+            DELETE FROM INTERPRO.COMMON_ANNOTATION
+            WHERE ANN_ID = :1
+            """, (ann_id,)
+        )
+    except DatabaseError as e:
+        return jsonify({
+            "status": False,
+            "title": "Database error",
+            "message": str(e)
+        }), 500
+    else:
+        con.commit()
+        return jsonify({
+            "status": True
+        }), 200
+    finally:
+        cur.close()
+
+
 @app.route("/api/annotation/<ann_id>/entries/")
 def get_annotation_entries(ann_id):
     cur = db.get_oracle().cursor()
