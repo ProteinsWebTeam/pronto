@@ -270,7 +270,7 @@ function getSupplReferences(accession) {
                     .forEach(pub => {
                         html += '<li id="'+ pub.id +'" class="item">'
                             + '<div class="header">'+ pub.title
-                            + '<i data-id="'+ pub.id +'" class="right floated trash button icon"></i>'
+                            + '<i data-id="'+ pub.id +'" class="right floated unlinkify button icon"></i>'
                             + '</div>'
                             + '<div class="item">'+ pub.authors +'</div>'
                             + '<div class="item">'
@@ -368,7 +368,7 @@ function getAnnotations(accession, _editingMode) {
                             + '<a data-action="edit" class="item"><abbr title="Edit this annotation"><i class="edit fitted icon"></i></abbr></a>'
                             + '<a data-action="movedown" class="item"><abbr title="Move this annotation down"><i class="arrow down fitted icon"></i></abbr></a>'
                             + '<a data-action="moveup" class="item"><abbr title="Move this annotation up"><i class="arrow up fitted icon"></i></abbr></a>'
-                            + '<a data-action="delete" class="item"><abbr title="Unlink this annotation"><i class="trash fitted icon"></i></abbr></a>'
+                            + '<a data-action="delete" class="item"><abbr title="Unlink this annotation"><i class="unlinkify fitted icon"></i></abbr></a>'
 
                             // Info menu (last edit comment and number of entries using this annotation)
                             + '<div class="right menu">'
@@ -554,7 +554,7 @@ function getRelationships(accession) {
                             html += '<a href="/entry/' + node.accession + '/">' + node.name + ' (' + node.accession + ')</a>';
 
                             if (node.deletable)
-                                html += '<i data-id="'+ node.accession +'" class="right floated trash button icon"></i>';
+                                html += '<i data-id="'+ node.accession +'" class="right floated unlinkify button icon"></i>';
                         }
 
                         html += '</div>'  // close header
@@ -641,7 +641,7 @@ function getSignatures(accession) {
                         + '<td class="right aligned">'+ s.num_proteins.toLocaleString() +'</td>'
                         + '<td class="collapsing">'
                         + '<button data-accession="'+ s.accession +'" class="ui circular icon button">'
-                        + '<i class="icon trash"></i>'
+                        + '<i class="icon unlinkify"></i>'
                         + '</button>'
                         + '</td>'
                         + '</tr>';
@@ -712,7 +712,7 @@ function renderGoTerms(terms, div, accession) {
             if (term.secondary)
                 html += '&nbsp;<span class="ui mini yellow label">Secondary</span>';
 
-            html += '<i data-id="'+ term.id +'" class="right floated trash button icon"></i>'
+            html += '<i data-id="'+ term.id +'" class="right floated unlinkify button icon"></i>'
                 + '</div>'
                 + '<div class="description">'+ term.definition +'</div>'
                 + '</div>'
@@ -937,7 +937,7 @@ function getEntry(accession) {
                 getSignatures(accession),
                 getGOTerms(accession),
                 getRelationships(accession),
-                getAnnotations(accession, false),
+                getAnnotations(accession, true),
                 getSupplReferences(accession)
             ];
 
@@ -1353,7 +1353,7 @@ $(function () {
         Event to enable/disable editing mode
      */
     $('#annotations .ui.toggle.checkbox')
-        .checkbox('uncheck')  // Force checkbox to be unchecked
+        .checkbox('check')  // Force checkbox to be checked
         .checkbox({
             onChange: function () {
                 const checked = this.checked;
