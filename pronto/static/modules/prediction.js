@@ -257,7 +257,7 @@ $(function () {
             });
     });
 
-    finaliseHeader();
+    finaliseHeader(accession);
     getPredictions(accession);
     getSignatureComments(accession, 2, document.querySelector('.ui.comments'));
 });

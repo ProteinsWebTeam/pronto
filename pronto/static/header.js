@@ -145,7 +145,7 @@ function renderSignatures(signatures) {
     document.querySelector('#new-entry-modal tbody').innerHTML = html;
 }
 
-export function finaliseHeader() {
+export function finaliseHeader(signatureAcc) {
     return getStatus()
         .then((isOK) => {
             if (isOK) {
@@ -248,6 +248,13 @@ export function finaliseHeader() {
                     $('#new-entry-modal')
                         .modal({
                             closable: false,
+                            onShow: function () {
+                                if (signatureAcc) {
+                                    $('#new-entry-modal .content > table .ui.form')
+                                        .form('set value', 'accession', signatureAcc)
+                                        .form('validate form');
+                                }
+                            },
                             onApprove: function ($element) {
                                 $('#new-entry-modal .content > .ui.form').form('validate form');
                                 return false;  // prevent to close modal
