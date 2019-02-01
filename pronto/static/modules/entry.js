@@ -117,7 +117,7 @@ const annotationEditor = {
             }
         );
     },
-    delete: function (annID, accession) {
+    delete: function (annID, accession, callback) {
         ui.openConfirmModal(
             'Delete annotation?',
             'Are you sure you want to delete this annotation?',
@@ -131,6 +131,9 @@ const annotationEditor = {
                             ui.openErrorModal(result);
                         else if (accession)
                             getAnnotations(accession, true).then(() => { $('.ui.sticky').sticky(); });
+
+                        if (callback)
+                            callback(result.status);
                     });
             }
         );
@@ -1202,10 +1205,14 @@ $(function () {
                                 if (ann.num_entries)
                                     html += '<a class="item"><i class="list icon"></i> Associated to '+ ann.num_entries + ' entries</a>';
 
-                                if (!annotations.has(ann.id))
-                                    html +=  '<div class="right item"><button class="ui primary button">Add</button></div>';
+                                html += '<div class="right menu">';
+                                if (!ann.num_entries)
+                                    html +=  '<div class="item"><button class="ui red button">Delete</button></div>';
 
-                                html += '</div>';
+                                if (!annotations.has(ann.id))
+                                    html +=  '<div class="item"><button class="ui primary button">Add</button></div>';
+
+                                html += '</div></div>';
                             });
                         } else {
                             html = '<p>No annotations found for <strong>'+ query +'</strong>.</p>';
@@ -1239,7 +1246,7 @@ $(function () {
                             });
                         });
 
-                        Array.from(modal.querySelectorAll('.content button')).forEach(elem => {
+                        Array.from(modal.querySelectorAll('.item button.primary')).forEach(elem => {
                             elem.addEventListener('click', e => {
                                 const menu = e.target.closest('[data-annid]');
                                 const annID = menu.getAttribute('data-annid');
@@ -1262,6 +1269,28 @@ $(function () {
                                     });
                             });
                         });
+
+                        Array.from(modal.querySelectorAll('.item button.red')).forEach(elem => {
+                            elem.addEventListener('click', e => {
+                                const menu = e.target.closest('[data-annid]');
+                                const annID = menu.getAttribute('data-annid');
+                                const btn = menu.querySelector('button.primary');
+
+                                if (btn)
+                                    ui.setClass(btn, 'disabled', true);
+
+                                annotationEditor.delete(annID, null, (status,) => {
+                                    if (status) {
+                                        Array.from(modal.querySelectorAll('[data-annid="'+ annID +'"]')).forEach(elem => {
+                                            elem.parentNode.removeChild(elem);
+                                        });
+                                    } else if (btn)
+                                        ui.setClass(btn, 'disabled', false);
+                                });
+                            });
+                        });
+
+
                         ui.dimmer(false);
                         $(modal).modal('show');
                     });

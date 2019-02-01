@@ -7,6 +7,7 @@ export function openConfirmModal(header, content, approve, onApprove, onDeny) {
 
     $(modal)
         .modal({
+            allowMultiple: true,
             onApprove: function () {
                 if (onApprove) onApprove();
             },
