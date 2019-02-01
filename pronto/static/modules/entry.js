@@ -95,7 +95,7 @@ const annotationEditor = {
             .then(response => response.json())
             .then(result => {
                 if (result.status)
-                    getAnnotations(accession, true).then(() => { $('.ui.sticky').sticky(); });
+                    getAnnotations(accession).then(() => { $('.ui.sticky').sticky(); });
                 else
                     ui.openErrorModal(result);
             });
@@ -110,7 +110,7 @@ const annotationEditor = {
                     .then(response => response.json())
                     .then(result => {
                         if (result.status)
-                            getAnnotations(accession, true).then(() => { $('.ui.sticky').sticky(); });
+                            getAnnotations(accession).then(() => { $('.ui.sticky').sticky(); });
                         else
                             ui.openErrorModal(result);
                     });
@@ -130,7 +130,7 @@ const annotationEditor = {
                         if (!result.status)
                             ui.openErrorModal(result);
                         else if (accession)
-                            getAnnotations(accession, true).then(() => { $('.ui.sticky').sticky(); });
+                            getAnnotations(accession).then(() => { $('.ui.sticky').sticky(); });
 
                         if (callback)
                             callback(result.status);
@@ -175,7 +175,7 @@ const annotationEditor = {
                 if (result.status) {
                     // Get annotations and supplementary references (may have changed)
                     const promises = [
-                        getAnnotations(accession, true),
+                        getAnnotations(accession),
                         getSupplReferences(accession)
                     ];
 
@@ -343,11 +343,11 @@ function getSupplReferences(accession) {
 }
 
 
-function getAnnotations(accession, _editingMode) {
+function getAnnotations(accession) {
     return fetch('/api' + location.pathname + 'annotations/')
         .then(response => response.json())
         .then(results => {
-            const editingMode = _editingMode !== undefined ? _editingMode : $('#annotations .ui.toggle.checkbox').checkbox('is checked');
+            const previewMode = $('.ui.toggle.checkbox').checkbox('is checked');
 
             const rePub = /\[cite:(PUB\d+)\]/gi;
             const mainRefs = [];
@@ -355,7 +355,7 @@ function getAnnotations(accession, _editingMode) {
             const references = new Map(Object.entries(results.references));
             let html = '';
             if (results.annotations.length) {
-                results.annotations.forEach(ann => {
+                results.annotations.forEach((ann, index) => {
                     let text = ann.text;
                     annotations.set(ann.id, {text: text, entries: ann.num_entries});
 
@@ -381,15 +381,27 @@ function getAnnotations(accession, _editingMode) {
                         text = text.replace(xref.match, '<a target="_blank" href="'+ xref.url +'">'+ xref.id +'&nbsp;<i class="external icon"></i></a>');
                     });
 
-                    if (editingMode) {
+                    if (previewMode)
+                        html += '<div class="ui vertical segment annotation">' + text + '</div>';
+                    else {
                         html += '<div id="'+ ann.id +'" class="annotation">'
 
                             // Action menu
                             + '<div class="ui top attached mini menu">'
-                            + '<a data-action="edit" class="item"><abbr title="Edit this annotation"><i class="edit fitted icon"></i></abbr></a>'
-                            + '<a data-action="movedown" class="item"><abbr title="Move this annotation down"><i class="arrow down fitted icon"></i></abbr></a>'
-                            + '<a data-action="moveup" class="item"><abbr title="Move this annotation up"><i class="arrow up fitted icon"></i></abbr></a>'
-                            + '<a data-action="unlink" class="item"><abbr title="Unlink this annotation"><i class="unlinkify fitted icon"></i></abbr></a>';
+                            + '<a data-action="edit" class="item"><abbr title="Edit this annotation"><i class="edit fitted icon"></i></abbr></a>';
+
+                        if (results.annotations.length > 1) {
+                            if (index + 1 < results.annotations.length) {
+                                html += '<a data-action="movedown" class="item"><abbr title="Move this annotation down"><i class="arrow down fitted icon"></i></abbr></a>';
+                            }
+
+                            if (index) {
+                                html += '<a data-action="moveup" class="item"><abbr title="Move this annotation up"><i class="arrow up fitted icon"></i></abbr></a>'
+                            }
+                        }
+
+                        html += '<a data-action="unlink" class="item"><abbr title="Unlink this annotation"><i class="unlinkify fitted icon"></i></abbr></a>';
+
 
                         if (ann.num_entries === 1) {
                             html += '<a data-action="delete" class="item"><abbr title="Delete this annotation"><i class="trash fitted icon"></i></abbr></a>';
@@ -413,8 +425,7 @@ function getAnnotations(accession, _editingMode) {
                             + '</div>'
                             + '</div>'
                             + '</div>';
-                    } else
-                        html += '<div class="ui vertical segment annotation">' + text + '</div>';
+                    }
                 });
             } else {
                 html = '<div class="ui error message">'
@@ -971,7 +982,7 @@ function getEntry(accession) {
                 getSignatures(accession),
                 getGOTerms(accession),
                 getRelationships(accession),
-                getAnnotations(accession, true),
+                getAnnotations(accession),
                 getSupplReferences(accession)
             ];
 
@@ -1153,7 +1164,7 @@ $(function () {
                                 .then(result => {
                                     ui.setClass(btn, 'disabled', false);
                                     if (result.status) {
-                                        getAnnotations(accession, true).then(() => { $('.ui.sticky').sticky(); });
+                                        getAnnotations(accession).then(() => { $('.ui.sticky').sticky(); });
                                         $(modal).modal('hide');
                                     } else {
                                         msg.innerHTML = result.message;
@@ -1412,13 +1423,14 @@ $(function () {
     /*
         Event to enable/disable editing mode
      */
-    $('#annotations .ui.toggle.checkbox')
-        .checkbox('check')  // Force checkbox to be checked
+    $('.ui.toggle.checkbox')
+        .checkbox('uncheck')  // Force checkbox to be unchecked
         .checkbox({
             onChange: function () {
                 const checked = this.checked;
-                getAnnotations(accession, checked).then(() => {
-                    ui.setClass(document.querySelector('#annotations div.header'), 'hidden', !checked);
+                getAnnotations(accession).then(() => {
+                    ui.setClass(document.querySelector('#annotations div.header'), 'hidden', checked);
+                    ui.setClass(document.querySelector('#curation'), 'hidden', checked);
                     $('.ui.sticky').sticky();
                 });
             }
