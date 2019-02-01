@@ -73,7 +73,7 @@ def update_references(accession):
             old_references.add(pub_id)
 
     if old_references:
-        # references to be deleted from ENTRY2PUB
+        # Move reference to SUPPLEMENTARY_REF table
         cur.execute(
             """
             DELETE FROM INTERPRO.ENTRY2PUB
@@ -84,6 +84,13 @@ def update_references(accession):
                 ','.join([':' + str(i+2) for i in range(len(old_references))])
             ),
             (accession,) + tuple(old_references)
+        )
+
+        cur.executemany(
+            """
+            INSERT INTO INTERPRO.SUPPLEMENTARY_REF (ENTRY_AC, PUB_ID)
+            VALUES (:1, :2)
+            """, [(accession, pub_id) for pub_id in old_references]
         )
 
     if new_references:

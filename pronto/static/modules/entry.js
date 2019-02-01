@@ -172,17 +172,9 @@ const annotationEditor = {
         fetch('/api/annotation/' + annID + '/', options)
             .then(response => response.json())
             .then(result => {
-                if (result.status) {
-                    // Get annotations and supplementary references (may have changed)
-                    const promises = [
-                        getAnnotations(accession),
-                        getSupplReferences(accession)
-                    ];
-
-                    Promise.all(promises).then(value => {
-                        $('.ui.sticky').sticky();
-                    });
-                } else {
+                if (result.status)
+                    getAnnotations(accession).then(() => $('.ui.sticky').sticky());
+                else {
                     const form = this.element.querySelector('.ui.form');
                     form.querySelector('.ui.message').innerHTML = '<div class="header">'+ result.title +'</div><p>'+ result.message.replace(/</g, '&lt;').replace(/>/g, '&gt;') +'</p>';
                     ui.setClass(textarea.parentNode, 'error', true);
@@ -344,6 +336,8 @@ function getSupplReferences(accession) {
 
 
 function getAnnotations(accession) {
+    getSupplReferences(accession).then(() => { $('.ui.sticky').sticky(); });
+
     return fetch('/api' + location.pathname + 'annotations/')
         .then(response => response.json())
         .then(results => {
@@ -982,8 +976,7 @@ function getEntry(accession) {
                 getSignatures(accession),
                 getGOTerms(accession),
                 getRelationships(accession),
-                getAnnotations(accession),
-                getSupplReferences(accession)
+                getAnnotations(accession)
             ];
 
             Promise.all(promises).then(value => {

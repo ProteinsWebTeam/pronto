@@ -556,12 +556,12 @@ def update_annotations(ann_id):
             else:
                 entries[entry_ac] = annotations[_ann_id]
 
-        to_delete = []
+        to_move = []
         to_insert = []
         for entry_ac, references in entries.items():
             for pub_id in old_references:
                 if pub_id not in references:
-                    to_delete.append((entry_ac, pub_id))
+                    to_move.append((entry_ac, pub_id))
 
             for pub_id in new_references:
                 if pub_id not in references:
@@ -572,7 +572,14 @@ def update_annotations(ann_id):
                 """
                 DELETE FROM INTERPRO.ENTRY2PUB
                 WHERE ENTRY_AC = :1 AND PUB_ID = :2
-                """, to_delete
+                """, to_move
+            )
+
+            cur.executemany(
+                """
+                INSERT INTO INTERPRO.SUPPLEMENTARY_REF
+                VALUES (:1, :2)
+                """, to_move
             )
         except DatabaseError as e:
             cur.close()
