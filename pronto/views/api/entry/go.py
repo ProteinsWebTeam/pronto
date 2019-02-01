@@ -12,7 +12,7 @@ def get_entry_go_terms(accession):
         """
         SELECT 
           T.GO_ID, T.NAME, T.CATEGORY, T.DEFINITION, 
-          T.IS_OBSOLETE, T.REPLACED_BY
+          T.IS_OBSOLETE, T.REPLACED_BY, T.NUM_CONSTRAINTS
         FROM INTERPRO.INTERPRO2GO I
           INNER JOIN {}.TERM T ON I.GO_ID = T.GO_ID
         WHERE I.ENTRY_AC = :1
@@ -29,7 +29,8 @@ def get_entry_go_terms(accession):
             "category": row[2],
             "definition": row[3],
             "is_obsolete": row[4] == 'Y',
-            "secondary": row[5] is not None
+            "secondary": row[5] is not None,
+            "taxon_constraints": row[6]
         })
 
     cur.close()

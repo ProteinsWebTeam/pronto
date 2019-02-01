@@ -729,19 +729,26 @@ function renderGoTerms(terms, div, accession) {
                 + '<div class="content">'
                 + '<div class="header">'
                 + '<a target="_blank" href="https://www.ebi.ac.uk/QuickGO/GTerm?id='+ term.id +'">'
-                + term.name + ' (' + term.id + ')'
+                + term.id + ' &mdash; ' + term.name
                 + '&nbsp;<i class="external icon"></i>'
                 + '</a>';
 
+            if (term.taxon_constraints) {
+                html += '&nbsp;<a href="https://www.ebi.ac.uk/QuickGO/term/'+ term.id +'#termTaxonConstraints" target="_blank" class="ui tiny red label">'
+                    + 'Taxon constraints'
+                    + '<span class="detail">'+ term.taxon_constraints +'</span>'
+                    + '</a>';
+            }
+
             if (term.is_obsolete)
-                html += '&nbsp;<span class="ui mini red label">Obsolete</span>';
+                html += '&nbsp;<span class="ui tiny red label">Obsolete</span>';
 
             if (term.secondary)
-                html += '&nbsp;<span class="ui mini yellow label">Secondary</span>';
+                html += '&nbsp;<span class="ui tiny yellow label">Secondary</span>';
 
             html += '<i data-id="'+ term.id +'" class="right floated unlinkify button icon"></i>'
                 + '</div>'
-                + '<div class="description">'+ term.definition +'</div>'
+                // + '<div class="description">'+ term.definition +'</div>'
                 + '</div>'
                 + '</div>';
         });
