@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <link rel="stylesheet" href="/static/vendor/semantic.min.css" />
-    <link rel="stylesheet" href="/static/style.css" />
-    <link rel="icon" href="/static/favicon.png">
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/semantic.min.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+    <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}">
     <title>Pronto</title>
 </head>
 <body>
@@ -31,9 +31,9 @@
     </div>
 </div>
 
-<script src="/static/vendor/jquery.min.js"></script>
-<script src="/static/vendor/semantic.min.js"></script>
-<script src="/static/modules/index.js" type="module"></script>
+<script src="{{ url_for('static', filename='vendor/jquery.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/semantic.min.js') }}"></script>
+<script src="{{ url_for('static', filename='modules/index.js') }}" type="module"></script>
 
 </body>
 </html>
