@@ -28,7 +28,6 @@ function getCurrentUser() {
                         + '</a>'
                         + '</div>'
                         + '</div>';
-                    setClass(document.getElementById('new-entry-btn'), 'disabled', false);
                     menu.appendChild(item);
                     resolve(true);
                 } else {
@@ -36,8 +35,14 @@ function getCurrentUser() {
                     item.className = "icon item";
                     item.href = "/login/";
                     item.innerHTML = '<i class="sign in icon"></i>&nbsp;Log in</a>';
-                    setClass(document.getElementById('new-entry-btn'), 'disabled', true);
                     menu.appendChild(item);
+
+                    const modal = document.getElementById('new-entry-modal');
+                    modal.querySelector('.content').innerHTML = '<div class="ui error message">'
+                        + '<div class="header">Access denied</div>'
+                        + '<p>Please <a href="/login/">log in</a> to perform this operation.</p>'
+                        + '</div>';
+
                     resolve(false);
                 }
             }));
