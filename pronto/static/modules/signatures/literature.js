@@ -40,16 +40,30 @@ function getLiterature(accessions, classifier, entityCount) {
     let taskID = url.searchParams.get("task");
 
     if (taskID === null) {
-        submitTask(accessions, classifier, entityCount).then(task => {
-            taskID = task.id;
-            url.searchParams.set("task", taskID);
-            history.replaceState(null, null, url.toString());
-            getTask(taskID)
-                .then(results => {
-                    renderLiterature(accessions, results);
-                    dimmer(false);
-                });
-        });
+        submitTask(accessions, classifier, entityCount)
+            .then(task => {
+                    taskID = task.id;
+                    url.searchParams.set("task", taskID);
+                    history.replaceState(null, null, url.toString());
+                    getTask(taskID)
+                        .then(results => {
+                            renderLiterature(accessions, results);
+                            dimmer(false);
+                        });
+                }
+            )
+            .catch(() => {
+                const error = document.createElement('div');
+                error.className = 'ui error message';
+                error.innerHTML = '<div class="header">Service unavailable</div>'
+                    + '<p>The literature server is unable to service the request.</p>';
+
+                const segment = document.querySelector('.ui.container.segment');
+                segment.removeChild(segment.querySelector('.ui.form'));
+                segment.removeChild(segment.querySelector('.ui.table'));
+                segment.appendChild(error);
+                dimmer(false);
+            });
     } else {
         getTask(taskID)
             .then(results => {
