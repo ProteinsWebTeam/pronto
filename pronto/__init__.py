@@ -41,7 +41,6 @@ class Executor(object):
                     # Finished more than one hour ago: clean
                     del self._tasks[name]
 
-
     @property
     def tasks(self):
         self.update()
