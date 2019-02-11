@@ -14,7 +14,10 @@ def _get_user():
 @app.route("/api/instance/")
 def get_instance():
     dsn = app.config["ORACLE_DB"]["dsn"]
-    return jsonify({"instance": dsn.split("/")[-1].upper()})
+    return jsonify({
+        "instance": dsn.split("/")[-1].upper(),
+        "schema": "#1" if app.config["DB_SCHEMA"].lower().endswith('load') else "#2"
+    })
 
 
 @app.route("/api/status/")

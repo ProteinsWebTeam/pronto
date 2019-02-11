@@ -98,7 +98,7 @@ function getInstance() {
         fetch("/api/instance/")
             .then(response => response.json())
             .then(response => {
-                dst.innerHTML = response.instance;
+                dst.innerHTML = response.instance + '<div class="detail">'+ response.schema +'</div>';
             });
     }
 }
