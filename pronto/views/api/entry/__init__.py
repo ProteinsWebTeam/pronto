@@ -424,7 +424,7 @@ def delete_entry(accession):
         }), 400
     else:
         dsn = app.config["ORACLE_DB"]["dsn"]
-        executor.submit(accession, _delete_entry, user, dsn, accession)
+        executor.enqueue(accession, _delete_entry, user, dsn, accession)
         return jsonify({"status": True}), 202
 
 

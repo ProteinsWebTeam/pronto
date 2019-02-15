@@ -9,7 +9,7 @@ class Executor(object):
         self.executor = ThreadPoolExecutor()
         self._tasks = {}
 
-    def submit(self, name, fn, *args, **kwargs):
+    def enqueue(self, name, fn, *args, **kwargs):
         self.update()
         if name not in self._tasks:
             self._tasks[name] = {
@@ -19,6 +19,9 @@ class Executor(object):
                 "terminated": None,
                 "status": None
             }
+
+    def submit(self, fn, *args, **kwargs):
+        return self.executor.submit(fn, *args, **kwargs)
 
     def has(self, name):
         self.update()
