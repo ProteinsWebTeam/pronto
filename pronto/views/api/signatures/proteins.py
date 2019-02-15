@@ -33,7 +33,7 @@ def filter_proteins(user, dsn, accession, **kwargs):
 
     # Filter by review status
     if dbcode == "S":
-        query = query.format(app.config["DB_SCHEMA"], "MV_METHOD2SWISSPROT")
+        query = query.format(app.config["DB_SCHEMA"], "METHOD2SWISSPROT")
     else:
         query = query.format(app.config["DB_SCHEMA"], "METHOD2PROTEIN")
 
