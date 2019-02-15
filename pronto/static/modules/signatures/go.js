@@ -56,9 +56,9 @@ function getGoTerms(accessions) {
                                 + '</a>'
                                 + '</td>';
                         } else
-                            html += '<td class="collapsing"></td>';
+                            html += '<td></td>';
                     } else
-                        html += '<td></td>';
+                        html += '<td></td><td></td>';
                 });
 
                 html += '</tr>';
