@@ -29,7 +29,7 @@ function getGoTerms(accessions) {
             html += '<tbody>';
             result.terms.forEach(t => {
                 html += '<tr data-type="GO term" data-filter="'+ t.name +'" data-params="go='+ t.id +'">'
-                    + '<td class="">'
+                    + '<td>'
                     + '<span class="ui circular small label aspect-'+ t.aspect +'">'+ t.aspect +'</span>'
                     + '<a target="_blank" href="//www.ebi.ac.uk/QuickGO/term/'+ t.id +'">'
                     + t.id + ':&nbsp;'+ t.name +'&nbsp;'
