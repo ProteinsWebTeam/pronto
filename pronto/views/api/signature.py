@@ -445,9 +445,10 @@ def get_signature_matches(accession):
                 if pos_start < pos_end:
                     fragments.append({"start": pos_start, "end": pos_end})
 
-                fragments.sort(key=lambda x: (x["start"], x["end"]))
-
-        if not fragments:
+        if fragments:
+            # Sort discontinuous fragments (in case they are not sorted in DB)
+            fragments.sort(key=lambda x: (x["start"], x["end"]))
+        else:
             fragments.append({"start": row[7], "end": row[8]})
 
         p["matches"].append(fragments)

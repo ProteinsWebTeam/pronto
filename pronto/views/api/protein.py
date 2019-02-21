@@ -97,7 +97,10 @@ def api_protein(accession):
                 if s < e:
                     fragments.append({"start": s, "end": e})
 
-        if not fragments:
+        if fragments:
+            # Sort discontinuous fragments (in case they are not sorted in DB)
+            fragments.sort(key=lambda x: (x["start"], x["end"]))
+        else:
             fragments.append({"start": pos_start, "end": pos_end})
 
         if entry_acc:
