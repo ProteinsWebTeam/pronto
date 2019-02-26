@@ -38,17 +38,6 @@ p.hidden {
     display: none;
 }
 
-/* Feed */
-.ui.feed > .event > .content .summary { font-weight: normal; }
-.ui.feed > .event:nth-child(n+2) { margin-top: .5rem; }
-.ui.feed abbr { text-decoration: none; }
-.ui.feed abbr:hover { cursor: pointer; }
-.ui.feed a.type-R {border-bottom: 2px solid #f2711c;}
-.ui.feed a.type-H {border-bottom: 2px solid #1678c2;}
-.ui.feed a.type-D {border-bottom: 2px solid #21ba45;}
-.ui.feed a.type-F {border-bottom: 2px solid #db2828;}
-.ui.feed a.type-C, .ui.feed a.type-B, .ui.feed a.type-A, .ui.feed a.type-P {border-bottom: 2px solid #a333c8;}
-
 /* Sidebar */
 body.pushable {
     background: none !important;
@@ -58,7 +47,7 @@ body.pushable {
 }
 
 /* Circular labels in table */
-td > .ui.label, .item > .content > .label {
+td > .ui.label, .item > .content > .label, .item > .content > .header > .label {
     margin: 0 .25rem 0 0 !important;
 }
 .ui.label.type-R {
@@ -119,19 +108,25 @@ h1.ui.header > .sub.header i.icon {
 }
 
 /* Statistics */
-.ui.statistics .statistic > .label {
+.ui.statistics .statistic > .value {
+    text-transform: none;
+}
+.ui.statistics .statistic.light > .label {
     font-weight: 400;
     font-size: .8em;
 }
-.ui.statistics .statistic > .value {
+.ui.statistics .statistic.light > .value {
     font-weight: 300;
-    text-transform: none;
 }
 .ui.statistics .statistic > a.value {
     color: #4183c4;
 }
 .ui.statistics .statistic > a.value:hover {
     color: #1e70bf;
+}
+.ui.four.statistics .statistic {
+    /* on protein page, to break the words of too long organism names */
+    max-width: 25%;
 }
 
 /* Description lists */
@@ -406,4 +401,31 @@ thead .ui.compact.icon.button {
 /* Comment textarea */
 .ui.comments .reply.form textarea[rows] {
     height: inherit;
+}
+
+/*
+    Add same style than for .ui.label > .delete.icon
+    (Literature page)
+*/
+.ui.label > .filter.icon {
+    cursor: pointer;
+    margin-right: 0;
+    margin-left: .5em;
+    font-size: .92857143em;
+    opacity: .5;
+    -webkit-transition: background .1s ease;
+    transition: background .1s ease;
+}
+
+i.button.icon {
+    cursor: pointer;
+    color: rgba(0,0,0,.4);
+}
+i.button.icon:hover {
+    color: rgba(0,0,0,.8);
+}
+
+/* Hidden actions in modal */
+.modal .actions.hidden {
+    display: none;
 }

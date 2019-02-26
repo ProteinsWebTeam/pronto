@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/semantic.min.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+    <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}">
+</head>
+<body>
+
+{% include 'header.html' %}
+
+<div class="ui container basic vertical segment">
+    {% include 'signatures/signature_selector.html' %}
+
+    <div class="ui grid">
+        <div class="six wide column">
+            <h4 class="ui header">
+                Overlap
+                <div class="sub header">Number of proteins where two signatures overlap (&ge; 50%)</div>
+            </h4>
+
+            <table id="overlap" class="ui small definition celled table"></table>
+        </div>
+        <div class="six wide column">
+            <h4 class="ui header">
+                Collocation
+                <div class="sub header">Number of proteins having both signatures occurring</div>
+            </h4>
+            <table id="collocation" class="ui small definition celled table"></table>
+        </div>
+        <div id="details" class="four wide column">
+        </div>
+    </div>
+</div>
+
+{% include 'footer.html' %}
+
+<script src="{{ url_for('static', filename='vendor/jquery.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/semantic.min.js') }}"></script>
+<script src="{{ url_for('static', filename='modules/signatures/matrices.js') }}" type="module"></script>
+
+</body>
+</html>

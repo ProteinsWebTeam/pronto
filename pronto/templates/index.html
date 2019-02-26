@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <link rel="stylesheet" href="/static/vendor/semantic.min.css" />
-    <link rel="stylesheet" href="/static/style.css" />
-    <link rel="icon" href="/static/favicon.png">
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/semantic.min.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+    <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}">
     <title>Pronto</title>
 </head>
 <body>
@@ -15,7 +15,7 @@
     <div class="ui divided grid">
         <div class="row">
             <div class="sixteen wide column">
-                <table id="databases" class="ui selectable table">
+                <table class="ui selectable table">
                     <thead>
                     <tr>
                         <th colspan="2"><i class="database icon"></i>Member databases</th>
@@ -24,44 +24,16 @@
                         <th>Unintegrated</th>
                     </tr>
                     </thead>
-                    <tbody>
-                    {% for db in databases %}
-                        <tr>
-                            <td class="collapsing">
-                                <a target="_blank" href="{{ db['home'] }}">
-                                    {{ db['name'] }}
-                                    <i class="external icon"></i>
-                                </a>
-                            </td>
-                            <td>
-                                <span class="ui basic label">
-                                    {{ db['version'] }}
-                                    <span class="detail">
-                                        {{ db['date'].strftime('%b %Y') }}
-                                    </span>
-                                </span>
-                            </td>
-                            <td><a href="/database/{{ db['shortName'] }}/">{{ "{:,}".format(db['count']) }}</a></td>
-                            <td>{{ "{:,}".format(db['countIntegrated']) }}</td>
-                            <td><a href="/database/{{ db['shortName'] }}/unintegrated/">{{ "{:,}".format(db['countUnintegrated']) }}</a></td>
-                        </tr>
-                    {% endfor %}
-                    </tbody>
+                    <tbody></tbody>
                 </table>
             </div>
-            {#            <div class="four wide column">#}
-            {#                <h3 class="ui header">#}
-            {#                    <i class="feed icon"></i>Latest integrations#}
-            {#                </h3>#}
-            {#                <div id="feed" class="ui feed"></div>#}
-            {#            </div>#}
         </div>
     </div>
 </div>
 
-<script src="/static/vendor/jquery.min.js"></script>
-<script src="/static/vendor/semantic.min.js"></script>
-<script src="/static/modules/index.js" type="module"></script>
+<script src="{{ url_for('static', filename='vendor/jquery.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/semantic.min.js') }}"></script>
+<script src="{{ url_for('static', filename='modules/index.js') }}" type="module"></script>
 
 </body>
 </html>

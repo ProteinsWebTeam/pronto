@@ -3,44 +3,36 @@
         <a href="/" class="header item">
             Pronto!
         </a>
-
         <div class="item">
-            <form class="ui action input" action="/search/" method="get" role="search" autocomplete="off">
-                <input name="q" placeholder="Search&hellip;" type="text" value="{{ query }}">
-                <button class="ui basic icon button">
-                    <i class="search icon"></i>
-                </button>
-            </form>
+            <div id="new-entry-btn" class="ui primary compact button">Create</div>
+        </div>
+        <div class="item">
+            <div id="status" class="ui label">
+                Status
+                <div class="detail"></div>
+            </div>
+        </div>
+        <div class="item">
+            <div id="instance" class="ui purple label">
+            </div>
+        </div>
+        <div class="item">
+            <div class="ui violet blue label">
+                UniProt
+                <div id="uniprot-version" class="detail"></div>
+            </div>
         </div>
 
         <div class="right menu">
             <div class="item">
-                <div class="ui green label">
-                    UniProt
-                    <div class="detail">{{ uniprot }}</div>
-                </div>
+                <form class="ui action input" action="/search/" method="get" role="search" autocomplete="off">
+                    <input name="q" placeholder="Search&hellip;" type="text" value="">
+                    <button class="ui basic icon button">
+                        <i class="search icon"></i>
+                    </button>
+                </form>
             </div>
-
-            {% if user %}
-                <div class="ui simple dropdown item">
-                    <i class="user circle icon"></i> {{ user['name'] }}
-                    <i class="dropdown icon"></i>
-                    <div class="menu">
-                        <div class="item">
-                            <a href="/logout" class="icon">
-                                <i class="sign out icon"></i>&nbsp;Log out
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            {% else %}
-                <a href="/login" class="icon item">
-                    <i class="sign in icon"></i>&nbsp;Log in
-                </a>
-            {% endif %}
-            {#            <div href="/help" class="disabled icon item">#}
-            {#                <i class="help icon"></i>&nbsp;Help#}
-            {#            </div>#}
+            <div id="tasks" class="ui icon simple dropdown item"></div>
         </div>
     </div>
 </header>
@@ -58,3 +50,88 @@
         </div>
     </div>
 </noscript>
+
+<div id="new-entry-modal" class="ui modal">
+    <div class="header">
+        Create entry
+    </div>
+    <div class="content">
+        <div class="ui hidden error message"></div>
+        <table class="ui selectable table">
+            <thead>
+            <tr>
+                <th></th>
+                <th>Member database</th>
+                <th>Accession</th>
+                <th>Name</th>
+                <th>Description</th>
+                <th class="right aligned">Protein count</th>
+                <th>Integrated</th>
+                <th></th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr><td colspan="8" class="center aligned">No signature</td></tr>
+            </tbody>
+            <tfoot>
+            <tr>
+                <th colspan="8">
+                    <div class="ui secondary menu">
+                        <div class="item">
+                            <i class="circle exclamation icon"></i>
+                            Integrated signatures will be moved.<br>
+                            Entries without signatures will be unchecked.
+                        </div>
+
+                        <div class="right fitted item">
+                            <div class="ui form">
+                                <div class="field">
+                                    <div class="ui action input">
+                                        <input placeholder="Signature accession" type="text" name="accession">
+                                        <button class="ui primary submit button">Add</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </th>
+            </tr>
+            </tfoot>
+        </table>
+        <div class="ui form">
+            <div class="field">
+                <div class="fields">
+                    <div class="twelve wide required field">
+                        <label>Name</label>
+                        <input name="description" placeholder="Entry name" type="text" maxlength="100" data-countdown="countdown2">
+                        <p class="help-text"></p>
+                    </div>
+                    <div class="four wide required field">
+                        <label>Short name</label>
+                        <input name="name" placeholder="Entry short name" type="text" maxlength="30" data-countdown>
+                        <p class="help-text"></p>
+                    </div>
+                </div>
+            </div>
+            <div class="required field">
+                <label>Type</label>
+                <select class="ui dropdown" name="type">
+                    <option value="">Type</option>
+                    <option value="A">Active site</option>
+                    <option value="B">Binding site</option>
+                    <option value="C">Conserved site</option>
+                    <option value="D">Domain</option>
+                    <option value="F">Family</option>
+                    <option value="H">Homologous superfamily</option>
+                    <option value="P">PTM</option>
+                    <option value="R">Repeat</option>
+                    <option value="U">Unknown</option>
+                </select>
+            </div>
+        </div>
+    </div>
+    <div class="actions">
+        <div class="ui cancel button">Cancel</div>
+        <div class="ui ok primary button">Create</div>
+    </div>
+</div>

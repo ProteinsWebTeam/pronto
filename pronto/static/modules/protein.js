@@ -1,4 +1,5 @@
-import * as utils from '../utils.js';
+import * as ui from "../ui.js";
+import {finaliseHeader} from "../header.js";
 
 // Global variables for SVG
 const matchHeight = 10;
@@ -39,9 +40,12 @@ function initSVG (svgWidth, rectWidth, proteinLength, numLines) {
 
 function renderFeatures(svgWidth, rectWidth, proteinLength, features, labelKey, labelLink) {
     if (labelKey === undefined)
-        labelKey = 'id';
+        labelKey = 'accession';
     if (labelLink === undefined)
         labelLink = true;
+
+    if (!features.length)
+        return '<p>None</p>';
 
     // Create SVG and ticks
     let html = initSVG(svgWidth, rectWidth, proteinLength, features.length);
@@ -62,14 +66,14 @@ function renderFeatures(svgWidth, rectWidth, proteinLength, features, labelKey, 
                     html += '<path d="M'+ px +' '+ y +' Q '+ [x1, y1, x, y].join(' ') +'" fill="none" stroke="'+ feature.color +'"/>'
                 }
 
-                html += '<rect data-start="'+ fragment.start +'" data-end="'+ fragment.end +'" data-id="'+ feature.id +'" ' +
-                'data-name="'+ (feature.name ? feature.name : '') +'" data-db="'+ feature.database +'" data-link="'+ feature.link +'" class="match" x="'+ x +'" y="' + y + '" ' +
-                'width="' + w + '" height="'+ matchHeight +'" rx="1" ry="1" style="fill: '+ feature.color +'"/>';
+                html += '<rect data-start="'+ fragment.start +'" data-end="'+ fragment.end +'" data-id="'+ feature.accession +'" ' +
+                    'data-name="'+ (feature.name ? feature.name : '') +'" data-db="'+ feature.database +'" data-link="'+ feature.link +'" class="match" x="'+ x +'" y="' + y + '" ' +
+                    'width="' + w + '" height="'+ matchHeight +'" rx="1" ry="1" style="fill: '+ feature.color +'"/>';
             });
         });
 
         if (labelLink)
-            html += '<text class="label" x="' + (rectWidth + 10) + '" y="'+ (y + matchHeight / 2) +'"><a href="/method/'+ feature[labelKey] +'/">'+ feature[labelKey] +'</a></text>';
+            html += '<text class="label" x="' + (rectWidth + 10) + '" y="'+ (y + matchHeight / 2) +'"><a href="/prediction/'+ feature[labelKey] +'/">'+ feature[labelKey] +'</a></text>';
         else
             html += '<text class="label" x="' + (rectWidth + 10) + '" y="'+ (y + matchHeight / 2) +'">'+ feature[labelKey] +'</text>';
     });
@@ -79,72 +83,12 @@ function renderFeatures(svgWidth, rectWidth, proteinLength, features, labelKey, 
 
 
 $(function () {
-    // First step is to find the page width
-    const div = document.querySelector('#signatures + div');
+    ui.dimmer(true);
+
+    // Get page width for SVG
+    const div = document.querySelector('#integrated + div');
     const svgWidth = div.offsetWidth;
     const rectWidth = svgWidth - 200;
-
-    const matches = [];
-
-    let html = '';
-    // Superfamilies
-    entries
-        .filter(entry => entry.typeCode === 'H')
-        .forEach(entry => {
-            html += '<h3 class="ui header"><span class="ui tiny type-'+ entry.typeCode +' circular label">'+ entry.typeCode +'</span>&nbsp;<a href="/entry/'+ entry.id +'/">'+ entry.id +'</a><div class="sub header">'+ entry.name +'</div></h3>';
-            html += renderFeatures(svgWidth, rectWidth, proteinLength, entry.methods);
-        });
-
-    // Families
-    entries
-        .filter(entry => entry.typeCode === 'F')
-        .forEach(entry => {
-            html += '<h3 class="ui header"><span class="ui tiny type-'+ entry.typeCode +' circular label">'+ entry.typeCode +'</span>&nbsp;<a href="/entry/'+ entry.id +'/">'+ entry.id +'</a><div class="sub header">'+ entry.name +'</div></h3>';
-            html += renderFeatures(svgWidth, rectWidth, proteinLength, entry.methods);
-        });
-
-    // Domains
-    entries
-        .filter(entry => entry.typeCode === 'D')
-        .forEach(entry => {
-            html += '<h3 class="ui header"><span class="ui tiny type-'+ entry.typeCode +' circular label">'+ entry.typeCode +'</span>&nbsp;<a href="/entry/'+ entry.id +'/">'+ entry.id +'</a><div class="sub header">'+ entry.name +'</div></h3>';
-            html += renderFeatures(svgWidth, rectWidth, proteinLength, entry.methods);
-        });
-
-    // Domains
-    entries
-        .filter(entry => entry.typeCode === 'R')
-        .forEach(entry => {
-            html += '<h3 class="ui header"><span class="ui tiny type-'+ entry.typeCode +' circular label">'+ entry.typeCode +'</span>&nbsp;<a href="/entry/'+ entry.id +'/">'+ entry.id +'</a><div class="sub header">'+ entry.name +'</div></h3>';
-            html += renderFeatures(svgWidth, rectWidth, proteinLength, entry.methods);
-        });
-
-    // Others
-    entries
-        .filter(entry => ['H', 'F', 'D', 'R'].indexOf(entry.typeCode) === -1)
-        .forEach(entry => {
-            html += '<h3 class="ui header"><span class="ui tiny type-'+ entry.typeCode +' circular label">'+ entry.typeCode +'</span>&nbsp;<a href="/entry/'+ entry.id +'/">'+ entry.id +'</a><div class="sub header">'+ entry.name +'</div></h3>';
-            html += renderFeatures(svgWidth, rectWidth, proteinLength, entry.methods);
-        });
-
-    // Unintegrated
-    html += '<h3 class="ui header">Unintegrated</h3>';
-    html += renderFeatures(svgWidth, rectWidth, proteinLength, methods);
-    div.innerHTML = html;
-
-    // Other features
-    html = renderFeatures(svgWidth, rectWidth, proteinLength, others);
-    document.querySelector('#others + div').innerHTML = html;
-
-    // Structures and predictions
-    html = renderFeatures(svgWidth, rectWidth, proteinLength, structures, 'database', false);
-    document.querySelector('#structures + div').innerHTML = html;
-
-    $(document.querySelector('.ui.sticky')).sticky({
-        context: document.querySelector('.twelve.column')
-    });
-
-    utils.listenMenu(document.querySelector('.ui.vertical.menu'));
 
     const tooltip = {
         element: document.getElementById('tooltip'),
@@ -202,23 +146,116 @@ $(function () {
 
     tooltip.init();
 
-    Array.from(document.querySelectorAll('rect[data-id]')).forEach(rect => {
-        rect.addEventListener('mouseenter', e => {
-            const target = e.target;
+    finaliseHeader();
 
-            tooltip.update(
-                target.getAttribute('data-id'),
-                target.getAttribute('data-name'),
-                parseInt(target.getAttribute('data-start'), 10),
-                parseInt(target.getAttribute('data-end'), 10),
-                target.getAttribute('data-db'),
-                target.getAttribute('data-link')
-            );
-            tooltip.show(target.getBoundingClientRect());
-        });
+    fetch("/api" + location.pathname)
+        .then(response => {
+            ui.dimmer(false);
+            if (response.status === 200)
+                return response.json();
+            else {
+                const acc = location.pathname.match(/^\/protein\/([a-z0-9]+)\/$/i)[1];
+                document.querySelector('.ui.container.segment').innerHTML = '<div class="ui error message">'
+                    + '<div class="header">Protein not found</div>'
+                    + '<strong>'+ acc +'</strong> is not a valid UniProtKB accession.'
+                    + '</div>';
+                return null;
+            }
+        })
+        .then(protein => {
+            if (protein === null) return;
+            document.title = protein.identifier + " (" + protein.accession + ") | Pronto";
 
-        rect.addEventListener('mouseleave', e => {
-            tooltip.hide();
+            // Header
+            (function () {
+                document.querySelector("h1.ui.header").innerHTML = protein.identifier
+                    + '<div class="sub header">'
+                    + '<a target="_blank" href="'+ protein.link +'">'
+                    + (protein.is_reviewed ? '<i class="star icon"></i>&nbsp;' : '') + protein.accession
+                    + '&nbsp;<i class="external icon"></i>'
+                    + '</a>'
+                    + '</div>';
+            })();
+
+            // Statistics
+            document.getElementById("organism").innerText = (function () {
+                const words = protein.taxon.full_name.split(' ');
+                return words[0].charAt(0) + '. ' + words.slice(1).join(' ');
+            })();
+            document.getElementById("length").innerText = protein.length.toLocaleString();
+            document.getElementById("entries").innerText = protein.entries.length;
+            document.getElementById("signatures").innerText = (function () {
+                const reducer = (acc, cur) => acc + cur.signatures.length;
+                return protein.unintegrated.length + protein.entries.reduce(reducer, 0);
+            })();
+
+
+            // Warning message about the sequence being a fragment
+            if (!protein.is_fragment)
+                ui.setClass(document.querySelector(".ui.warning.message"), "hidden", true);
+
+            // Integrated signatures
+            (function () {
+                const entries = protein.entries;
+                entries.sort((a, b) => {
+                    const codes = ["H", "F", "D"];
+                    const i = codes.indexOf(a.type_code);
+                    const j = codes.indexOf(b.type_code);
+
+                    if (i === j)
+                        return a.accession.localeCompare(b.accession);
+                    else if (i === -1)
+                        return 1;
+                    else if (j === -1)
+                        return -1;
+                    else
+                        return i - j;
+                });
+
+                let html = '';
+                entries.forEach(entry => {
+                    html += '<h3 class="ui header">'
+                        + '<span class="ui tiny type-'+ entry.type_code +' circular label">'+ entry.type_code +'</span>&nbsp;'
+                        + '<a href="/entry/'+ entry.accession +'/">'+ entry.accession +'</a>'
+                        + '<div class="sub header">'+ entry.name +'</div>'
+                        + '</h3>';
+
+                    html += renderFeatures(svgWidth, rectWidth, protein.length, entry.signatures);
+                });
+
+                document.querySelector('#integrated + div').innerHTML = html;
+            })();
+
+            // Unintegrated signatures
+            document.querySelector('#unintegrated + div').innerHTML = renderFeatures(svgWidth, rectWidth, protein.length, protein.unintegrated);
+
+            // Disordered regions
+            document.querySelector('#disordered-regions + div').innerHTML = renderFeatures(svgWidth, rectWidth, protein.length, protein.mobidblite);
+
+            Array.from(document.querySelectorAll('rect[data-id]')).forEach(rect => {
+                rect.addEventListener('mouseenter', e => {
+                    const target = e.target;
+
+                    tooltip.update(
+                        target.getAttribute('data-id'),
+                        target.getAttribute('data-name'),
+                        parseInt(target.getAttribute('data-start'), 10),
+                        parseInt(target.getAttribute('data-end'), 10),
+                        target.getAttribute('data-db'),
+                        target.getAttribute('data-link')
+                    );
+                    tooltip.show(target.getBoundingClientRect());
+                });
+
+                rect.addEventListener('mouseleave', e => {
+                    tooltip.hide();
+                });
+            });
+
+            $(document.querySelector('.ui.sticky')).sticky({
+                context: document.querySelector('.twelve.column')
+            });
+
+            ui.listenMenu(document.querySelector('.ui.vertical.menu'));
         });
-    });
 });

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/semantic.min.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+    <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}">
+    <title>Pronto</title>
+</head>
+<body>
+
+{% include 'header.html' %}
+
+<div class="ui container basic vertical segment">
+    <h1 class="ui header"></h1>
+
+    <div class="ui form">
+        <div class="grouped fields">
+            <label>Predicted:</label>
+            <div class="field">
+                <div class="ui radio checkbox">
+                    <input name="filter" value="integrated" type="radio">
+                    <label>Integrate with existing entry</label>
+                </div>
+            </div>
+            <div class="field">
+                <div class="ui radio checkbox">
+                    <input name="filter" value="candidate" type="radio">
+                    <label>Integrate with unintegrated candidate signatures</label>
+                </div>
+            </div>
+            <div class="field">
+                <div class="ui radio checkbox">
+                    <input name="filter" value="norelation" type="radio">
+                    <label>No relations</label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <table class="ui very compact celled structured table">
+        <thead>
+        <tr>
+            <th colspan="4">
+                <div class="ui secondary menu">
+                    <span class="item"></span>
+                    <div class="right menu">
+                        <div class="item">
+                            <div class="ui icon input">
+                                <input placeholder="Search&hellip;" type="text">
+                                <i class="search link icon"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </th>
+        </tr>
+        <tr>
+            <th>Signature</th>
+            <th>Add to</th>
+            <th>Parent</th>
+            <th>Children</th>
+        </tr>
+        </thead>
+        <tbody>
+        </tbody>
+        <tfoot>
+        <tr>
+            <th colspan="4">
+                <div class="ui right floated pagination menu"></div>
+            </th>
+        </tr>
+        </tfoot>
+    </table>
+</div>
+
+{% include 'footer.html' %}
+
+<script src="{{ url_for('static', filename='vendor/jquery.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/semantic.min.js') }}"></script>
+<script src="{{ url_for('static', filename='modules/database_unintegrated.js') }}" type="module"></script>
+</body>
+</html>

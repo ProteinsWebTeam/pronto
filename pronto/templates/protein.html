@@ -2,10 +2,11 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <link rel="stylesheet" href="/static/vendor/semantic.min.css" />
-    <link rel="stylesheet" href="/static/style.css" />
-    <link rel="icon" href="/static/favicon.png">
-    <title>{{ protein.name }} ({{ protein.id }}) | Pronto</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/semantic.min.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+    <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}">
+    <title>Log in to Pronto</title>
+    <title>Pronto</title>
 </head>
 <body>
 
@@ -13,53 +14,33 @@
 
 <div class="ui container basic vertical segment">
     <h1 class="ui header">
-        {{ protein.name }}
+
         <div class="sub header">
-            <a target="_blank" href="{{ protein.link }}">
-                {% if protein.isReviewed %}
+            <a target="_blank" href="">
+
                     <i class="star icon"></i>
-                {%- endif -%}
-                {{ protein.id }}
+
                 <i class="external icon"></i>
             </a>
         </div>
     </h1>
     <div class="ui segment">
         <div class="ui four tiny statistics">
-            <div class="statistic">
-                <div class="label">
-                    Organism
-                </div>
-                <div class="value">
-                    <abbr class="italic" title="{{ protein.taxon.scientificName }}">
-                        {# `wordat` is a custom filter #}
-                        {{ protein.taxon.scientificName[0] }} . {{ protein.taxon.scientificName|wordat(1) }}
-                    </abbr>
-                </div>
+            <div class="light statistic">
+                <div class="label">Organism</div>
+                <div class="value" id="organism" style="font-style: italic;"></div>
             </div>
-            <div class="statistic">
-                <div class="label">
-                    Length
-                </div>
-                <div class="value">
-                    {{ '{:,}'.format(protein.length) }}
-                </div>
+            <div class="light statistic">
+                <div class="label">Length</div>
+                <div class="value" id="length"></div>
             </div>
-            <div class="statistic">
-                <div class="label">
-                    Entries
-                </div>
-                <div class="value">
-                    {{ '{:,}'.format(protein.entries|numentries) }}
-                </div>
+            <div class="light statistic">
+                <div class="label">Entries</div>
+                <div class="value" id="entries"></div>
             </div>
-            <div class="statistic">
-                <div class="label">
-                    Signatures
-                </div>
-                <div class="value">
-                    {{ '{:,}'.format(protein.entries|nummethods) }}
-                </div>
+            <div class="light statistic">
+                <div class="label">Signatures</div>
+                <div class="value" id="signatures"></div>
             </div>
         </div>
 
@@ -70,64 +51,34 @@
             <div class="ui sticky">
                 <div class="ui vertical basic segment">
                     <div class="ui fluid vertical menu">
-                        <a href="#families" class="active item">
-                            Protein families
+                        <a href="#integrated" class="active item">
+                            Integrated signatures
                         </a>
-                        <a href="#signatures" class="item">
-                            Detailed signatures matches
+                        <a href="#unintegrated" class="item">
+                            Unintegrated signatures
                         </a>
-                        <a href="#others" class="item">
-                            Other features
-                        </a>
-                        <a href="#structures" class="item">
-                            Structural features and predictions
+                        <a href="#disordered-regions" class="item">
+                            Disordered regions
                         </a>
                     </div>
                 </div>
             </div>
         </div>
         <div class="twelve wide column">
-            {% if protein.isFragment %}
-                <div class="ui warning message">
-                    <div class="header">Sequence fragment</div>
-                    The canonical sequence for this protein is a fragment. The protein is not considered when comparing signatures.
-                </div>
-            {% endif %}
-
-            <div class="ui basic vertical segment">
-                <h2 id="families" class="ui dividing header">Protein families</h2>
-                {% if protein.families %}
-                    <div class="ui list">
-                        {% for entry in protein.families recursive %}
-                            <div class="item">
-                                <div class="content">
-                                    <span class="ui tiny type-F circular label">F</span>
-                                    <a href="/entry/{{ entry.id }}/">{{ entry.id }}</a>
-                                    {{ entry.name }}
-                                </div>
-
-                                {% if entry.children %}
-                                    <div class="list">
-                                        {{ loop(entry.children) }}
-                                    </div>
-                                {% endif %}
-                            </div>
-                        {% endfor %}
-                    </div>
-                {% else %}
-                    <p>None</p>
-                {% endif %}
+            <div class="ui warning message">
+                <div class="header">Sequence fragment</div>
+                The canonical sequence for this protein is a fragment. The protein is not considered when comparing signatures.
             </div>
             <div class="ui basic vertical segment">
-                <h2 id="signatures" class="ui dividing header">Detailed signatures matches</h2>
+                <h2 id="integrated" class="ui dividing header">Integrated signatures</h2>
                 <div></div>
             </div>
             <div class="ui basic vertical segment">
-                <h2 id="others" class="ui dividing header">Other features</h2>
+                <h2 id="unintegrated" class="ui dividing header">Unintegrated signatures</h2>
                 <div></div>
             </div>
             <div class="ui basic vertical segment">
-                <h2 id="structures" class="ui dividing header">Structural features and predictions</h2>
+                <h2 id="disordered-regions" class="ui dividing header">Intrinsically disordered regions</h2>
                 <div></div>
             </div>
         </div>
@@ -136,16 +87,8 @@
 
 {% include 'footer.html' %}
 
-<script src="/static/vendor/jquery.min.js"></script>
-<script src="/static/vendor/semantic.min.js"></script>
-<script src="/static/modules/protein.js" type="module"></script>
-<script>
-    const entries = {{ protein.entries|tojson }};
-    const methods = {{ protein.methods|tojson }};
-    const others = {{ protein.others|tojson }};
-    const structures = {{ protein.structures|tojson }};
-    const proteinLength = {{ protein.length|tojson }};
-</script>
-
+<script src="{{ url_for('static', filename='vendor/jquery.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/semantic.min.js') }}"></script>
+<script src="{{ url_for('static', filename='modules/protein.js') }}" type="module"></script>
 </body>
 </html>

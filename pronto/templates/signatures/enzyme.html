@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/semantic.min.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+    <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}">
+</head>
+<body>
+
+{% include 'header.html' %}
+
+<div class="ui container basic vertical segment">
+    {% include 'signatures/signature_selector.html' %}
+
+    <div class="ui form">
+        <div class="inline fields">
+            <label>Source</label>
+            <div class="field">
+                <div class="ui radio checkbox">
+                    <input name="dbcode" value="S" type="radio">
+                    <label>Swiss-Prot</label>
+                </div>
+            </div>
+            <div class="field">
+                <div class="ui radio checkbox">
+                    <input name="dbcode" value="T" type="radio">
+                    <label>TrEMBL</label>
+                </div>
+            </div>
+            <div class="field">
+                <div class="ui radio checkbox">
+                    <input name="dbcode" value="U" type="radio">
+                    <label>Any</label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <table class="ui definition celled table"></table>
+</div>
+
+{% include 'footer.html' %}
+
+<script src="{{ url_for('static', filename='vendor/jquery.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/semantic.min.js') }}"></script>
+<script src="{{ url_for('static', filename='modules/signatures/enzyme.js') }}" type="module"></script>
+
+</body>
+</html>

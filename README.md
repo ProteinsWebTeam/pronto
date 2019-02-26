@@ -6,7 +6,12 @@ Pronto is a web application aiming to assist InterPro curators by displaying pro
  
 ## Getting started
 
-Pronto requires Python>=3.3, `cx_Oracle`, `Flask`, and `Jinja2`.
+### Prerequisites
+
+- Python>=3.3 with `cx_Oracle`, `Flask`, `Jinja2`, and `mysqlclient`.
+- A public database link to the `LITPUB` database (literature service) must exist.
+
+### Installation
 
 ```bash
 git clone https://github.com/ProteinsWebTeam/pronto.git
@@ -19,7 +24,6 @@ python setup.py install
 
 Edit `config.cfg`, and set the following options:
 
-* `DEBUG` - if `True`, displays debugging information, and restart the application when the code changes.
 * `ORACLE_DB` - Oracle connection details (dictionary; keys: `dsn`, `credentials`).
 * `MYSQL_DB` - InterPro7 MySQL database (dictionary; keys: `host`, `user`, `passwd`, `port`, `db`).
 * `DB_SCHEMA` - Oracle database schema (i.e. owner of tables).

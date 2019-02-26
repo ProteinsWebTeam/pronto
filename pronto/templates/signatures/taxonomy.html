@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/semantic.min.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+    <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}">
+</head>
+<body>
+
+{% include 'header.html' %}
+
+<div class="ui container basic vertical segment">
+    {% include 'signatures/signature_selector.html' %}
+
+    <div class="ui top attached tabular menu">
+        <a class="item" data-rank="superkingdom">Superkingdom</a>
+        <a class="item" data-rank="kingdom">Kingdom</a>
+        <a class="item" data-rank="phylum">Phylum</a>
+        <a class="item" data-rank="class">Class</a>
+        <a class="item" data-rank="order">Order</a>
+        <a class="item" data-rank="family">Family</a>
+        <a class="item" data-rank="genus">Genus</a>
+        <a class="item" data-rank="species">Species</a>
+    </div>
+    <div class="ui bottom attached segment">
+        <table class="ui definition celled table"></table>
+    </div>
+</div>
+
+{% include 'footer.html' %}
+
+<script src="{{ url_for('static', filename='vendor/jquery.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/semantic.min.js') }}"></script>
+<script src="{{ url_for('static', filename='modules/signatures/taxonomy.js') }}" type="module"></script>
+
+</body>
+</html>

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/semantic.min.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+    <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}">
+</head>
+<body>
+
+{% include 'header.html' %}
+
+<div class="ui container basic vertical segment">
+    {% include 'signatures/signature_selector.html' %}
+
+    <div class="ui form">
+        <div class="inline fields">
+            <label>Aspects</label>
+            <div class="field">
+                <div class="ui checkbox">
+                    <input name="aspect" value="P" type="checkbox" checked="checked">
+                    <label>Biological Process</label>
+                </div>
+            </div>
+            <div class="field">
+                <div class="ui checkbox">
+                    <input name="aspect" value="F" type="checkbox" checked="checked">
+                    <label>Molecular Function</label>
+                </div>
+            </div>
+            <div class="field">
+                <div class="ui checkbox">
+                    <input name="aspect" value="C" type="checkbox" checked="checked">
+                    <label>Cellular Component</label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <table class="ui definition celled table"></table>
+</div>
+
+{% include 'footer.html' %}
+
+<div id="go-chart-modal" class="ui modal">
+    <i class="close icon"></i>
+    <div class="image content">
+    </div>
+</div>
+
+<div id="go-references-modal" class="ui modal">
+    <i class="close icon"></i>
+    <div class="ui header"></div>
+    <div class="scrolling content">
+        <ol class="ui list"></ol>
+    </div>
+    <div class="actions">
+        <a target="_blank" href="" class="ui black button">
+            <i class="external icon"></i>
+            QuickGO
+        </a>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='vendor/jquery.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/semantic.min.js') }}"></script>
+<script src="{{ url_for('static', filename='modules/signatures/go.js') }}" type="module"></script>
+
+</body>
+</html>
