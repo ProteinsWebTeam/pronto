@@ -4,7 +4,8 @@ import {selector, gradientPuBu, proteinViewer} from "../../signatures.js";
 
 function getComments(accessions) {
     dimmer(true);
-    fetch("/api" + location.pathname + location.search)
+    const pathname = location.pathname.match(/(\/signatures\/.+\/)/)[1];
+    fetch("/api" + pathname + location.search)
         .then(response => response.json())
         .then(comments => {
             // Find the highest protein count
@@ -49,7 +50,7 @@ function getComments(accessions) {
 }
 
 $(function () {
-    const match = location.pathname.match(/^\/signatures\/(.+)\/similarity\/$/i);
+    const match = location.pathname.match(/\/signatures\/(.+)\/similarity\/$/i);
     const accessions = match[1].split("/");
     document.title = "Similarity comments (" + accessions.join(", ") + ") | Pronto";
     selector.init(document.getElementById('methods'));

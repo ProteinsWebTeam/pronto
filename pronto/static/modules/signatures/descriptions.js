@@ -4,7 +4,8 @@ import {selector, gradientPuBu, proteinViewer} from "../../signatures.js";
 
 function getDescriptions(accessions) {
     dimmer(true);
-    fetch("/api" + location.pathname + location.search)
+    const pathname = location.pathname.match(/(\/signatures\/.+\/)/)[1];
+    fetch("/api" + pathname + location.search)
         .then(response => response.json())
         .then(result => {
             // Find the highest protein count
@@ -62,7 +63,7 @@ function getDescriptions(accessions) {
 }
 
 $(function () {
-    const match = location.pathname.match(/^\/signatures\/(.+)\/descriptions\/$/i);
+    const match = location.pathname.match(/\/signatures\/(.+)\/descriptions\/$/i);
     const accessions = match[1].split("/");
     document.title = "UniProt descriptions (" + accessions.join(", ") + ") | Pronto";
     selector.init(document.getElementById('methods'));

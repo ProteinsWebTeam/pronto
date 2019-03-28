@@ -271,7 +271,7 @@ function addGoTerm(accession, termID) {
 }
 
 function getSupplReferences(accession) {
-    return fetch('/api' + location.pathname + 'references/')
+    return fetch('/api/entry/' + accession + '/references/')
         .then(response => response.json())
         .then(references => {
             let html = '';
@@ -338,7 +338,7 @@ function getSupplReferences(accession) {
 function getAnnotations(accession) {
     getSupplReferences(accession).then(() => { $('.ui.sticky').sticky(); });
 
-    return fetch('/api' + location.pathname + 'annotations/')
+    return fetch('/api/entry/' + accession + '/annotations/')
         .then(response => response.json())
         .then(results => {
             const previewMode = $('.ui.toggle.checkbox').checkbox('is checked');
@@ -546,7 +546,7 @@ function getAnnotations(accession) {
 }
 
 function getGOTerms(accession) {
-    return fetch('/api' + location.pathname + 'go/')
+    return fetch('/api/entry/' + accession + '/go/')
         .then(response => response.json())
         .then(terms => {
             // Stats
@@ -561,7 +561,7 @@ function getGOTerms(accession) {
 }
 
 function getRelationships(accession) {
-    return fetch('/api' + location.pathname + 'relationships/')
+    return fetch('/api/entry/' + accession + '/relationships/')
         .then(response => response.json())
         .then(relationships => {
             const nest = function(obj, isRoot, accession) {
@@ -637,7 +637,7 @@ function getRelationships(accession) {
 }
 
 function getSignatures(accession) {
-    return fetch('/api' + location.pathname + 'signatures/')
+    return fetch('/api/entry/' + accession + '/signatures/')
         .then(response => response.json())
         .then(signatures => {
             // Stats
@@ -987,7 +987,7 @@ function getEntry(accession) {
 }
 
 $(function () {
-    const accession = location.pathname.match(/^\/entry\/(.+)\/$/)[1];
+    const accession = location.pathname.match(/\/entry\/(.+)\/$/)[1];
     ui.dimmer(true);
 
     finaliseHeader().then((isLogged) => {

@@ -15,7 +15,8 @@ function setFilter(filter) {
 
 function getSignatures() {
     ui.dimmer(true);
-    fetch("/api" + location.pathname + location.search)
+    const pathname = location.pathname.match(/(\/database\/.+\/unintegrated\/)/)[1];
+    fetch("/api" + pathname + location.search)
         .then(response => response.json())
         .then(results => {
             if (!results.database) {

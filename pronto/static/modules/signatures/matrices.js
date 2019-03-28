@@ -4,7 +4,8 @@ import {selector, gradientPuBu} from "../../signatures.js";
 
 function getMatrices(accessions) {
     dimmer(true);
-    fetch("/api" + location.pathname + location.search)
+    const pathname = location.pathname.match(/(\/signatures\/.+\/)/)[1];
+    fetch("/api" + pathname + location.search)
         .then(response => response.json())
         .then(signatures => {
             // Find the highest protein count
@@ -153,7 +154,7 @@ function getMatrices(accessions) {
 }
 
 $(function () {
-    const match = location.pathname.match(/^\/signatures\/(.+)\/matrices\/$/i);
+    const match = location.pathname.match(/\/signatures\/(.+)\/matrices\/$/i);
     const accessions = match[1].split("/");
     document.title = "Overlap/collocation matrices (" + accessions.join(", ") + ") | Pronto";
     selector.init(document.getElementById('methods'));

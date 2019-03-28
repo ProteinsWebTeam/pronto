@@ -5,10 +5,9 @@ import {dimmer} from "../../ui.js";
 
 function getProteins() {
     const url = new URL(location.href);
-
     dimmer(true);
-
-    fetch("/api" + location.pathname + location.search)
+    const pathname = location.pathname.match(/(\/signatures\/.+\/)/)[1];
+    fetch("/api" + pathname + location.search)
         .then(response => response.json())
         .then(response => {
 
@@ -177,7 +176,7 @@ function getProteins() {
 
 $(function () {
     const url = new URL(location.href);
-    const match = location.pathname.match(/^\/signatures\/(.+)\/proteins\/$/i);
+    const match = location.pathname.match(/\/signatures\/(.+)\/proteins\/$/i);
     const accessions = match[1].split("/");
     document.title = "Overlapping proteins (" + accessions.join(", ") + ") | Pronto";
     selector.init(document.getElementById('methods'));

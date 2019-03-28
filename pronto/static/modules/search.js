@@ -59,7 +59,7 @@ $(function () {
 
     finaliseHeader();
     ui.dimmer(true);
-    fetch("/api" + location.pathname + location.search)
+    fetch("/api/search/" + location.search)
         .then(response => response.json())
         .then(result => {
             if (result.hit !== null) {

@@ -210,7 +210,7 @@ function getPredictions(accession) {
 
 
 $(function () {
-    const match = location.pathname.match(/^\/prediction\/([^\/]+)/i);
+    const match = location.pathname.match(/\/prediction\/([^\/]+)/i);
     const accession = match[1];
     selector.init(document.getElementById('methods'), accession);
     document.title = accession + " predictions | Pronto";

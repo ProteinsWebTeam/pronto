@@ -296,7 +296,7 @@ function renderLiterature(accessions, results) {
 }
 
 $(function () {
-    const match = location.pathname.match(/^\/signatures\/(.+)\/literature\/$/i);
+    const match = location.pathname.match(/\/signatures\/(.+)\/literature\/$/i);
     const accessions = match[1].split("/");
     document.title = "Literature (" + accessions.join(", ") + ") | Pronto";
     selector.init(document.getElementById('methods'));

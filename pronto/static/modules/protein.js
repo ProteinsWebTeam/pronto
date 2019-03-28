@@ -148,16 +148,16 @@ $(function () {
 
     finaliseHeader();
 
-    fetch("/api" + location.pathname)
+    const proteinAcc = location.pathname.match(/\/protein\/([a-z0-9]+)\/$/i)[1];
+    fetch("/api/protein/" + proteinAcc + "/")
         .then(response => {
             ui.dimmer(false);
             if (response.status === 200)
                 return response.json();
             else {
-                const acc = location.pathname.match(/^\/protein\/([a-z0-9]+)\/$/i)[1];
                 document.querySelector('.ui.container.segment').innerHTML = '<div class="ui error message">'
                     + '<div class="header">Protein not found</div>'
-                    + '<strong>'+ acc +'</strong> is not a valid UniProtKB accession.'
+                    + '<strong>'+ proteinAcc +'</strong> is not a valid UniProtKB accession.'
                     + '</div>';
                 return null;
             }

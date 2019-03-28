@@ -6,7 +6,8 @@ function getTaxa(accessions) {
     dimmer(true);
     const url = new URL(location.href);
 
-    fetch("/api" + location.pathname + location.search)
+    const pathname = location.pathname.match(/(\/signatures\/.+\/)/)[1];
+    fetch("/api" + pathname + location.search)
         .then(response => response.json())
         .then(results => {
             // Update tab
@@ -100,7 +101,7 @@ function getTaxa(accessions) {
 }
 
 $(function () {
-    const match = location.pathname.match(/^\/signatures\/(.+)\/taxonomy\/$/i);
+    const match = location.pathname.match(/\/signatures\/(.+)\/taxonomy\/$/i);
     const accessions = match[1].split("/");
     document.title = "Taxonomic origins (" + accessions.join(", ") + ") | Pronto";
     selector.init(document.getElementById('methods'));
