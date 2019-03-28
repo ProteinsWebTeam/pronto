@@ -68,8 +68,7 @@ def login():
     if get_user():
         return redirect(url_for("index"))
     elif request.method == "GET":
-        print(request.referrer)
-        return render_template("login.html", referrer=request.referrer or "/")
+        return render_template("login.html", referrer=request.referrer)
     else:
         username = request.form['username'].strip().lower()
         password = request.form['password'].strip()
