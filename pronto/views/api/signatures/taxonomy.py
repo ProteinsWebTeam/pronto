@@ -1,5 +1,3 @@
-from concurrent.futures import ThreadPoolExecutor, as_completed
-
 from flask import jsonify, request
 
 from pronto import app, db
