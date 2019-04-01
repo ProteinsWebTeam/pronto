@@ -32,14 +32,15 @@ def filter_proteins(user, dsn, accession, **kwargs):
         params["descrid"] = descr_id
 
     # Filter by review status
-    if dbcode == "S":
+    if dbcode == 'S':
+        name = "METHOD2PROTEIN PARTITION (M2P_SWISSP)"
         query = query.format(app.config["DB_SCHEMA"], "METHOD2SWISSPROT")
+    elif dbcode == 'T':
+        name = "METHOD2PROTEIN PARTITION (M2P_TREMBL)"
     else:
-        query = query.format(app.config["DB_SCHEMA"], "METHOD2PROTEIN")
+        name = "METHOD2PROTEIN"
 
-        if dbcode:
-            query += " AND DBCODE = :dbcode"
-            params["dbcode"] = dbcode
+    query = query.format(app.config["DB_SCHEMA"], name)
 
     # Search by protein accession
     if search:
@@ -59,7 +60,7 @@ def filter_proteins(user, dsn, accession, **kwargs):
         query += " AND MD5 = :md5"
         params["md5"] = md5
 
-    intersects =[]
+    intersects = []
 
     # Filter by SwissProt comment
     if topic_id is not None and comment_id is not None:
