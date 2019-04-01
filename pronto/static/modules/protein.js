@@ -38,16 +38,44 @@ function initSVG (svgWidth, rectWidth, proteinLength, numLines) {
 }
 
 
-function renderFeatures(svgWidth, rectWidth, proteinLength, features, labelKey, labelLink) {
-    if (labelKey === undefined)
-        labelKey = 'accession';
-    if (labelLink === undefined)
-        labelLink = true;
+function distributeVertically(src) {
+    const dst = [];
+    src.forEach(feature => {
+        let lines = [];
 
+        feature.matches.forEach(fragments => {
+            fragments.forEach(fragment => {
+                let newLine = true;
+                for (let lineFrags of lines) {
+                    if (fragment.start > lineFrags[lineFrags.length-1].end) {
+                        lineFrags.push(fragment);
+                        newLine = false;
+                        break;
+                    }
+                }
+
+                if (newLine)
+                    lines.push([fragment]);
+            });
+        });
+
+        lines.forEach(lineFrags => {
+            const newFeature = JSON.parse(JSON.stringify(feature));
+            newFeature.matches = lineFrags.map(frag => [frag]);
+            dst.push(newFeature);
+        });
+    });
+
+    return dst;
+}
+
+function renderFeatures(svgWidth, rectWidth, proteinLength, features, multiLine = false, labelLink = true) {
     if (!features.length)
         return '<p>None</p>';
 
-    // Create SVG and ticks
+    if (multiLine)
+        features = distributeVertically(features);
+
     let html = initSVG(svgWidth, rectWidth, proteinLength, features.length);
 
     features.forEach((feature, i) => {
@@ -73,9 +101,9 @@ function renderFeatures(svgWidth, rectWidth, proteinLength, features, labelKey, 
         });
 
         if (labelLink)
-            html += '<text class="label" x="' + (rectWidth + 10) + '" y="'+ (y + matchHeight / 2) +'"><a href="/prediction/'+ feature[labelKey] +'/">'+ feature[labelKey] +'</a></text>';
+            html += '<text class="label" x="' + (rectWidth + 10) + '" y="'+ (y + matchHeight / 2) +'"><a href="/prediction/'+ feature.accession +'/">'+ feature.accession +'</a></text>';
         else
-            html += '<text class="label" x="' + (rectWidth + 10) + '" y="'+ (y + matchHeight / 2) +'">'+ feature[labelKey] +'</text>';
+            html += '<text class="label" x="' + (rectWidth + 10) + '" y="'+ (y + matchHeight / 2) +'">'+ feature.accession +'</text>';
     });
 
     return html + '</svg>';
@@ -230,7 +258,7 @@ $(function () {
             document.querySelector('#unintegrated + div').innerHTML = renderFeatures(svgWidth, rectWidth, protein.length, protein.unintegrated);
 
             // Disordered regions
-            document.querySelector('#disordered-regions + div').innerHTML = renderFeatures(svgWidth, rectWidth, protein.length, protein.mobidblite);
+            document.querySelector('#disordered-regions + div').innerHTML = renderFeatures(svgWidth, rectWidth, protein.length, protein.mobidblite, true, false);
 
             Array.from(document.querySelectorAll('rect[data-id]')).forEach(rect => {
                 rect.addEventListener('mouseenter', e => {
