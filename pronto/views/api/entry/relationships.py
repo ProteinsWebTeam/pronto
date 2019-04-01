@@ -159,40 +159,14 @@ def get_entry_relationships(accession):
     parents = {}
     hierarchy = {}
     for row in cur:
-        parent_acc = row[0]
-        parent_name = row[1]
-        parent_type = row[2]
+        entry_acc = row[0]
+        entry_name = row[1]
+        entry_type = row[2]
         child_acc = row[3]
         child_name = row[4]
         child_type = row[5]
 
-        parents[child_acc] = parent_acc
-
-        if parent_acc in parents:
-            _parents = []
-            root_acc = parent_acc
-            while root_acc in parents:
-                root_acc = parents[parent_acc]
-                _parents.append(root_acc)
-
-            children = {}
-            for acc in reversed(_parents):
-                if not children:
-                    children = hierarchy[acc]["children"]
-                else:
-                    children = children[acc]["children"]
-
-            node = children[parent_acc]
-        elif parent_acc in hierarchy:
-            node = hierarchy[parent_acc]
-        else:
-            node = hierarchy[parent_acc] = {
-                "accession": parent_acc,
-                "name": parent_name,
-                "type": parent_type,
-                "children": {},
-                "deletable": child_acc == accession
-            }
+        parents[child_acc] = entry_acc
 
         if child_acc in hierarchy:
             child = hierarchy.pop(child_acc)
@@ -202,7 +176,36 @@ def get_entry_relationships(accession):
                 "name": child_name,
                 "type": child_type,
                 "children": {},
-                "deletable": parent_acc == accession
+                "deletable": entry_acc == accession
+            }
+
+        if entry_acc in parents:
+            """
+            entry_acc is itself a child of another entry: 
+                find the root (oldest parent)
+            """
+            node_acc = entry_acc
+            lineage = [node_acc]
+            while node_acc in parents:
+                node_acc = parents[node_acc]
+                lineage.append(node_acc)
+
+            node = None
+            for node_acc in reversed(lineage):
+                if node is None:
+                    node = hierarchy[node_acc]
+                else:
+                    node = node["children"][node_acc]
+        elif entry_acc in hierarchy:
+            # entry_acc is root
+            node = hierarchy[entry_acc]
+        else:
+            node = hierarchy[entry_acc] = {
+                "accession": entry_acc,
+                "name": entry_name,
+                "type": entry_type,
+                "children": {},
+                "deletable": False
             }
 
         node["children"][child_acc] = child
