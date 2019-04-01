@@ -141,15 +141,15 @@ def api_protein(accession):
     for entry in entries.values():
         signatures = []
         for s in entry["signatures"].values():
-            s["matches"].sort(key=lambda x: (x[0]["start"], x[0]["end"]))
+            s["matches"].sort(key=repr_fragments)
             signatures.append(s)
         entry["signatures"] = sorted(signatures, key=lambda x: x["accession"])
 
     for s in unintegrated.values():
-        s["matches"].sort(key=lambda x: (x[0]["start"], x[0]["end"]))
+        s["matches"].sort(key=repr_fragments)
 
     for s in mobidblite.values():
-        s["matches"].sort(key=lambda x: (x[0]["start"], x[0]["end"]))
+        s["matches"].sort(key=repr_fragments)
 
     protein.update({
         "entries": sorted(entries.values(), key=lambda x: x["accession"]),
@@ -160,3 +160,7 @@ def api_protein(accession):
     })
 
     return jsonify(protein)
+
+
+def repr_fragments(locations: list) -> tuple:
+    return locations[0]["start"], locations[0]["end"]
