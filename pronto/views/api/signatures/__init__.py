@@ -34,15 +34,23 @@ def build_method2protein_query(signatures: dict, **kwargs):
         else:
             mustnot.append(acc)
 
+    if dbcode == 'S':
+        name = "METHOD2PROTEIN PARTITION (M2P_SWISSP)"
+    elif dbcode == 'T':
+        name = "METHOD2PROTEIN PARTITION (M2P_TREMBL)"
+    else:
+        name = "METHOD2PROTEIN"
+
     params = {}
     query = ""
     if may:
         query += """
             SELECT DISTINCT PROTEIN_AC
-            FROM {}.METHOD2PROTEIN
+            FROM {}.{}
             WHERE METHOD_AC IN ({})        
         """.format(
             app.config["DB_SCHEMA"],
+            name,
             ','.join([":may" + str(i) for i in range(len(may))])
         )
         params.update({"may" + str(i): acc for i, acc in enumerate(may)})
@@ -53,13 +61,6 @@ def build_method2protein_query(signatures: dict, **kwargs):
                 AND DESC_ID = :descr_id
             """
             params["descr_id"] = descr_id
-
-        # Filter by review status
-        if dbcode:
-            query += """
-                AND DBCODE = :dbcode
-            """
-            params["dbcode"] = dbcode
 
         # Search by protein accession
         if search:
@@ -95,13 +96,14 @@ def build_method2protein_query(signatures: dict, **kwargs):
             SELECT PROTEIN_AC
             FROM (
               SELECT PROTEIN_AC, COUNT(METHOD_AC) CT
-              FROM {}.METHOD2PROTEIN
+              FROM {}.{}
               WHERE METHOD_AC IN ({})
               GROUP BY PROTEIN_AC
             )   
             WHERE CT = :n_must    
         """.format(
             app.config["DB_SCHEMA"],
+            name,
             ','.join([":must" + str(i) for i in range(len(must))])
         )
         params.update({"must" + str(i): acc for i, acc in enumerate(must)})
@@ -113,13 +115,6 @@ def build_method2protein_query(signatures: dict, **kwargs):
                     AND DESC_ID = :descr_id
                 """
             params["descr_id"] = descr_id
-
-        # Filter by review status
-        if dbcode:
-            query += """
-                    AND DBCODE = :dbcode
-                """
-            params["dbcode"] = dbcode
 
         # Search by protein accession
         if search:
@@ -467,7 +462,12 @@ def get_enzyme_entries(accessions_str):
             accessions.append(acc)
 
     dbcode = request.args.get("db", "S").upper()
-    if dbcode not in ("S", "T"):
+    if dbcode == 'S':
+        name = "METHOD2PROTEIN PARTITION (M2P_SWISSP)"
+    elif dbcode == 'T':
+        name = "METHOD2PROTEIN PARTITION (M2P_TREMBL)"
+    else:
+        name = "METHOD2PROTEIN"
         dbcode = None
 
     query = """
@@ -475,20 +475,16 @@ def get_enzyme_entries(accessions_str):
           EZ.ECNO,
           MP.METHOD_AC,
           COUNT(DISTINCT MP.PROTEIN_AC)
-        FROM {0}.METHOD2PROTEIN MP
+        FROM {0}.{1} MP
           INNER JOIN {0}.ENZYME EZ 
           ON MP.PROTEIN_AC = EZ.PROTEIN_AC
-        WHERE MP.METHOD_AC IN ({1})    
+        WHERE MP.METHOD_AC IN ({2})    
     """.format(
         app.config["DB_SCHEMA"],
+        name,
         ','.join([":acc" + str(i) for i in range(len(accessions))])
     )
     params = {":acc" + str(i): acc for i, acc in enumerate(accessions)}
-
-    if dbcode:
-        query += " AND MP.DBCODE = :dbcode"
-        params["dbcode"] = dbcode
-
     query += " GROUP BY EZ.ECNO, MP.METHOD_AC"
 
     cur = db.get_oracle().cursor()

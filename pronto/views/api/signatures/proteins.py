@@ -34,7 +34,6 @@ def filter_proteins(user, dsn, accession, **kwargs):
     # Filter by review status
     if dbcode == 'S':
         name = "METHOD2PROTEIN PARTITION (M2P_SWISSP)"
-        query = query.format(app.config["DB_SCHEMA"], "METHOD2SWISSPROT")
     elif dbcode == 'T':
         name = "METHOD2PROTEIN PARTITION (M2P_TREMBL)"
     else:
