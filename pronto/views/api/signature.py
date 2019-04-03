@@ -442,7 +442,7 @@ def get_signature_matches(accession):
                 pos_start, pos_end, _ = f.split('-')
                 pos_start = int(pos_start)
                 pos_end = int(pos_end)
-                if pos_start < pos_end:
+                if pos_start <= pos_end:
                     fragments.append({"start": pos_start, "end": pos_end})
 
         if fragments:
