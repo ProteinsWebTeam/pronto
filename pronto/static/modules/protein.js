@@ -4,7 +4,7 @@ import {finaliseHeader} from "../header.js";
 // Global variables for SVG
 const matchHeight = 10;
 
-function initSVG (svgWidth, rectWidth, proteinLength, numLines) {
+function initSVG (svgWidth, rectWidth, proteinLength, numLines, numDiscDomains) {
     const step = Math.pow(10, Math.floor(Math.log(proteinLength) / Math.log(10))) / 2;
 
     // Create a dummy SVG to compute the length of a text element
@@ -17,7 +17,7 @@ function initSVG (svgWidth, rectWidth, proteinLength, numLines) {
     const textLength = svg.querySelector('text').getComputedTextLength();
     document.body.removeChild(svg);
 
-    const rectHeight = numLines * matchHeight * 2 + matchHeight;
+    const rectHeight = matchHeight + numDiscDomains * matchHeight * 3 + numLines * matchHeight * 2;
     let content = '<svg width="' + svgWidth + '" height="'+ (rectHeight + 10) +'" version="1.1" baseProfile="full" xmlns="http://www.w3.org/2000/svg">';
     content += '<rect x="0" y="0" height="'+ rectHeight +'" width="'+ rectWidth +'" style="fill: #eee;"/>';
     content += '<g class="ticks">';
@@ -76,10 +76,22 @@ function renderFeatures(svgWidth, rectWidth, proteinLength, features, multiLine 
     if (multiLine)
         features = distributeVertically(features);
 
-    let html = initSVG(svgWidth, rectWidth, proteinLength, features.length);
+    const numDiscDomains = features.reduce((acc, cur) => {
+        // Increase if at least one match has more than one fragment (i.e. discontinuous domain)
+        if (cur.matches.filter(fragments => fragments.length > 1).length)
+            return acc + 1;
+        else
+            return acc;
+    }, 0);
 
+    let html = initSVG(svgWidth, rectWidth, proteinLength, features.length, numDiscDomains);
+
+    let y = matchHeight;
     features.forEach((feature, i) => {
-        const y = matchHeight + i * 2 * matchHeight;
+        if (feature.matches.filter(fragments => fragments.length > 1).length) {
+            // has at least one disc domains (need more space for arcs)
+            y += matchHeight * 3;
+        }
 
         feature.matches.forEach(fragments => {
             html += '<g class="match">';
@@ -92,7 +104,7 @@ function renderFeatures(svgWidth, rectWidth, proteinLength, features, multiLine 
                     // Discontinuous domain: draw arc
                     const px = Math.round(fragments[j-1].end * rectWidth / proteinLength);
                     const x1 = (px + x) / 2;
-                    const y1 = y - matchHeight;
+                    const y1 = y - matchHeight * 6;
                     html += '<path d="M'+ px +' '+ y +' Q '+ [x1, y1, x, y].join(' ') +'" fill="none" stroke="'+ feature.color +'"/>'
                 }
 
@@ -108,6 +120,8 @@ function renderFeatures(svgWidth, rectWidth, proteinLength, features, multiLine 
             html += '<text class="label" x="' + (rectWidth + 10) + '" y="'+ (y + matchHeight / 2) +'"><a href="/prediction/'+ feature.accession +'/">'+ feature.accession +'</a></text>';
         else
             html += '<text class="label" x="' + (rectWidth + 10) + '" y="'+ (y + matchHeight / 2) +'">'+ feature.accession +'</text>';
+
+        y += matchHeight * 2;
     });
 
     return html + '</svg>';
