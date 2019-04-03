@@ -82,6 +82,8 @@ function renderFeatures(svgWidth, rectWidth, proteinLength, features, multiLine 
         const y = matchHeight + i * 2 * matchHeight;
 
         feature.matches.forEach(fragments => {
+            html += '<g class="match">';
+
             fragments.forEach((fragment, j) => {
                 const x = Math.round(fragment.start * rectWidth / proteinLength);
                 const w = Math.round((fragment.end - fragment.start) * rectWidth / proteinLength);
@@ -95,9 +97,11 @@ function renderFeatures(svgWidth, rectWidth, proteinLength, features, multiLine 
                 }
 
                 html += '<rect data-start="'+ fragment.start +'" data-end="'+ fragment.end +'" data-id="'+ feature.accession +'" ' +
-                    'data-name="'+ (feature.name ? feature.name : '') +'" data-db="'+ feature.database +'" data-link="'+ feature.link +'" class="match" x="'+ x +'" y="' + y + '" ' +
+                    'data-name="'+ (feature.name ? feature.name : '') +'" data-db="'+ feature.database +'" data-link="'+ feature.link +'" x="'+ x +'" y="' + y + '" ' +
                     'width="' + w + '" height="'+ matchHeight +'" rx="1" ry="1" style="fill: '+ feature.color +'"/>';
             });
+
+            html += '</g>';
         });
 
         if (labelLink)
