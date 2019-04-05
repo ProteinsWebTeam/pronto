@@ -48,7 +48,7 @@ class Executor(object):
     def tasks(self):
         self.update()
         tasks = []
-        for task in sorted(self._tasks.values(), key=lambda t: t["time"]):
+        for task in sorted(self._tasks.values(), key=lambda t: t["started"]):
             tasks.append({
                 "name": task["name"],
                 "status": task["status"]
