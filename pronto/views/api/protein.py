@@ -94,7 +94,7 @@ def api_protein(accession):
                 s, e, _ = f.split('-')
                 s = int(s)
                 e = int(e)
-                if s < e:
+                if s <= e:
                     fragments.append({"start": s, "end": e})
 
         if fragments:

@@ -386,7 +386,7 @@ def get_overlapping_proteins(accessions_str):
                     pos_start = int(pos_start)
                     pos_end = int(pos_end)
 
-                    if pos_start < pos_end:
+                    if pos_start <= pos_end:
                         fragments.append({"start": pos_start, "end": pos_end})
 
             if fragments:
@@ -583,7 +583,7 @@ def get_overlapping_proteins(accessions_str):
                 pos_start = int(pos_start)
                 pos_end = int(pos_end)
 
-                if pos_start < pos_end:
+                if pos_start <= pos_end:
                     fragments.append({"start": pos_start, "end": pos_end})
 
         if fragments:

@@ -249,21 +249,23 @@ dl dd a[data-go-id]:hover {
 }
 
 /* SVG elements (protein page) */
-g.ticks line {
+svg g.ticks line {
     stroke-dasharray: 2, 2;
     stroke-width: 0.5px;
     stroke: #000;
 }
-g.ticks text {
+svg g.ticks text {
     dominant-baseline: hanging;
     text-anchor: middle;
     font-size: 10px;
 }
-svg rect.match {
+svg g.match rect, svg g.match path {
     opacity: .5;
 }
-svg rect.match:hover {
+svg g.match:hover rect, svg g.match:hover path {
     opacity: 1;
+}
+svg g.match rect:hover {
     cursor: pointer;
 }
 svg text.label {

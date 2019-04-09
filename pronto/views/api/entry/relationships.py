@@ -176,6 +176,7 @@ def get_entry_relationships(accession):
                 "name": child_name,
                 "type": child_type,
                 "children": {},
+                # can delete if query's child
                 "deletable": entry_acc == accession
             }
 
@@ -205,7 +206,8 @@ def get_entry_relationships(accession):
                 "name": entry_name,
                 "type": entry_type,
                 "children": {},
-                "deletable": False
+                # can delete if query's parent
+                "deletable": child_acc == accession
             }
 
         node["children"][child_acc] = child
