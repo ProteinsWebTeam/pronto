@@ -354,54 +354,82 @@ def create_annotation():
 
     con = db.get_oracle()
     cur = con.cursor()
-    ann_id = cur.var(STRING)
+    #ann_id = cur.var(STRING)
     comment = "Created by {} on {}".format(
         user["name"].split()[0],
         datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     )
     try:
+        # TODO: fix query with RETURNING statement
+        # cur.execute(
+        #     """
+        #     INSERT INTO INTERPRO.COMMON_ANNOTATION (ANN_ID, TEXT, COMMENTS)
+        #     VALUES (INTERPRO.NEW_ANN_ID(), :1, :2)
+        #     RETURNING ANN_ID INTO :3
+        #     """,
+        #     (ann.text, comment, ann_id)
+        # )
         cur.execute(
             """
-            INSERT INTO INTERPRO.COMMON_ANNOTATION
-            VALUES (INTERPRO.NEW_ANN_ID(), NULL, :1, :2)
-            RETURNING ANN_ID INTO :3
+            INSERT INTO INTERPRO.COMMON_ANNOTATION (ANN_ID, TEXT, COMMENTS)
+            VALUES (INTERPRO.NEW_ANN_ID(), :1, :2)
             """,
-            (ann.text, comment, ann_id)
+            (ann.text, comment)
         )
-    except IntegrityError as e:
-        res = {
-            "status": False,
-            "title": "Database error",
-            "message": "The annotation could not be created. "
-                       "Another annotation with the same text "
-                       "may already exist ({}).".format(e)
-        }
+    except IntegrityError as exc:
+        error, = exc.args
+        if error.code == 1:
+            # ORA-00001: unique constraint violated
+            cur.execute(
+                """
+                SELECT ANN_ID
+                FROM INTERPRO.COMMON_ANNOTATION
+                WHERE TEXT = :1
+                """, (ann.text,)
+            )
 
-        cur.execute(
-            """
-            SELECT ANN_ID
-            FROM INTERPRO.COMMON_ANNOTATION
-            WHERE TEXT = :1
-            """, (ann.text,)
-        )
-        row = cur.fetchone()
-
-        if row is not None:
-            res["id"] = row[0]
+            res = {
+                "status": False,
+                "title": "Integrity error",
+                "message": "Another annotation with the same text "
+                           "already exists.".format(exc),
+                "id": cur.fetchone()[0]
+            }
+        else:
+            res = {
+                "status": False,
+                "title": "Integrity error",
+                "message": "The annotation could not be created: "
+                           "{}.".format(exc),
+            }
 
         return jsonify(res), 500
-    except DatabaseError as e:
+
+    except DatabaseError as exc:
         return jsonify({
             "status": False,
             "title": "Database error",
-            "message": "The annotation could not be created ({}).".format(e)
+            "message": "The annotation could not be created: {}.".format(exc)
         }), 500
     else:
+        cur.execute(
+            """
+            SELECT ANN_ID 
+            FROM (
+              SELECT ANN_ID 
+              FROM INTERPRO.COMMON_ANNOTATION
+              ORDER BY ANN_ID DESC
+            ) 
+            WHERE ROWNUM = 1
+            """
+        )
+        ann_id = cur.fetchone()[0]
         con.commit()
         return jsonify({
             "status": True,
             # RETURNING -> getvalue() returns an array
-            "id": ann_id.getvalue()[0]
+            # "id": ann_id.getvalue()[0]
+            "id": ann_id
         }), 200
     finally:
         cur.close()
