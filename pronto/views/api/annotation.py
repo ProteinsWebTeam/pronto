@@ -362,19 +362,19 @@ def create_annotation():
     try:
         cur.execute(
             """
-            INSERT INTO INTERPRO.COMMON_ANNOTATION (ANN_ID, TEXT, COMMENTS)
-            VALUES (INTERPRO.NEW_ANN_ID(), :1, :2)
+            INSERT INTO INTERPRO.COMMON_ANNOTATION
+            VALUES (INTERPRO.NEW_ANN_ID(), NULL, :1, :2)
             RETURNING ANN_ID INTO :3
             """,
             (ann.text, comment, ann_id)
         )
-    except IntegrityError:
+    except IntegrityError as e:
         res = {
             "status": False,
             "title": "Database error",
             "message": "The annotation could not be created. "
                        "Another annotation with the same text "
-                       "may already exist."
+                       "may already exist ({}).".format(e)
         }
 
         cur.execute(
@@ -394,7 +394,7 @@ def create_annotation():
         return jsonify({
             "status": False,
             "title": "Database error",
-            "message": "The annotation could not be created ().".format(e)
+            "message": "The annotation could not be created ({}).".format(e)
         }), 500
     else:
         con.commit()
