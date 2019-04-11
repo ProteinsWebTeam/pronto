@@ -77,8 +77,17 @@ def create_entry():
             "message": str(e)
         }), 401
 
-    # Get the new entry's accession
-    accession = accession.getvalue()
+    #
+    """
+    Get the new entry's accession
+    
+    Because the variable was bound to a DML returning statement, 
+    getvalue() returns a list
+    
+    References:
+    https://cx-oracle.readthedocs.io/en/latest/variable.html#Variable.getvalue
+    """
+    accession = accession.getvalue()[0]
 
     # Integrate signatures (if any to integrated)
     signatures = set(request.json.get("signatures", []))
@@ -361,7 +370,6 @@ def update_entry(accession):
             (_type, description, 'Y' if is_checked else 'N', name, accession)
         )
     except DatabaseError as e:
-        print(e)
         return jsonify({
             "status": False,
             "title": "Database error",
