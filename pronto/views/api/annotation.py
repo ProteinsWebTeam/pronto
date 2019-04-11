@@ -78,7 +78,8 @@ def insert_citations(cur, citations: dict) -> Optional[str]:
             cur.close()
             return "Could not insert citation for PubMed ID {}".format(row[0])
         else:
-            citations[pmid] = pub_id.getvalue()
+            # RETURNING -> getvalue() returns an array
+            citations[pmid] = pub_id.getvalue()[0]
 
     return None
 
@@ -399,7 +400,8 @@ def create_annotation():
         con.commit()
         return jsonify({
             "status": True,
-            "id": ann_id.getvalue()
+            # RETURNING -> getvalue() returns an array
+            "id": ann_id.getvalue()[0]
         }), 200
     finally:
         cur.close()
