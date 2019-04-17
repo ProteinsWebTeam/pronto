@@ -374,7 +374,9 @@ function getAnnotations(accession) {
 
                     // Replace cross-ref tags by links
                     ann.xrefs.forEach(xref => {
-                        text = text.replace(xref.match, '<a target="_blank" href="'+ xref.url +'">'+ xref.id +'&nbsp;<i class="external icon"></i></a>');
+                        const pattern = xref.match.replace('[', '\\[').replace(']', '\\]');
+                        const regex = new RegExp(pattern, 'g');
+                        text = text.replace(regex, '<a target="_blank" href="'+ xref.url +'">'+ xref.id +'&nbsp;<i class="external icon"></i></a>');
                     });
 
                     if (previewMode)
