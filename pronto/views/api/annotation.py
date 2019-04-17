@@ -746,9 +746,28 @@ def search_annotations():
     search_query = request.args.get("q", "").strip()
     hits = []
 
-    if search_query:
-        cur = db.get_oracle().cursor()
+    cur = db.get_oracle().cursor()
 
+    if re.fullmatch(r"AB\d+", search_query, re.I):
+        cur.execute(
+            """
+            SELECT CA.ANN_ID, CA.TEXT, COUNT(EC.ENTRY_AC) AS CNT
+            FROM INTERPRO.COMMON_ANNOTATION CA
+            LEFT OUTER JOIN INTERPRO.ENTRY2COMMON EC 
+              ON CA.ANN_ID = EC.ANN_ID
+            WHERE CA.ANN_ID = UPPER(:1)
+            GROUP BY CA.ANN_ID, CA.TEXT
+            """, (search_query,)
+        )
+        row = cur.fetchone()
+        if row:
+            hits.append({
+                "id": row[0],
+                "text": row[1],
+                "num_entries": row[2]
+            })
+
+    elif search_query:
         if search_query.isdigit():
             # Could be PubMed ID
             cur.execute(
@@ -790,8 +809,7 @@ def search_annotations():
                 "num_entries": row[2]
             })
 
-        cur.close()
-
+    cur.close()
     return jsonify({
         "query": search_query,
         "hits": hits
