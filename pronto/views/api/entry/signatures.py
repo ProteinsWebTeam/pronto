@@ -333,16 +333,16 @@ def get_entry_signatures_annotations(accession):
     signatures = []
     for row in cur:
         if row[2] is not None:
-            text = row[2]
+            text = format_abstract(row[2])
         elif row[3] is not None:
-            text = row[3].read()  # CLOB object
+            text = format_abstract(row[3].read())
         else:
             text = None
 
         signatures.append({
             "accession": row[0],
             "name": row[1],
-            "text": format_abstract(text)
+            "text": text
         })
 
     cur.close()
