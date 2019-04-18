@@ -23,7 +23,7 @@ def get_databases():
         """
         SELECT
           M.DBCODE,
-          MIN(DB.DBNAME) DBNAME,
+          MIN(DB.DBNAME),
           MIN(DB.DBSHORT),
           MIN(DB.VERSION),
           MIN(DB.FILE_DATE),
@@ -36,7 +36,6 @@ def get_databases():
         LEFT OUTER JOIN INTERPRO.ENTRY2METHOD E2M 
           ON M.METHOD_AC = E2M.METHOD_AC
         GROUP BY M.DBCODE
-        ORDER BY DBNAME
         """.format(app.config["DB_SCHEMA"])
     )
 
@@ -56,4 +55,4 @@ def get_databases():
 
     cur.close()
 
-    return jsonify(databases)
+    return jsonify(sorted(databases, key=lambda x: x["name"].lower()))
