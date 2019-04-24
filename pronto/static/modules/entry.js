@@ -176,9 +176,8 @@ const annotationEditor = {
                     getAnnotations(accession).then(() => $('.ui.sticky').sticky());
                 else {
                     const form = this.element.querySelector('.ui.form');
-                    // TODO: why was I escaping lesser/greater than signs?
-                    // form.querySelector('.ui.message').innerHTML = '<div class="header">'+ result.title +'</div><p>'+ result.message.replace(/</g, '&lt;').replace(/>/g, '&gt;') +'</p>';
-                    form.querySelector('.ui.message').innerHTML = '<div class="header">'+ result.title +'</div><p>'+ result.message +'</p>';
+                    // Escape lesser/greater signs because if the error message contains "<p>" it will be interpreted
+                    form.querySelector('.ui.message').innerHTML = '<div class="header">'+ result.title +'</div><p>'+ result.message.replace(/</g, '&lt;').replace(/>/g, '&gt;') +'</p>';
                     ui.setClass(textarea.parentNode, 'error', true);
                     ui.setClass(form, 'error', true);
                 }
