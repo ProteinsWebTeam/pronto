@@ -13,13 +13,18 @@ def api_protein(accession):
           P.LEN,
           P.DBCODE,
           P.TAX_ID,
+          P.FRAGMENT,
+          D.TEXT,
           E.FULL_NAME,
-          E.SCIENTIFIC_NAME,
-          P.FRAGMENT
+          E.SCIENTIFIC_NAME
         FROM {0}.PROTEIN P
+        INNER JOIN {0}.PROTEIN_DESC PD
+          ON P.PROTEIN_AC = PD.PROTEIN_AC
+        INNER JOIN {0}.DESC_VALUE D
+          ON PD.DESC_ID = D.DESC_ID
         LEFT OUTER JOIN {0}.ETAXI E 
           ON P.TAX_ID = E.TAX_ID
-        WHERE PROTEIN_AC = :1
+        WHERE P.PROTEIN_AC = :1
         """.format(app.config['DB_SCHEMA']),
         (accession,)
     )
@@ -34,11 +39,12 @@ def api_protein(accession):
         "identifier": row[0],
         "length": row[1],
         "is_reviewed": row[2] == 'S',
-        "is_fragment": row[6] == 'Y',
+        "is_fragment": row[4] == 'Y',
+        "description": row[5],
         "taxon": {
             "id": row[3],
-            "full_name": row[4],
-            "scientific_name": row[5]
+            "full_name": row[6],
+            "scientific_name": row[7]
         }
     }
 
