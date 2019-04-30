@@ -210,11 +210,11 @@ $(function () {
         })
         .then(protein => {
             if (protein === null) return;
-            document.title = protein.identifier + " (" + protein.accession + ") | Pronto";
+            document.title = protein.description + " (" + protein.accession + ") | Pronto";
 
             // Header
             (function () {
-                document.querySelector("h1.ui.header").innerHTML = protein.identifier
+                document.querySelector("h1.ui.header").innerHTML = protein.description + " (" + protein.identifier + ")"
                     + '<div class="sub header">'
                     + '<a target="_blank" href="'+ protein.link +'">'
                     + (protein.is_reviewed ? '<i class="star icon"></i>&nbsp;' : '') + protein.accession
