@@ -406,7 +406,7 @@ function getAnnotations(accession) {
 
                         // Info menu (last edit comment and number of entries using this annotation)
                         html += '<div class="right menu">'
-                            + '<span class="item">'+ ann.id +'</span>'
+                            + '<span class="selectable item">'+ ann.id +'</span>'
                             + nvl(ann.comment, '', '<span class="item">'+ ann.comment +'</span>')
                             + '<a data-action="list" class="item"><i class="list fitted icon"></i> Associated to '+ ann.num_entries + ' entries</a>'
                             + '</div>'

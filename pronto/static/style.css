@@ -431,3 +431,11 @@ i.button.icon:hover {
 .modal .actions.hidden {
     display: none;
 }
+
+/* Selectable item (they are not by defaut) */
+.ui.menu .selectable.item {
+    -webkit-user-select: auto;
+    -moz-user-select: auto;
+    -ms-user-select: auto;
+    user-select: auto;
+}
