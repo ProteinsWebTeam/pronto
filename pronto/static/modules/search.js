@@ -32,7 +32,7 @@ function callEBISearch(query, page, pageSize) {
                 html = '<tr><td colspan="3" class="center aligned">No results found for <strong>'+ query +'</strong></td></tr>';
             }
 
-            const table = document.querySelector("table");
+            const table = document.querySelector("#search-results");
             table.querySelector("tbody").innerHTML = html;
             ui.paginate(table, page, pageSize, result.hitCount, (newHref, ) => {
                 const newURL = new URL(newHref);
