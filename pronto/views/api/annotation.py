@@ -374,7 +374,7 @@ def create_annotation():
             INSERT INTO INTERPRO.COMMON_ANNOTATION (ANN_ID, TEXT, COMMENTS)
             VALUES (INTERPRO.NEW_ANN_ID(), :1, :2)
             """,
-            (ann.text, comment)
+            (ann.wrap(), comment)
         )
     except IntegrityError as exc:
         error, = exc.args
