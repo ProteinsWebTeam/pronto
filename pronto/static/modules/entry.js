@@ -674,6 +674,7 @@ function getSignatures(accession) {
                         + '<a href="/prediction/'+ s.accession +'/">'+ s.accession +'</a>'
                         + '</td>'
                         + '<td>'+ s.name +'</td>'
+                        + '<td class="right aligned">'+ s.num_uniprot.toLocaleString() +'</td>'
                         + '<td class="right aligned">'+ s.num_proteins.toLocaleString() +'</td>'
                         + '<td class="collapsing">'
                         + '<button data-accession="'+ s.accession +'" class="ui circular icon button">'
