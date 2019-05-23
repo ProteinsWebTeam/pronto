@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="pronto",
-    version="1.3.3",
+    version="1.4.0",
     packages=find_packages(),
     include_package_data=True,
     zip_safe=False,
