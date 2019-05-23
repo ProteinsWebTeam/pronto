@@ -280,7 +280,7 @@ export function finaliseHeader(signatureAcc) {
             }
 
             getUniProtVersion();
-            getInstance();
+            //getInstance();
             getTasks();
             return getCurrentUser();
         });
