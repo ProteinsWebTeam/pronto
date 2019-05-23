@@ -2,8 +2,8 @@ from cx_Oracle import DatabaseError
 from flask import jsonify, request
 
 from pronto import app, db, executor, get_user
-from . import (annotation, database, entry, interpro, protein, signature,
-               signatures, uniprot)
+from . import (annotation, database, entry, interpro, protein, sanitycheck,
+               signature, signatures, uniprot)
 
 
 @app.route("/api/user/")

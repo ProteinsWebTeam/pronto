@@ -22,4 +22,15 @@ $(function () {
 
             document.querySelector("#databases > tbody").innerHTML = html;
         });
+
+    document.getElementById('sanity-checks').addEventListener('click', evt => {
+        fetch('/api/sanitychecks/')
+            .then(response => {
+                console.log(response);
+            })
+            // .then(response => response.json())
+            // .then(result => {
+            //
+            // });
+    });
 });

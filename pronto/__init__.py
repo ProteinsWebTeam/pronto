@@ -16,7 +16,7 @@ class Executor(object):
                 "name": name,
                 "future": self.executor.submit(fn, *args, **kwargs),
                 "started": datetime.now(),
-                "terminated": None,
+                "completed": None,
                 "status": None
             }
 
@@ -33,14 +33,16 @@ class Executor(object):
             task = self._tasks[name]
             future = task["future"]
             if future.done():
+                now = datetime.now()
                 if future.exception() is not None:
                     # Call raised: error
+                    print(future.exception())
                     task["status"] = False
-                elif task["terminated"] is None:
-                    # First time we see the task as terminated
-                    task["terminated"] = datetime.now()
+                elif task["completed"] is None:
+                    # First time we see the task as completed
+                    task["completed"] = now
                     task["status"] = True
-                elif (datetime.now() - task["terminated"]).total_seconds() > 3600:
+                elif (now - task["completed"]).total_seconds() > 3600:
                     # Finished more than one hour ago: clean
                     del self._tasks[name]
 
