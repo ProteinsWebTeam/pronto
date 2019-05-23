@@ -20,6 +20,6 @@ $(function () {
                     + '</tr>';
             });
 
-            document.querySelector("table > tbody").innerHTML = html;
+            document.querySelector("#databases > tbody").innerHTML = html;
         });
 });
