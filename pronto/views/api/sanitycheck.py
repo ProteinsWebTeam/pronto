@@ -16,6 +16,9 @@ class Abstract(object):
         self.abbreviations = []
         self.typos = []
         self.citations = []
+        self.punctuation = []
+        self.substitutions = []
+        self.bad_characters = []
 
     @property
     def is_valid(self):
@@ -24,7 +27,10 @@ class Abstract(object):
             self.empty_paragraph,
             self.abbreviations,
             self.typos,
-            self.citations
+            self.citations,
+            self.punctuation,
+            self.substitutions,
+            self.bad_characters
         ))
 
     @property
@@ -34,7 +40,10 @@ class Abstract(object):
             "has_empty_paragraph": self.empty_paragraph,
             "invalid_abbreviations": self.abbreviations,
             "typos": self.typos,
-            "invalid_references": self.citations
+            "invalid_references": self.citations,
+            "punctuations_errors": self.punctuation,
+            "bad_substitutions": self.substitutions,
+            "invalid_charachters": self.bad_characters
         }
 
     def check_basic(self, text):
@@ -49,28 +58,88 @@ class Abstract(object):
             if match not in exceptions or self.id not in exceptions[match]:
                 self.typos.append(match)
 
-    def check_abbreviations(self, text, exceptions=[]):
+    def check_abbreviations(self, text, exceptions={}):
         terms = ("gram\s*-(?!negative|positive)", "gram\s*\+", "gram pos",
                  "gram neg", "g-positive", "g-negative")
 
         for match in re.findall('|'.join(terms), text, re.I):
             self.abbreviations.append(match)
 
+        valid_cases = ("N-terminal", "C-terminal", "C terminus", "N terminus")
         for match in re.findall("\b[cn][\-\s]termin(?:al|us)", text, re.I):
-            if match not in exceptions:
+            if match not in valid_cases:
                 self.abbreviations.append(match)
 
         for match in re.findall("znf|ZnF[^\d]|kDA|KDa|Kda|\d+\s+kDa|-kDa",
                                 text):
-            self.abbreviations.append(match)
+            if match not in exceptions or self.id not in exceptions[match]:
+                self.abbreviations.append(match)
 
-    def check_citations(self, text, excpetions={}):
+    def check_citations(self, text, exceptions={}):
         terms = ("PMID", "PubMed", "unpub", "Bateman", "(?:personal )?obs\.",
                  "personal ", "and others", "and colleagues", " et al\.?")
 
         for match in re.findall('|'.join(terms), text, re.I):
-            if match not in excpetions or self.id not in excpetions[match]:
+            if match not in exceptions or self.id not in exceptions[match]:
                 self.citations.append(match)
+
+    def check_punctuation(self, text, exceptions={}):
+        errors = [']</p>', '] </p>', '..', ' ;', ' )', '( ', ' :', ' .',
+                  '[ ', ' ] ', ' !', '[ <', '[< ', '> ]', ' >]&', ' > ',
+                  ' < ', '[ <', '[< ', '> ]', ' >]&', '.[', '>] [<', '{ ',
+                  ' }', '" P', '>], <cite']
+
+        for err in errors:
+            if err in text:
+                if err not in exceptions or self.id not in exceptions[err]:
+                    self.punctuation.append(err)
+
+        prog = re.compile(r"[a-z]{3}|\d[\]\d]\]|\d\]\)", flags=re.I)
+        for match in re.finditer(r"\. \[", text):
+            i, j = match.span()
+
+            if text[i-3:i] == "e.g":
+                continue  # e.g. [
+            elif text[i-2:i] == "sp":
+                continue  # sp. [
+            elif text[i-5:i] == "et al":
+                continue  # et al. [
+            elif prog.match(text[i-3:i]):
+                """
+                [a-z]{3}
+                    ent. [
+                    
+                \d[\]\d]\]
+                    22]. [
+                    3]]. [
+                    
+                \d\]\)
+                    7]). [
+                """
+                continue
+            else:
+                self.punctuation.append(match.group(0))
+
+    def check_substitutions(self, text):
+        errors = [",s ", ",d ", ",,", ",-"]
+        for err in errors:
+            if err in text:
+                self.substitutions.append(err)
+
+    def check_characters(self, text, exceptions=[]):
+        try:
+            text.encode("ascii")
+        except UnicodeEncodeError:
+            pass
+        else:
+            return
+
+        for c in text:
+            try:
+                c.encode("ascii")
+            except UnicodeEncodeError:
+                if c not in exceptions:
+                    self.bad_characters.append(c)
 
 
 def run_abstracts(cur):
@@ -85,7 +154,13 @@ def run_abstracts(cur):
         """
     )
 
-    abbr_exc = ["N-terminal", "C-terminal", "C terminus", "N terminus"]
+    abbr_exc = {
+        "zf": ["AB04953", "AB18958", "AB25101", "AB28478", "AB29641",
+               "AB34960"],
+        "kD": ["AB07521", "AB07522", "AB10981", "AB11599", "AB24026",
+               "AB24696", "AB25135", "AB28862", "AB38195", "AB39366"],
+        "ZnF": ["AB42360"]
+    }
     words = [
         'alcholol', 'analagous', 'aparrently', 'assocaited', 'bacteriaa',
         'batcer', 'betwwen', 'caracterized', 'chlorplasts', 'conatins',
@@ -106,6 +181,15 @@ def run_abstracts(cur):
         "and colleagues": ["AB31661"],
         "obs.": ["AB34196"]
     }
+    punctuation_exc = {
+        "..": ["AB14711", "AB14142", "AB04260", "AB18182", "AB21792",
+               "AB38461", "AB14142"],
+        " .": ["AB14711"],
+        " > ": ["AB02618", "AB05478", "AB05476", "AB05481", "AB05480",
+                "AB05479", "AB21752", "AB28969", "AB43597"],
+        ".[": ["AB18182"],
+    }
+    character_exceptions = ["ö", "ü"]
 
     for ann_id, text, entry_acc in cur:
         if ann_id in passed or ann_id in failed:
@@ -116,6 +200,9 @@ def run_abstracts(cur):
         abstract.check_spelling(text, words, words_exc)
         abstract.check_abbreviations(text, abbr_exc)
         abstract.check_citations(text, citations_exc)
+        abstract.check_punctuation(text, punctuation_exc)
+        abstract.check_substitutions(text)
+        abstract.check_characters(text, character_exceptions)
 
         if abstract.is_valid:
             passed.add(ann_id)
@@ -129,9 +216,7 @@ def run_all(user, dsn):
     con = db.connect_oracle(user, dsn)
     cur = con.cursor()
     abstracts = run_abstracts(cur)
-    for a in abstracts:
-        print(a.errors)
-
+    print(len(abstracts))
     cur.close()
     con.close()
 
