@@ -1,4 +1,4 @@
-import {finaliseHeader} from "../header.js"
+import {finaliseHeader, getTasks} from "../header.js"
 
 
 $(function () {
@@ -23,10 +23,19 @@ $(function () {
             document.querySelector("#databases > tbody").innerHTML = html;
         });
 
-    document.getElementById('sanity-checks').addEventListener('click', evt => {
+    document.querySelector('#sanity-checks button.primary').addEventListener('click', evt => {
         fetch('/api/sanitychecks/')
             .then(response => {
-                console.log(response);
+                const elem = document.querySelector('#sanity-checks .message');
+                if (response.ok) {
+                    getTasks();
+                    elem.className = 'ui success message';
+                    elem.innerHTML = '<p>Task successfully submitted.</p>';
+                }
+                else {
+                    elem.className = 'ui error message';
+                    elem.innerHTML = '<p>This task is already running.</p>';
+                }
             })
             // .then(response => response.json())
             // .then(result => {

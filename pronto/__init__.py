@@ -11,7 +11,10 @@ class Executor(object):
 
     def enqueue(self, name, fn, *args, **kwargs):
         self.update()
-        if name not in self._tasks:
+        if name in self._tasks and self._tasks[name]["status"] is None:
+            # Running
+            return False
+        else:
             self._tasks[name] = {
                 "name": name,
                 "future": self.executor.submit(fn, *args, **kwargs),
@@ -19,6 +22,7 @@ class Executor(object):
                 "completed": None,
                 "status": None
             }
+            return True
 
     def submit(self, fn, *args, **kwargs):
         return self.executor.submit(fn, *args, **kwargs)

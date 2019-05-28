@@ -49,7 +49,7 @@ function getCurrentUser() {
         });
 }
 
-function getTasks() {
+export function getTasks() {
     fetch('/api/tasks/')
         .then(response => response.json())
         .then(tasks => {

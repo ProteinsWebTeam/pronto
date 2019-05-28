@@ -27,6 +27,16 @@ class Abstract(object):
             self.citations
         ))
 
+    @property
+    def errors(self):
+        return {
+            "is_too_short": self.too_short,
+            "has_empty_paragraph": self.empty_paragraph,
+            "invalid_abbreviations": self.abbreviations,
+            "typos": self.typos,
+            "invalid_references": self.citations
+        }
+
     def check_basic(self, text):
         if len(text) < 25 or re.search('no\s+abs', text, re.I):
             self.too_short = True
@@ -61,9 +71,6 @@ class Abstract(object):
         for match in re.findall('|'.join(terms), text, re.I):
             if match not in excpetions or self.id not in excpetions[match]:
                 self.citations.append(match)
-
-
-
 
 
 def run_abstracts(cur):
@@ -122,7 +129,8 @@ def run_all(user, dsn):
     con = db.connect_oracle(user, dsn)
     cur = con.cursor()
     abstracts = run_abstracts(cur)
-    print(len(abstracts))
+    for a in abstracts:
+        print(a.errors)
 
     cur.close()
     con.close()
@@ -132,5 +140,7 @@ def run_all(user, dsn):
 def submit():
     user = app.config["ORACLE_DB"]["credentials"]
     dsn = app.config["ORACLE_DB"]["dsn"]
-    executor.enqueue("Sanity checks", run_all, user, dsn)
-    return jsonify({"status": True}), 202
+    if executor.enqueue("Sanity checks", run_all, user, dsn):
+        return jsonify({"status": True}), 202
+    else:
+        return jsonify({"status": False}), 409
