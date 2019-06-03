@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import re
+from urllib.error import URLError
+from urllib.request import urlopen
 
 from flask import jsonify
 
@@ -19,6 +21,7 @@ class Abstract(object):
         self.punctuation = []
         self.substitutions = []
         self.bad_characters = []
+        self.bad_urls = []
 
     @property
     def is_valid(self):
@@ -30,7 +33,8 @@ class Abstract(object):
             self.citations,
             self.punctuation,
             self.substitutions,
-            self.bad_characters
+            self.bad_characters,
+            self.bad_urls
         ))
 
     @property
@@ -43,7 +47,8 @@ class Abstract(object):
             "invalid_references": self.citations,
             "punctuations_errors": self.punctuation,
             "bad_substitutions": self.substitutions,
-            "invalid_charachters": self.bad_characters
+            "invalid_charachters": self.bad_characters,
+            "invalid_urls": self.bad_urls
         }
 
     def check_basic(self, text):
@@ -141,6 +146,16 @@ class Abstract(object):
                 if c not in exceptions:
                     self.bad_characters.append(c)
 
+    def check_link(self, text):
+        for url in re.findall(r"https?://[\w\-@:%.+~#=/?&]+", text, re.I):
+            try:
+                res = urlopen(url)
+            except URLError:
+                self.bad_urls.append(url)
+            else:
+                if res.status != 200:
+                    self.bad_urls.append(url)
+
 
 def run_abstracts(cur):
     passed = set()
@@ -203,6 +218,7 @@ def run_abstracts(cur):
         abstract.check_punctuation(text, punctuation_exc)
         abstract.check_substitutions(text)
         abstract.check_characters(text, character_exceptions)
+        abstract.check_link(text)
 
         if abstract.is_valid:
             passed.add(ann_id)
