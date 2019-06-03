@@ -1,4 +1,5 @@
-import uuid
+# -*- coding: utf-8 -*-
+
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 
@@ -16,9 +17,7 @@ class Executor(object):
             # Running
             return False
         else:
-            task_id = uuid.uuid1().hex
             self._tasks[name] = {
-                "id": task_id,
                 "name": name,
                 "future": self.submit(fn, *args, **kwargs),
                 "started": datetime.now(),
@@ -59,7 +58,6 @@ class Executor(object):
         tasks = []
         for task in sorted(self._tasks.values(), key=lambda t: t["started"]):
             tasks.append({
-                "id": task["id"],
                 "name": task["name"],
                 "status": task["status"]
             })
