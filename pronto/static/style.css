@@ -439,3 +439,12 @@ i.button.icon:hover {
     -ms-user-select: auto;
     user-select: auto;
 }
+
+.ui.feed > .event > .content > .date {
+    font-size: .85714286em;
+    line-height: normal;
+}
+
+.ui.feed > .event:nth-child(n+2) {
+    margin-top: 1rem;
+}

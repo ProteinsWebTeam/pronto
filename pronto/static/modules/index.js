@@ -23,8 +23,27 @@ $(function () {
             document.querySelector("#databases > tbody").innerHTML = html;
         });
 
+    fetch('/api/interpro/sanitychecks/')
+        .then(response => response.json())
+        .then(results => {
+            let html = '';
+            results.forEach(res => {
+                html += '<div class="event">'
+                    + '<div class="content">'
+                    + '<div class="date">'+ res.date +'</div>'
+                    + '<div class="summary">'
+                    + '<a class="user">' + res.user + '</a> ran sanity checks'
+                    + '</div>'
+                    + '<div class="meta"><a href="/interpro/sanitychecks/'+ res.id +'/"><i class="file text icon"></i> '+ res.errors +' errors.</a></div>'
+                    + '</div>'
+                    + '</div>';
+            });
+
+            document.querySelector('#sanity-checks .ui.feed').innerHTML = html;
+        });
+
     document.querySelector('#sanity-checks button.primary').addEventListener('click', evt => {
-        fetch('/api/sanitychecks/')
+        fetch('/api/interpro/sanitychecks/', {method: 'PUT'})
             .then(response => {
                 const elem = document.querySelector('#sanity-checks .message');
                 if (response.ok) {
@@ -32,10 +51,15 @@ $(function () {
                     elem.className = 'ui success message';
                     elem.innerHTML = '<p>Task successfully submitted.</p>';
                 }
-                else {
+                else if (response.status === 401) {
+                    elem.className = 'ui error message';
+                    elem.innerHTML = '<p>Please <a href="/login/">log in</a> to perform this operation.</p>';
+                }
+                else if (response.status === 409) {
                     elem.className = 'ui error message';
                     elem.innerHTML = '<p>This task is already running.</p>';
                 }
+
             })
             // .then(response => response.json())
             // .then(result => {
