@@ -254,13 +254,66 @@ def check_abstracts(cur):
 
 
 def check_entries(cur):
-    pass
+    cur.execute(
+        """
+        SELECT ID, CONTENT 
+        FROM INTERPRO.SANITY_CHECK 
+        WHERE TYPE IN ('errors', 'exceptions')
+        """
+    )
+    content = {row[0]: json.loads(row[1].read()) for row in cur}
+
+    failed = []
+    cur.execute(
+        """
+        SELECT ENTRY_AC, NAME, SHORT_NAME
+        FROM INTERPRO.ENTRY
+        """
+    )
+    for acc, name, short_name in cur:
+        e = Abstract(acc, acc)
+        # todo accession in long name
+
+        # todo add exceptions for entries
+        e.check_spelling(name, content["spelling-err"])
+        e.check_spelling(short_name, content["spelling-err"])
+
+        # todo forbidden words
+        # todo abbreviations
+        # todo incorrect use of underscore
+
+        if not e.is_valid:
+            failed.append(e.dump())
+
+    return failed
 
 
 def check_all(user, dsn):
     con = db.connect_oracle(user, dsn)
     cur = con.cursor()
     abstracts = check_abstracts(cur)
+    entries = check_entries(cur)
+    num_errors = sum(map(len, (abstracts, entries)))
+
+    # Delete old reports
+    cur.execute(
+        """
+        DELETE FROM INTERPRO.SANITY_CHECK
+        WHERE TYPE = 'results'
+        AND ID NOT IN (
+          SELECT ID
+          FROM (
+              SELECT ID
+              FROM INTERPRO.SANITY_CHECK
+              WHERE TYPE = 'results'
+              ORDER BY TIMESTAMP DESC
+          )
+          WHERE ROWNUM <= 4
+        )
+        """
+    )
+
+    # Add new report
     cur.execute(
         """
         INSERT INTO INTERPRO.SANITY_CHECK (ID, TYPE, NUM_ERRORS, CONTENT) 
@@ -269,9 +322,10 @@ def check_all(user, dsn):
         (
             uuid.uuid1().hex,
             "results",
-            len(abstracts),
+            num_errors,
             json.dumps({
-                "abstracts": abstracts
+                "abstracts": abstracts,
+                "entries": entries
             })
         )
     )
