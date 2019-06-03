@@ -50,46 +50,50 @@ function getCurrentUser() {
 }
 
 export function getTasks() {
-    fetch('/api/tasks/')
-        .then(response => response.json())
-        .then(tasks => {
-            let menu = '';
-            let errors = 0;
-            let success = 0;
+    return new Promise((resolve, reject) => {
+        fetch('/api/tasks/')
+            .then(response => response.json())
+            .then(tasks => {
+                let menu = '';
+                let errors = 0;
+                let success = 0;
 
-            if (tasks.length) {
-                tasks.forEach(task => {
-                    menu += '<div class="item">';
+                if (tasks.length) {
+                    tasks.forEach(task => {
+                        menu += '<div class="item">';
 
-                    if (task.status === null)
-                        menu += '<i class="loading notched circle icon"></i>';
-                    else if (task.status) {
-                        menu += '<i class="green check circle icon"></i>';
-                        success++;
-                    }
-                    else {
-                        menu += '<i class="red exclamation circle icon"></i>';
-                        errors++;
-                    }
-                    menu += task.name + '</div>';
-                });
-            } else
-                menu += '<div class="item">No tasks</div>';
+                        if (task.status === null)
+                            menu += '<i class="loading notched circle icon"></i>';
+                        else if (task.status) {
+                            menu += '<i class="green check circle icon"></i>';
+                            success++;
+                        }
+                        else {
+                            menu += '<i class="red exclamation circle icon"></i>';
+                            errors++;
+                        }
+                        menu += task.name + '</div>';
+                    });
+                } else
+                    menu += '<div class="item">No tasks</div>';
 
-            let html = '<i class="tasks icon"></i>&nbsp;Tasks';
+                let html = '<i class="tasks icon"></i>&nbsp;Tasks';
 
-            if (errors)
-                html += '<a class="ui red mini circular label">'+ tasks.length +'</a>';
-            else if (success)
-                html += '<a class="ui green mini circular label">'+ tasks.length +'</a>';
-            else if (tasks.length)
-                html += '<a class="ui grey mini circular label">'+ tasks.length +'</a>';
+                if (errors)
+                    html += '<a class="ui red mini circular label">'+ tasks.length +'</a>';
+                else if (success)
+                    html += '<a class="ui green mini circular label">'+ tasks.length +'</a>';
+                else if (tasks.length)
+                    html += '<a class="ui grey mini circular label">'+ tasks.length +'</a>';
 
-            html += '<i class="dropdown icon"></i>'
-                + '<div class="menu">' + menu + '</div>';
+                html += '<i class="dropdown icon"></i>'
+                    + '<div class="menu">' + menu + '</div>';
 
-            document.getElementById('tasks').innerHTML = html;
-        })
+                document.getElementById('tasks').innerHTML = html;
+                resolve(tasks);
+            });
+    });
+
 }
 
 function getInstance() {
