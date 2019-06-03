@@ -208,7 +208,7 @@ class Abstract(object):
                     self.bad_urls.append(url)
 
 
-def run_abstracts(cur):
+def check_abstracts(cur):
     cur.execute(
         """
         SELECT ID, CONTENT 
@@ -253,10 +253,14 @@ def run_abstracts(cur):
     return list(failed.values())
 
 
-def run_all(user, dsn):
+def check_entries(cur):
+    pass
+
+
+def check_all(user, dsn):
     con = db.connect_oracle(user, dsn)
     cur = con.cursor()
-    abstracts = run_abstracts(cur)
+    abstracts = check_abstracts(cur)
     cur.execute(
         """
         INSERT INTO INTERPRO.SANITY_CHECK (ID, TYPE, NUM_ERRORS, CONTENT) 
@@ -306,7 +310,7 @@ def submit_sanitychecks():
     user = get_user()
     if user:
         dsn = app.config["ORACLE_DB"]["dsn"]
-        if executor.enqueue("Sanity checks", run_all, user, dsn):
+        if executor.enqueue("Sanity checks", check_all, user, dsn):
             return jsonify({"status": True}), 202
         else:
             return jsonify({"status": False}), 409
