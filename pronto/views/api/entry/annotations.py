@@ -314,7 +314,7 @@ def get_annotations_(accession):
     )
 
     annotations = []
-    prog_ref = re.compile(r"\[([a-z]+):([a-z0-9\-.]+)]", re.I)
+    prog_ref = re.compile(r"\[([a-z0-9]+):([a-z0-9\-.]+)]", re.I)
 
     for ann_id, text, comment, n_entries in cur:
         ext_refs = {}
