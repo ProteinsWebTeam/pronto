@@ -120,12 +120,12 @@ class Abstract(object):
         if re.search("<p>\s*</p>", self.text, re.I):
             self.has_empty_block = True
 
-    def check_spelling(self, terms, exceptions={}):
+    def check_spelling(self, terms: dict):
         for match in re.findall('|'.join(terms), self.text, re.I):
-            if self.id not in exceptions.get(match, []):
+            if self.id not in terms.get(match, []):
                 self.typos.append(match)
 
-    def check_abbreviations(self, terms, exceptions={}):
+    def check_abbreviations(self, terms: dict):
         for _ in re.findall("\d+\s+kDa", self.text):
             self.spaces_before_symbol += 1
 
@@ -135,7 +135,7 @@ class Abstract(object):
                 self.bad_abbrs.append(match)
 
         for match in re.findall('|'.join(terms), self.text):
-            if self.id not in exceptions.get(match, []):
+            if self.id not in terms.get(match, []):
                 self.bad_abbrs.append(match)
 
     def check_gram(self):
@@ -145,31 +145,30 @@ class Abstract(object):
         for match in re.findall('|'.join(terms), self.text, re.I):
             self.invalid_gram.append(match)
 
-    def check_citations(self, errors, exceptions={}):
-        for match in re.findall('|'.join(errors), self.text, re.I):
-            if self.id not in exceptions.get(match):
+    def check_citations(self, terms: dict):
+        for match in re.findall('|'.join(terms), self.text, re.I):
+            if self.id not in terms.get(match, []):
                 self.bad_ref.append(match)
 
         for match in re.findall("\[(?:PMID:)?\d*\]", self.text, re.I):
             self.bad_ref.append(match)
 
-    def check_punctuation(self, text, errors, exceptions={}):
-        for err in errors:
-            if err in text:
-                if err not in exceptions or self.id not in exceptions[err]:
-                    self.punctuation.append(err)
+    def check_punctuation(self, terms: dict):
+        for term, exceptions in terms.items():
+            if term in self.text and self.id not in exceptions:
+                self.punctuation.append(term)
 
         prog = re.compile(r"[a-z]{3}|\d[\]\d]\]|\d\]\)", flags=re.I)
-        for match in re.finditer(r"\. \[", text):
+        for match in re.finditer(r"\. \[", self.text):
             i, j = match.span()
 
-            if text[i - 3:i] == "e.g":
+            if self.text[i - 3:i] == "e.g":
                 continue  # e.g. [
-            elif text[i - 2:i] == "sp":
+            elif self.text[i - 2:i] == "sp":
                 continue  # sp. [
-            elif text[i - 5:i] == "et al":
+            elif self.text[i - 5:i] == "et al":
                 continue  # et al. [
-            elif prog.match(text[i - 3:i]):
+            elif prog.match(self.text[i - 3:i]):
                 """
                 [a-z]{3}
                     ent. [
@@ -185,29 +184,28 @@ class Abstract(object):
             else:
                 self.punctuation.append(match.group(0))
 
-    def check_substitutions(self, text):
-        errors = [",s ", ",d ", ",,", ",-"]
-        for err in errors:
-            if err in text:
-                self.substitutions.append(err)
+    def check_substitutions(self, terms: dict):
+        for term, exceptions in terms.items():
+            if term in self.text and self.id not in exceptions:
+                self.substitutions.append(term)
 
-    def check_characters(self, text, exceptions=[]):
+    def check_characters(self, characters: dict):
         try:
-            text.encode("ascii")
+            self.text.encode("ascii")
         except UnicodeEncodeError:
             pass
         else:
             return
 
-        for c in text:
+        for c in self.text:
             try:
                 c.encode("ascii")
             except UnicodeEncodeError:
-                if c not in exceptions:
+                if self.id not in characters.get(c, []):
                     self.bad_characters.append(c)
 
-    def check_link(self, text):
-        for url in re.findall(r"https?://[\w\-@:%.+~#=/?&]+", text, re.I):
+    def check_link(self):
+        for url in re.findall(r"https?://[\w\-@:%.+~#=/?&]+", self.text, re.I):
             try:
                 res = urlopen(url)
             except URLError:
@@ -217,16 +215,7 @@ class Abstract(object):
                     self.bad_urls.append(url)
 
 
-def check_abstracts(cur):
-    cur.execute(
-        """
-        SELECT ID, CONTENT 
-        FROM INTERPRO.SANITY_CHECK 
-        WHERE TYPE IN ('errors', 'exceptions')
-        """
-    )
-    content = {row[0]: json.loads(row[1].read()) for row in cur}
-
+def check_abstracts(cur, types):
     passed = set()
     failed = {}
     cur.execute(
@@ -242,17 +231,14 @@ def check_abstracts(cur):
             continue
 
         abstract = Abstract(ann_id, text, entry_acc)
-        abstract.check_basic(text)
-        abstract.check_abbreviations(text, content["abbreviations-exc"])
-        abstract.check_characters(text, content["characters-exc"])
-        abstract.check_citations(text, content["citations-err"],
-                                 content["citations-exc"])
-        abstract.check_link(text)
-        abstract.check_punctuation(text, content["punctuation-err"],
-                                   content["punctuation-exc"])
-        abstract.check_spelling(text, content["spelling-err"],
-                                content["spelling-exc"])
-        abstract.check_substitutions(text)
+        abstract.check_basic()
+        abstract.check_abbreviations(types.get("abbreviation", {}))
+        abstract.check_characters(types.get("ascii", {}))
+        abstract.check_citations(types.get("citation", {}))
+        abstract.check_link()
+        abstract.check_punctuation(types.get("punctuation", {}))
+        abstract.check_spelling(types.get("spelling", {}))
+        abstract.check_substitutions(types.get("substitution", {}))
 
         if abstract.is_valid:
             passed.add(ann_id)
@@ -262,16 +248,7 @@ def check_abstracts(cur):
     return list(failed.values())
 
 
-def check_entries(cur):
-    cur.execute(
-        """
-        SELECT ID, CONTENT 
-        FROM INTERPRO.SANITY_CHECK 
-        WHERE TYPE IN ('errors', 'exceptions')
-        """
-    )
-    content = {row[0]: json.loads(row[1].read()) for row in cur}
-
+def check_entries(cur, types):
     failed = []
     cur.execute(
         """
@@ -297,24 +274,50 @@ def check_entries(cur):
     return failed
 
 
+def get_sanity_checks(cur):
+    cur.execute(
+        """
+        SELECT ER.CHECK_TYPE, ER.ERROR, EX.ANN_ID
+        FROM INTERPRO.SANITY_ERROR ER
+          LEFT OUTER JOIN INTERPRO.SANITY_EXCEPTION EX
+          ON ER.CHECK_TYPE = EX.CHECK_TYPE
+          AND ER.ID = EX.ID
+        """
+    )
+    types = {}
+    for err_type, term, ann_id in cur:
+        if err_type in types:
+            terms = types[err_type]
+        else:
+            terms = types[err_type] = {}
+
+        if term in terms:
+            exceptions = terms[term]
+        else:
+            exceptions = terms[term] = []
+
+        if ann_id:
+            exceptions.append(ann_id)
+    return types
+
+
 def check_all(user, dsn):
     con = db.connect_oracle(user, dsn)
     cur = con.cursor()
-    abstracts = check_abstracts(cur)
-    entries = check_entries(cur)
+    types = get_sanity_checks(cur)
+    abstracts = check_abstracts(cur, types)
+    entries = check_entries(cur, types)
     num_errors = sum(map(len, (abstracts, entries)))
 
     # Delete old reports
     cur.execute(
         """
-        DELETE FROM INTERPRO.SANITY_CHECK
-        WHERE TYPE = 'results'
-        AND ID NOT IN (
+        DELETE FROM INTERPRO.SANITY_REPORT
+        WHERE ID NOT IN (
           SELECT ID
           FROM (
               SELECT ID
-              FROM INTERPRO.SANITY_CHECK
-              WHERE TYPE = 'results'
+              FROM INTERPRO.SANITY_REPORT
               ORDER BY TIMESTAMP DESC
           )
           WHERE ROWNUM <= 4
@@ -322,15 +325,16 @@ def check_all(user, dsn):
         """
     )
 
+    print(entries)
+
     # Add new report
     cur.execute(
         """
-        INSERT INTO INTERPRO.SANITY_CHECK (ID, TYPE, NUM_ERRORS, CONTENT) 
-        VALUES (:1, :2, :3, :4)
+        INSERT INTO INTERPRO.SANITY_REPORT (ID, NUM_ERRORS, CONTENT) 
+        VALUES (:1, :2, :3)
         """,
         (
             uuid.uuid1().hex,
-            "results",
             num_errors,
             json.dumps({
                 "abstracts": abstracts,
@@ -348,12 +352,11 @@ def get_sanitychecks():
     cur = db.get_oracle().cursor()
     cur.execute(
         """
-        SELECT ID, NUM_ERRORS, TIMESTAMP, NVL(UP.NAME, SC.USERNAME)
-        FROM INTERPRO.SANITY_CHECK SC
+        SELECT SR.ID, SR.NUM_ERRORS, SR.TIMESTAMP, NVL(UP.NAME, SR.USERNAME)
+        FROM INTERPRO.SANITY_REPORT SR
           LEFT OUTER JOIN INTERPRO.USER_PRONTO UP
-          ON SC.USERNAME = UP.DB_USER
-        WHERE TYPE = 'results'
-        ORDER BY TIMESTAMP DESC
+          ON SR.USERNAME = UP.DB_USER
+        ORDER BY SR.TIMESTAMP DESC
         """
     )
     reports = []
