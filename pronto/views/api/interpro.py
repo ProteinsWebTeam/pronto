@@ -76,7 +76,7 @@ class Abstract(object):
         self.bad_abbrs = []
         self.spaces_before_symbol = 0
         self.invalid_gram = []
-        self.citations = []
+        self.bad_ref = []
         self.punctuation = []
         self.substitutions = []
         self.bad_characters = []
@@ -89,7 +89,7 @@ class Abstract(object):
             self.has_empty_block,
             self.bad_abbrs,
             self.typos,
-            self.citations,
+            self.bad_ref,
             self.punctuation,
             self.substitutions,
             self.bad_characters,
@@ -106,7 +106,7 @@ class Abstract(object):
                 "abbreviations": self.bad_abbrs,
                 "characters": self.bad_characters,
                 "punctuations": self.punctuation,
-                "references": self.citations,
+                "references": self.bad_ref,
                 "spelling": self.typos,
                 "substitutions": self.substitutions,
                 "urls": self.bad_urls
@@ -145,10 +145,13 @@ class Abstract(object):
         for match in re.findall('|'.join(terms), self.text, re.I):
             self.invalid_gram.append(match)
 
-    def check_citations(self, text, errors, exceptions={}):
-        for match in re.findall('|'.join(errors), text, re.I):
-            if match not in exceptions or self.id not in exceptions[match]:
-                self.citations.append(match)
+    def check_citations(self, errors, exceptions={}):
+        for match in re.findall('|'.join(errors), self.text, re.I):
+            if self.id not in exceptions.get(match):
+                self.bad_ref.append(match)
+
+        for match in re.findall("\[(?:PMID:)?\d*\]", self.text, re.I):
+            self.bad_ref.append(match)
 
     def check_punctuation(self, text, errors, exceptions={}):
         for err in errors:
