@@ -66,13 +66,16 @@ def get_databases():
 
 
 class Abstract(object):
-    def __init__(self, ann_id, entry_acc):
+    def __init__(self, ann_id, text, entry_acc):
         self.id = ann_id
+        self.text = text
         self.entry_acc = entry_acc
         self.too_short = False
-        self.empty_paragraph = False
-        self.abbreviations = []
+        self.has_empty_block = False
         self.typos = []
+        self.bad_abbrs = []
+        self.spaces_before_symbol = 0
+        self.invalid_gram = []
         self.citations = []
         self.punctuation = []
         self.substitutions = []
@@ -83,8 +86,8 @@ class Abstract(object):
     def is_valid(self):
         return not any((
             self.too_short,
-            self.empty_paragraph,
-            self.abbreviations,
+            self.has_empty_block,
+            self.bad_abbrs,
             self.typos,
             self.citations,
             self.punctuation,
@@ -99,8 +102,8 @@ class Abstract(object):
             "entry": self.entry_acc,
             "errors": {
                 "is_too_short": self.too_short,
-                "has_empty_paragraph": self.empty_paragraph,
-                "abbreviations": self.abbreviations,
+                "has_has_empty_block": self.has_empty_block,
+                "abbreviations": self.bad_abbrs,
                 "characters": self.bad_characters,
                 "punctuations": self.punctuation,
                 "references": self.citations,
@@ -110,34 +113,37 @@ class Abstract(object):
             }
         }
 
-    def check_basic(self, text):
-        if len(text) < 25 or re.search('no\s+abs', text, re.I):
+    def check_basic(self):
+        if len(self.text) < 25 or re.search('no\s+abs', self.text, re.I):
             self.too_short = True
 
-        if re.search("<p>\s*</p>", text, re.I):
-            self.empty_paragraph = True
+        if re.search("<p>\s*</p>", self.text, re.I):
+            self.has_empty_block = True
 
-    def check_spelling(self, text, words, exceptions={}):
-        for match in re.findall('|'.join(words), text, re.I):
-            if match not in exceptions or self.id not in exceptions[match]:
+    def check_spelling(self, terms, exceptions={}):
+        for match in re.findall('|'.join(terms), self.text, re.I):
+            if self.id not in exceptions.get(match, []):
                 self.typos.append(match)
 
-    def check_abbreviations(self, text, exceptions={}):
+    def check_abbreviations(self, terms, exceptions={}):
+        for _ in re.findall("\d+\s+kDa", self.text):
+            self.spaces_before_symbol += 1
+
+        valid_cases = ("N-terminal", "C-terminal", "C terminus", "N terminus")
+        for match in re.findall("\b[cn][\-\s]termin(?:al|us)", self.text, re.I):
+            if match not in valid_cases:
+                self.bad_abbrs.append(match)
+
+        for match in re.findall('|'.join(terms), self.text):
+            if self.id not in exceptions.get(match, []):
+                self.bad_abbrs.append(match)
+
+    def check_gram(self):
         terms = ("gram\s*-(?!negative|positive)", "gram\s*\+", "gram pos",
                  "gram neg", "g-positive", "g-negative")
 
-        for match in re.findall('|'.join(terms), text, re.I):
-            self.abbreviations.append(match)
-
-        valid_cases = ("N-terminal", "C-terminal", "C terminus", "N terminus")
-        for match in re.findall("\b[cn][\-\s]termin(?:al|us)", text, re.I):
-            if match not in valid_cases:
-                self.abbreviations.append(match)
-
-        for match in re.findall("znf|ZnF|zf|kDA|KDa|Kda|\d+\s+kDa|-kDa",
-                                text):
-            if match not in exceptions or self.id not in exceptions[match]:
-                self.abbreviations.append(match)
+        for match in re.findall('|'.join(terms), self.text, re.I):
+            self.invalid_gram.append(match)
 
     def check_citations(self, text, errors, exceptions={}):
         for match in re.findall('|'.join(errors), text, re.I):
@@ -232,7 +238,7 @@ def check_abstracts(cur):
         if ann_id in passed or ann_id in failed:
             continue
 
-        abstract = Abstract(ann_id, entry_acc)
+        abstract = Abstract(ann_id, text, entry_acc)
         abstract.check_basic(text)
         abstract.check_abbreviations(text, content["abbreviations-exc"])
         abstract.check_characters(text, content["characters-exc"])
