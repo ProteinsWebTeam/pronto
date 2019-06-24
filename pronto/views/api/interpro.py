@@ -84,12 +84,12 @@ def check_abbreviations(text, terms, id):
 
 
 def check_accession(text, exceptions, id):
-    terms = ("G3DSA:[\d.]+", "IPR\d+", "MF_\d+", "PF\d+", "PIRSF\d+", "PR\d+",
-             "PS\d+", "PTHR\d+", "SFLD[FGS]\d+", "SM\d+", "SSF\d+", "TIGR\d+",
-             "cd\d+", "sd\d+")
+    terms = ("G3DSA:[\d.]", "IPR\d", "MF_\d", "PF\d", "PIRSF\d", "PR\d",
+             "PS\d", "PTHR\d", "SFLD[FGS]\d", "SM\d", "SSF\d", "TIGR\d",
+             "cd\d", "sd\d")
 
     errors = []
-    for match in re.findall(r"\b(" + '|'.join(terms) + r")\b", text):
+    for match in re.findall(r"\b(" + '|'.join(terms) + r"{4,})\b", text):
         if id not in exceptions.get(match, []):
             errors.append(match)
 
