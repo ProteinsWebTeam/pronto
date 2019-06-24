@@ -280,7 +280,7 @@ def check_entries(cur, errors, exceptions):
     for _type, terms in errors.items():
         merged[_type] = {}
         for term in terms:
-            merged[_type][term] = exceptions[_type].get(terms, {})
+            merged[_type][term] = exceptions[_type].get(term, {})
 
     failed = []
     cur.execute("SELECT DISTINCT ENTRY_AC FROM INTERPRO.ENTRY2METHOD")
