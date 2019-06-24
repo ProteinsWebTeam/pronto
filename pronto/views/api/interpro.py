@@ -203,14 +203,14 @@ def check_substitutions(text, terms, id):
 
 def check_underscore_to_hyphen(text, terms):
     errors = []
-    for match in re.findall('_(' + '|'.join(terms) + ')\b'):
+    for match in re.findall('_(' + '|'.join(terms) + ')\b', text):
         errors.append(errors)
     return errors
 
 
 def check_underscore(text, exceptions, id):
     errors = []
-    for match in re.findall("\b.*?_.*?\b"):
+    for match in re.findall("\b.*?_.*?\b", text):
         if id not in exceptions:
             errors.append(match)
     return errors
