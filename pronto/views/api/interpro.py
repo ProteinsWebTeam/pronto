@@ -296,7 +296,7 @@ def check_entries(cur, errors, exceptions):
     entries = {row[0]: row[1:] for row in cur}
     accessions |= set(entries)
 
-    for acc, (name, short_name, checked) in entries.items()
+    for acc, (name, short_name, checked) in entries.items():
         no_signatures = checked == 'Y' and acc not in entries_w_signatures
 
         terms = merged.get("accession", {})
