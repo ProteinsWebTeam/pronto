@@ -38,9 +38,9 @@ def get_databases():
           SUM(CASE WHEN E2M.ENTRY_AC IS NOT NULL THEN 1 ELSE 0 END),
           SUM(CASE WHEN E2M.ENTRY_AC IS NULL THEN 1 ELSE 0 END)
         FROM {0}.METHOD M
-        LEFT OUTER JOIN {0}.CV_DATABASE DB 
+        LEFT OUTER JOIN {0}.CV_DATABASE DB
           ON M.DBCODE = DB.DBCODE
-        LEFT OUTER JOIN INTERPRO.ENTRY2METHOD E2M 
+        LEFT OUTER JOIN INTERPRO.ENTRY2METHOD E2M
           ON M.METHOD_AC = E2M.METHOD_AC
         GROUP BY M.DBCODE
         """.format(app.config["DB_SCHEMA"])
@@ -65,164 +65,147 @@ def get_databases():
     return jsonify(sorted(databases, key=lambda x: x["name"].lower()))
 
 
-class Abstract(object):
-    def __init__(self, ann_id, text, entry_acc):
-        self.id = ann_id
-        self.text = text
-        self.entry_acc = entry_acc
-        self.too_short = False
-        self.has_empty_block = False
-        self.typos = []
-        self.bad_abbrs = []
-        self.spaces_before_symbol = 0
-        self.invalid_gram = []
-        self.bad_ref = []
-        self.punctuation = []
-        self.substitutions = []
-        self.bad_characters = []
-        self.bad_urls = []
+def check_abbreviations(text, terms, id):
+    spaces_before_symbol = 0
+    bad_abbrs = []
+    for _ in re.findall("\d+\s+kDa", text):
+        spaces_before_symbol += 1
 
-    @property
-    def is_valid(self):
-        return not any((
-            self.too_short,
-            self.has_empty_block,
-            self.bad_abbrs,
-            self.typos,
-            self.bad_ref,
-            self.punctuation,
-            self.substitutions,
-            self.bad_characters,
-            self.bad_urls
-        ))
+    valid_cases = ("N-terminal", "C-terminal", "C terminus", "N terminus")
+    for match in re.findall("\b[cn][\-\s]termin(?:al|us)", text, re.I):
+        if match not in valid_cases:
+            bad_abbrs.append(match)
 
-    def dump(self):
-        return {
-            "id": self.id,
-            "entry": self.entry_acc,
-            "errors": {
-                "is_too_short": self.too_short,
-                "has_has_empty_block": self.has_empty_block,
-                "abbreviations": self.bad_abbrs,
-                "characters": self.bad_characters,
-                "punctuations": self.punctuation,
-                "references": self.bad_ref,
-                "spelling": self.typos,
-                "substitutions": self.substitutions,
-                "urls": self.bad_urls
-            }
-        }
+    for match in re.findall('|'.join(terms), text):
+        if id not in terms.get(match, []):
+            bad_abbrs.append(match)
 
-    def check_basic(self):
-        if len(self.text) < 25 or re.search('no\s+abs', self.text, re.I):
-            self.too_short = True
+    return spaces_before_symbol, bad_abbrs
 
-        if re.search("<p>\s*</p>", self.text, re.I):
-            self.has_empty_block = True
 
-    def check_spelling(self, terms: dict):
-        for match in re.findall('|'.join(terms), self.text, re.I):
-            if self.id not in terms.get(match, []):
-                self.typos.append(match)
+def check_basic(text):
+    too_short = has_empty_block = False
+    if len(text) < 25 or re.search('no\s+abs', text, re.I):
+        too_short = True
 
-    def check_abbreviations(self, terms: dict):
-        for _ in re.findall("\d+\s+kDa", self.text):
-            self.spaces_before_symbol += 1
+    if re.search("<p>\s*</p>", self.text, re.I):
+        has_empty_block = True
 
-        valid_cases = ("N-terminal", "C-terminal", "C terminus", "N terminus")
-        for match in re.findall("\b[cn][\-\s]termin(?:al|us)", self.text, re.I):
-            if match not in valid_cases:
-                self.bad_abbrs.append(match)
+    return too_short, has_empty_block
 
-        for match in re.findall('|'.join(terms), self.text):
-            if self.id not in terms.get(match, []):
-                self.bad_abbrs.append(match)
 
-    def check_gram(self):
-        terms = ("gram\s*-(?!negative|positive)", "gram\s*\+", "gram pos",
-                 "gram neg", "g-positive", "g-negative")
+def check_characters(text, exceptions, id):
+    errors = []
+    try:
+        text.encode("ascii")
+    except UnicodeEncodeError:
+        pass
+    else:
+        return errors
 
-        for match in re.findall('|'.join(terms), self.text, re.I):
-            self.invalid_gram.append(match)
-
-    def check_citations(self, terms: dict):
-        for match in re.findall('|'.join(terms), self.text, re.I):
-            if self.id not in terms.get(match, []):
-                self.bad_ref.append(match)
-
-        for match in re.findall("\[(?:PMID:)?\d*\]", self.text, re.I):
-            self.bad_ref.append(match)
-
-    def check_punctuation(self, terms: dict):
-        for term, exceptions in terms.items():
-            if term in self.text and self.id not in exceptions:
-                self.punctuation.append(term)
-
-        prog = re.compile(r"[a-z]{3}|\d[\]\d]\]|\d\]\)", flags=re.I)
-        for match in re.finditer(r"\. \[", self.text):
-            i, j = match.span()
-
-            if self.text[i - 3:i] == "e.g":
-                continue  # e.g. [
-            elif self.text[i - 2:i] == "sp":
-                continue  # sp. [
-            elif self.text[i - 5:i] == "et al":
-                continue  # et al. [
-            elif prog.match(self.text[i - 3:i]):
-                """
-                [a-z]{3}
-                    ent. [
-
-                \d[\]\d]\]
-                    22]. [
-                    3]]. [
-
-                \d\]\)
-                    7]). [
-                """
-                continue
-            else:
-                self.punctuation.append(match.group(0))
-
-    def check_substitutions(self, terms: dict):
-        for term, exceptions in terms.items():
-            if term in self.text and self.id not in exceptions:
-                self.substitutions.append(term)
-
-    def check_characters(self, characters: dict):
+    for c in text:
         try:
-            self.text.encode("ascii")
+            c.encode("ascii")
         except UnicodeEncodeError:
-            pass
+            if id not in exceptions.get(c, []):
+                bad_characters.append(c)
+
+    return errors
+
+
+def check_citations(text, terms, id):
+    errors = []
+    for match in re.findall('|'.join(terms), text, re.I):
+        if id not in terms.get(match, []):
+            errors.append(match)
+
+    for match in re.findall("\[(?:PMID:)?\d*\]", text, re.I):
+        errors.append(match)
+
+    return errors
+
+
+def check_gram(text):
+    terms = ("gram\s*-(?!negative|positive)", "gram\s*\+", "gram pos",
+             "gram neg", "g-positive", "g-negative")
+    return re.findall('|'.join(terms), text, re.I)
+
+
+def check_links(text):
+    errors = []
+    for url in re.findall(r"https?://[\w\-@:%.+~#=/?&]+", text, re.I):
+        try:
+            res = urlopen(url)
+        except URLError:
+            errors.append(url)
         else:
-            return
-
-        for c in self.text:
-            try:
-                c.encode("ascii")
-            except UnicodeEncodeError:
-                if self.id not in characters.get(c, []):
-                    self.bad_characters.append(c)
-
-    def check_link(self):
-        for url in re.findall(r"https?://[\w\-@:%.+~#=/?&]+", self.text, re.I):
-            try:
-                res = urlopen(url)
-            except URLError:
-                self.bad_urls.append(url)
-            else:
-                if res.status != 200:
-                    self.bad_urls.append(url)
+            if res.status != 200:
+                errors.append(url)
+    return errors
 
 
-def check_abstracts(cur, types):
+def check_punctuation(text, terms, id):
+    errors = []
+    for term, exceptions in terms.items():
+        if term in text and id not in exceptions:
+            errors.append(term)
+
+    prog = re.compile(r"[a-z]{3}|\d[\]\d]\]|\d\]\)", flags=re.I)
+    for match in re.finditer(r"\. \[", text):
+        i, j = match.span()
+
+        if text[i-3:i] == "e.g":
+            continue  # e.g. [
+        elif text[i-2:i] == "sp":
+            continue  # sp. [
+        elif text[i-5:i] == "et al":
+            continue  # et al. [
+        elif prog.match(text[i-3:i]):
+            """
+            [a-z]{3}            ent. [
+            \d[\]\d]\]          22]. [
+                                3]]. [
+            \d\]\)              7]). [
+            """
+            continue
+        else:
+            errors.append(match.group(0))
+
+    return errors
+
+
+def check_spelling(text, terms, id):
+    errors = []
+    for match in re.findall('|'.join(terms), text, re.I):
+        if id not in terms.get(match, []):
+            errors.append(match)
+
+    return errors
+
+
+def check_substitutions(text, terms, id):
+    errors = []
+    for term, exceptions in terms.items():
+        if term in text and id not in exceptions:
+            errors.append(term)
+
+    return errors
+
+
+def check_abstracts(cur, errors, exceptions):
+    merged = {}
+    for _type, terms in errors.items():
+        merged[_type] = {}
+        for term in terms:
+            merged[_type][term] = exceptions[_type].get(terms, {})
+
     passed = set()
     failed = {}
     cur.execute(
         """
         SELECT CA.ANN_ID, CA.TEXT, EC.ENTRY_AC
         FROM INTERPRO.COMMON_ANNOTATION CA
-        INNER JOIN INTERPRO.ENTRY2COMMON EC 
+        INNER JOIN INTERPRO.ENTRY2COMMON EC
           ON CA.ANN_ID = EC.ANN_ID
         """
     )
@@ -230,34 +213,59 @@ def check_abstracts(cur, types):
         if ann_id in passed or ann_id in failed:
             continue
 
-        abstract = Abstract(ann_id, text, entry_acc)
-        abstract.check_basic()
-        abstract.check_abbreviations(types.get("abbreviation", {}))
-        abstract.check_characters(types.get("ascii", {}))
-        abstract.check_citations(types.get("citation", {}))
-        abstract.check_link()
-        abstract.check_punctuation(types.get("punctuation", {}))
-        abstract.check_spelling(types.get("spelling", {}))
-        abstract.check_substitutions(types.get("substitution", {}))
+        too_short, has_empty_block = check_basic(text)
 
-        if abstract.is_valid:
-            passed.add(ann_id)
+        terms = merged.get("abbreviation", {})
+        spaces_before_symbol, bad_abbrs = check_abbreviations(text, terms, ann_id)
+
+        terms = merged.get("ascii", {})
+        bad_characters = check_characters(text, terms, ann_id)
+
+        terms = merged.get("citation", {})
+        bad_citations = check_citations(text, terms, ann_id)
+
+        bad_gram = check_gram(text)
+        bad_links = check_links(text)
+
+        terms = merged.get("punctuation", {})
+        bad_punctuations = check_punctuation(text, terms, ann_id)
+
+        terms = merged.get("spelling", {})
+        typos = check_spelling(text, terms, ann_id)
+
+        terms = merged.get("substitution", {})
+        bad_substitutions = check_substitutions(text, terms, ann_id)
+
+        iterable = [too_short, has_empty_block, spaces_before_symbol,
+                    bad_characters, bad_citations, bad_links,
+                    bad_punctuations, typos, bad_substitutions]
+
+        if any(iterable):
+            failed[ann_id] = iterable
         else:
-            failed[ann_id] = abstract.dump()
+            passed.add(ann_id)
 
-    return list(failed.values())
+    return failed
 
 
-def check_entries(cur, types):
+def check_entries(cur, errors, exceptions):
+    merged = {}
+    for _type, terms in errors.items():
+        merged[_type] = {}
+        for term in terms:
+            merged[_type][term] = exceptions[_type].get(terms, {})
+
     failed = []
+    cur.execute("SELECT DISTINCT ENTRY_AC FROM INTERPRO.ENTRY2METHOD")
+    entries_w_signatures = {row[0] for row in cur}
     cur.execute(
         """
-        SELECT ENTRY_AC, NAME, SHORT_NAME
+        SELECT ENTRY_AC, NAME, SHORT_NAME, CHECKED
         FROM INTERPRO.ENTRY
         """
     )
-    for acc, name, short_name in cur:
-        e = Abstract(acc, acc)
+    for acc, name, short_name, checked in cur:
+        
         # todo accession in long name
 
         # todo add exceptions for entries
@@ -274,39 +282,51 @@ def check_entries(cur, types):
     return failed
 
 
-def get_sanity_checks(cur):
+def load_sanity_checks(cur):
     cur.execute(
         """
-        SELECT ER.CHECK_TYPE, ER.ERROR, EX.ANN_ID
+        SELECT ER.CHECK_TYPE, ER.ERROR, EX.ANN_ID, EX.ENTRY_AC
         FROM INTERPRO.SANITY_ERROR ER
           LEFT OUTER JOIN INTERPRO.SANITY_EXCEPTION EX
           ON ER.CHECK_TYPE = EX.CHECK_TYPE
           AND ER.ID = EX.ID
         """
     )
-    types = {}
-    for err_type, term, ann_id in cur:
+    errors = {}
+    entries = {}
+    abstracts = {}
+    for err_type, term, ann_id, entry_ac in cur:
         if err_type in types:
-            terms = types[err_type]
+            terms = errors[err_type]
         else:
-            terms = types[err_type] = {}
+            terms = errors[err_type] = set()
+            abstracts[err_type] = {}
+            entries[err_type] = {}
 
-        if term in terms:
-            exceptions = terms[term]
-        else:
-            exceptions = terms[term] = []
-
+        terms.add(term)
         if ann_id:
-            exceptions.append(ann_id)
-    return types
+            entity_id = ann_id
+            exceptions = abstracts[err_type]
+        elif entry_ac:
+            entity_id = entry_ac
+            exceptions = entries[err_type]
+        else:
+            continue
+
+        if term in exceptions:
+            exceptions[term].append(entity_id)
+        else:
+            exceptions[term] = [entity_id]
+
+    return errors, abstracts, entries
 
 
 def check_all(user, dsn):
     con = db.connect_oracle(user, dsn)
     cur = con.cursor()
-    types = get_sanity_checks(cur)
-    abstracts = check_abstracts(cur, types)
-    entries = check_entries(cur, types)
+    errors, abstract_exceptions, entry_exceptions = load_sanity_checks(cur)
+    abstracts = check_abstracts(cur, errors, abstract_exceptions)
+    entries = check_entries(cur, errors, entry_exceptions)
     num_errors = sum(map(len, (abstracts, entries)))
 
     # Delete old reports
@@ -330,7 +350,7 @@ def check_all(user, dsn):
     # Add new report
     cur.execute(
         """
-        INSERT INTO INTERPRO.SANITY_REPORT (ID, NUM_ERRORS, CONTENT) 
+        INSERT INTO INTERPRO.SANITY_REPORT (ID, NUM_ERRORS, CONTENT)
         VALUES (:1, :2, :3)
         """,
         (
