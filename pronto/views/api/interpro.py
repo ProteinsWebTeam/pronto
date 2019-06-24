@@ -83,6 +83,19 @@ def check_abbreviations(text, terms, id):
     return spaces_before_symbol, bad_abbrs
 
 
+def check_accession(text, exceptions, id):
+    terms = ("G3DSA:[\d.]+", "IPR\d+", "MF_\d+", "PF\d+", "PIRSF\d+", "PR\d+",
+             "PS\d+", "PTHR\d+", "SFLD[FGS]\d+", "SM\d+", "SSF\d+", "TIGR\d+",
+             "cd\d+", "sd\d+")
+
+    errors = []
+    for match in re.findall("\b(" + '|'.join(terms) + ")\b", text):
+        if id not in exceptions.get(match, []):
+            errors.append(match)
+
+    return errors
+
+
 def check_basic(text):
     too_short = has_empty_block = False
     if len(text) < 25 or re.search('no\s+abs', text, re.I):
@@ -284,8 +297,6 @@ def check_entries(cur, errors, exceptions):
 
     cur.execute("SELECT DISTINCT ENTRY_AC FROM INTERPRO.ENTRY2METHOD")
     entries_w_signatures = {row[0] for row in cur}
-    cur.execute("SELECT METHOD_AC FROM INTERPRO.METHOD")
-    accessions = {row[0] for row in cur}
     cur.execute(
         """
         SELECT ENTRY_AC, NAME, SHORT_NAME, CHECKED
@@ -293,16 +304,12 @@ def check_entries(cur, errors, exceptions):
         """
     )
     entries = {row[0]: row[1:] for row in cur}
-    accessions |= set(entries)
     failed = {}
     for acc, (name, short_name, checked) in entries.items():
         no_signatures = checked == 'Y' and acc not in entries_w_signatures
 
         terms = merged.get("accession", {})
-        accessions_in_name = []
-        for _acc in accessions:
-            if _acc in name and _acc not in terms.get(_acc, []):
-                accessions_in_name.append(_acc)
+        accessions_in_name = check_accession(text, terms)
 
         terms = merged.get("spelling", {})
         typos1 = check_spelling(name, terms, acc)
