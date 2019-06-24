@@ -68,11 +68,11 @@ def get_databases():
 def check_abbreviations(text, terms, id):
     spaces_before_symbol = 0
     bad_abbrs = []
-    for _ in re.findall("\d+\s+kDa", text):
+    for _ in re.findall(r"\d+\s+kDa", text):
         spaces_before_symbol += 1
 
     valid_cases = ("N-terminal", "C-terminal", "C terminus", "N terminus")
-    for match in re.findall("\b[cn][\-\s]termin(?:al|us)", text, re.I):
+    for match in re.findall(r"\b[cn][\-\s]termin(?:al|us)", text, re.I):
         if match not in valid_cases:
             bad_abbrs.append(match)
 
@@ -89,7 +89,7 @@ def check_accession(text, exceptions, id):
              "cd\d+", "sd\d+")
 
     errors = []
-    for match in re.findall("\b(" + '|'.join(terms) + ")\b", text):
+    for match in re.findall(r"\b(" + '|'.join(terms) + r")\b", text):
         if id not in exceptions.get(match, []):
             errors.append(match)
 
@@ -98,10 +98,10 @@ def check_accession(text, exceptions, id):
 
 def check_basic(text):
     too_short = has_empty_block = False
-    if len(text) < 25 or re.search('no\s+abs', text, re.I):
+    if len(text) < 25 or re.search(r'no\s+abs', text, re.I):
         too_short = True
 
-    if re.search("<p>\s*</p>", self.text, re.I):
+    if re.search(r"<p>\s*</p>", self.text, re.I):
         has_empty_block = True
 
     return too_short, has_empty_block
@@ -132,7 +132,7 @@ def check_citations(text, terms, id):
         if id not in terms.get(match, []):
             errors.append(match)
 
-    for match in re.findall("\[(?:PMID:)?\d*\]", text, re.I):
+    for match in re.findall(r"\[(?:PMID:)?\d*\]", text, re.I):
         errors.append(match)
 
     return errors
@@ -216,14 +216,14 @@ def check_substitutions(text, terms, id):
 
 def check_underscore_to_hyphen(text, terms):
     errors = []
-    for match in re.findall('_(' + '|'.join(terms) + ')\b', text):
+    for match in re.findall("_(" + '|'.join(terms) + r")\b", text):
         errors.append(errors)
     return errors
 
 
 def check_underscore(text, exceptions, id):
     errors = []
-    for match in re.findall("\b.*?_.*?\b", text):
+    for match in re.findall(r"\b.*?_.*?\b", text):
         if id not in exceptions:
             errors.append(match)
     return errors
@@ -309,7 +309,7 @@ def check_entries(cur, errors, exceptions):
         no_signatures = checked == 'Y' and acc not in entries_w_signatures
 
         terms = merged.get("accession", {})
-        accessions_in_name = check_accession(text, terms)
+        accessions_in_name = check_accession(name, terms, acc)
 
         terms = merged.get("spelling", {})
         typos1 = check_spelling(name, terms, acc)
