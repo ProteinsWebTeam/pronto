@@ -131,6 +131,15 @@ def check_gram(text):
     return re.findall('|'.join(terms), text, re.I)
 
 
+def check_illegal_terms(text, terms, id):
+    errors = []
+    for term, exceptions in terms.items():
+        if term in text and id not in exceptions:
+            errors.append(term)
+
+    return errors
+
+
 def check_links(text):
     errors = []
     for url in re.findall(r"https?://[\w\-@:%.+~#=/?&]+", text, re.I):
@@ -192,6 +201,21 @@ def check_substitutions(text, terms, id):
     return errors
 
 
+def check_underscore_to_hyphen(text, terms):
+    errors = []
+    for match in re.findall('_(' + '|'.join(terms) + ')\b'):
+        errors.append(errors)
+    return errors
+
+
+def check_underscore(text, exceptions, id):
+    errors = []
+    for match in re.findall("\b.*?_.*?\b"):
+        if id not in exceptions:
+            errors.append(match)
+    return errors
+
+
 def check_abstracts(cur, errors, exceptions):
     merged = {}
     for _type, terms in errors.items():
@@ -236,12 +260,15 @@ def check_abstracts(cur, errors, exceptions):
         terms = merged.get("substitution", {})
         bad_substitutions = check_substitutions(text, terms, ann_id)
 
-        iterable = [too_short, has_empty_block, spaces_before_symbol,
-                    bad_characters, bad_citations, bad_links,
-                    bad_punctuations, typos, bad_substitutions]
+        values = [too_short, has_empty_block, spaces_before_symbol,
+                  bad_characters, bad_citations, bad_links,
+                  bad_punctuations, typos, bad_substitutions]
 
-        if any(iterable):
-            failed[ann_id] = iterable
+        if any(values):
+            keys = ("too_short", "has_empty_block", "spaces_before_symbol",
+                    "bad_characters", "bad_citations", "bad_links",
+                    "bad_punctuations", "typos", "bad_substitutions")
+            failed[ann_id] = dict(zip(keys, values))
         else:
             passed.add(ann_id)
 
@@ -258,26 +285,55 @@ def check_entries(cur, errors, exceptions):
     failed = []
     cur.execute("SELECT DISTINCT ENTRY_AC FROM INTERPRO.ENTRY2METHOD")
     entries_w_signatures = {row[0] for row in cur}
+    cur.execute("SELECT METHOD_AC FROM INTERPRO.METHOD")
+    accessions = {row[0] for row in cur}
     cur.execute(
         """
         SELECT ENTRY_AC, NAME, SHORT_NAME, CHECKED
         FROM INTERPRO.ENTRY
         """
     )
-    for acc, name, short_name, checked in cur:
-        
-        # todo accession in long name
+    entries = {row[0]: row[1:] for row in cur}
+    accessions |= set(entries)
 
-        # todo add exceptions for entries
-        e.check_spelling(name, content["spelling-err"])
-        e.check_spelling(short_name, content["spelling-err"])
+    for acc, (name, short_name, checked) in entries.items()
+        no_signatures = checked == 'Y' and acc not in entries_w_signatures
 
-        # todo forbidden words
-        # todo abbreviations
-        # todo incorrect use of underscore
+        terms = merged.get("accession", {})
+        accessions_in_name = []
+        for _acc in accessions:
+            if _acc in name and _acc not in terms.get(_acc, []):
+                accessions_in_name.append(_acc)
 
-        if not e.is_valid:
-            failed.append(e.dump())
+        terms = merged.get("spelling", {})
+        typos1 = check_spelling(name, terms, acc)
+        typos2 = check_spelling(short_name, terms, acc)
+
+        terms = merged.get("word", {})
+        illegal_terms = check_illegal_terms(name, terms, acc)
+
+        terms = merged.get("abbreviation", {})
+        spaces_before_symbol1, bad_abbrs1 = check_abbreviations(name, terms, ann_id)
+        spaces_before_symbol2, bad_abbrs2 = check_abbreviations(short_name, terms, ann_id)
+
+        terms = ("binding", "bd", "related", "rel", "like")
+        missing_hyphens = check_underscore_to_hyphen(short_name, terms)
+
+        underscores = check_underscore(name, {}, acc)
+
+        values = [no_signatures, accessions_in_name, typos1, typos2,
+                  illegal_terms, spaces_before_symbol1, bad_abbrs1,
+                  spaces_before_symbol2, bad_abbrs2, missing_hyphens,
+                  underscores]
+
+        if any(values):
+            keys = ("no_signatures", "accessions_in_name", "typos1",
+                    "typos2", "illegal_terms", "spaces_before_symbol1",
+                    "bad_abbrs1", "spaces_before_symbol2", "bad_abbrs2",
+                    "missing_hyphens", "underscores")
+            failed[ann_id] = dict(zip(keys, values))
+        else:
+            passed.add(ann_id)
 
     return failed
 
