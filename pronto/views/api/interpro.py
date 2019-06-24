@@ -282,7 +282,6 @@ def check_entries(cur, errors, exceptions):
         for term in terms:
             merged[_type][term] = exceptions[_type].get(term, {})
 
-    failed = []
     cur.execute("SELECT DISTINCT ENTRY_AC FROM INTERPRO.ENTRY2METHOD")
     entries_w_signatures = {row[0] for row in cur}
     cur.execute("SELECT METHOD_AC FROM INTERPRO.METHOD")
@@ -295,7 +294,7 @@ def check_entries(cur, errors, exceptions):
     )
     entries = {row[0]: row[1:] for row in cur}
     accessions |= set(entries)
-
+    failed = {}
     for acc, (name, short_name, checked) in entries.items():
         no_signatures = checked == 'Y' and acc not in entries_w_signatures
 
@@ -313,8 +312,8 @@ def check_entries(cur, errors, exceptions):
         illegal_terms = check_illegal_terms(name, terms, acc)
 
         terms = merged.get("abbreviation", {})
-        spaces_before_symbol1, bad_abbrs1 = check_abbreviations(name, terms, ann_id)
-        spaces_before_symbol2, bad_abbrs2 = check_abbreviations(short_name, terms, ann_id)
+        spaces_before_symbol1, bad_abbrs1 = check_abbreviations(name, terms, acc)
+        spaces_before_symbol2, bad_abbrs2 = check_abbreviations(short_name, terms, acc)
 
         terms = ("binding", "bd", "related", "rel", "like")
         missing_hyphens = check_underscore_to_hyphen(short_name, terms)
@@ -331,9 +330,7 @@ def check_entries(cur, errors, exceptions):
                     "typos2", "illegal_terms", "spaces_before_symbol1",
                     "bad_abbrs1", "spaces_before_symbol2", "bad_abbrs2",
                     "missing_hyphens", "underscores")
-            failed[ann_id] = dict(zip(keys, values))
-        else:
-            passed.add(ann_id)
+            failed[acc] = dict(zip(keys, values))
 
     return failed
 
