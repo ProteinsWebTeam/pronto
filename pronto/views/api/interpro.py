@@ -405,8 +405,6 @@ def check_all(user, dsn):
         """
     )
 
-    print(entries)
-
     # Add new report
     cur.execute(
         """
