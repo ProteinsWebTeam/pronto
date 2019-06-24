@@ -352,7 +352,7 @@ def load_sanity_checks(cur):
     entries = {}
     abstracts = {}
     for err_type, term, ann_id, entry_ac in cur:
-        if err_type in types:
+        if err_type in errors:
             terms = errors[err_type]
         else:
             terms = errors[err_type] = set()
