@@ -260,10 +260,10 @@ def check_abstracts(cur, errors, exceptions):
 
     passed = set()
     failed = {}
-    keys = ("too_short", "has_empty_block", "abbreviation",
-            "character", "citation", "gram",
-            "link", "punctuation", "spelling",
-            "substitution")
+    keys = ("Too short", "Empty block", "abbr",
+            "Character", "Citation", "Gram",
+            "Link", "Punctuation", "Spelling",
+            "Substitution")
     cur.execute(
         """
         SELECT CA.ANN_ID, CA.TEXT, EC.ENTRY_AC
