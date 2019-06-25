@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/semantic.min.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+    <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}">
+    <style type="text/css">
+        .ui.hidden.statistics {
+            display: none;
+        }
+    </style>
+    <title>Pronto</title>
+</head>
+<body>
+
+{% include 'header.html' %}
+
+<div class="ui container basic vertical segment">
+    <h1 class="ui dividing header">Sanity check report</h1>
+    <div class="ui hidden error message">
+        <div class="header">Report not found</div>
+        <p>Sorry, there is not report with this ID in the database. It may have been deleted.</p>
+    </div>
+    <div class="ui three hidden statistics">
+        <div class="statistic">
+            <div data-statistic="num_errors" class="value"></div>
+            <div class="label">Errors</div>
+        </div>
+        <div class="statistic">
+            <div data-statistic="date" class="text value"></div>
+            <div class="label">Date</div>
+        </div>
+        <div class="statistic">
+            <div data-statistic="user" class="text value"></div>
+            <div class="label">User</div>
+        </div>
+    </div>
+    <div class="ui divider"></div>
+    <h2 class="ui header">Abstracts</h2>
+    <div id="abstracts" class="ui four cards"></div>
+    <h2 class="ui header">Entries</h2>
+</div>
+
+{% include 'footer.html' %}
+
+<script src="{{ url_for('static', filename='vendor/jquery.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/semantic.min.js') }}"></script>
+<script src="{{ url_for('static', filename='modules/sanitychecks.js') }}" type="module"></script>
+
+</body>
+</html>

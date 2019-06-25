@@ -98,3 +98,8 @@ def logout():
 @app.route("/search/")
 def view_search():
     return render_template("search.html")
+
+
+@app.route("/interpro/sanitychecks/<id>/")
+def view_sanity_checks(id):
+    return render_template("sanitychecks.html")
