@@ -274,13 +274,14 @@ def check_abstracts(cur, errors, exceptions):
         bad_substitutions = check_substitutions(text, terms, ann_id)
 
         values = [too_short, has_empty_block, spaces_before_symbol,
-                  bad_characters, bad_citations, bad_links,
+                  bad_characters, bad_citations, bad_gram, bad_links,
                   bad_punctuations, typos, bad_substitutions]
 
         if any(values):
             keys = ("too_short", "has_empty_block", "spaces_before_symbol",
-                    "bad_characters", "bad_citations", "bad_links",
-                    "bad_punctuations", "typos", "bad_substitutions")
+                    "bad_characters", "bad_citations", "bad_gram",
+                    "bad_links", "bad_punctuations", "typos",
+                    "bad_substitutions")
             failed[ann_id] = dict(zip(keys, values))
         else:
             passed.add(ann_id)
