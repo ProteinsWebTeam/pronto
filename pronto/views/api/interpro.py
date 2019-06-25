@@ -66,10 +66,9 @@ def get_databases():
 
 
 def check_abbreviations(text, terms, id):
-    spaces_before_symbol = 0
     bad_abbrs = []
-    for _ in re.findall(r"\d+\s+kDa", text):
-        spaces_before_symbol += 1
+    for match in re.findall(r"\d+\s+kDa", text):
+        bad_abbrs.append(match)
 
     valid_cases = ("N-terminal", "C-terminal", "C terminus", "N terminus")
     for match in re.findall(r"\b[cn][\-\s]termin(?:al|us)", text, re.I):
@@ -80,7 +79,7 @@ def check_abbreviations(text, terms, id):
         if id not in terms.get(match, []):
             bad_abbrs.append(match)
 
-    return spaces_before_symbol, bad_abbrs
+    return bad_abbrs
 
 
 def check_accession(text, exceptions, id):
@@ -101,7 +100,7 @@ def check_basic(text):
     if len(text) < 25 or re.search(r'no\s+abs', text, re.I):
         too_short = True
 
-    if re.search(r"<p>\s*</p>", self.text, re.I):
+    if re.search(r"<p>\s*</p>", text, re.I):
         has_empty_block = True
 
     return too_short, has_empty_block
@@ -121,14 +120,14 @@ def check_characters(text, exceptions, id):
             c.encode("ascii")
         except UnicodeEncodeError:
             if id not in exceptions.get(c, []):
-                bad_characters.append(c)
+                errors.append(c)
 
     return errors
 
 
 def check_citations(text, terms, id):
     errors = []
-    for match in re.findall('|'.join(terms), text, re.I):
+    for match in re.findall('|'.join(map(re.escape, terms)), text, re.I):
         if id not in terms.get(match, []):
             errors.append(match)
 
@@ -198,7 +197,7 @@ def check_punctuation(text, terms, id):
 
 def check_spelling(text, terms, id):
     errors = []
-    for match in re.findall('|'.join(terms), text, re.I):
+    for match in re.findall(r"\b(?:" + '|'.join(terms) + r")\b", text, re.I):
         if id not in terms.get(match, []):
             errors.append(match)
 
@@ -217,7 +216,7 @@ def check_substitutions(text, terms, id):
 def check_underscore_to_hyphen(text, terms):
     errors = []
     for match in re.findall("_(" + '|'.join(terms) + r")\b", text):
-        errors.append(errors)
+        errors.append(match)
     return errors
 
 
@@ -229,15 +228,42 @@ def check_underscore(text, exceptions, id):
     return errors
 
 
+def group_errors(errors):
+    _errors = {}
+    for key, val in errors.items():
+        if not val:
+            continue  # no errors for this type
+        elif isinstance(val, bool):
+            _errors[key] = val
+        else:
+            items = {}
+            for item in val:
+                if item in items:
+                    items[item]["count"] += 1
+                else:
+                    items[item] = {
+                        "error": item,
+                        "count": 1
+                    }
+
+            _errors[key] = list(items.values())
+
+    return _errors
+
+
 def check_abstracts(cur, errors, exceptions):
     merged = {}
     for _type, terms in errors.items():
         merged[_type] = {}
         for term in terms:
-            merged[_type][term] = exceptions[_type].get(terms, {})
+            merged[_type][term] = exceptions[_type].get(term, {})
 
     passed = set()
     failed = {}
+    keys = ("too_short", "has_empty_block", "abbreviation",
+            "character", "citation", "gram",
+            "link", "punctuation", "spelling",
+            "substitution")
     cur.execute(
         """
         SELECT CA.ANN_ID, CA.TEXT, EC.ENTRY_AC
@@ -253,7 +279,7 @@ def check_abstracts(cur, errors, exceptions):
         too_short, has_empty_block = check_basic(text)
 
         terms = merged.get("abbreviation", {})
-        spaces_before_symbol, bad_abbrs = check_abbreviations(text, terms, ann_id)
+        bad_abbrs = check_abbreviations(text, terms, ann_id)
 
         terms = merged.get("ascii", {})
         bad_characters = check_characters(text, terms, ann_id)
@@ -273,16 +299,16 @@ def check_abstracts(cur, errors, exceptions):
         terms = merged.get("substitution", {})
         bad_substitutions = check_substitutions(text, terms, ann_id)
 
-        values = [too_short, has_empty_block, spaces_before_symbol,
-                  bad_characters, bad_citations, bad_gram, bad_links,
-                  bad_punctuations, typos, bad_substitutions]
+        values = [too_short, has_empty_block, bad_abbrs,
+                  bad_characters, bad_citations, bad_gram,
+                  bad_links, bad_punctuations, typos,
+                  bad_substitutions]
 
         if any(values):
-            keys = ("too_short", "has_empty_block", "spaces_before_symbol",
-                    "bad_characters", "bad_citations", "bad_gram",
-                    "bad_links", "bad_punctuations", "typos",
-                    "bad_substitutions")
-            failed[ann_id] = dict(zip(keys, values))
+            failed[ann_id] = {
+                "entry": entry_acc,
+                "errors": dict(zip(keys, values))
+            }
         else:
             passed.add(ann_id)
 
@@ -305,6 +331,9 @@ def check_entries(cur, errors, exceptions):
         """
     )
     entries = {row[0]: row[1:] for row in cur}
+    keys = ("no_signatures", "accessions_in_name", "typos1",
+            "typos2", "illegal_terms", "bad_abbrs1", "bad_abbrs2",
+            "missing_hyphens", "underscores")
     failed = {}
     for acc, (name, short_name, checked) in entries.items():
         no_signatures = checked == 'Y' and acc not in entries_w_signatures
@@ -320,24 +349,19 @@ def check_entries(cur, errors, exceptions):
         illegal_terms = check_illegal_terms(name, terms, acc)
 
         terms = merged.get("abbreviation", {})
-        spaces_before_symbol1, bad_abbrs1 = check_abbreviations(name, terms, acc)
-        spaces_before_symbol2, bad_abbrs2 = check_abbreviations(short_name, terms, acc)
+        bad_abbrs1 = check_abbreviations(name, terms, acc)
+        bad_abbrs2 = check_abbreviations(short_name, terms, acc)
 
         terms = ("binding", "bd", "related", "rel", "like")
         missing_hyphens = check_underscore_to_hyphen(short_name, terms)
 
         underscores = check_underscore(name, {}, acc)
 
-        values = [no_signatures, accessions_in_name, typos1, typos2,
-                  illegal_terms, spaces_before_symbol1, bad_abbrs1,
-                  spaces_before_symbol2, bad_abbrs2, missing_hyphens,
-                  underscores]
-
+        values = [no_signatures, accessions_in_name,
+                  typos1, typos2, illegal_terms,
+                  bad_abbrs1, bad_abbrs2,
+                  missing_hyphens, underscores]
         if any(values):
-            keys = ("no_signatures", "accessions_in_name", "typos1",
-                    "typos2", "illegal_terms", "spaces_before_symbol1",
-                    "bad_abbrs1", "spaces_before_symbol2", "bad_abbrs2",
-                    "missing_hyphens", "underscores")
             failed[acc] = dict(zip(keys, values))
 
     return failed
@@ -390,22 +414,6 @@ def check_all(user, dsn):
     entries = check_entries(cur, errors, entry_exceptions)
     num_errors = sum(map(len, (abstracts, entries)))
 
-    # Delete old reports
-    cur.execute(
-        """
-        DELETE FROM INTERPRO.SANITY_REPORT
-        WHERE ID NOT IN (
-          SELECT ID
-          FROM (
-              SELECT ID
-              FROM INTERPRO.SANITY_REPORT
-              ORDER BY TIMESTAMP DESC
-          )
-          WHERE ROWNUM <= 4
-        )
-        """
-    )
-
     # Add new report
     cur.execute(
         """
@@ -420,6 +428,22 @@ def check_all(user, dsn):
                 "entries": entries
             })
         )
+    )
+
+    # Delete old reports
+    cur.execute(
+        """
+        DELETE FROM INTERPRO.SANITY_REPORT
+        WHERE ID NOT IN (
+          SELECT ID
+          FROM (
+              SELECT ID
+              FROM INTERPRO.SANITY_REPORT
+              ORDER BY TIMESTAMP DESC
+          )
+          WHERE ROWNUM <= 10
+        )
+        """
     )
     con.commit()
     cur.close()
@@ -461,3 +485,32 @@ def submit_sanitychecks():
             return jsonify({"status": False}), 409
     else:
         return jsonify({"status": False}), 401
+
+
+@app.route("/api/interpro/sanitychecks/<id>/")
+def get_sanitychecks_report(id):
+    cur = db.get_oracle().cursor()
+    cur.execute(
+        """
+        SELECT SR.NUM_ERRORS, SR.CONTENT, SR.TIMESTAMP, 
+          NVL(UP.NAME, SR.USERNAME)
+        FROM INTERPRO.SANITY_REPORT SR
+          LEFT OUTER JOIN INTERPRO.USER_PRONTO UP
+          ON SR.USERNAME = UP.DB_USER
+        WHERE SR.ID = :1
+        """, (id,)
+    )
+    row = cur.fetchone()
+    if row:
+        report = {
+            "num_errors": row[0],
+            "errors": json.loads(row[1].read()),
+            "date": row[2].strftime("%d %b %Y, %H:%M"),
+            "user": row[3]
+
+        }
+    else:
+        report = {}
+    cur.close()
+
+    return jsonify(report), 200 if report else 404
