@@ -307,7 +307,7 @@ def check_abstracts(cur, errors, exceptions):
         if any(values):
             failed[ann_id] = {
                 "entry": entry_acc,
-                "errors": dict(zip(keys, values))
+                "errors": group_errors(dict(zip(keys, values)))
             }
         else:
             passed.add(ann_id)
@@ -362,7 +362,7 @@ def check_entries(cur, errors, exceptions):
                   bad_abbrs1, bad_abbrs2,
                   missing_hyphens, underscores]
         if any(values):
-            failed[acc] = dict(zip(keys, values))
+            failed[acc] = group_errors(dict(zip(keys, values)))
 
     return failed
 
