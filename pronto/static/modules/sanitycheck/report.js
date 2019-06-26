@@ -1,5 +1,5 @@
-import {finaliseHeader} from "../header.js"
-import * as ui from "../ui.js";
+import {finaliseHeader} from "../../header.js"
+import * as ui from "../../ui.js";
 
 
 function getErrors(runId) {
@@ -22,7 +22,7 @@ function getErrors(runId) {
 
                     let cards = '';
                     for (let err of run.errors) {
-                        if (err.resolved)
+                        if (err.resolved_by)
                             cards += '<div class="green card"><div class="content">';
                         else
                             cards += '<div class="red card"><div class="content">';
@@ -54,18 +54,18 @@ function getErrors(runId) {
 
                         }
 
-                        // Close description and content
+                        cards += '</div>'   // close description
+                            + '</div>'      // close content
+                            + '<div class="extra content">';
+
+                        if (err.resolved_by)
+                            cards += '<div class="right floated">Resolved by ' + err.resolved_by.split(/\s/)[0] + '</div>';
+                        else
+                            cards += '<div class="right floated" data-id="'+ err.id +'"><i class="check icon"></i>Resolve</div>';
+
+                        // close extra content, then card
                         cards += '</div></div>';
-
-                        if (!err.resolved) {
-                            // Add button to resolve error
-                            cards += '<div class="extra content"><div class="right floated" data-id="'+ err.id +'"><i class="check icon"></i>Resolve</div></div>';
-                        }
-
-                        // Close card
-                        cards += '</div>';
                     }
-
 
                     document.querySelector('.ui.cards').innerHTML = cards;
 

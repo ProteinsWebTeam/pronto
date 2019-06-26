@@ -5,7 +5,7 @@ import uuid
 from urllib.error import URLError
 from urllib.request import urlopen
 
-from flask import json, jsonify
+from flask import json, jsonify, request
 
 from pronto import app, db, executor, get_user, xref
 from pronto.db import get_oracle
@@ -164,6 +164,18 @@ def check_links(text):
             if res.status != 200:
                 errors.append(url)
     return errors
+
+
+def check_name_crash(cur, acc, name, short_name):
+    cur.execute(
+        """
+        SELECT ENTRY_AC
+        FROM INTERPRO.ENTRY
+        WHERE ENTRY_AC != :1
+        AND (LOWER(NAME)=LOWER(:2) OR LOWER(SHORT_NAME)=:3)
+        """, (acc, name, short_name)
+    )
+    return [row[0] for row in cur]
 
 
 def check_punctuation(text, checks, exceptions, id):
@@ -359,6 +371,26 @@ def check_entries(cur, checks, exceptions):
         exc = exceptions.get("underscore", [])
         underscores = check_underscore(name, exc, acc)
 
+        # same_names = []
+        # similar_names = []
+        # nwc = re.compile(r"[^a-zA-Z0-9]+")  # non-word characters
+        # print(acc)
+        # for _acc, (_name, _short_name, _checked) in entries.items():
+        #     if acc >= _acc:
+        #         continue
+        #
+        #     if (name.lower() == _name.lower()
+        #             or short_name.lower() == _short_name.lower()):
+        #         same_names.append(_acc)
+        #
+        #     if (nwc.sub('', name) == nwc.sub('', _name)
+        #             or nwc.sub('', short_name) == nwc.sub('', _short_name)):
+        #         similar_names.append(_acc)
+        #
+        # if similar_names:
+        #     print(acc, similar_names)
+
+        #todo: same_names, similar_names
         values = [no_signatures, accessions_in_name,
                   typos1, typos2, illegal_terms,
                   bad_abbrs1, bad_abbrs2,
@@ -424,21 +456,21 @@ def check_all(user, dsn):
     abstracts = check_abstracts(cur, checks, abstract_exceptions)
     entries = check_entries(cur, checks, entry_exceptions)
 
-    # Delete old runs (keeping the nine most recent)
-    cur.execute(
-        """
-        DELETE FROM INTERPRO.SANITY_RUN
-        WHERE ID NOT IN (
-          SELECT ID
-          FROM (
-              SELECT ID
-              FROM INTERPRO.SANITY_RUN
-              ORDER BY TIMESTAMP DESC
-          )
-          WHERE ROWNUM <= 9
-        )
-        """
-    )
+    # # Delete old runs (keeping the nine most recent)
+    # cur.execute(
+    #     """
+    #     DELETE FROM INTERPRO.SANITY_RUN
+    #     WHERE ID NOT IN (
+    #       SELECT ID
+    #       FROM (
+    #           SELECT ID
+    #           FROM INTERPRO.SANITY_RUN
+    #           ORDER BY TIMESTAMP DESC
+    #       )
+    #       WHERE ROWNUM <= 9
+    #     )
+    #     """
+    # )
 
     # Add new run
     run_id = uuid.uuid1().hex
@@ -460,7 +492,8 @@ def check_all(user, dsn):
 
     cur.executemany(
         """
-        INSERT INTO INTERPRO.SANITY_ERROR (RUN_ID, ID, ANN_ID, ENTRY_AC, ERRORS) 
+        INSERT INTO INTERPRO.SANITY_ERROR 
+        (RUN_ID, ID, ANN_ID, ENTRY_AC, ERRORS) 
         VALUES (:1, :2, :3, :4, :5)
         """, errors
     )
@@ -472,15 +505,20 @@ def check_all(user, dsn):
 
 @app.route("/api/interpro/sanitychecks/")
 def get_sanitychecks():
+    num_rows = int(request.args.get("limit", 10))
     cur = db.get_oracle().cursor()
     cur.execute(
         """
-        SELECT SR.ID, SR.NUM_ERRORS, SR.TIMESTAMP, NVL(UP.NAME, SR.USERNAME)
-        FROM INTERPRO.SANITY_RUN SR
-          LEFT OUTER JOIN INTERPRO.USER_PRONTO UP
-          ON SR.USERNAME = UP.DB_USER
-        ORDER BY SR.TIMESTAMP DESC
-        """
+        SELECT *
+        FROM (
+            SELECT SR.ID, SR.NUM_ERRORS, SR.TIMESTAMP, NVL(UP.NAME, SR.USERNAME)
+            FROM INTERPRO.SANITY_RUN SR
+              LEFT OUTER JOIN INTERPRO.USER_PRONTO UP
+              ON SR.USERNAME = UP.DB_USER
+            ORDER BY SR.TIMESTAMP DESC
+        )
+        WHERE ROWNUM <= :1
+        """, (num_rows,)
     )
     reports = []
     for row in cur:
@@ -528,26 +566,30 @@ def get_sanitychecks_report(run_id):
 
         cur.execute(
             """
-            SELECT ID, ANN_ID, ENTRY_AC, RESOLVED, ERRORS
-            FROM INTERPRO.SANITY_ERROR 
+            SELECT SE.ID, SE.ANN_ID, SE.ENTRY_AC, SE.ERRORS, 
+              SE.TIMESTAMP, NVL(UP.NAME, SE.USERNAME)
+            FROM INTERPRO.SANITY_ERROR SE
+            LEFT OUTER JOIN INTERPRO.USER_PRONTO UP
+              ON SE.USERNAME = UP.DB_USER
             WHERE RUN_ID=:1
             ORDER BY ANN_ID, ENTRY_AC
             """, (run_id,)
         )
 
         for row in cur:
-            if row[3] == 'Y':
-                resolved = True
+            if row[4]:
                 run["num_resolved"] += 1
+                resolved_on = row[4].strftime("%d %b %Y, %H:%M")
             else:
-                resolved = False
+                resolved_on = None
 
             run["errors"].append({
                 "id": row[0],
                 "ann_id": row[1],
                 "entry_ac": row[2],
-                "resolved": resolved,
-                "errors": json.loads(row[4].read())
+                "errors": json.loads(row[3].read()),
+                "resolved_on": resolved_on,
+                "resolved_by": row[5]
             })
 
     else:
@@ -569,7 +611,7 @@ def resolve_error(run_id, err_id):
     cur.execute(
         """
         UPDATE INTERPRO.SANITY_ERROR
-        SET RESOLVED = 'Y'
+        SET TIMESTAMP  = SYSDATE, USERNAME = USER
         WHERE RUN_ID = :1 AND ID = :2
         """, (run_id, err_id)
     )
