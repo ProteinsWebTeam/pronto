@@ -6,11 +6,16 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
     <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}">
     <style type="text/css">
-        .ui.hidden.statistics {
+        .ui.hidden.statistics, .ui.hidden.cards {
             display: none;
         }
+
+        .extra.content > [data-id]:hover {
+            cursor: pointer;
+            color: #21ba45;
+        }
     </style>
-    <title>Pronto</title>
+    <title>Sanity check report | Pronto</title>
 </head>
 <body>
 
@@ -28,18 +33,16 @@
             <div class="label">Errors</div>
         </div>
         <div class="statistic">
+            <div data-statistic="num_resolved" class="value"></div>
+            <div class="label">Resolved</div>
+        </div>
+        <div class="statistic">
             <div data-statistic="date" class="text value"></div>
             <div class="label">Date</div>
         </div>
-        <div class="statistic">
-            <div data-statistic="user" class="text value"></div>
-            <div class="label">User</div>
-        </div>
     </div>
     <div class="ui divider"></div>
-    <h2 class="ui header">Abstracts</h2>
-    <div id="abstracts" class="ui four cards"></div>
-    <h2 class="ui header">Entries</h2>
+    <div class="ui three cards"></div>
 </div>
 
 {% include 'footer.html' %}
