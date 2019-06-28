@@ -338,6 +338,48 @@ def check_entries(cur, checks, exceptions):
         """
     )
     entries = {row[0]: row[1:] for row in cur}
+
+    cur.execute(
+        """
+        SELECT A.ENTRY_AC, B.ENTRY_AC
+        FROM INTERPRO.ENTRY A
+        INNER JOIN INTERPRO.ENTRY B
+          ON (
+            A.ENTRY_AC < B.ENTRY_AC
+            AND (LOWER(A.NAME) = LOWER(B.SHORT_NAME))
+          )
+        """
+    )
+    name_clashes = dict(cur.fetchall())
+
+    cur.execute(
+        """
+        SELECT A.ENTRY_AC, B.ENTRY_AC
+        FROM INTERPRO.ENTRY A
+        INNER JOIN INTERPRO.ENTRY B
+          ON (
+            A.ENTRY_AC < B.ENTRY_AC
+            AND (REGEXP_REPLACE(A.NAME, '[^a-zA-Z0-9]+', '')
+              = REGEXP_REPLACE(B.NAME, '[^a-zA-Z0-9]+', ''))
+          )
+        """
+    )
+    diff_names = dict(cur.fetchall())
+
+    cur.execute(
+        """
+        SELECT A.ENTRY_AC, B.ENTRY_AC
+        FROM INTERPRO.ENTRY A
+        INNER JOIN INTERPRO.ENTRY B
+          ON (
+            A.ENTRY_AC < B.ENTRY_AC
+            AND (REGEXP_REPLACE(A.SHORT_NAME, '[^a-zA-Z0-9]+', '')
+              = REGEXP_REPLACE(B.SHORT_NAME, '[^a-zA-Z0-9]+', ''))
+          )
+        """
+    )
+    diff_short_names = dict(cur.fetchall())
+
     keys = ("No signature", "Accession (name)", "Spelling (name)",
             "Spelling (short name)", "Illegal term (name)",
             "Abbreviation (name)", "Abbreviation (short name)",
@@ -371,24 +413,6 @@ def check_entries(cur, checks, exceptions):
         exc = exceptions.get("underscore", [])
         underscores = check_underscore(name, exc, acc)
 
-        # same_names = []
-        # similar_names = []
-        # nwc = re.compile(r"[^a-zA-Z0-9]+")  # non-word characters
-        # print(acc)
-        # for _acc, (_name, _short_name, _checked) in entries.items():
-        #     if acc >= _acc:
-        #         continue
-        #
-        #     if (name.lower() == _name.lower()
-        #             or short_name.lower() == _short_name.lower()):
-        #         same_names.append(_acc)
-        #
-        #     if (nwc.sub('', name) == nwc.sub('', _name)
-        #             or nwc.sub('', short_name) == nwc.sub('', _short_name)):
-        #         similar_names.append(_acc)
-        #
-        # if similar_names:
-        #     print(acc, similar_names)
 
         #todo: same_names, similar_names
         values = [no_signatures, accessions_in_name,
