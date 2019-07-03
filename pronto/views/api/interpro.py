@@ -166,18 +166,6 @@ def check_links(text):
     return errors
 
 
-def check_name_crash(cur, acc, name, short_name):
-    cur.execute(
-        """
-        SELECT ENTRY_AC
-        FROM INTERPRO.ENTRY
-        WHERE ENTRY_AC != :1
-        AND (LOWER(NAME)=LOWER(:2) OR LOWER(SHORT_NAME)=:3)
-        """, (acc, name, short_name)
-    )
-    return [row[0] for row in cur]
-
-
 def check_punctuation(text, checks, exceptions, id):
     errors = []
     for term in checks:
@@ -350,8 +338,14 @@ def check_entries(cur, checks, exceptions):
           )
         """
     )
-    name_clashes = dict(cur.fetchall())
+    name_clashes = {}
+    for acc1, acc2 in cur:
+        if acc1 in name_clashes:
+            name_clashes[acc1].append(acc2)
+        else:
+            name_clashes[acc1] = [acc2]
 
+    exc = exceptions.get("clash", {})
     cur.execute(
         """
         SELECT A.ENTRY_AC, B.ENTRY_AC
@@ -364,7 +358,14 @@ def check_entries(cur, checks, exceptions):
           )
         """
     )
-    diff_names = dict(cur.fetchall())
+    diff_names = {}
+    for acc1, acc2 in cur:
+        if acc2 in exc.get(acc1, []):
+            continue
+        elif acc1 in diff_names:
+            diff_names[acc1].append(acc2)
+        else:
+            diff_names[acc1] = [acc2]
 
     cur.execute(
         """
@@ -378,12 +379,21 @@ def check_entries(cur, checks, exceptions):
           )
         """
     )
-    diff_short_names = dict(cur.fetchall())
+    diff_short_names = {}
+    for acc1, acc2 in cur:
+        if acc2 in exc.get(acc1, []):
+            continue
+        elif acc1 in diff_names:
+            diff_short_names[acc1].append(acc2)
+        else:
+            diff_short_names[acc1] = [acc2]
 
     keys = ("No signature", "Accession (name)", "Spelling (name)",
             "Spelling (short name)", "Illegal term (name)",
             "Abbreviation (name)", "Abbreviation (short name)",
-            "Underscore (short name)", "Underscore (name)")
+            "Underscore (short name)", "Underscore (name)",
+            "Name/short name clash", "Name clash",
+            "Short name clash")
     failed = []
     for acc, (name, short_name, checked) in entries.items():
         no_signatures = checked == 'Y' and acc not in entries_w_signatures
@@ -413,12 +423,12 @@ def check_entries(cur, checks, exceptions):
         exc = exceptions.get("underscore", [])
         underscores = check_underscore(name, exc, acc)
 
-
-        #todo: same_names, similar_names
         values = [no_signatures, accessions_in_name,
                   typos1, typos2, illegal_terms,
                   bad_abbrs1, bad_abbrs2,
-                  missing_hyphens, underscores]
+                  missing_hyphens, underscores,
+                  name_clashes.get(acc), diff_names.get(acc),
+                  diff_short_names.get(acc)]
         if any(values):
             failed.append({
                 "ann_id": None,
@@ -432,45 +442,58 @@ def check_entries(cur, checks, exceptions):
 def load_sanity_checks(cur):
     cur.execute(
         """
-        SELECT SC.CHECK_TYPE, SC.STRING, SE.ANN_ID, SE.ENTRY_AC
+        SELECT SC.CHECK_TYPE, SC.STRING, SE.ANN_ID, SE.ENTRY_AC, SE.ENTRY_AC2
         FROM INTERPRO.SANITY_CHECK SC
           LEFT OUTER JOIN INTERPRO.SANITY_EXCEPTION SE
           ON SC.CHECK_TYPE = SE.CHECK_TYPE
-          AND SC.ID = SE.ID
+          AND (
+            SC.STRING = SE.STRING 
+            OR (SC.STRING IS NULL AND SE.STRING IS NULL)
+          )
         """
     )
     checks = {}
-    abstract_exceptions = {}
-    entry_exceptions = {}
-    for err_type, term, ann_id, entry_ac in cur:
+    abstr_excpts = {}
+    entry_excpts = {}
+    for err_type, string, ann_id, entry_ac, entry_ac2 in cur:
         if err_type in checks:
-            terms = checks[err_type]
+            check = checks[err_type]
         else:
-            terms = checks[err_type] = set()
-            abstract_exceptions[err_type] = {}
-            entry_exceptions[err_type] = {} if term else set()
+            check = checks[err_type] = set()
+            abstr_excpts[err_type] = {}
+            entry_excpts[err_type] = {}
 
-        if term:
-            terms.add(term)
+        if string:
+            check.add(string)
 
-        if ann_id:
-            entity_id = ann_id
-            exceptions = abstract_exceptions[err_type]
-        elif entry_ac:
-            entity_id = entry_ac
-            exceptions = entry_exceptions[err_type]
-        else:
-            continue
-
-        if term:
-            if term in exceptions:
-                exceptions[term].append(entity_id)
+            if ann_id:
+                if string in abstr_excpts[err_type]:
+                    abstr_excpts[err_type][string].add(ann_id)
+                else:
+                    abstr_excpts[err_type][string] = {ann_id}
+            elif entry_ac:
+                if string in entry_excpts[err_type]:
+                    entry_excpts[err_type][string].add(ann_id)
+                else:
+                    entry_excpts[err_type][string] = {ann_id}
             else:
-                exceptions[term] = [entity_id]
+                # Generic exception
+                # (i.e. not associated to a given entry/abstract)
+                abstr_excpts[err_type][string] = None
+                entry_excpts[err_type][string] = None
+        elif ann_id:
+            raise NotImplementedError(err_type, string, ann_id)
+        elif entry_ac:
+            if not entry_ac2:
+                entry_excpts[err_type][entry_ac] = None
+            elif entry_ac in entry_excpts[err_type]:
+                entry_excpts[err_type][entry_ac].add(entry_ac2)
+            else:
+                entry_excpts[err_type][entry_ac] = {entry_ac2}
         else:
-            exceptions.add(entity_id)
+            raise NotImplementedError(err_type)
 
-    return checks, abstract_exceptions, entry_exceptions
+    return checks, abstr_excpts, entry_excpts
 
 
 def check_all(user, dsn):
