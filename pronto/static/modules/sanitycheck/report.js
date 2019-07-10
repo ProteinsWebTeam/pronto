@@ -36,18 +36,18 @@ function getErrors(runId) {
                         cards += '<div class="description">';
                         for (let [label, errors] of Object.entries(err.errors)) {
                             if (typeof errors === "boolean")
-                                cards += '<div class="ui basic small label">'+ label +'</div></div>';
+                                cards += '<div class="ui basic small label">'+ label +'</div>';
                             else
                                 for (let err of errors) {
                                     if (err.count > 1) {
                                         cards += '<div class="ui basic small label">'
                                             + label
-                                            + '<div class="detail">' + err.count + '&times;' + err.error + '</div>'
+                                            + '<div class="detail">' + err.count + '&times;&ldquo;' + err.error + '&rdquo;</div>'
                                             + '</div>';
                                     } else {
                                         cards += '<div class="ui basic small label">'
                                             + label
-                                            + '<div class="detail">' + err.error + '</div>'
+                                            + '<div class="detail">&ldquo;' + err.error + '&rdquo;</div>'
                                             + '</div>';
                                     }
                                 }
