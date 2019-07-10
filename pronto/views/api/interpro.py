@@ -226,6 +226,23 @@ def check_underscore(text, exceptions, id):
     return errors
 
 
+def check_gene_symbol(name, short_name, exceptions):
+    gene_symbols = set()
+    gene = re.search(r"(?:^|_)[a-z]{3}[A-Z]\b", short_name)
+    if gene:
+        gene = gene.group()
+        if gene not in exceptions:
+            gene_symbols.add(gene)
+
+    gene = re.search(r"[a-z]{3}[A-Z]\b", name)
+    if gene:
+        gene = gene.group()
+        if gene not in exceptions:
+            gene_symbols.add(gene)
+
+    return list(gene_symbols)
+
+
 def group_errors(keys, values):
     _errors = {}
     for key, val in zip(keys, values):
@@ -388,12 +405,17 @@ def check_entries(cur, checks, exceptions):
         else:
             diff_short_names[acc1] = [acc2]
 
+    lc_prog = re.compile("[a-z]")
+    lc_excs = tuple(exceptions.get("lowercase", []))
+
+    gene_excs = tuple(exceptions.get("gene", []))
+
     keys = ("No signature", "Accession (name)", "Spelling (name)",
             "Spelling (short name)", "Illegal term (name)",
             "Abbreviation (name)", "Abbreviation (short name)",
             "Underscore (short name)", "Underscore (name)",
             "Name/short name clash", "Name clash",
-            "Short name clash")
+            "Short name clash", "Lower case", "Gene symbol")
     failed = []
     for acc, (name, short_name, checked) in entries.items():
         no_signatures = checked == 'Y' and acc not in entries_w_signatures
@@ -423,12 +445,20 @@ def check_entries(cur, checks, exceptions):
         exc = exceptions.get("underscore", [])
         underscores = check_underscore(name, exc, acc)
 
+        # Normally names cannot start with a lower case character
+        starts_w_lc = False
+        for text in (short_name, name):
+            if lc_prog.match(text) and not text.startswith(lc_excs):
+                starts_w_lc = True
+
+        genes = check_gene_symbol(name, short_name, gene_excs)
+
         values = [no_signatures, accessions_in_name,
                   typos1, typos2, illegal_terms,
                   bad_abbrs1, bad_abbrs2,
                   missing_hyphens, underscores,
                   name_clashes.get(acc), diff_names.get(acc),
-                  diff_short_names.get(acc)]
+                  diff_short_names.get(acc), starts_w_lc, genes]
         if any(values):
             failed.append({
                 "ann_id": None,
@@ -476,11 +506,9 @@ def load_sanity_checks(cur):
                     entry_excpts[err_type][string].add(ann_id)
                 else:
                     entry_excpts[err_type][string] = {ann_id}
-            else:
-                # Generic exception
-                # (i.e. not associated to a given entry/abstract)
-                abstr_excpts[err_type][string] = None
-                entry_excpts[err_type][string] = None
+            elif string not in abstr_excpts[err_type]:
+                abstr_excpts[err_type][string] = set()
+                entry_excpts[err_type][string] = set()
         elif ann_id:
             raise NotImplementedError(err_type, string, ann_id)
         elif entry_ac:
