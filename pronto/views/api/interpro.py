@@ -234,7 +234,7 @@ def check_gene_symbol(name, short_name, exceptions):
         if gene not in exceptions:
             gene_symbols.add(gene)
 
-    gene = re.search(r"[a-z]{3}[A-Z]\b", name)
+    gene = re.search(r"\b[a-z]{3}[A-Z]\b", name)
     if gene:
         gene = gene.group()
         if gene not in exceptions:
