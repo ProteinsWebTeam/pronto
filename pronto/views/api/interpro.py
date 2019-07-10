@@ -415,7 +415,7 @@ def check_entries(cur, checks, exceptions):
             "Abbreviation (name)", "Abbreviation (short name)",
             "Underscore (short name)", "Underscore (name)",
             "Name/short name clash", "Name clash",
-            "Short name clash", "Lower case", "Gene symbol")
+            "Short name clash", "Lower case", "Gene symbol", "Double quotes")
     failed = []
     for acc, (name, short_name, checked) in entries.items():
         no_signatures = checked == 'Y' and acc not in entries_w_signatures
@@ -451,14 +451,18 @@ def check_entries(cur, checks, exceptions):
             if lc_prog.match(text) and not text.startswith(lc_excs):
                 starts_w_lc = True
 
+        # Gene symbol (nnnN) instead of protein (NnnN)
         genes = check_gene_symbol(name, short_name, gene_excs)
+
+        # Double quote in name
+        dq = '"' in name
 
         values = [no_signatures, accessions_in_name,
                   typos1, typos2, illegal_terms,
                   bad_abbrs1, bad_abbrs2,
                   missing_hyphens, underscores,
                   name_clashes.get(acc), diff_names.get(acc),
-                  diff_short_names.get(acc), starts_w_lc, genes]
+                  diff_short_names.get(acc), starts_w_lc, genes, dq]
         if any(values):
             failed.append({
                 "ann_id": None,
