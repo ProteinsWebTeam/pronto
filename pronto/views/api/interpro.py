@@ -405,6 +405,52 @@ def check_entries(cur, checks, exceptions):
         else:
             diff_short_names[acc1] = [acc2]
 
+    # Detect if a parent entry is checked and not a child (or reverse)
+    cur.execute(
+        """
+        SELECT EE.PARENT_AC, E2.CHECKED, EE.ENTRY_AC, E1.CHECKED
+        FROM INTERPRO.ENTRY2ENTRY EE
+        INNER JOIN INTERPRO.ENTRY E1 ON EE.ENTRY_AC = E1.ENTRY_AC
+        INNER JOIN INTERPRO.ENTRY E2 ON EE.PARENT_AC = E2.ENTRY_AC
+        WHERE (E1.CHECKED = 'Y' AND E2.CHECKED = 'N') 
+          OR (E2.CHECKED = 'Y' AND E1.CHECKED = 'N')
+        """
+    )
+    parent_unchecked = {}
+    children_unchecked = {}
+    for parent_acc, parent_checked, child_acc, child_checked in cur:
+        if parent_checked == 'Y':
+            if parent_acc in children_unchecked:
+                children_unchecked[parent_acc].append(child_acc)
+            else:
+                children_unchecked[parent_acc] = [child_acc]
+        else:
+            if child_acc in parent_unchecked:
+                parent_unchecked[child_acc].append(parent_acc)
+            else:
+                parent_unchecked[child_acc] = [parent_acc]
+
+    """
+    Detect in an homologous superfamily entry contains signatures 
+    that are not from CATH-Gene3/SUPERFAMILY
+    """
+    cur.execute(
+        """
+        SELECT E.ENTRY_AC, M.METHOD_AC
+        FROM INTERPRO.ENTRY E
+        INNER JOIN INTERPRO.ENTRY2METHOD EM 
+          ON (E.ENTRY_AC = EM.ENTRY_AC AND E.ENTRY_TYPE = 'H')
+        INNER JOIN INTERPRO.METHOD M 
+          ON (EM.METHOD_AC = M.METHOD_AC AND M.DBCODE NOT IN ('X', 'Y'))
+        """
+    )
+    invalid_signatures = {}
+    for entry_acc, signature_acc in cur:
+        if entry_acc in invalid_signatures:
+            invalid_signatures[entry_acc].append(signature_acc)
+        else:
+            invalid_signatures[entry_acc] = [signature_acc]
+
     lc_prog = re.compile("[a-z]")
     lc_excs = tuple(exceptions.get("lowercase", []))
 
@@ -415,7 +461,8 @@ def check_entries(cur, checks, exceptions):
             "Abbreviation (name)", "Abbreviation (short name)",
             "Underscore (short name)", "Underscore (name)",
             "Name/short name clash", "Name clash",
-            "Short name clash", "Lower case", "Gene symbol", "Double quotes")
+            "Short name clash", "Lower case", "Gene symbol", "Double quotes",
+            "Unchecked parent", "Unchecked child", "Invalid signature")
     failed = []
     for acc, (name, short_name, checked) in entries.items():
         no_signatures = checked == 'Y' and acc not in entries_w_signatures
@@ -462,7 +509,11 @@ def check_entries(cur, checks, exceptions):
                   bad_abbrs1, bad_abbrs2,
                   missing_hyphens, underscores,
                   name_clashes.get(acc), diff_names.get(acc),
-                  diff_short_names.get(acc), starts_w_lc, genes, dq]
+                  diff_short_names.get(acc), starts_w_lc, genes, dq,
+                  parent_unchecked.get(acc, []),
+                  children_unchecked.get(acc, []),
+                  invalid_signatures.get(acc, [])]
+
         if any(values):
             failed.append({
                 "ann_id": None,
