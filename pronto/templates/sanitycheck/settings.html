@@ -6,6 +6,11 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
     <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}">
     <title>Sanity check settings | Pronto</title>
+    <style type="text/css">
+        .ui.card a.meta:hover {
+            color: rgba(255,39,51,1);
+        }
+    </style>
 </head>
 <body>
 
@@ -14,16 +19,41 @@
 <div class="ui container basic vertical segment">
     <h1 class="ui dividing header">Sanity check settings</h1>
 
-    <div class="ui top attached tabular menu">
-        <div class="item" data-tab="tab-name">Tab Name</div>
-        <div class="item" data-tab="tab-name2">Tab Name 2</div>
-    </div>
-    <div class="ui tab" data-tab="tab-name">
-        <!-- Tab Content !-->
-    </div>
-    <div class="ui tab" data-tab="tab-name2">
-        <!-- Tab Content !-->
-    </div>
+    <h2 class="ui header">Invalid abbreviations</h2>
+    <div id="abbreviation" class="ui four cards"></div>
+
+    <h2 class="ui header">Names containing an accession</h2>
+    <div id="accession" class="ui four cards"></div>
+
+    <h2 class="ui header">Invalid characters</h2>
+    <div id="ascii" class="ui four cards"></div>
+
+    <h2 class="ui header">Invalid citations</h2>
+    <div id="citation" class="ui four cards"></div>
+
+    <h2 class="ui header">Name clashes</h2>
+    <div id="clash" class="ui four cards"></div>
+
+    <h2 class="ui header">Names containing gene symbols</h2>
+    <div id="gene" class="ui four cards"></div>
+
+    <h2 class="ui header">Names starting with lower case</h2>
+    <div id="lowercase" class="ui four cards"></div>
+
+    <h2 class="ui header">Invalid punctuation</h2>
+    <div id="punctuation" class="ui four cards"></div>
+
+    <h2 class="ui header">Spelling errors</h2>
+    <div id="spelling" class="ui four cards"></div>
+
+    <h2 class="ui header">Substitution errors</h2>
+    <div id="substitution" class="ui four cards"></div>
+
+    <h2 class="ui header">Underscore in names</h2>
+    <div id="underscore" class="ui four cards"></div>
+
+    <h2 class="ui header">Word</h2>
+    <div id="word" class="ui four cards"></div>
 </div>
 
 {% include 'footer.html' %}

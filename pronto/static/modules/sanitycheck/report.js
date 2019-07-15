@@ -3,7 +3,7 @@ import * as ui from "../../ui.js";
 
 
 function getErrors(runId) {
-    fetch('/api/interpro/sanitychecks/' + runId + '/')
+    fetch('/api/sanitychecks/runs/' + runId + '/')
         .then(response => {
             if (response.ok) {
                 response.json().then(run => {
@@ -72,7 +72,7 @@ function getErrors(runId) {
                     Array.from(document.querySelectorAll('[data-id]')).forEach(elem => {
                         elem.addEventListener('click', e => {
                             const errId = e.currentTarget.getAttribute('data-id');
-                            return fetch('/api/interpro/sanitychecks/' + runId + '/' + errId + '/', {method: "POST"})
+                            return fetch('/api/sanitychecks/runs/' + runId + '/' + errId + '/', {method: "POST"})
                                 .then(response => {
                                     if (response.ok)
                                         getErrors(runId);
@@ -97,6 +97,6 @@ function getErrors(runId) {
 
 $(function () {
     finaliseHeader();
-    const runId = location.pathname.match(/\/interpro\/sanitychecks\/(.+)\/$/)[1];
+    const runId = location.pathname.match(/\/sanitychecks\/runs\/(.+)\/$/)[1];
     getErrors(runId);
 });

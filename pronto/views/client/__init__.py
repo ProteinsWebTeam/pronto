@@ -100,11 +100,11 @@ def view_search():
     return render_template("search.html")
 
 
-@app.route("/interpro/sanitychecks/<id>/")
-def view_sanity_checks(id):
+@app.route("/sanitychecks/runs/<run_id>/")
+def view_sanity_checks(run_id):
     return render_template("sanitycheck/report.html")
 
 
-@app.route("/interpro/sanitychecks/settings/")
+@app.route("/sanitychecks/settings/")
 def view_sanity_checks_settings():
     return render_template("sanitycheck/settings.html")

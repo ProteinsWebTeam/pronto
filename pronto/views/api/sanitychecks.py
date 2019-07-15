@@ -65,7 +65,7 @@ def check_characters(text, exceptions, id):
         try:
             c.encode("ascii")
         except UnicodeEncodeError:
-            if id not in exceptions.get(ascii(c), []):
+            if id not in exceptions.get(str(ord(c)), []):
                 errors.append(c)
 
     return errors
@@ -345,7 +345,7 @@ def check_entries(cur, checks, exceptions):
     for acc1, acc2 in cur:
         if acc2 in exc.get(acc1, []):
             continue
-        elif acc1 in diff_names:
+        elif acc1 in diff_short_names:
             diff_short_names[acc1].append(acc2)
         else:
             diff_short_names[acc1] = [acc2]
@@ -472,20 +472,24 @@ def check_entries(cur, checks, exceptions):
 def load_sanity_checks(cur):
     cur.execute(
         """
-        SELECT SC.CHECK_TYPE, SC.STRING, SE.ANN_ID, SE.ENTRY_AC, SE.ENTRY_AC2
-        FROM INTERPRO.SANITY_CHECK SC
-          LEFT OUTER JOIN INTERPRO.SANITY_EXCEPTION SE
-          ON SC.CHECK_TYPE = SE.CHECK_TYPE
-          AND (
-            SC.STRING = SE.STRING 
-            OR (SC.STRING IS NULL AND SE.STRING IS NULL)
-          )
+        SELECT 
+          C.CHECK_TYPE, C.STRING, E.STRING, E.ANN_ID, E.ENTRY_AC, E.ENTRY_AC2
+        FROM INTERPRO.SANITY_CHECK C
+        LEFT OUTER JOIN INTERPRO.SANITY_EXCEPTION E
+          ON C.CHECK_TYPE = E.CHECK_TYPE
         """
     )
     checks = {}
     abstr_excpts = {}
     entry_excpts = {}
-    for err_type, string, ann_id, entry_ac, entry_ac2 in cur:
+    for row in cur:
+        err_type = row[0]
+        err_str = row[1]
+        exc_str = row[2]
+        exc_ann_id = row[3]
+        exc_entry_ac = row[4]
+        exc_entry_ac2 = row[5]
+
         if err_type in checks:
             check = checks[err_type]
         else:
@@ -493,33 +497,32 @@ def load_sanity_checks(cur):
             abstr_excpts[err_type] = {}
             entry_excpts[err_type] = {}
 
-        if string:
-            check.add(string)
+        if err_str:
+            check.add(err_str)
 
-            if ann_id:
-                if string in abstr_excpts[err_type]:
-                    abstr_excpts[err_type][string].add(ann_id)
-                else:
-                    abstr_excpts[err_type][string] = {ann_id}
-            elif entry_ac:
-                if string in entry_excpts[err_type]:
-                    entry_excpts[err_type][string].add(ann_id)
-                else:
-                    entry_excpts[err_type][string] = {ann_id}
-            elif string not in abstr_excpts[err_type]:
-                abstr_excpts[err_type][string] = set()
-                entry_excpts[err_type][string] = set()
-        elif ann_id:
-            raise NotImplementedError(err_type, string, ann_id)
-        elif entry_ac:
-            if not entry_ac2:
-                entry_excpts[err_type][entry_ac] = None
-            elif entry_ac in entry_excpts[err_type]:
-                entry_excpts[err_type][entry_ac].add(entry_ac2)
-            else:
-                entry_excpts[err_type][entry_ac] = {entry_ac2}
+        if exc_ann_id:
+            excpts = abstr_excpts
+            exc_id = exc_ann_id
+        elif exc_entry_ac:
+            excpts = entry_excpts
+            exc_id = exc_entry_ac
         else:
-            raise NotImplementedError(err_type)
+            exc_id = None
+            excpts = None
+
+        if exc_str and exc_id:
+            if exc_str in excpts:
+                excpts[exc_str].add(exc_id)
+            else:
+                excpts[exc_str] = {exc_id}
+        elif exc_str:
+            abstr_excpts[err_type][exc_str] = None
+            entry_excpts[err_type][exc_str] = None
+        elif exc_id:
+            if exc_id in excpts:
+                excpts[exc_id].add(exc_entry_ac2)
+            else:
+                excpts[exc_id] = {exc_entry_ac}
 
     return checks, abstr_excpts, entry_excpts
 
@@ -531,21 +534,21 @@ def check_all(user, dsn):
     abstracts = check_abstracts(cur, checks, abstract_exceptions)
     entries = check_entries(cur, checks, entry_exceptions)
 
-    # # Delete old runs (keeping the nine most recent)
-    # cur.execute(
-    #     """
-    #     DELETE FROM INTERPRO.SANITY_RUN
-    #     WHERE ID NOT IN (
-    #       SELECT ID
-    #       FROM (
-    #           SELECT ID
-    #           FROM INTERPRO.SANITY_RUN
-    #           ORDER BY TIMESTAMP DESC
-    #       )
-    #       WHERE ROWNUM <= 9
-    #     )
-    #     """
-    # )
+    # Delete old runs (keeping the nine most recent)
+    cur.execute(
+        """
+        DELETE FROM INTERPRO.SANITY_RUN
+        WHERE ID NOT IN (
+          SELECT ID
+          FROM (
+              SELECT ID
+              FROM INTERPRO.SANITY_RUN
+              ORDER BY TIMESTAMP DESC
+          )
+          WHERE ROWNUM <= 9
+        )
+        """
+    )
 
     # Add new run
     run_id = uuid.uuid1().hex
@@ -578,7 +581,7 @@ def check_all(user, dsn):
     con.close()
 
 
-@app.route("/api/sanitychecks/")
+@app.route("/api/sanitychecks/runs/")
 def get_sanitychecks():
     num_rows = int(request.args.get("limit", 10))
     cur = db.get_oracle().cursor()
@@ -607,7 +610,7 @@ def get_sanitychecks():
     return jsonify(reports)
 
 
-@app.route("/api/sanitychecks/", methods=["PUT"])
+@app.route("/api/sanitychecks/runs/", methods=["PUT"])
 def submit_sanitychecks():
     user = get_user()
     if user:
@@ -620,7 +623,7 @@ def submit_sanitychecks():
         return jsonify({"status": False}), 401
 
 
-@app.route("/api/sanitychecks/<run_id>/")
+@app.route("/api/sanitychecks/runs/<run_id>/")
 def get_sanitychecks_report(run_id):
     cur = db.get_oracle().cursor()
     cur.execute(
@@ -675,7 +678,7 @@ def get_sanitychecks_report(run_id):
     return jsonify(run), 200 if run else 404
 
 
-@app.route("/api/sanitychecks/<run_id>/<int:err_id>/", methods=["POST"])
+@app.route("/api/sanitychecks/runs/<run_id>/<int:err_id>/", methods=["POST"])
 def resolve_error(run_id, err_id):
     user = get_user()
     if not user:
@@ -694,3 +697,63 @@ def resolve_error(run_id, err_id):
     cur.close()
     con.commit()
     return '', 200 if n else 404
+
+
+@app.route("/api/sanitychecks/checks/")
+def get_type_checks():
+    con = db.get_oracle()
+    cur = con.cursor()
+    cur.execute(
+        """
+        SELECT SC.CHECK_TYPE, SC.STRING, SC.TIMESTAMP, SE.STRING, SE.ANN_ID, SE.ENTRY_AC, SE.ENTRY_AC2
+        FROM INTERPRO.SANITY_CHECK SC
+        LEFT OUTER JOIN INTERPRO.SANITY_EXCEPTION SE
+          ON SC.CHECK_TYPE = SE.CHECK_TYPE 
+            AND (
+              (SC.STRING = SE.STRING) OR 
+              (SC.STRING IS NULL AND SE.STRING IS NOT NULL) OR 
+              (SC.STRING IS NULL AND SE.STRING IS NULL )
+            )
+        """
+    )
+    checks = {}
+    for row in cur:
+        err_type = row[0]
+        if err_type in checks:
+            err_checks = checks[err_type]
+        else:
+            err_checks = checks[err_type] = {}
+
+        err_str = row[1]
+        err_date = row[2].strftime("%d %b %Y")
+        if err_str in err_checks:
+            err = err_checks[err_str]
+        else:
+            err = err_checks[err_str] = {
+                "string": err_str,
+                "date": err_date,
+                "exceptions": []
+            }
+
+        if err_type == "ascii":
+            exc_str = chr(int(row[3]))
+        else:
+            exc_str = row[3]
+
+        exc_ann_id = row[4]
+        exc_entry_ac = row[5]
+        exc_entry_ac2 = row[6]
+        if exc_str or exc_ann_id or exc_entry_ac or exc_entry_ac2:
+            err["exceptions"].append({
+                "string": exc_str,
+                "ann_id": exc_ann_id,
+                "entry_acc": exc_entry_ac,
+                "entry_acc2": exc_entry_ac2
+            })
+    cur.close()
+    con.commit()
+
+    for err_type, err_checks in checks.items():
+        checks[err_type] = sorted(err_checks.values(), key=lambda i: i["string"])
+
+    return jsonify(checks), 200

@@ -20,7 +20,7 @@ function waitForTask() {
 
 
 function getReports() {
-    fetch('/api/sanitychecks/')
+    fetch('/api/sanitychecks/runs/')
         .then(response => response.json())
         .then(results => {
             let html = '';
@@ -31,7 +31,7 @@ function getReports() {
                     + '<div class="summary">'
                     + '<a class="user">' + res.user + '</a> ran sanity checks'
                     + '</div>'
-                    + '<div class="meta"><a href="/sanitychecks/'+ res.id +'/"><i class="file text icon"></i> '+ res.errors +' errors.</a></div>'
+                    + '<div class="meta"><a href="/sanitychecks/runs/'+ res.id +'/"><i class="file text icon"></i> '+ res.errors +' errors.</a></div>'
                     + '</div>'
                     + '</div>';
             });
@@ -66,7 +66,7 @@ $(function () {
     getReports();
 
     document.querySelector('#sanity-checks button.primary').addEventListener('click', evt => {
-        fetch('/api/sanitychecks/', {method: 'PUT'})
+        fetch('/api/sanitychecks/runs/', {method: 'PUT'})
             .then(response => {
                 const elem = document.querySelector('#sanity-checks .message');
                 if (response.ok) {
