@@ -7,62 +7,7 @@ from urllib.request import urlopen
 
 from flask import json, jsonify, request
 
-from pronto import app, db, executor, get_user, xref
-from pronto.db import get_oracle
-
-
-@app.route("/api/interpro/databases/")
-def get_databases():
-    """
-    Retrieves the number of signatures (all, integrated into InterPro, and unintegrated) for each member database.
-    """
-
-    # Previous SUM statements were:
-    ## SUM(CASE WHEN E2M.ENTRY_AC IS NOT NULL  AND FS.FEATURE_ID IS NOT NULL THEN 1 ELSE 0 END),
-    ## SUM(CASE WHEN M.CANDIDATE != 'N' AND E2M.ENTRY_AC IS NULL AND FS.FEATURE_ID IS NOT NULL THEN 1 ELSE 0 END)
-
-    # Removed the join with FEATURE_SUMMARY:
-    ## LEFT OUTER JOIN {}.FEATURE_SUMMARY FS ON M.METHOD_AC = FS.FEATURE_ID
-    # that can be used to get the number of methods without matches:
-    ## sum(case when m.method_ac is not null and feature_id is null then 1 else 0 end) nomatch,
-    cur = get_oracle().cursor()
-    cur.execute(
-        """
-        SELECT
-          M.DBCODE,
-          MIN(DB.DBNAME),
-          MIN(DB.DBSHORT),
-          MIN(DB.VERSION),
-          MIN(DB.FILE_DATE),
-          COUNT(M.METHOD_AC),
-          SUM(CASE WHEN E2M.ENTRY_AC IS NOT NULL THEN 1 ELSE 0 END),
-          SUM(CASE WHEN E2M.ENTRY_AC IS NULL THEN 1 ELSE 0 END)
-        FROM {0}.METHOD M
-        LEFT OUTER JOIN {0}.CV_DATABASE DB
-          ON M.DBCODE = DB.DBCODE
-        LEFT OUTER JOIN INTERPRO.ENTRY2METHOD E2M
-          ON M.METHOD_AC = E2M.METHOD_AC
-        GROUP BY M.DBCODE
-        """.format(app.config["DB_SCHEMA"])
-    )
-
-    databases = []
-    for row in cur:
-        databases.append({
-            "code": row[0],
-            "name": row[1],
-            "short_name": row[2].lower(),
-            "version": row[3],
-            "date": row[4].strftime("%b %Y"),
-            "home": xref.find_ref(row[0]).home,
-            "count_signatures": row[5],
-            "count_integrated": row[6],
-            "count_unintegrated": row[7],
-        })
-
-    cur.close()
-
-    return jsonify(sorted(databases, key=lambda x: x["name"].lower()))
+from pronto import app, db, executor, get_user
 
 
 def check_abbreviations(text, checks, exceptions, id):
@@ -633,7 +578,7 @@ def check_all(user, dsn):
     con.close()
 
 
-@app.route("/api/interpro/sanitychecks/")
+@app.route("/api/sanitychecks/")
 def get_sanitychecks():
     num_rows = int(request.args.get("limit", 10))
     cur = db.get_oracle().cursor()
@@ -662,7 +607,7 @@ def get_sanitychecks():
     return jsonify(reports)
 
 
-@app.route("/api/interpro/sanitychecks/", methods=["PUT"])
+@app.route("/api/sanitychecks/", methods=["PUT"])
 def submit_sanitychecks():
     user = get_user()
     if user:
@@ -675,7 +620,7 @@ def submit_sanitychecks():
         return jsonify({"status": False}), 401
 
 
-@app.route("/api/interpro/sanitychecks/<run_id>/")
+@app.route("/api/sanitychecks/<run_id>/")
 def get_sanitychecks_report(run_id):
     cur = db.get_oracle().cursor()
     cur.execute(
@@ -730,7 +675,7 @@ def get_sanitychecks_report(run_id):
     return jsonify(run), 200 if run else 404
 
 
-@app.route("/api/interpro/sanitychecks/<run_id>/<int:err_id>/", methods=["POST"])
+@app.route("/api/sanitychecks/<run_id>/<int:err_id>/", methods=["POST"])
 def resolve_error(run_id, err_id):
     user = get_user()
     if not user:
