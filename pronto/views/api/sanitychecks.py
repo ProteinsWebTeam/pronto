@@ -714,6 +714,7 @@ def get_type_checks():
               (SC.STRING IS NULL AND SE.STRING IS NOT NULL) OR 
               (SC.STRING IS NULL AND SE.STRING IS NULL )
             )
+        ORDER BY SE.ANN_ID, SE.ENTRY_AC, SE.ENTRY_AC2, SE.STRING
         """
     )
     checks = {}
