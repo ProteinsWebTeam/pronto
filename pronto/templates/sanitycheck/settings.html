@@ -133,6 +133,21 @@
     <div id="word" class="ui four cards"></div>
 </div>
 
+<div id="new-term-modal" class="ui tiny modal">
+    <i class="close icon"></i>
+    <div class="header"></div>
+    <div class="content">
+        <p>Please note that leading and trailing spaces are not trimmed as they can be part of a term/exception.</p>
+        <div class="ui fluid icon input">
+            <input type="text" placeholder="Enter the new term or exception...">
+        </div>
+    </div>
+    <div class="actions">
+        <div class="ui primary approve button">Add</div>
+        <div class="ui basic deny button">Cancel</div>
+    </div>
+</div>
+
 {% include 'footer.html' %}
 
 <script src="{{ url_for('static', filename='vendor/jquery.min.js') }}"></script>

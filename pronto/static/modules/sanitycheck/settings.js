@@ -19,9 +19,9 @@ function createCards(checkType, checks) {
 
         html += '</div>'    // close description
             + '</div>'      // close content
-            + '<div class="ui bottom attached small button">'
+            + '<button class="ui bottom attached small button">'
             + '<i class="add icon"></i>Add exception'
-            + '</div>'
+            + '</button>'
             + '</div>';     // close card
     }
     return html;
@@ -76,7 +76,7 @@ function loadSanityChecks() {
                     document.getElementById(key).innerHTML = '<p>No exceptions</p>';
             });
 
-            document.querySelectorAll('[data-exc-id] i.delete').forEach(elem => {
+            document.querySelectorAll('.ui.label[data-exc-id] i.delete').forEach(elem => {
                 elem.addEventListener('click', e => {
                     const exceptionId = e.currentTarget.parentNode.getAttribute('data-exc-id');
                     ui.openConfirmModal(
@@ -97,7 +97,7 @@ function loadSanityChecks() {
                 });
             });
 
-            document.querySelectorAll('[data-type] .meta i.delete').forEach(elem => {
+            document.querySelectorAll('.ui.card[data-type] .meta i.delete').forEach(elem => {
                 elem.addEventListener('click', e => {
                     const card = e.currentTarget.closest('.ui.card');
                     const ckType = card.getAttribute('data-type');
@@ -120,7 +120,40 @@ function loadSanityChecks() {
                     );
                 });
             });
+
+
+            document.querySelectorAll('.ui.card[data-type] button.bottom').forEach(elem => {
+                elem.addEventListener('click', e => {
+                    const card = e.currentTarget.closest('.ui.card');
+                    const ckType = card.getAttribute('data-type');
+                    const ckString = card.getAttribute('data-string');
+                    addTermOrException(ckType, ckString);
+                });
+            });
         });
+}
+
+function addTermOrException(ckType, ckString) {
+    const modal = document.getElementById('new-term-modal');
+    const isTerm = ['abbreviation', 'citation', 'punctuation', 'spelling', 'substitution', 'word'].includes(ckType);
+    if (isTerm && ckString === null)
+        modal.querySelector('.header').innerHTML = 'Add term';
+    else if (isTerm)
+        modal.querySelector('.header').innerHTML = 'Add exception for &ldquo;' + ckString + '&rdquo;';
+    else
+        modal.querySelector('.header').innerHTML = 'Add exception';
+
+    $(modal)
+        .modal({
+            onShow: function() {
+                modal.querySelector('input').value = null;
+            },
+            onApprove: function ($element) {
+                console.log(modal.querySelector('input').value);
+                return false;
+            }
+        })
+        .modal('show');
 }
 
 
@@ -130,7 +163,8 @@ $(function () {
 
     document.querySelectorAll('button[data-type]').forEach(elem => {
         elem.addEventListener('click', e => {
-            console.log(e.currentTarget);
+            const ckType = e.currentTarget.getAttribute('data-type');
+            addTermOrException(ckType, null);
         });
     });
 });
