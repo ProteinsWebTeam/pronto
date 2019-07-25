@@ -118,7 +118,8 @@ def search_entry(cur, query):
         """.format(app.config["DB_SCHEMA"]),
         dict(q=query.upper())
     )
-    return cur.fetchone()
+    row = cur.fetchone()
+    return row[0] if row else None
 
 
 def search_protein(cur, query):
@@ -130,7 +131,8 @@ def search_protein(cur, query):
         """.format(app.config["DB_SCHEMA"]),
         {"q": query}
     )
-    return cur.fetchone()
+    row = cur.fetchone()
+    return row[0] if row else None
 
 
 def search_signature(cur, query):
@@ -142,7 +144,8 @@ def search_signature(cur, query):
         """.format(app.config["DB_SCHEMA"]),
         {"q": query}
     )
-    return cur.fetchone()
+    row = cur.fetchone()
+    return row[0] if row else None
 
 
 def search_abstract(cur, query):
@@ -154,7 +157,8 @@ def search_abstract(cur, query):
         """,
         dict(q=query.upper())
     )
-    return cur.fetchone()
+    row = cur.fetchone()
+    return row[0] if row and row[0] else None
 
 
 @app.route("/api/search/")
@@ -163,25 +167,25 @@ def api_search():
     if search_query:
         cur = db.get_oracle().cursor()
 
-        row = search_entry(cur, search_query)
-        if row:
+        accession = search_entry(cur, search_query)
+        if accession:
             cur.close()
-            return jsonify({"hit": {"accession": row[0], "type": "entry"}})
+            return jsonify({"hit": {"accession": accession, "type": "entry"}})
 
-        row = search_protein(cur, search_query)
-        if row:
+        accession = search_protein(cur, search_query)
+        if accession:
             cur.close()
-            return jsonify({"hit": {"accession": row[0], "type": "protein"}})
+            return jsonify({"hit": {"accession": accession, "type": "protein"}})
 
-        row = search_signature(cur, search_query)
-        if row:
+        accession = search_signature(cur, search_query)
+        if accession:
             cur.close()
-            return jsonify({"hit": {"accession": row[0], "type": "prediction"}})
+            return jsonify({"hit": {"accession": accession, "type": "prediction"}})
 
-        row = search_abstract(cur, search_query)
-        if row:
+        accession = search_abstract(cur, search_query)
+        if accession:
             cur.close()
-            return jsonify({"hit": {"accession": row[0], "type": "entry"}})
+            return jsonify({"hit": {"accession": accession, "type": "entry"}})
 
         cur.close()
 
