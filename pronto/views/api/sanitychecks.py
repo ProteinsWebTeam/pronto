@@ -5,6 +5,7 @@ import uuid
 from urllib.error import URLError
 from urllib.request import urlopen
 
+from cx_Oracle import DatabaseError
 from flask import json, jsonify, request
 
 from pronto import app, db, executor, get_user
@@ -760,3 +761,38 @@ def get_type_checks():
         checks[err_type] = sorted(err_checks.values(), key=lambda i: i["string"])
 
     return jsonify(checks), 200
+
+
+@app.route("/api/sanitychecks/exception/<int:exc_id>/", methods=["DELETE"])
+def delete_exception(exc_id):
+    user = get_user()
+    if not user:
+        return jsonify({
+            "status": False,
+            "title": "Access denied",
+            "message": 'Please <a href="/login/">log in</a> '
+                       'to perform this operation.'
+        }), 401
+
+    con = db.get_oracle()
+    cur = con.cursor()
+    try:
+        cur.execute(
+            """
+            DELETE FROM INTERPRO.SANITY_EXCEPTION
+            WHERE ID = :1 
+            """, (exc_id,)
+        )
+    except DatabaseError as exc:
+        return jsonify({
+            "status": False,
+            "title": "Database error",
+            "message": "Could not delete exception ({}).".format(exc)
+        }), 500
+    else:
+        con.commit()
+        return jsonify({
+            "status": True
+        }), 200
+    finally:
+        cur.close()

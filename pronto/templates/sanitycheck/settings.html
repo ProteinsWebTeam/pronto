@@ -8,8 +8,27 @@
     <title>Sanity check settings | Pronto</title>
     <style type="text/css">
         .ui.card a.meta:hover {
-            color: rgba(255,39,51,1);
+            color: #FF2733;
         }
+        .ui.label > a.header {
+            opacity: inherit;
+        }
+        .ui.label > a.detail {
+            opacity: .5;
+        }
+        .ui.label > a.detail:hover {
+            opacity: .8;
+        }
+        .ui.label {
+            margin-bottom: .15rem;
+        }
+        .ui.button[data-type] {
+            margin-bottom: .75rem;
+        }
+        .ui.cards ~ .ui.cards {
+            margin-top: 0;  /* superset Semantic behaviour */
+        }
+
     </style>
 </head>
 <body>
@@ -19,40 +38,98 @@
 <div class="ui container basic vertical segment">
     <h1 class="ui dividing header">Sanity check settings</h1>
 
-    <h2 class="ui header">Invalid abbreviations</h2>
+    <h2 class="ui header">
+        Invalid abbreviations
+        <div class="sub header">
+            The following abbreviations are forbidden in entry names, short names, and abstracts
+        </div>
+    </h2>
+    <button class="ui basic compact secondary button" data-type="abbreviation"><i class="add icon"></i>Add term</button>
     <div id="abbreviation" class="ui four cards"></div>
 
-    <h2 class="ui header">Names containing an accession</h2>
-    <div id="accession" class="ui four cards"></div>
+    <h2 class="ui header">
+        Entry names containing an accession
+        <div class="sub header">
+            The following pairs of accessions are authorized
+        </div>
+    </h2>
+    <button class="ui basic compact secondary button" data-type="accession"><i class="add icon"></i>Add exception</button>
+    <div id="accession"></div>
 
-    <h2 class="ui header">Invalid characters</h2>
-    <div id="ascii" class="ui four cards"></div>
+    <h2 class="ui header">
+        Non-ASCII characters
+        <div class="sub header">
+            Below are listed authorized characters and abstracts in which they are found
+        </div>
+    </h2>
+    <button class="ui basic compact secondary button" data-type="ascii"><i class="add icon"></i>Add exception</button>
+    <div id="ascii"></div>
 
-    <h2 class="ui header">Invalid citations</h2>
+    <h2 class="ui header">Invalid citations
+        <div class="sub header">
+            Abstracts must not contain any of the following citation-related terms
+        </div>
+    </h2>
+    <button class="ui basic compact secondary button" data-type="citation"><i class="add icon"></i>Add term</button>
     <div id="citation" class="ui four cards"></div>
 
-    <h2 class="ui header">Name clashes</h2>
-    <div id="clash" class="ui four cards"></div>
+    <h2 class="ui header">
+        Name clashes
+        <div class="sub header">
+            Exceptions are listed below
+        </div>
+    </h2>
+    <button class="ui basic compact secondary button" data-type="clash"><i class="add icon"></i>Add exception</button>
+    <div id="clash"></div>
 
-    <h2 class="ui header">Names containing gene symbols</h2>
-    <div id="gene" class="ui four cards"></div>
+    <h2 class="ui header">
+        Names containing potential gene symbols
+        <div class="sub header">
+            Names can contain any of the following words
+        </div>
+    </h2>
+    <button class="ui basic compact secondary button" data-type="gene"><i class="add icon"></i>Add exception</button>
+    <div id="gene"></div>
 
-    <h2 class="ui header">Names starting with lower case</h2>
-    <div id="lowercase" class="ui four cards"></div>
+    <h2 class="ui header">
+        Entry names starting with lower case
+        <div class="sub header">
+            Names can start with any of the following words
+        </div>
+    </h2>
+    <button class="ui basic compact secondary button" data-type="lowercase"><i class="add icon"></i>Add exception</button>
+    <div id="lowercase"></div>
 
-    <h2 class="ui header">Invalid punctuation</h2>
+    <h2 class="ui header">Invalid punctuation
+        <div class="sub header">
+            Abstracts must not contain any of the following strings
+        </div>
+    </h2>
+    <button class="ui basic compact secondary button" data-type="punctuation"><i class="add icon"></i>Add term</button>
     <div id="punctuation" class="ui four cards"></div>
 
-    <h2 class="ui header">Spelling errors</h2>
+    <h2 class="ui header">Spelling mistakes
+        <div class="sub header">Common misspellings to check</div>
+    </h2>
+    <button class="ui basic compact secondary button" data-type="spelling"><i class="add icon"></i>Add term</button>
     <div id="spelling" class="ui four cards"></div>
 
-    <h2 class="ui header">Substitution errors</h2>
+    <h2 class="ui header">Substitution errors
+        <div class="sub header">Non-word character substitutions to check</div>
+    </h2>
+    <button class="ui basic compact secondary button" data-type="substitution"><i class="add icon"></i>Add term</button>
     <div id="substitution" class="ui four cards"></div>
 
-    <h2 class="ui header">Underscore in names</h2>
-    <div id="underscore" class="ui four cards"></div>
+    <h2 class="ui header">Underscore in names
+        <div class="sub header">The following entries can have underscores in their names or short names</div>
+    </h2>
+    <button class="ui basic compact secondary button" data-type="underscore"><i class="add icon"></i>Add exception</button>
+    <div id="underscore"></div>
 
-    <h2 class="ui header">Word</h2>
+    <h2 class="ui header">Word
+        <div class="sub header">Entry names must not contain any of the following words</div>
+    </h2>
+    <button class="ui basic compact secondary button" data-type="word"><i class="add icon"></i>Add term</button>
     <div id="word" class="ui four cards"></div>
 </div>
 
