@@ -705,7 +705,7 @@ def get_type_checks():
     cur = con.cursor()
     cur.execute(
         """
-        SELECT SC.CHECK_TYPE, SC.STRING, SC.TIMESTAMP, SE.STRING, SE.ANN_ID, SE.ENTRY_AC, SE.ENTRY_AC2
+        SELECT SC.CHECK_TYPE, SC.STRING, SC.TIMESTAMP, SE.ID, SE.STRING, SE.ANN_ID, SE.ENTRY_AC, SE.ENTRY_AC2
         FROM INTERPRO.SANITY_CHECK SC
         LEFT OUTER JOIN INTERPRO.SANITY_EXCEPTION SE
           ON SC.CHECK_TYPE = SE.CHECK_TYPE 
@@ -736,16 +736,18 @@ def get_type_checks():
                 "exceptions": []
             }
 
+        exc_id = row[3]
         if err_type == "ascii":
-            exc_str = chr(int(row[3]))
+            exc_str = chr(int(row[4]))
         else:
-            exc_str = row[3]
+            exc_str = row[4]
 
-        exc_ann_id = row[4]
-        exc_entry_ac = row[5]
-        exc_entry_ac2 = row[6]
+        exc_ann_id = row[5]
+        exc_entry_ac = row[6]
+        exc_entry_ac2 = row[7]
         if exc_str or exc_ann_id or exc_entry_ac or exc_entry_ac2:
             err["exceptions"].append({
+                "id": exc_id,
                 "string": exc_str,
                 "ann_id": exc_ann_id,
                 "entry_acc": exc_entry_ac,
