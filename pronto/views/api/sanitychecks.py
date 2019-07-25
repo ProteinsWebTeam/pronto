@@ -792,7 +792,54 @@ def delete_exception(exc_id):
     else:
         con.commit()
         return jsonify({
-            "status": True
+            "status": True,
+            "deleted": cur.rowcount > 0
+        }), 200
+    finally:
+        cur.close()
+
+
+@app.route("/api/sanitychecks/term/<check_type>/", methods=["DELETE"])
+def delete_checked_term(check_type):
+    term = request.args.get("str", "")
+    user = get_user()
+    if not user:
+        return jsonify({
+            "status": False,
+            "title": "Access denied",
+            "message": 'Please <a href="/login/">log in</a> '
+                       'to perform this operation.'
+        }), 401
+
+    con = db.get_oracle()
+    cur = con.cursor()
+    deleted = False
+    try:
+        cur.execute(
+            """
+            DELETE FROM INTERPRO.SANITY_CHECK
+            WHERE CHECK_TYPE = :1 AND STRING = :2
+            """, (check_type, term)
+        )
+        deleted = cur.rowcount > 0
+
+        cur.execute(
+            """
+            DELETE FROM INTERPRO.SANITY_EXCEPTION
+            WHERE CHECK_TYPE = :1 AND STRING = :2
+            """, (check_type, term)
+        )
+    except DatabaseError as exc:
+        return jsonify({
+            "status": False,
+            "title": "Database error",
+            "message": "Could not delete exception ({}).".format(exc)
+        }), 500
+    else:
+        con.commit()
+        return jsonify({
+            "status": True,
+            "deleted": deleted
         }), 200
     finally:
         cur.close()

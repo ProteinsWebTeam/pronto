@@ -96,6 +96,30 @@ function loadSanityChecks() {
                     );
                 });
             });
+
+            document.querySelectorAll('[data-type] .meta i.delete').forEach(elem => {
+                elem.addEventListener('click', e => {
+                    const card = e.currentTarget.closest('.ui.card');
+                    const ckType = card.getAttribute('data-type');
+                    const ckString = encodeURI(card.getAttribute('data-string'));
+
+                    ui.openConfirmModal(
+                        'Delete term?',
+                        'Are you sure to delete this term? It will not be searched any more. <strong>This action is irreversible.</strong>',
+                        'Delete',
+                        () => {
+                            fetch('/api/sanitychecks/term/'+ ckType +'/?str=' + ckString, {method: 'DELETE'})
+                                .then(response => response.json())
+                                .then(result => {
+                                    if (result.status)
+                                        loadSanityChecks();
+                                    else
+                                        ui.openErrorModal(result);
+                                });
+                        }
+                    );
+                });
+            });
         });
 }
 
