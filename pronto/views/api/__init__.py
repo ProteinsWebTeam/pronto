@@ -145,25 +145,44 @@ def search_signature(cur, query):
     return cur.fetchone()
 
 
+def search_abstract(cur, query):
+    cur.execute(
+        """
+        SELECT MIN(ENTRY_AC)
+        FROM INTERPRO.ENTRY2COMMON
+        WHERE UPPER(ANN_ID) = :q
+        """,
+        dict(q=query.upper())
+    )
+    return cur.fetchone()
+
+
 @app.route("/api/search/")
 def api_search():
     search_query = request.args.get("q", "").strip()
-    hit = None
     if search_query:
         cur = db.get_oracle().cursor()
-        funcs = (search_entry, search_protein, search_signature)
-        types = ("entry", "protein", "prediction")
-        for f, t in zip(funcs, types):
-            row = f(cur, search_query)
-            if row is not None:
-                hit = {
-                    "accession": row[0],
-                    "type": t
-                }
-                break
+
+        row = search_entry(cur, search_query)
+        if row:
+            cur.close()
+            return jsonify({"hit": {"accession": row[0], "type": "entry"}})
+
+        row = search_protein(cur, search_query)
+        if row:
+            cur.close()
+            return jsonify({"hit": {"accession": row[0], "type": "protein"}})
+
+        row = search_signature(cur, search_query)
+        if row:
+            cur.close()
+            return jsonify({"hit": {"accession": row[0], "type": "prediction"}})
+
+        row = search_abstract(cur, search_query)
+        if row:
+            cur.close()
+            return jsonify({"hit": {"accession": row[0], "type": "entry"}})
 
         cur.close()
 
-    return jsonify({
-        "hit": hit
-    })
+    return jsonify({"hit": None})
