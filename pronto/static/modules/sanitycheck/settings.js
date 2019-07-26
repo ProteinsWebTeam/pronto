@@ -62,14 +62,14 @@ function loadSanityChecks() {
                 map.set(key, value);
             }
 
-            ['abbreviation', 'citation', 'punctuation', 'spelling', 'substitution', 'word'].forEach(key => {
+            ['invalid_abbr', 'invalid_citation', 'invalid_punct', 'misspelling', 'bad_subst', 'illegal_word'].forEach(key => {
                 if (map.has(key)) {
                     document.getElementById(key).innerHTML = createCards(key, map.get(key));
                 } else
                     document.getElementById(key).innerHTML = '<p>No terms to search</p>';
             });
 
-            ['accession', 'ascii', 'clash', 'gene', 'lowercase', 'underscore'].forEach(key => {
+            ['acc_in_name', 'non_ascii', 'similar_name', 'gene_symbol', 'lowercase_name', 'underscore_in_name'].forEach(key => {
                 if (map.has(key)) {
                     document.getElementById(key).innerHTML = createLabels(map.get(key));
                 } else
@@ -130,26 +130,128 @@ function loadSanityChecks() {
                     addTermOrException(ckType, ckString);
                 });
             });
+
+            $('.ui.sticky').sticky({offset: 50});
+            $('section')
+                .visibility({
+                    observeChanges: false,
+                    once: false,
+                    offset: 50,
+                    onTopPassed: function () {
+                        const section = this;
+                        const sections = Array.from(document.querySelectorAll('section'));
+                        const index = sections.findIndex((element,) => element === section);
+                        const item = document.querySelector('.ui.sticky .item:nth-child('+ (index+1) +')');
+                        const activeItem = document.querySelector('.ui.sticky .item.active');
+                        if (item !== activeItem) {
+                            ui.setClass(activeItem, 'active', false);
+                            ui.setClass(item, 'active', true);
+                        }
+                    },
+                    onTopPassedReverse: function () {
+                        const activeItem = document.querySelector('.ui.sticky .item.active');
+                        const prevItem = activeItem.previousElementSibling;
+                        if (prevItem) {
+                            ui.setClass(activeItem, 'active', false);
+                            ui.setClass(prevItem, 'active', true);
+                        }
+                    }
+                });
         });
 }
 
 function addTermOrException(ckType, ckString) {
     const modal = document.getElementById('new-term-modal');
-    const isTerm = ['abbreviation', 'citation', 'punctuation', 'spelling', 'substitution', 'word'].includes(ckType);
-    if (isTerm && ckString === null)
+    const message = modal.querySelector('.message');
+    const label1 = modal.querySelector('#label-1');
+    const label2 = modal.querySelector('#label-2');
+
+    ui.setClass(message, 'hidden', true);
+
+    const isTerm = ['invalid_abbr', 'invalid_citation', 'invalid_punct', 'misspelling', 'bad_subst', 'illegal_word'].includes(ckType);
+    if (isTerm && ckString === null) {
+        // New term
         modal.querySelector('.header').innerHTML = 'Add term';
-    else if (isTerm)
+        label1.querySelector('label').innerHTML = 'New term to check';
+        label1.querySelector('input').placeholder = 'Term to check';
+        ui.setClass(label2, 'hidden', true);
+    }
+    else if (isTerm) {
+        // New exception for existing term
         modal.querySelector('.header').innerHTML = 'Add exception for &ldquo;' + ckString + '&rdquo;';
-    else
+        label1.querySelector('label').innerHTML = 'Entry or abstract';
+        label1.querySelector('input').placeholder = 'Entry accession or abstract ID';
+        ui.setClass(label2, 'hidden', true);
+    }
+    else {
+        // New exception for a type of check that does not require terms
         modal.querySelector('.header').innerHTML = 'Add exception';
+        if (ckType === 'acc_in_name' || ckType === 'similar_name') {
+            label1.querySelector('label').innerHTML = 'Entry #1';
+            label1.querySelector('input').placeholder = 'Entry accession #1';
+            label2.querySelector('label').innerHTML = 'Entry #2';
+            label2.querySelector('input').placeholder = 'Entry accession #2';
+            ui.setClass(label2, 'hidden', false);
+        } else if (ckType === 'non_ascii') {
+            label1.querySelector('label').innerHTML = 'Abstract';
+            label1.querySelector('input').placeholder = 'Abstract ID';
+            label2.querySelector('label').innerHTML = 'Non-ASCII character';
+            label2.querySelector('input').placeholder = 'Non-ASCII character';
+            ui.setClass(label2, 'hidden', false);
+        } else if (ckType === 'underscore_in_name') {
+            label1.querySelector('label').innerHTML = 'Entry';
+            label1.querySelector('input').placeholder = 'Entry accession';
+            ui.setClass(label2, 'hidden', true);
+        } else {
+            label1.querySelector('label').innerHTML = 'Term';
+            label1.querySelector('input').placeholder = 'Term to authorize';
+            ui.setClass(label2, 'hidden', true);
+        }
+    }
 
     $(modal)
         .modal({
             onShow: function() {
-                modal.querySelector('input').value = null;
+                label1.querySelector('input').value = null;
+                label2.querySelector('input').value = null;
             },
-            onApprove: function ($element) {
-                console.log(modal.querySelector('input').value);
+            onApprove: function () {
+                const options = {method: 'PUT'};
+
+                if (isTerm && ckString === null) {
+                    // New term
+                    const term = encodeURI(label1.querySelector('input').value);
+                    fetch('/api/sanitychecks/term/' + ckType + '/?term=' + term, options)
+                        .then(response => response.json())
+                        .then(result => {
+                            if (result.status) {
+                                $(modal).modal('hide');
+                                loadSanityChecks();
+                            } else {
+                                message.innerHTML = '<div class="header">' + result.error.title + '</div><p>'+ result.error.message +'</p>';
+                                ui.setClass(message, 'hidden', false);
+                            }
+                        });
+                } else {
+                    options.headers = {'Content-Type': 'application/json; charset=utf-8'};
+                    options.body = JSON.stringify({
+                        value1: label1.querySelector('input').value,
+                        value2: label2.querySelector('input').value,
+                        term: ckString
+                    });
+                    fetch('/api/sanitychecks/exception/' + ckType + '/', options)
+                        .then(response => response.json())
+                        .then(result => {
+                            if (result.status) {
+                                $(modal).modal('hide');
+                                loadSanityChecks();
+                            } else {
+                                message.innerHTML = '<div class="header">' + result.error.title + '</div><p>'+ result.error.message +'</p>';
+                                ui.setClass(message, 'hidden', false);
+                            }
+                        });
+                }
+
                 return false;
             }
         })

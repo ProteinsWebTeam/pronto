@@ -10,6 +10,9 @@ from flask import json, jsonify, request
 
 from pronto import app, db, executor, get_user
 
+_TERM_TYPES = ("invalid_abbr", "invalid_citation", "invalid_punct",
+               "misspelling", "bad_subst", "illegal_word")
+
 
 def check_abbreviations(text, checks, exceptions, id):
     bad_abbrs = []
@@ -236,30 +239,30 @@ def check_abstracts(cur, checks, exceptions):
 
         too_short, has_empty_block = check_basic(text)
 
-        err = checks.get("abbreviation", [])
-        exc = exceptions.get("abbreviation", {})
+        err = checks.get("invalid_abbr", [])
+        exc = exceptions.get("invalid_abbr", {})
         bad_abbrs = check_abbreviations(text, err, exc, ann_id)
 
-        exc = exceptions.get("ascii", {})
+        exc = exceptions.get("non_ascii", {})
         bad_characters = check_characters(text, exc, ann_id)
 
-        err = checks.get("citation", [])
-        exc = exceptions.get("citation", {})
+        err = checks.get("invalid_citation", [])
+        exc = exceptions.get("invalid_citation", {})
         bad_citations = check_citations(text, err, exc, ann_id)
 
         bad_gram = check_gram(text)
         bad_links = check_links(text)
 
-        err = checks.get("punctuation", [])
-        exc = exceptions.get("punctuation", {})
+        err = checks.get("invalid_punct", [])
+        exc = exceptions.get("invalid_punct", {})
         bad_punctuations = check_punctuation(text, err, exc, ann_id)
 
-        err = checks.get("spelling", [])
-        exc = exceptions.get("spelling", {})
+        err = checks.get("misspelling", [])
+        exc = exceptions.get("misspelling", {})
         typos = check_spelling(text, err, exc, ann_id)
 
-        err = checks.get("substitution", [])
-        exc = exceptions.get("substitution", {})
+        err = checks.get("bad_subst", [])
+        exc = exceptions.get("bad_subst", {})
         bad_substitutions = check_substitutions(text, err, exc, ann_id)
 
         values = [too_short, has_empty_block, bad_abbrs,
@@ -308,7 +311,7 @@ def check_entries(cur, checks, exceptions):
         else:
             name_clashes[acc1] = [acc2]
 
-    exc = exceptions.get("clash", {})
+    exc = exceptions.get("similar_name", {})
     cur.execute(
         """
         SELECT A.ENTRY_AC, B.ENTRY_AC
@@ -398,9 +401,9 @@ def check_entries(cur, checks, exceptions):
             invalid_signatures[entry_acc] = [signature_acc]
 
     lc_prog = re.compile("[a-z]")
-    lc_excs = tuple(exceptions.get("lowercase", []))
+    lc_excs = tuple(exceptions.get("lowercase_name", []))
 
-    gene_excs = tuple(exceptions.get("gene", []))
+    gene_excs = tuple(exceptions.get("gene_symbol", []))
 
     keys = ("No signature", "Accession (name)", "Spelling (name)",
             "Spelling (short name)", "Illegal term (name)",
@@ -413,20 +416,20 @@ def check_entries(cur, checks, exceptions):
     for acc, (name, short_name, checked) in entries.items():
         no_signatures = checked == 'Y' and acc not in entries_w_signatures
 
-        exc = exceptions.get("accession", {})
+        exc = exceptions.get("acc_in_name", {})
         accessions_in_name = check_accession(name, exc, acc)
 
-        err = checks.get("spelling", [])
-        exc = exceptions.get("spelling", {})
+        err = checks.get("misspelling", [])
+        exc = exceptions.get("misspelling", {})
         typos1 = check_spelling(name, err, exc, acc)
         typos2 = check_spelling(short_name, err, exc, acc)
 
-        err = checks.get("word", [])
-        exc = exceptions.get("word", {})
+        err = checks.get("illegal_word", [])
+        exc = exceptions.get("illegal_word", {})
         illegal_terms = check_illegal_terms(name, err, exc, acc)
 
-        err = checks.get("abbreviation", [])
-        exc = exceptions.get("abbreviation", {})
+        err = checks.get("invalid_abbr", [])
+        exc = exceptions.get("invalid_abbr", {})
         bad_abbrs1 = check_abbreviations(name, err, exc, acc)
         bad_abbrs2 = check_abbreviations(short_name, err, exc, acc)
 
@@ -435,7 +438,7 @@ def check_entries(cur, checks, exceptions):
                                                       "related", "rel",
                                                       "like"))
 
-        exc = exceptions.get("underscore", [])
+        exc = exceptions.get("underscore_in_name", [])
         underscores = check_underscore(name, exc, acc)
 
         # Normally names cannot start with a lower case character
@@ -474,7 +477,7 @@ def load_sanity_checks(cur):
     cur.execute(
         """
         SELECT 
-          C.CHECK_TYPE, C.STRING, E.STRING, E.ANN_ID, E.ENTRY_AC, E.ENTRY_AC2
+          C.CHECK_TYPE, C.TERM, E.TERM, E.ANN_ID, E.ENTRY_AC, E.ENTRY_AC2
         FROM INTERPRO.SANITY_CHECK C
         LEFT OUTER JOIN INTERPRO.SANITY_EXCEPTION E
           ON C.CHECK_TYPE = E.CHECK_TYPE
@@ -706,16 +709,16 @@ def get_type_checks():
     cur = con.cursor()
     cur.execute(
         """
-        SELECT SC.CHECK_TYPE, SC.STRING, SC.TIMESTAMP, SE.ID, SE.STRING, SE.ANN_ID, SE.ENTRY_AC, SE.ENTRY_AC2
+        SELECT SC.CHECK_TYPE, SC.TERM, SC.TIMESTAMP, SE.ID, SE.TERM, SE.ANN_ID, SE.ENTRY_AC, SE.ENTRY_AC2
         FROM INTERPRO.SANITY_CHECK SC
         LEFT OUTER JOIN INTERPRO.SANITY_EXCEPTION SE
           ON SC.CHECK_TYPE = SE.CHECK_TYPE 
             AND (
-              (SC.STRING = SE.STRING) OR 
-              (SC.STRING IS NULL AND SE.STRING IS NOT NULL) OR 
-              (SC.STRING IS NULL AND SE.STRING IS NULL )
+              (SC.TERM = SE.TERM) OR 
+              (SC.TERM IS NULL AND SE.TERM IS NOT NULL) OR 
+              (SC.TERM IS NULL AND SE.TERM IS NULL )
             )
-        ORDER BY SE.ANN_ID, SE.ENTRY_AC, SE.ENTRY_AC2, SE.STRING
+        ORDER BY SE.ANN_ID, SE.ENTRY_AC, SE.ENTRY_AC2, SE.TERM
         """
     )
     checks = {}
@@ -738,7 +741,7 @@ def get_type_checks():
             }
 
         exc_id = row[3]
-        if err_type == "ascii":
+        if err_type == "non_ascii":
             exc_str = chr(int(row[4]))
         else:
             exc_str = row[4]
@@ -763,6 +766,250 @@ def get_type_checks():
     return jsonify(checks), 200
 
 
+@app.route("/api/sanitychecks/term/<check_type>/", methods=["PUT"])
+def add_check_term(check_type):
+    try:
+        term = request.args["term"]
+        assert len(term) > 0
+    except (AssertionError, KeyError):
+        return jsonify({
+            "status": False,
+            "title": "Missing parameter",
+            "message": "Invalid or missing parameters."
+        }), 400
+
+    user = get_user()
+    if not user:
+        return jsonify({
+            "status": False,
+            "title": "Access denied",
+            "message": 'Please <a href="/login/">log in</a> '
+                       'to perform this operation.'
+        }), 401
+
+    con = db.get_oracle()
+    cur = con.cursor()
+    try:
+        cur.execute(
+            """
+            INSERT INTO INTERPRO.SANITY_CHECK (CHECK_TYPE, TERM)
+            VALUES (:1, :2)
+            """, (check_type, term)
+        )
+    except DatabaseError as exc:
+        return jsonify({
+            "error": {
+                "status": False,
+                "title": "Database error",
+                "message": "Could not add exception ({}).".format(exc)
+            }
+        }), 500
+    else:
+        con.commit()
+        return jsonify({
+            "status": True
+        }), 200
+    finally:
+        cur.close()
+
+
+@app.route("/api/sanitychecks/term/<check_type>/", methods=["DELETE"])
+def delete_check_term(check_type):
+    term = request.args.get("str", "")
+    user = get_user()
+    if not user:
+        return jsonify({
+            "status": False,
+            "title": "Access denied",
+            "message": 'Please <a href="/login/">log in</a> '
+                       'to perform this operation.'
+        }), 401
+
+    con = db.get_oracle()
+    cur = con.cursor()
+    try:
+        cur.execute(
+            """
+            DELETE FROM INTERPRO.SANITY_CHECK
+            WHERE CHECK_TYPE = :1 AND TERM = :2
+            """, (check_type, term)
+        )
+        deleted = cur.rowcount > 0
+
+        cur.execute(
+            """
+            DELETE FROM INTERPRO.SANITY_EXCEPTION
+            WHERE CHECK_TYPE = :1 AND TERM = :2
+            """, (check_type, term)
+        )
+    except DatabaseError as exc:
+        return jsonify({
+            "error": {
+                "status": False,
+                "title": "Database error",
+                "message": "Could not add exception ({}).".format(exc)
+            }
+        }), 500
+    else:
+        con.commit()
+        return jsonify({
+            "status": True,
+            "deleted": deleted
+        }), 200
+    finally:
+        cur.close()
+
+
+@app.route("/api/sanitychecks/exception/<check_type>/", methods=["PUT"])
+def add_exception(check_type):
+    try:
+        value1 = request.json["value1"]
+        value2 = request.json["value2"]
+        term = request.json["term"]
+    except KeyError:
+        return jsonify({
+            "error": {
+                "title": "Bad request",
+                "message": "Invalid or missing parameters."
+            }
+        }), 400
+
+    user = get_user()
+    if not user:
+        return jsonify({
+            "status": False,
+            "title": "Access denied",
+            "message": 'Please <a href="/login/">log in</a> '
+                       'to perform this operation.'
+        }), 401
+
+    if check_type in _TERM_TYPES:
+        # Exception for specific checked term
+        if not term:
+            return jsonify({
+                "error": {
+                    "title": "Bad request",
+                    "message": "Invalid or missing parameters."
+                }
+            }), 400
+        elif re.match("IPR\d+$", value1):
+            params = (check_type, term, None, value1, None)
+        elif re.match("AB\d+$", value1):
+            params = (check_type, term, value1, None, None)
+        else:
+            return jsonify({
+                "error": {
+                    "title": "Bad request",
+                    "message": "'{}' is not a valid InterPro entry "
+                               "or abstract ID.".format(value1)
+                }
+            }), 400
+    elif check_type == "acc_in_name":
+        if re.match("IPR\d+$", value1):
+            params = (check_type, None, None, value1, value2)
+        else:
+            return jsonify({
+                "error": {
+                    "title": "Bad request",
+                    "message": "'{}' is not a valid InterPro entry.".format(value1)
+                }
+            }), 400
+    elif check_type == "similar_name":
+        if not re.match("IPR\d+$", value1):
+            return jsonify({
+                "error": {
+                    "title": "Bad request",
+                    "message": "'{}' is not a valid InterPro entry.".format(value1)
+                }
+            }), 400
+        elif not re.match("IPR\d+$", value2):
+            return jsonify({
+                "error": {
+                    "title": "Bad request",
+                    "message": "'{}' is not a valid InterPro entry.".format(value2)
+                }
+            }), 400
+        elif value1 < value2:
+            params = (check_type, None, None, value1, value2)
+        else:
+            params = (check_type, None, None, value2, value1)
+    elif check_type == "non_ascii":
+        if not re.match("AB\d+$", value1):
+            return jsonify({
+                "error": {
+                    "title": "Bad request",
+                    "message": "'{}' is not a valid abstract ID.".format(value1)
+                }
+            }), 400
+
+        try:
+            integer = ord(value2)
+        except TypeError:
+            return jsonify({
+                "error": {
+                    "title": "Bad request",
+                    "message": "Expected a character, but string of length {} found.".format(len(value2))
+                }
+            }), 400
+
+        try:
+            value2.encode("ascii")
+        except UnicodeEncodeError:
+            pass
+        else:
+            return jsonify({
+                "error": {
+                    "title": "Bad request",
+                    "message": "'{}' is a ASCII character. Please enter non-ASCII characters only.".format(value2)
+                }
+            }), 400
+
+    elif check_type == "underscore_in_name":
+        if re.match("IPR\d+$", value1):
+            params = (check_type, None, None, value1, None)
+        else:
+            return jsonify({
+                "error": {
+                    "title": "Bad request",
+                    "message": "'{}' is not a valid InterPro entry.".format(value1)
+                }
+            }), 400
+    elif len(value1):
+        params = (check_type, value1, None, None, None)
+    else:
+        return jsonify({
+            "error": {
+                "title": "Bad request",
+                "message": "Please enter at least one character."
+            }
+        }), 400
+
+    con = db.get_oracle()
+    cur = con.cursor()
+    try:
+        cur.execute(
+            """
+            INSERT INTO INTERPRO.SANITY_EXCEPTION (ID, CHECK_TYPE, TERM, ANN_ID, ENTRY_AC, ENTRY_AC2)
+            VALUES ((SELECT NVL(MAX(ID), 0)+1 from INTERPRO.SANITY_EXCEPTION), :1, :2, :3, :4, :5)
+            """, params
+        )
+    except DatabaseError as exc:
+        return jsonify({
+            "error": {
+                "status": False,
+                "title": "Database error",
+                "message": "Could not add exception ({}).".format(exc)
+            }
+        }), 500
+    else:
+        con.commit()
+        return jsonify({
+            "status": True
+        }), 200
+    finally:
+        cur.close()
+
+
 @app.route("/api/sanitychecks/exception/<int:exc_id>/", methods=["DELETE"])
 def delete_exception(exc_id):
     user = get_user()
@@ -785,61 +1032,17 @@ def delete_exception(exc_id):
         )
     except DatabaseError as exc:
         return jsonify({
-            "status": False,
-            "title": "Database error",
-            "message": "Could not delete exception ({}).".format(exc)
+            "error": {
+                "status": False,
+                "title": "Database error",
+                "message": "Could not add exception ({}).".format(exc)
+            }
         }), 500
     else:
         con.commit()
         return jsonify({
             "status": True,
             "deleted": cur.rowcount > 0
-        }), 200
-    finally:
-        cur.close()
-
-
-@app.route("/api/sanitychecks/term/<check_type>/", methods=["DELETE"])
-def delete_checked_term(check_type):
-    term = request.args.get("str", "")
-    user = get_user()
-    if not user:
-        return jsonify({
-            "status": False,
-            "title": "Access denied",
-            "message": 'Please <a href="/login/">log in</a> '
-                       'to perform this operation.'
-        }), 401
-
-    con = db.get_oracle()
-    cur = con.cursor()
-    deleted = False
-    try:
-        cur.execute(
-            """
-            DELETE FROM INTERPRO.SANITY_CHECK
-            WHERE CHECK_TYPE = :1 AND STRING = :2
-            """, (check_type, term)
-        )
-        deleted = cur.rowcount > 0
-
-        cur.execute(
-            """
-            DELETE FROM INTERPRO.SANITY_EXCEPTION
-            WHERE CHECK_TYPE = :1 AND STRING = :2
-            """, (check_type, term)
-        )
-    except DatabaseError as exc:
-        return jsonify({
-            "status": False,
-            "title": "Database error",
-            "message": "Could not delete exception ({}).".format(exc)
-        }), 500
-    else:
-        con.commit()
-        return jsonify({
-            "status": True,
-            "deleted": deleted
         }), 200
     finally:
         cur.close()
