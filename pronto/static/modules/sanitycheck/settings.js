@@ -81,7 +81,7 @@ function loadSanityChecks() {
                     const exceptionId = e.currentTarget.parentNode.getAttribute('data-exc-id');
                     ui.openConfirmModal(
                         'Delete exception?',
-                        'Are you sure to delete a sanity check exception? <strong>This action is irreversible.</strong>',
+                        'Are you sure to delete this sanity check exception? <strong>This action is irreversible.</strong>',
                         'Delete',
                         () => {
                             fetch('/api/sanitychecks/exception/'+ exceptionId +'/', {method: 'DELETE'})
