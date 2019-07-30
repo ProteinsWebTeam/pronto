@@ -133,6 +133,7 @@ function getStatus() {
                     tooltip.style.top = '70px';
                     tooltip.style.width = '250px';
                     tooltip.style.color = '#fff';
+                    tooltip.style.zIndex = 'inherit';
                     tooltip.style.backgroundColor = 'rgba(219, 40, 40, 0.9)';
                     tooltip.querySelector('.description').style.color = '#fff';
                     document.body.appendChild(tooltip);
