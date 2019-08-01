@@ -56,20 +56,20 @@ def check_basic(text):
     return too_short, has_empty_block
 
 
-def check_characters(text, exceptions, id):
-    errors = []
+def check_characters(text, exceptions):
     try:
         text.encode("ascii")
     except UnicodeEncodeError:
         pass
     else:
-        return errors
+        return []
 
+    errors = []
     for c in text:
         try:
             c.encode("ascii")
         except UnicodeEncodeError:
-            if id not in exceptions.get(str(ord(c)), []):
+            if str(ord(c)) not in exceptions:
                 errors.append(c)
 
     return errors
@@ -243,8 +243,8 @@ def check_abstracts(cur, checks, exceptions):
         exc = exceptions.get("invalid_abbr", {})
         bad_abbrs = check_abbreviations(text, err, exc, ann_id)
 
-        exc = exceptions.get("non_ascii", {})
-        bad_characters = check_characters(text, exc, ann_id)
+        exc = exceptions.get("non_ascii", [])
+        bad_characters = check_characters(text, exc)
 
         err = checks.get("invalid_citation", [])
         exc = exceptions.get("invalid_citation", {})
@@ -885,7 +885,7 @@ def add_exception(check_type):
 
     if check_type in _TERM_TYPES:
         # Exception for specific checked term
-        if not term:
+        if not term or not value1:
             return jsonify({
                 "error": {
                     "title": "Bad request",
@@ -934,36 +934,29 @@ def add_exception(check_type):
         else:
             params = (check_type, None, None, value2, value1)
     elif check_type == "non_ascii":
-        if not re.match("AB\d+$", value1):
-            return jsonify({
-                "error": {
-                    "title": "Bad request",
-                    "message": "'{}' is not a valid abstract ID.".format(value1)
-                }
-            }), 400
-
         try:
-            integer = ord(value2)
+            integer = ord(value1)
         except TypeError:
             return jsonify({
                 "error": {
                     "title": "Bad request",
-                    "message": "Expected a character, but string of length {} found.".format(len(value2))
+                    "message": "Expected a character, but string of length {} found.".format(len(value1))
                 }
             }), 400
 
         try:
-            value2.encode("ascii")
+            value1.encode("ascii")
         except UnicodeEncodeError:
             pass
         else:
             return jsonify({
                 "error": {
                     "title": "Bad request",
-                    "message": "'{}' is a ASCII character. Please enter non-ASCII characters only.".format(value2)
+                    "message": "'{}' is a ASCII character. Please enter non-ASCII characters only.".format(value1)
                 }
             }), 400
 
+        params = (check_type, value1, None, None, None)
     elif check_type == "underscore_in_name":
         if re.match("IPR\d+$", value1):
             params = (check_type, None, None, value1, None)

@@ -193,11 +193,9 @@ function addTermOrException(ckType, ckString) {
             label2.querySelector('input').placeholder = 'Entry accession #2';
             ui.setClass(label2, 'hidden', false);
         } else if (ckType === 'non_ascii') {
-            label1.querySelector('label').innerHTML = 'Abstract';
-            label1.querySelector('input').placeholder = 'Abstract ID';
-            label2.querySelector('label').innerHTML = 'Non-ASCII character';
-            label2.querySelector('input').placeholder = 'Non-ASCII character';
-            ui.setClass(label2, 'hidden', false);
+            label1.querySelector('label').innerHTML = 'Non-ASCII character';
+            label1.querySelector('input').placeholder = 'Non-ASCII character';
+            ui.setClass(label2, 'hidden', true);
         } else if (ckType === 'underscore_in_name') {
             label1.querySelector('label').innerHTML = 'Entry';
             label1.querySelector('input').placeholder = 'Entry accession';
