@@ -120,7 +120,7 @@ const annotationEditor = {
     delete: function (annID, accession, callback) {
         ui.openConfirmModal(
             'Delete annotation?',
-            'Are you sure you want to delete this annotation?',
+            'Do you want to to delete this annotation?',
             'Delete',
             () => {
                 fetch('/api/annotation/' + annID + '/', {method: 'DELETE'})
@@ -698,10 +698,16 @@ function getSignatures(accession) {
             Array.from(tbody.querySelectorAll('[data-accession]')).forEach(elem => {
                 elem.addEventListener('click', e => {
                     const signatureAcc = elem.getAttribute('data-accession');
+                    let message;
+
+                    if (entryEditor.inUnirule)
+                        message = '<strong>'+ accession +' is used by UniRule.</strong> Do you want to unintegrate <strong>'+ signatureAcc +'</strong>?';
+                    else
+                        message = 'Do you want to unintegrate <strong>'+ signatureAcc +'</strong> from <strong>'+ accession +'</strong>?';
 
                     ui.openConfirmModal(
                         'Unintegrate signature?',
-                        '<strong>' + signatureAcc + '</strong> will not be integrated into <strong>'+ accession +'</strong> any more.',
+                        message,
                         'Unintegrate',
                         () => {
                             fetch('/api/entry/' + accession + '/signature/' + signatureAcc + '/', {method: 'DELETE'})
@@ -798,6 +804,7 @@ const entryEditor = {
     description: null,
     type: null,
     isChecked: false,
+    inUnirule: false,
     init: function () {
         const fields = {
             type: 'empty'
@@ -831,12 +838,13 @@ const entryEditor = {
             self.delete(self.accession);
         });
     },
-    update: function (accession, name, description, type, isChecked) {
+    update: function (accession, name, description, type, isChecked, inUnirule) {
         this.accession = accession;
         this.name = name;
         this.description = description;
         this.type = type;
         this.isChecked = isChecked;
+        this.inUnirule= inUnirule;
     },
     open: function () {
         const segment = document.getElementById('edit-entry');
@@ -860,6 +868,7 @@ const entryEditor = {
         $('.ui.sticky').sticky();
     },
     save: function (fields) {
+        const self = this;
         const options = {
             method: 'POST',
             headers: {
@@ -870,6 +879,22 @@ const entryEditor = {
             + '&type=' + encodeURIComponent(fields.type)
             + '&checked=' + (fields.checked ? 1 : 0)
         };
+
+        if (this.inUnirule) {
+            return new Promise(((resolve, reject) => {
+                ui.openConfirmModal(
+                    'Update entry?',
+                    '<strong>' + this.accession + ' is used by UniRule.</strong> Do you want to update it?',
+                    'Update',
+                    () => {
+                        resolve(self.ssave(options));
+                    }
+                );
+            }));
+        } else
+            return self.ssave(options);
+    },
+    ssave: function (options) {
         return fetch('/api/entry/' + this.accession + '/', options)
             .then(response => response.json())
             .then(result => {
@@ -882,15 +907,21 @@ const entryEditor = {
 
                 return result.status;
             });
-
     },
     close: function () {
         ui.setClass(document.getElementById('edit-entry'), 'hidden', true);
     },
     delete: function (accession) {
+        let html;
+
+        if (this.inUnirule) {
+            html = '<strong>' + accession + ' is used by UniRule.</strong> Do you want to delete it?'
+        } else
+            html = 'Do you want to delete <strong>' + accession + '</strong>?';
+
         ui.openConfirmModal(
             'Delete entry?',
-            'Are you sure you want to delete <strong>' + accession + '</strong>?',
+            html,
             'Delete',
             () => {
                 fetch('/api/entry/' + accession + '/', {method: 'DELETE'})
@@ -941,8 +972,7 @@ function getEntry(accession) {
         .then(entry => {
             if (entry === null) return;
             document.title = entry.name + ' (' + entry.accession + ') | Pronto';
-
-            entryEditor.update(accession, entry.short_name, entry.name, entry.type.code, entry.is_checked);
+            entryEditor.update(accession, entry.short_name, entry.name, entry.type.code, entry.is_checked, entry.unirule);
 
             // Header
             let html = '';

@@ -170,7 +170,15 @@ def get_entry(accession):
           CREATED.USERSTAMP,
           CREATED.TIMESTAMP,
           MODIFIED.USERSTAMP,
-          MODIFIED.TIMESTAMP
+          MODIFIED.TIMESTAMP,
+          (
+            SELECT COUNT(*) 
+            FROM INTERPRO.UNIRULE UR 
+            INNER JOIN INTERPRO.ENTRY2METHOD EM 
+              ON UR.METHOD_AC = EM.METHOD_AC 
+              WHERE UR.ENTRY_AC = :acc 
+                OR EM.ENTRY_AC = :acc
+          )
         FROM INTERPRO.ENTRY E
         INNER JOIN INTERPRO.CV_ENTRY_TYPE ET
           ON E.ENTRY_TYPE = ET.CODE
@@ -219,7 +227,8 @@ def get_entry(accession):
             "last_modification": {
                 "user": row[7],
                 "date": row[8].strftime("%d %b %Y")
-            }
+            },
+            "unirule": row[9] is not None
         }
         return jsonify(entry), 200
     else:
