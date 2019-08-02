@@ -14,6 +14,14 @@
             cursor: pointer;
             color: #21ba45;
         }
+
+        #show-help {
+            margin-bottom: 1rem;
+        }
+
+        #help-modal p, #help-modal .ui.label {
+            margin: 0 0 .5rem;
+        }
     </style>
     <title>Sanity check report | Pronto</title>
 </head>
@@ -42,7 +50,79 @@
         </div>
     </div>
     <div class="ui divider"></div>
+    <button id="show-help" class="ui basic button"><i class="circle help icon"></i>Show help</button>
     <div class="ui three cards"></div>
+</div>
+
+<div id="help-modal" class="ui small modal">
+    <i class="close icon"></i>
+    <div class="header">Help</div>
+    <div class="scrolling content justified">
+        <p>Errors are represented using labels, such as:</p>
+        <div class="ui basic small label">Spelling <div class="detail">&ldquo;domian &rdquo;</div></div>
+        <p>
+            The first part (<em>Spelling</em>) is the type of error; the second part (<em>domian</em>) identifies the word, character, etc. that is incorrect, between double quotes. If the error occurs more than once, the number of occurences is also displayed (e.g. <em>3&times;&ldquo;domian &rdquo;</em>).
+        </p>
+        <p>The possible errors are:</p>
+        <dl>
+            <dt>Abbreviation</dt>
+            <dd>The abstract or the entry name contains one or more invalid abbreviations (e.g. <em>N-terminus</em> instead of <em>N-terminal</em>, whitespace before <em>kDa</em>).</dd>
+
+            <dt>Accession</dt>
+            <dd>The entry name contains an InterPro or member database accession.</dd>
+
+            <dt>Character</dt>
+            <dd>The abstract contains one or more non-ASCII characters.</dd>
+
+            <dt>Citation</dt>
+            <dd>The abstract contains or more invalid references (e.g. PMID in clear text, <em>et el.</em>), etc.)</dd>
+
+            <dt>Double quotes</dt>
+            <dd>The entry name contains double quotes.</dd>
+
+            <dt>Empty block</dt>
+            <dd>The abstract has an paragraph.</dd>
+
+            <dt>Gene symbol</dt>
+            <dd>The entry name contains a potential gene symbol.</dd>
+
+            <dt>Illegal term</dt>
+            <dd>The entry name contains one or more illegal term (e.g. <em>proteins</em>)</dd>
+
+            <dt>Invalid signature</dt>
+            <dd>An homologous superfamily entry contains one or more signatures that are not from CATH-Gene3D or SUPERFAMILY.</dd>
+
+            <dt>Link</dt>
+            <dd>The abstract contains one or more invalid links (e.g. the resource does not exist any more).</dd>
+
+            <dt>Lower case</dt>
+            <dd>The entry name starts with a lowe case character.</dd>
+
+            <dt>Name clash</dt>
+            <dd>Two entries have the same name, or names differing only by non-alphanumeric characters (e.g. <em>P67PHOX</em> and <em>P67-PHOX</em>).</dd>
+
+            <dt>No signature</dt>
+            <dd>The entry is checked, but does not contain any signature.</dd>
+
+            <dt>Punctuation</dt>
+            <dd>The abstract contains one or more punctuation errors (e.g. whitespace before full stop).</dd>
+
+            <dt>Spelling</dt>
+            <dd>The abstract or the entry name contains a common mispelling (e.g. <em>enrty</em> instead of <em>entry</em>).</dd>
+
+            <dt>Substitution</dt>
+            <dd>The abstract contains one or more invalid substitutions, most likely done by the database (e.g. apostrophe converted to comma).</dd>
+
+            <dt>Too short</dt>
+            <dd>The abstract is empty, or too short (less than 25 characters).</dd>
+
+            <dt>Unchecked parent/child</dt>
+            <dd>The entry is checked, but has a parent or a child which is not.</dd>
+
+            <dt>Underscore</dt>
+            <dd>The entry name contains an underscore instead of an hyphen.</dd>
+        </dl>
+    </div>
 </div>
 
 {% include 'footer.html' %}

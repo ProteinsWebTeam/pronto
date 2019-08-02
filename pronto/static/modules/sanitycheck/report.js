@@ -99,4 +99,6 @@ $(function () {
     finaliseHeader();
     const runId = location.pathname.match(/\/sanitychecks\/runs\/(.+)\/$/)[1];
     getErrors(runId);
+    $('#help-modal').modal('attach events', '#show-help', 'show');
+    console.log(1);
 });

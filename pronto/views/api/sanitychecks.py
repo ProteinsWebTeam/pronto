@@ -381,7 +381,7 @@ def check_entries(cur, checks, exceptions):
 
     """
     Detect in an homologous superfamily entry contains signatures 
-    that are not from CATH-Gene3/SUPERFAMILY
+    that are not from CATH-Gene3D/SUPERFAMILY
     """
     cur.execute(
         """

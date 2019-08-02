@@ -448,3 +448,7 @@ i.button.icon:hover {
 .ui.feed > .event:nth-child(n+2) {
     margin-top: 1rem;
 }
+
+.ui.modal .content.justified {
+    text-align: justify;
+}
