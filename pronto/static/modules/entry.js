@@ -537,7 +537,7 @@ function getAnnotations(accession) {
 
                                 });
 
-                                const modal = document.getElementById('modal-entries');
+                                const modal = document.getElementById('list-entries');
                                 modal.querySelector('.content').innerHTML = html;
                                 $(modal).modal('show');
                             });
@@ -1152,7 +1152,7 @@ $(function () {
                     } else
                         html = '<p><strong>' + accession + '</strong> does not have any signatures.</p>';
 
-                    const modal = document.getElementById('modal-annotations');
+                    const modal = document.getElementById('list-annotations');
                     modal.querySelector('.header').innerHTML = 'Signatures annotations';
                     modal.querySelector('.content').innerHTML = html;
 
@@ -1212,7 +1212,7 @@ $(function () {
 
     // Event to show formatting help
     document.getElementById('help-format').addEventListener('click', e => {
-        $('#help-modal').modal('show');
+        $('#format-help').modal('show');
     });
 
     // Event to search annotations
@@ -1264,7 +1264,7 @@ $(function () {
                             html = '<p>No annotations found for <strong>'+ query +'</strong>.</p>';
                         }
 
-                        const modal = document.getElementById('modal-annotations');
+                        const modal = document.getElementById('list-annotations');
                         modal.querySelector('.header').innerHTML = 'Results found:&nbsp;'+ result.hits.length.toLocaleString();
                         modal.querySelector('.content').innerHTML = html;
 
@@ -1285,7 +1285,7 @@ $(function () {
 
                                         });
 
-                                        const modal = document.getElementById('modal-entries');
+                                        const modal = document.getElementById('list-entries');
                                         modal.querySelector('.content').innerHTML = html;
                                         $(modal).modal('show');
                                     });
