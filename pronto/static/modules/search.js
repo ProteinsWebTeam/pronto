@@ -22,7 +22,7 @@ function callEBISearch(query, page, pageSize) {
                     html += '<tr>'
                         + '<td>'
                         + '<span class="ui tiny circular label type-'+ type +'">'+ type +'</span>'
-                        + '<a href="/'+ (database.toLowerCase() === "interpro" ? "entry" : "prediction") +'/'+ accession +'/">'+ accession +'</a>'
+                        + '<a ="/'+ (database.toLowerCase() === "interpro" ? "entry" : "prediction") +'/'+ accession +'/">'+ accession +'</a>'
                         + '</td>'
                         + '<td>'+ database +'</td>'
                         + '<td>'+ name +'</td>'
@@ -34,7 +34,7 @@ function callEBISearch(query, page, pageSize) {
 
             const table = document.querySelector("#search-results");
             table.querySelector("tbody").innerHTML = html;
-            ui.paginate(table, page, pageSize, result.hitCount, (newHref, ) => {
+            ui.paginate(table, page, pageSize, result.hitCount, (new, ) => {
                 const newURL = new URL(newHref);
                 const newPage = Number(newURL.searchParams.get("page"));
                 ui.dimmer(true);

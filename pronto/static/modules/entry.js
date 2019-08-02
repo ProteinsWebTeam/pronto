@@ -199,40 +199,43 @@ function integrateSignature(entryAcc, signatureAcc, moveIfIntegrated) {
     fetch('/api/entry/' + entryAcc + '/signature/' + signatureAcc + '/', options)
         .then(response => response.json())
         .then(result => {
-            const msg = document.querySelector('#signatures .ui.message');
-
-            if (!result.status) {
-                msg.querySelector('.header').innerHTML = result.title;
-                msg.querySelector('p').innerHTML = result.message;
-                msg.className = 'ui error message';
-            } else if (result.unchecked) {
+            if (!result.status)
+                ui.openErrorModal(result);
+            else if (result.unchecked) {
                 /*
                     Moved signature to one entry to another,
                     and unchecked previous entry (no signature any more)
                 */
-                msg.querySelector('.header').innerHTML = 'Entry unchecked';
-                msg.querySelector('p').innerHTML = '<em><a href="/entry/'+ result.entry +'/">'+ result.entry +'</a></em> has been unchecked because it does not have any signatures.';
-                msg.className = 'ui info message';
-
-                $('#signatures .ui.form').form('clear');
-                getSignatures(entryAcc).then(() => { $('.ui.sticky').sticky(); });
-
+                const modal = document.getElementById('message-info');
+                modal.querySelector('.header').innerHTML = 'Entry unchecked';
+                modal.querySelector('.content').innerHTML = '<p><strong><a href="/entry/'+ result.entry +'/">'+ result.entry +'</a></strong> has been unchecked because it does not have any signatures left.</p>';
+                $(modal)
+                    .modal({
+                        closable: false,
+                        onApprove: function() {
+                            $('#signatures .ui.form').form('clear');
+                            getSignatures(entryAcc).then(() => { $('.ui.sticky').sticky(); });
+                        }
+                    })
+                    .modal('show');
             } else if (result.entry) {
                 // Signature already integrated: ask for confirmation
+                let content = '<strong>' + result.signature + '</strong> is integrated in <strong><a href="/entry/'+ result.entry+'/">'+ result.entry +'</a></strong>';
 
-                msg.querySelector('.header').innerHTML = 'Signature already integrated';
-                msg.querySelector('p').innerHTML = '<em>'+ result.signature +'</em> is integrated into '
-                    + '<em><a href="/entry/'+ result.entry +'/">'+ result.entry +'</a></em>. '
-                    + 'Click <strong><a href="#" data-confirm>here</a></strong> to move it to <em>'+ entryAcc +'</em>.';
-                msg.className = 'ui error message';
+                if (result.unirule)
+                    content += ', <strong>which is used by UniRule</strong>';
 
-                // Event listener to confirm re-integration
-                msg.querySelector('[data-confirm]').addEventListener('click', e => {
-                    e.preventDefault();
-                    integrateSignature(entryAcc, signatureAcc, true);
-                });
+                content += '. Do you want to move it to <strong>'+ entryAcc +'</strong>?';
+
+                ui.openConfirmModal(
+                    'Signature already integrated',
+                    content,
+                    'Move signature',
+                    () => {
+                        integrateSignature(entryAcc, signatureAcc, true);
+                    }
+                );
             }  else {
-                ui.setClass(msg, 'hidden', true);
                 $('#signatures .ui.form').form('clear');
                 getSignatures(entryAcc).then(() => { $('.ui.sticky').sticky(); });
             }
