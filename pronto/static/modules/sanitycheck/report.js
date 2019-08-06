@@ -28,11 +28,10 @@ function getErrors(runId) {
                             html += '<div class="red card"><div class="content">';
 
                         if (err.ann_id) {
-                            html += '<div class="header">' + err.ann_id + '</div>'
-                                + '<a class="meta" target="_blank" href="/entry/' + err.entry_ac + '/">'
-                                + err.entry_ac
+                            html += '<a class="header" target="_blank" href="/entry/' + err.entry_ac + '/">'
+                                + err.ann_id
                                 + '&nbsp;<i class="external icon"></i>'
-                                + '</a>';
+                                +'</a>';
                         } else {
                             html += '<a class="header" target="_blank" href="/entry/' + err.entry_ac + '/">'
                                 + err.entry_ac
@@ -41,20 +40,28 @@ function getErrors(runId) {
                         }
 
                         html += '<div class="description">';
-                        for (let [label, errors] of Object.entries(err.errors)) {
-                            if (typeof errors === "boolean")
-                                html += '<div class="ui basic small label">'+ label +'</div>';
+                        let numErrors = 0;
+                        let acceptExceptions = true;
+                        for (let [label, object] of Object.entries(err.errors)) {
+                            if (!object.accept_exceptions)
+                                acceptExceptions = false;
+
+                            if (typeof object.errors === "boolean") {
+                                numErrors++;
+                                html += '<div class="ui basic label">'+ label +'</div>';
+                            }
                             else
-                                for (let err of errors) {
-                                    if (err.count > 1) {
-                                        html += '<div class="ui basic small label">'
+                                for (let error of object.errors) {
+                                    numErrors++;
+                                    if (error.count > 1) {
+                                        html += '<div class="ui basic label">'
                                             + label
-                                            + '<div class="detail">' + err.count + '&times;&ldquo;' + err.error + '&rdquo;</div>'
+                                            + '<div class="detail">' + error.count + '&times;&ldquo;' + error.error + '&rdquo;</div>'
                                             + '</div>';
                                     } else {
-                                        html += '<div class="ui basic small label">'
+                                        html += '<div class="ui basic label">'
                                             + label
-                                            + '<div class="detail">&ldquo;' + err.error + '&rdquo;</div>'
+                                            + '<div class="detail">&ldquo;' + error.error + '&rdquo;</div>'
                                             + '</div>';
                                     }
                                 }
@@ -66,9 +73,15 @@ function getErrors(runId) {
                             + '<div class="extra content">';
 
                         if (err.resolved_by)
-                            html += '<div class="right floated">Resolved by ' + err.resolved_by.split(/\s/)[0] + '</div>';
-                        else
-                            html += '<div class="right floated" data-id="'+ err.id +'"><i class="check icon"></i>Resolve</div>';
+                            html += '<div class="right floated">'
+                                + '<i class="check icon"></i>'
+                                + 'Resolved by ' + err.resolved_by.split(/\s/)[0]
+                                + '</div>';
+                        else {
+                            if (numErrors === 1 && acceptExceptions)
+                                html += '<span data-id="'+ err.id +'" data-add-exception>Add exception ' + '&amp; resolve</span>';
+                            html += '<div class="right floated" data-id="'+ err.id +'">Resolve</div>';
+                        }
 
                         // close extra content, then card
                         html += '</div></div>';
@@ -99,7 +112,12 @@ function getErrors(runId) {
                     Array.from(document.querySelectorAll('[data-id]')).forEach(elem => {
                         elem.addEventListener('click', e => {
                             const errId = e.currentTarget.getAttribute('data-id');
-                            return fetch('/api/sanitychecks/runs/' + runId + '/' + errId + '/', {method: "POST"})
+                            let url = '/api/sanitychecks/runs/' + runId + '/' + errId + '/';
+
+                            if (e.currentTarget.hasAttribute('data-add-exception'))
+                                url += '?exception';
+
+                            return fetch(url, {method: "POST"})
                                 .then(response => {
                                     if (response.ok)
                                         getErrors(runId);

@@ -57,24 +57,28 @@ function loadSanityChecks() {
     fetch('/api/sanitychecks/checks/')
         .then(response => response.json())
         .then(checks => {
-            const map = new Map();
             for (let [key, value] of Object.entries(checks)) {
-                map.set(key, value);
+                const elem = document.getElementById(key);
+                if (elem === null) continue;
+
+                if (value.use_term) {
+                    if (value.strings.length)
+                        elem.innerHTML = createCards(key, value.strings);
+                    else
+                        elem.innerHTML = '<p>No terms to search</p>';
+                } else if (value.strings.length)
+                    elem.innerHTML = createLabels(value.strings);
+                else
+                    elem.innerHTML = '<p>No exceptions</p>';
+
+                const btn = document.querySelector('button[data-type="'+ key +'"]');
+                if (value.use_term) {
+                    btn.innerHTML = '<i class="add icon"></i>Add term';
+                    btn.setAttribute('data-use-term', '');
+                }
+                else
+                    btn.innerHTML = '<i class="add icon"></i>Add exception';
             }
-
-            ['invalid_abbr', 'invalid_citation', 'invalid_punct', 'misspelling', 'bad_subst', 'illegal_word'].forEach(key => {
-                if (map.has(key)) {
-                    document.getElementById(key).innerHTML = createCards(key, map.get(key));
-                } else
-                    document.getElementById(key).innerHTML = '<p>No terms to search</p>';
-            });
-
-            ['acc_in_name', 'non_ascii', 'similar_name', 'gene_symbol', 'lowercase_name', 'underscore_in_name'].forEach(key => {
-                if (map.has(key)) {
-                    document.getElementById(key).innerHTML = createLabels(map.get(key));
-                } else
-                    document.getElementById(key).innerHTML = '<p>No exceptions</p>';
-            });
 
             document.querySelectorAll('.ui.label[data-exc-id] i.delete').forEach(elem => {
                 elem.addEventListener('click', e => {
@@ -127,7 +131,7 @@ function loadSanityChecks() {
                     const card = e.currentTarget.closest('.ui.card');
                     const ckType = card.getAttribute('data-type');
                     const ckString = card.getAttribute('data-string');
-                    addTermOrException(ckType, ckString);
+                    addTermOrException(ckType, true, ckString);
                 });
             });
 
@@ -160,23 +164,21 @@ function loadSanityChecks() {
         });
 }
 
-function addTermOrException(ckType, ckString) {
+function addTermOrException(ckType, useTerm, ckString) {
     const modal = document.getElementById('new-term-modal');
     const message = modal.querySelector('.message');
     const label1 = modal.querySelector('#label-1');
     const label2 = modal.querySelector('#label-2');
 
     ui.setClass(message, 'hidden', true);
-
-    const isTerm = ['invalid_abbr', 'invalid_citation', 'invalid_punct', 'misspelling', 'bad_subst', 'illegal_word'].includes(ckType);
-    if (isTerm && ckString === null) {
+    if (useTerm && ckString === null) {
         // New term
         modal.querySelector('.header').innerHTML = 'Add term';
         label1.querySelector('label').innerHTML = 'New term to check';
         label1.querySelector('input').placeholder = 'Term to check';
         ui.setClass(label2, 'hidden', true);
     }
-    else if (isTerm) {
+    else if (useTerm) {
         // New exception for existing term
         modal.querySelector('.header').innerHTML = 'Add exception for &ldquo;' + ckString + '&rdquo;';
         label1.querySelector('label').innerHTML = 'Entry or abstract';
@@ -216,7 +218,7 @@ function addTermOrException(ckType, ckString) {
             onApprove: function () {
                 const options = {method: 'PUT'};
 
-                if (isTerm && ckString === null) {
+                if (useTerm && ckString === null) {
                     // New term
                     const term = encodeURI(label1.querySelector('input').value);
                     fetch('/api/sanitychecks/term/' + ckType + '/?term=' + term, options)
@@ -263,8 +265,8 @@ $(function () {
 
     document.querySelectorAll('button[data-type]').forEach(elem => {
         elem.addEventListener('click', e => {
-            const ckType = e.currentTarget.getAttribute('data-type');
-            addTermOrException(ckType, null);
+            const btn = e.currentTarget;
+            addTermOrException(btn.getAttribute('data-type'), btn.hasAttribute('data-use-term'), null);
         });
     });
 });

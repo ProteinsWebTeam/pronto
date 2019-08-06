@@ -10,8 +10,30 @@ from flask import json, jsonify, request
 
 from pronto import app, db, executor, get_user
 
-_TERM_TYPES = ("invalid_abbr", "invalid_citation", "invalid_punct",
-               "misspelling", "bad_subst", "illegal_word")
+_ERR_TYPES = {
+    # key: (label, accepts exceptions, use specific terms)
+    "abbr": ("Abbreviation", True, True),
+    "acc_in_name": ("Accession", True, False),
+    "ascii": ("Character", True, False),
+    "citation": ("Citation", True, True),
+    "double_quotes": ("Double quotes", False, False),
+    "empty_block": ("Empty block", False, False),
+    "gene_symbol": ("Gene symbol", True, False),
+    "illegal_term": ("Illegal term", True, True),
+    "invalid_signature": ("Invalid signature", False, False),
+    "link": ("Link", False, False),
+    "lower_case": ("Lower case", False, False),
+    "same_names": ("Name clash", False, False),
+    "similar_names": ("Similar names", True, False),
+    "no_signatures": ("No signatures", False, False),
+    "punctuation": ("Punctuation", True, True),
+    "spelling": ("Spelling", True, True),
+    "substitution": ("Substitution", True, True),
+    "too_short": ("Too short", False, False),
+    "unchecked_child": ("Unchecked child", False, False),
+    "unchecked_parent": ("Unchecked parent", False, False),
+    "underscore": ("Underscore", True, False),
+}
 
 
 def check_abbreviations(text, checks, exceptions, id):
@@ -24,9 +46,10 @@ def check_abbreviations(text, checks, exceptions, id):
         if match not in valid_cases:
             bad_abbrs.append(match)
 
-    for match in re.findall('|'.join(checks), text):
-        if id not in exceptions.get(match, []):
-            bad_abbrs.append(match)
+    if checks:
+        for match in re.findall('|'.join(checks), text):
+            if id not in exceptions.get(match, []):
+                bad_abbrs.append(match)
 
     return bad_abbrs
 
@@ -77,9 +100,10 @@ def check_characters(text, exceptions):
 
 def check_citations(text, checks, exceptions, id):
     errors = []
-    for match in re.findall('|'.join(map(re.escape, checks)), text, re.I):
-        if id not in exceptions.get(match, []):
-            errors.append(match)
+    if checks:
+        for match in re.findall('|'.join(map(re.escape, checks)), text, re.I):
+            if id not in exceptions.get(match, []):
+                errors.append(match)
 
     for match in re.findall(r"\[(?:PMID:)?\d*\]", text, re.I):
         errors.append(match)
@@ -147,9 +171,10 @@ def check_punctuation(text, checks, exceptions, id):
 
 def check_spelling(text, checks, exceptions, id):
     errors = []
-    for match in re.findall(r"\b(?:" + '|'.join(checks) + r")\b", text, re.I):
-        if id not in exceptions.get(match, []):
-            errors.append(match)
+    if checks:
+        for match in re.findall(r"\b(?:" + '|'.join(checks) + r")\b", text, re.I):
+            if id not in exceptions.get(match, []):
+                errors.append(match)
 
     return errors
 
@@ -164,7 +189,10 @@ def check_substitutions(text, checks, exceptions, id):
 
 
 def check_underscore_to_hyphen(text, checks):
-    return re.findall("_(?:" + '|'.join(checks) + r")\b", text)
+    if checks:
+        return re.findall("_(?:" + '|'.join(checks) + r")\b", text)
+    else:
+        return []
 
 
 def check_underscore(text, exceptions, id):
@@ -192,9 +220,9 @@ def check_gene_symbol(name, short_name, exceptions):
     return list(gene_symbols)
 
 
-def group_errors(keys, values):
+def wrap_errors(errors):
     _errors = {}
-    for key, val in zip(keys, values):
+    for key, val in errors.items():
         if not val:
             continue  # no errors for this type
         elif isinstance(val, bool):
@@ -221,10 +249,6 @@ def group_errors(keys, values):
 def check_abstracts(cur, checks, exceptions):
     passed = set()
     failed = {}
-    keys = ("Too short", "Empty block", "Abbreviation",
-            "Character", "Citation", "Spelling",
-            "Link", "Punctuation", "Spelling",
-            "Substitution")
     cur.execute(
         """
         SELECT CA.ANN_ID, CA.TEXT, EC.ENTRY_AC
@@ -237,44 +261,47 @@ def check_abstracts(cur, checks, exceptions):
         if ann_id in passed or ann_id in failed:
             continue
 
-        too_short, has_empty_block = check_basic(text)
+        is_too_short, has_empty_block = check_basic(text)
+        errors = {
+            "abbr": check_abbreviations(
+                text,
+                checks=checks.get("abbr", []),
+                exceptions=exceptions.get("abbr", {}),
+                id=ann_id),
+            "too_short": is_too_short,
+            "empty_block": has_empty_block,
+            "ascii": check_characters(
+                text,
+                exceptions=exceptions.get("ascii", [])),
+            "citation": check_citations(
+                text,
+                checks=checks.get("citation", []),
+                exceptions=exceptions.get("citation", {}),
+                id=ann_id),
+            "spelling": check_spelling(
+                text,
+                checks=checks.get("spelling", []),
+                exceptions=exceptions.get("spelling", {}),
+                id=ann_id) + check_gram(text),
+            "link": check_links(text),
+            "punctuation": check_punctuation(
+                text,
+                checks=checks.get("punctuation", []),
+                exceptions=exceptions.get("punctuation", {}),
+                id=ann_id),
+            "substitution": check_substitutions(
+                text,
+                checks=checks.get("substitution", []),
+                exceptions=exceptions.get("substitution", {}),
+                id=ann_id
+            )
+        }
 
-        err = checks.get("invalid_abbr", [])
-        exc = exceptions.get("invalid_abbr", {})
-        bad_abbrs = check_abbreviations(text, err, exc, ann_id)
-
-        exc = exceptions.get("non_ascii", [])
-        bad_characters = check_characters(text, exc)
-
-        err = checks.get("invalid_citation", [])
-        exc = exceptions.get("invalid_citation", {})
-        bad_citations = check_citations(text, err, exc, ann_id)
-
-        bad_gram = check_gram(text)
-        bad_links = check_links(text)
-
-        err = checks.get("invalid_punct", [])
-        exc = exceptions.get("invalid_punct", {})
-        bad_punctuations = check_punctuation(text, err, exc, ann_id)
-
-        err = checks.get("misspelling", [])
-        exc = exceptions.get("misspelling", {})
-        typos = check_spelling(text, err, exc, ann_id)
-
-        err = checks.get("bad_subst", [])
-        exc = exceptions.get("bad_subst", {})
-        bad_substitutions = check_substitutions(text, err, exc, ann_id)
-
-        values = [too_short, has_empty_block, bad_abbrs,
-                  bad_characters, bad_citations, bad_gram,
-                  bad_links, bad_punctuations, typos,
-                  bad_substitutions]
-
-        if any(values):
+        if any(errors.values()):
             failed[ann_id] = {
                 "ann_id": ann_id,
                 "entry_ac": entry_acc,
-                "errors": group_errors(keys, values)
+                "errors": wrap_errors(errors)
             }
         else:
             passed.add(ann_id)
@@ -304,12 +331,12 @@ def check_entries(cur, checks, exceptions):
           )
         """
     )
-    name_clashes = {}
+    same_names = {}
     for acc1, acc2 in cur:
-        if acc1 in name_clashes:
-            name_clashes[acc1].append(acc2)
+        if acc1 in same_names:
+            same_names[acc1].append(acc2)
         else:
-            name_clashes[acc1] = [acc2]
+            same_names[acc1] = [acc2]
 
     exc = exceptions.get("similar_name", {})
     cur.execute(
@@ -319,40 +346,23 @@ def check_entries(cur, checks, exceptions):
         INNER JOIN INTERPRO.ENTRY B
           ON (
             A.ENTRY_AC < B.ENTRY_AC
-            AND (REGEXP_REPLACE(A.NAME, '[^a-zA-Z0-9]+', '')
-              = REGEXP_REPLACE(B.NAME, '[^a-zA-Z0-9]+', ''))
+            AND (
+              REGEXP_REPLACE(A.NAME, '[^a-zA-Z0-9]+', '') = 
+                REGEXP_REPLACE(B.NAME, '[^a-zA-Z0-9]+', '')
+              OR REGEXP_REPLACE(A.SHORT_NAME, '[^a-zA-Z0-9]+', '') = 
+                REGEXP_REPLACE(B.SHORT_NAME, '[^a-zA-Z0-9]+', '')
+            )
           )
         """
     )
-    diff_names = {}
+    similar_names = {}
     for acc1, acc2 in cur:
         if acc2 in exc.get(acc1, []):
             continue
-        elif acc1 in diff_names:
-            diff_names[acc1].append(acc2)
+        elif acc1 in similar_names:
+            similar_names[acc1].append(acc2)
         else:
-            diff_names[acc1] = [acc2]
-
-    cur.execute(
-        """
-        SELECT A.ENTRY_AC, B.ENTRY_AC
-        FROM INTERPRO.ENTRY A
-        INNER JOIN INTERPRO.ENTRY B
-          ON (
-            A.ENTRY_AC < B.ENTRY_AC
-            AND (REGEXP_REPLACE(A.SHORT_NAME, '[^a-zA-Z0-9]+', '')
-              = REGEXP_REPLACE(B.SHORT_NAME, '[^a-zA-Z0-9]+', ''))
-          )
-        """
-    )
-    diff_short_names = {}
-    for acc1, acc2 in cur:
-        if acc2 in exc.get(acc1, []):
-            continue
-        elif acc1 in diff_short_names:
-            diff_short_names[acc1].append(acc2)
-        else:
-            diff_short_names[acc1] = [acc2]
+            similar_names[acc1] = [acc2]
 
     # Detect if a parent entry is checked and not a child (or reverse)
     cur.execute(
@@ -401,73 +411,75 @@ def check_entries(cur, checks, exceptions):
             invalid_signatures[entry_acc] = [signature_acc]
 
     lc_prog = re.compile("[a-z]")
-    lc_excs = tuple(exceptions.get("lowercase_name", []))
+    lower_case_excs = tuple(exceptions.get("lower_case", []))
 
-    gene_excs = tuple(exceptions.get("gene_symbol", []))
-
-    keys = ("No signature", "Accession (name)", "Spelling (name)",
-            "Spelling (short name)", "Illegal term (name)",
-            "Abbreviation (name)", "Abbreviation (short name)",
-            "Underscore (short name)", "Underscore (name)",
-            "Name/short name clash", "Name clash",
-            "Short name clash", "Lower case", "Gene symbol", "Double quotes",
-            "Unchecked parent", "Unchecked child", "Invalid signature")
     failed = []
     for acc, (name, short_name, checked) in entries.items():
-        no_signatures = checked == 'Y' and acc not in entries_w_signatures
+        errors = {
+            "no_signatures": (checked == 'Y'
+                              and acc not in entries_w_signatures),
+            "acc_in_name": check_accession(
+                name,
+                exceptions=exceptions.get("acc_in_name", {}),
+                id=acc
+            ),
+            "spelling": check_spelling(
+                name,
+                checks=checks.get("spelling", []),
+                exceptions=exceptions.get("spelling", {}),
+                id=acc
+            ) + check_spelling(
+                short_name,
+                checks=checks.get("spelling", []),
+                exceptions=exceptions.get("spelling", {}),
+                id=acc
+            ),
+            "illegal_term": check_illegal_terms(
+                name, checks=checks.get("illegal_term", []),
+                exceptions=exceptions.get("illegal_term", {}),
+                id=acc
+            ),
+            "abbr": check_abbreviations(
+                name,
+                checks=checks.get("abbr", []),
+                exceptions=exceptions.get("abbr", {}),
+                id=acc
+            ) + check_abbreviations(
+                short_name,
+                checks=checks.get("abbr", []),
+                exceptions=exceptions.get("abbr", {}),
+                id=acc
+            ),
+            "underscore": check_underscore_to_hyphen(
+                short_name,
+                ("binding", "bd", "related", "rel", "like")
+            ) + check_underscore(
+                name,
+                exceptions=exceptions.get("underscore", []),
+                id=acc
+            ),
+            "same_names": same_names.get(acc),
+            "similar_names": similar_names.get(acc),
+            "lower_case": (
+                    (lc_prog.match(name) and not name.startswith(lower_case_excs))
+                    or
+                    (lc_prog.match(short_name) and not short_name.startswith(lower_case_excs))
+            ),
+            "gene_symbol": check_gene_symbol(
+                name, short_name,
+                exceptions=exceptions.get("gene_symbol", [])
+            ),
+            "double_quotes": '"' in name,
+            "unchecked_child": children_unchecked.get(acc),
+            "unchecked_parent": parent_unchecked.get(acc),
+            "invalid_signature": invalid_signatures.get(acc)
+        }
 
-        exc = exceptions.get("acc_in_name", {})
-        accessions_in_name = check_accession(name, exc, acc)
-
-        err = checks.get("misspelling", [])
-        exc = exceptions.get("misspelling", {})
-        typos1 = check_spelling(name, err, exc, acc)
-        typos2 = check_spelling(short_name, err, exc, acc)
-
-        err = checks.get("illegal_word", [])
-        exc = exceptions.get("illegal_word", {})
-        illegal_terms = check_illegal_terms(name, err, exc, acc)
-
-        err = checks.get("invalid_abbr", [])
-        exc = exceptions.get("invalid_abbr", {})
-        bad_abbrs1 = check_abbreviations(name, err, exc, acc)
-        bad_abbrs2 = check_abbreviations(short_name, err, exc, acc)
-
-        missing_hyphens = check_underscore_to_hyphen(short_name,
-                                                     ("binding", "bd",
-                                                      "related", "rel",
-                                                      "like"))
-
-        exc = exceptions.get("underscore_in_name", [])
-        underscores = check_underscore(name, exc, acc)
-
-        # Normally names cannot start with a lower case character
-        starts_w_lc = False
-        for text in (short_name, name):
-            if lc_prog.match(text) and not text.startswith(lc_excs):
-                starts_w_lc = True
-
-        # Gene symbol (nnnN) instead of protein (NnnN)
-        genes = check_gene_symbol(name, short_name, gene_excs)
-
-        # Double quote in name
-        dq = '"' in name
-
-        values = [no_signatures, accessions_in_name,
-                  typos1, typos2, illegal_terms,
-                  bad_abbrs1, bad_abbrs2,
-                  missing_hyphens, underscores,
-                  name_clashes.get(acc), diff_names.get(acc),
-                  diff_short_names.get(acc), starts_w_lc, genes, dq,
-                  parent_unchecked.get(acc, []),
-                  children_unchecked.get(acc, []),
-                  invalid_signatures.get(acc, [])]
-
-        if any(values):
+        if any(errors.values()):
             failed.append({
                 "ann_id": None,
                 "entry_ac": acc,
-                "errors": group_errors(keys, values)
+                "errors": wrap_errors(errors)
             })
 
     return failed
@@ -505,10 +517,10 @@ def load_sanity_checks(cur):
             check.add(err_str)
 
         if exc_ann_id:
-            excpts = abstr_excpts
+            excpts = abstr_excpts[err_type]
             exc_id = exc_ann_id
         elif exc_entry_ac:
-            excpts = entry_excpts
+            excpts = entry_excpts[err_type]
             exc_id = exc_entry_ac
         else:
             exc_id = None
@@ -665,11 +677,19 @@ def get_sanitychecks_report(run_id):
             else:
                 resolved_on = None
 
+            _errors = {}
+            for err_type, err_object in json.loads(row[3].read()).items():
+                label, accept_excs, user_terms = _ERR_TYPES[err_type]
+                _errors[label] = {
+                    "accept_exceptions": accept_excs,
+                    "errors": err_object
+                }
+
             run["errors"].append({
                 "id": row[0],
                 "ann_id": row[1],
                 "entry_ac": row[2],
-                "errors": json.loads(row[3].read()),
+                "errors": _errors,
                 "resolved_on": resolved_on,
                 "resolved_by": row[5]
             })
@@ -688,8 +708,57 @@ def resolve_error(run_id, err_id):
     if not user:
         return '', 401
 
+    add_exc = request.args.get("exception") is not None
+
     con = db.get_oracle()
     cur = con.cursor()
+    if add_exc:
+        cur.execute(
+            """
+            SELECT ANN_ID, ENTRY_AC, ERRORS
+            FROM INTERPRO.SANITY_ERROR
+            WHERE RUN_ID = :1 AND ID = :2
+            """, (run_id, err_id)
+        )
+        row = cur.fetchone()
+
+        if not row:
+            # Nothing to do here
+            cur.close()
+            con.close()
+            return '', 404
+
+        ann_id = row[0]
+        entry_acc = row[1]
+        err_types = json.loads(row[2].read())
+        if len(err_types) > 1:
+            # We don't want to add exceptions for multiple errors
+            cur.close()
+            con.close()
+            return '', 400
+
+        err_type, errors = err_types.popitem()
+        label, accept_exceptions, use_term = _ERR_TYPES[err_type]
+        if not accept_exceptions:
+            # Exceptions not allowed for this type
+            cur.close()
+            con.close()
+            return '', 403
+        elif not isinstance(errors, bool) and len(errors) > 1:
+            # We don't want to add exceptions for multiple errors (bis)
+            cur.close()
+            con.close()
+            return '', 400
+
+        # Error to add to exception
+        err_string = errors[0]["error"]
+        res, code = add_exception(err_type, ann_id or entry_acc, None,
+                                  err_string, use_term)
+        if code != 200:
+            cur.close()
+            con.close()
+            return '', code
+
     cur.execute(
         """
         UPDATE INTERPRO.SANITY_ERROR
@@ -705,6 +774,13 @@ def resolve_error(run_id, err_id):
 
 @app.route("/api/sanitychecks/checks/")
 def get_type_checks():
+    err_types = {}
+    for err_type, (label, accept_exceptions, use_term) in _ERR_TYPES.items():
+        err_types[err_type] = {
+            "use_term": use_term,
+            "strings": {}
+        }
+
     con = db.get_oracle()
     cur = con.cursor()
     cur.execute(
@@ -721,38 +797,33 @@ def get_type_checks():
         ORDER BY SE.ANN_ID, SE.ENTRY_AC, SE.ENTRY_AC2, SE.TERM
         """
     )
-    checks = {}
     for row in cur:
+        print(row)
         err_type = row[0]
-        if err_type in checks:
-            err_checks = checks[err_type]
-        else:
-            err_checks = checks[err_type] = {}
+        err_checks = err_types[err_type]["strings"]
 
-        err_str = row[1]
-        err_date = row[2].strftime("%d %b %Y")
-        if err_str in err_checks:
-            err = err_checks[err_str]
+        ck_string = row[1]
+        if ck_string in err_checks:
+            ck = err_checks[ck_string]
         else:
-            err = err_checks[err_str] = {
-                "string": err_str,
-                "date": err_date,
+            ck = err_checks[ck_string] = {
+                "string": ck_string,
+                "date": row[2].strftime("%d %b %Y"),
                 "exceptions": []
             }
 
         exc_id = row[3]
-        if err_type == "non_ascii":
-            exc_str = chr(int(row[4]))
-        else:
-            exc_str = row[4]
+        if exc_id is None:
+            continue
 
+        exc_string = chr(int(row[4])) if err_type == "ascii" else row[4]
         exc_ann_id = row[5]
         exc_entry_ac = row[6]
         exc_entry_ac2 = row[7]
-        if exc_str or exc_ann_id or exc_entry_ac or exc_entry_ac2:
-            err["exceptions"].append({
+        if exc_string or exc_ann_id or exc_entry_ac or exc_entry_ac2:
+            ck["exceptions"].append({
                 "id": exc_id,
-                "string": exc_str,
+                "string": exc_string,
                 "ann_id": exc_ann_id,
                 "entry_acc": exc_entry_ac,
                 "entry_acc2": exc_entry_ac2
@@ -760,10 +831,11 @@ def get_type_checks():
     cur.close()
     con.commit()
 
-    for err_type, err_checks in checks.items():
-        checks[err_type] = sorted(err_checks.values(), key=lambda i: i["string"])
+    for err_type, err in err_types.items():
+        err["strings"] = sorted(err["strings"].values(),
+                                key=lambda i: i["string"])
 
-    return jsonify(checks), 200
+    return jsonify(err_types), 200
 
 
 @app.route("/api/sanitychecks/term/<check_type>/", methods=["PUT"])
@@ -860,20 +932,8 @@ def delete_check_term(check_type):
         cur.close()
 
 
-@app.route("/api/sanitychecks/exception/<check_type>/", methods=["PUT"])
-def add_exception(check_type):
-    try:
-        value1 = request.json["value1"]
-        value2 = request.json["value2"]
-        term = request.json["term"]
-    except KeyError:
-        return jsonify({
-            "error": {
-                "title": "Bad request",
-                "message": "Invalid or missing parameters."
-            }
-        }), 400
-
+def add_exception(check_type, value1, value2, term, use_term):
+    # `value2` is ONLY used for exceptions involving two InterPro entries
     user = get_user()
     if not user:
         return jsonify({
@@ -883,8 +943,8 @@ def add_exception(check_type):
                        'to perform this operation.'
         }), 401
 
-    if check_type in _TERM_TYPES:
-        # Exception for specific checked term
+    if use_term:
+        # Exception for specific checked term found in abstract/entry
         if not term or not value1:
             return jsonify({
                 "error": {
@@ -905,42 +965,49 @@ def add_exception(check_type):
                 }
             }), 400
     elif check_type == "acc_in_name":
+        # Requires a valid entry accession
         if re.match("IPR\d+$", value1):
-            params = (check_type, None, None, value1, value2)
+            params = (check_type, value2, None, value1, None)
         else:
             return jsonify({
                 "error": {
                     "title": "Bad request",
-                    "message": "'{}' is not a valid InterPro entry.".format(value1)
+                    "message": "'{}' is not a valid InterPro entry.".format(
+                        value1)
                 }
             }), 400
-    elif check_type == "similar_name":
+    elif check_type == "similar_names":
+        # Requires two valid entry accessions
         if not re.match("IPR\d+$", value1):
             return jsonify({
                 "error": {
                     "title": "Bad request",
-                    "message": "'{}' is not a valid InterPro entry.".format(value1)
+                    "message": "'{}' is not a valid InterPro entry.".format(
+                        value1)
                 }
             }), 400
         elif not re.match("IPR\d+$", value2):
             return jsonify({
                 "error": {
                     "title": "Bad request",
-                    "message": "'{}' is not a valid InterPro entry.".format(value2)
+                    "message": "'{}' is not a valid InterPro entry.".format(
+                        value2)
                 }
             }), 400
         elif value1 < value2:
             params = (check_type, None, None, value1, value2)
         else:
             params = (check_type, None, None, value2, value1)
-    elif check_type == "non_ascii":
+    elif check_type == "ascii":
+        # Requires a non-ascii character
         try:
             integer = ord(value1)
         except TypeError:
             return jsonify({
                 "error": {
                     "title": "Bad request",
-                    "message": "Expected a character, but string of length {} found.".format(len(value1))
+                    "message": "Expected a character, but string of length {} found.".format(
+                        len(value1))
                 }
             }), 400
 
@@ -952,19 +1019,22 @@ def add_exception(check_type):
             return jsonify({
                 "error": {
                     "title": "Bad request",
-                    "message": "'{}' is a ASCII character. Please enter non-ASCII characters only.".format(value1)
+                    "message": "'{}' is a ASCII character. Please enter non-ASCII characters only.".format(
+                        value1)
                 }
             }), 400
 
         params = (check_type, value1, None, None, None)
-    elif check_type == "underscore_in_name":
+    elif check_type == "underscore":
+        # Requires a valid entry accession
         if re.match("IPR\d+$", value1):
             params = (check_type, None, None, value1, None)
         else:
             return jsonify({
                 "error": {
                     "title": "Bad request",
-                    "message": "'{}' is not a valid InterPro entry.".format(value1)
+                    "message": "'{}' is not a valid InterPro entry.".format(
+                        value1)
                 }
             }), 400
     elif len(value1):
@@ -1001,6 +1071,24 @@ def add_exception(check_type):
         }), 200
     finally:
         cur.close()
+
+
+@app.route("/api/sanitychecks/exception/<check_type>/", methods=["PUT"])
+def api_add_exception(check_type):
+    try:
+        value1 = request.json["value1"]
+        value2 = request.json["value2"]
+        term = request.json["term"]
+        label, accept_exceptions, use_term = _ERR_TYPES[check_type]
+    except KeyError:
+        return jsonify({
+            "error": {
+                "title": "Bad request",
+                "message": "Invalid or missing parameters."
+            }
+        }), 400
+
+    return add_exception(check_type, value1, value2, term, use_term)
 
 
 @app.route("/api/sanitychecks/exception/<int:exc_id>/", methods=["DELETE"])
