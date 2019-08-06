@@ -20,32 +20,39 @@ function getErrors(runId) {
                         ui.setClass(elem, 'hidden', false);
                     })();
 
-                    let cards = '';
+                    let html = '';
                     for (let err of run.errors) {
                         if (err.resolved_by)
-                            cards += '<div class="green card"><div class="content">';
+                            html += '<div class="green card"><div class="content">';
                         else
-                            cards += '<div class="red card"><div class="content">';
+                            html += '<div class="red card"><div class="content">';
 
                         if (err.ann_id) {
-                            cards += '<div class="header">' + err.ann_id + '</div>'
-                                + '<a class="meta" href="/entry/' + err.entry_ac + '/">'+ err.entry_ac +'</a>';
-                        } else
-                            cards += '<a class="header" href="/entry/' + err.entry_ac + '/">' + err.entry_ac + '</a>';
+                            html += '<div class="header">' + err.ann_id + '</div>'
+                                + '<a class="meta" target="_blank" href="/entry/' + err.entry_ac + '/">'
+                                + err.entry_ac
+                                + '&nbsp;<i class="external icon"></i>'
+                                + '</a>';
+                        } else {
+                            html += '<a class="header" target="_blank" href="/entry/' + err.entry_ac + '/">'
+                                + err.entry_ac
+                                + '&nbsp;<i class="external icon"></i>'
+                                +'</a>';
+                        }
 
-                        cards += '<div class="description">';
+                        html += '<div class="description">';
                         for (let [label, errors] of Object.entries(err.errors)) {
                             if (typeof errors === "boolean")
-                                cards += '<div class="ui basic small label">'+ label +'</div>';
+                                html += '<div class="ui basic small label">'+ label +'</div>';
                             else
                                 for (let err of errors) {
                                     if (err.count > 1) {
-                                        cards += '<div class="ui basic small label">'
+                                        html += '<div class="ui basic small label">'
                                             + label
                                             + '<div class="detail">' + err.count + '&times;&ldquo;' + err.error + '&rdquo;</div>'
                                             + '</div>';
                                     } else {
-                                        cards += '<div class="ui basic small label">'
+                                        html += '<div class="ui basic small label">'
                                             + label
                                             + '<div class="detail">&ldquo;' + err.error + '&rdquo;</div>'
                                             + '</div>';
@@ -54,20 +61,40 @@ function getErrors(runId) {
 
                         }
 
-                        cards += '</div>'   // close description
+                        html += '</div>'   // close description
                             + '</div>'      // close content
                             + '<div class="extra content">';
 
                         if (err.resolved_by)
-                            cards += '<div class="right floated">Resolved by ' + err.resolved_by.split(/\s/)[0] + '</div>';
+                            html += '<div class="right floated">Resolved by ' + err.resolved_by.split(/\s/)[0] + '</div>';
                         else
-                            cards += '<div class="right floated" data-id="'+ err.id +'"><i class="check icon"></i>Resolve</div>';
+                            html += '<div class="right floated" data-id="'+ err.id +'"><i class="check icon"></i>Resolve</div>';
 
                         // close extra content, then card
-                        cards += '</div></div>';
+                        html += '</div></div>';
                     }
 
-                    document.querySelector('.ui.cards').innerHTML = cards;
+                    document.querySelector('.ui.cards').innerHTML = html;
+
+                    let raisedCard = null;
+                    const cards = Array.from(document.querySelectorAll('.card'));
+                    cards.forEach(elem => {
+                        elem.addEventListener('click', e => {
+                            const thisCard = e.currentTarget;
+
+                            if (raisedCard === thisCard) {
+                                cards.forEach(card => {
+                                    ui.setClass(card, 'unselected', false);
+                                });
+                                raisedCard = null;
+                            } else {
+                                cards.forEach(card => {
+                                    ui.setClass(card, 'unselected', card !== thisCard);
+                                });
+                                raisedCard = thisCard;
+                            }
+                        });
+                    });
 
                     Array.from(document.querySelectorAll('[data-id]')).forEach(elem => {
                         elem.addEventListener('click', e => {
@@ -100,5 +127,4 @@ $(function () {
     const runId = location.pathname.match(/\/sanitychecks\/runs\/(.+)\/$/)[1];
     getErrors(runId);
     $('#help-modal').modal('attach events', '#show-help', 'show');
-    console.log(1);
 });
