@@ -279,19 +279,19 @@ export function finaliseHeader(signatureAcc) {
                     })
                 });
             } else {
-                const tooltip = document.createElement("div");
-                tooltip.className = 'ui tooltip';
-                tooltip.innerHTML = '<div class="content"><div class="header">Watch out!</div><div class="description">The database behind this instance of Pronto is being updated.<br>Some pages or features may not work.</div></div>';
-                tooltip.style.position = 'fixed';
-                tooltip.style.display = 'block';
-                tooltip.style.left = '5px';
-                tooltip.style.top = '70px';
-                tooltip.style.width = '250px';
-                tooltip.style.color = '#fff';
-                tooltip.style.zIndex = 'inherit';
-                tooltip.style.backgroundColor = 'rgba(219, 40, 40, 0.9)';
-                tooltip.querySelector('.description').style.color = '#fff';
-                document.body.appendChild(tooltip);
+                // const tooltip = document.createElement("div");
+                // tooltip.className = 'ui tooltip';
+                // tooltip.innerHTML = '<div class="content"><div class="header">Watch out!</div><div class="description">The database behind this instance of Pronto is being updated.<br>Some pages or features may not work.</div></div>';
+                // tooltip.style.position = 'fixed';
+                // tooltip.style.display = 'block';
+                // tooltip.style.left = '5px';
+                // tooltip.style.top = '70px';
+                // tooltip.style.width = '250px';
+                // tooltip.style.color = '#fff';
+                // tooltip.style.zIndex = 'inherit';
+                // tooltip.style.backgroundColor = 'rgba(219, 40, 40, 0.9)';
+                // tooltip.querySelector('.description').style.color = '#fff';
+                // document.body.appendChild(tooltip);
             }
 
             getUniProtVersion();
