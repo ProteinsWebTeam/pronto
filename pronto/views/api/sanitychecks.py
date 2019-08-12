@@ -1038,7 +1038,7 @@ def add_exception(check_type, term_based, exc_term, exc_string, exc_extra):
                 }
             }, 400
 
-        params = (check_type, exc_string, None, None, None)
+        params = (check_type, str(integer), None, None, None)
     elif check_type == "underscore":
         # Requires a valid entry accession
         if re.match("IPR\d+$", exc_string):
@@ -1091,8 +1091,8 @@ def add_exception(check_type, term_based, exc_term, exc_string, exc_extra):
 def api_add_exception(check_type):
     try:
         exc_term = request.json["term"]
-        exc_string = request.json["exc_string"]
-        exc_extra = request.json["exc_extra"]
+        exc_string = request.json["string"]
+        exc_extra = request.json["extra"]
         label, accept_exceptions, term_based = _ERR_TYPES[check_type]
     except KeyError:
         return jsonify({
