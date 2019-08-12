@@ -725,7 +725,6 @@ def resolve_error(run_id, err_id):
         if not row:
             # Nothing to do here
             cur.close()
-            con.close()
             return '', 404
 
         ann_id = row[0]
@@ -734,29 +733,39 @@ def resolve_error(run_id, err_id):
         if len(err_types) > 1:
             # We don't want to add exceptions for multiple errors
             cur.close()
-            con.close()
             return '', 400
 
         err_type, errors = err_types.popitem()
-        label, accept_exceptions, use_term = _ERR_TYPES[err_type]
+        label, accept_exceptions, term_based = _ERR_TYPES[err_type]
         if not accept_exceptions:
             # Exceptions not allowed for this type
             cur.close()
-            con.close()
             return '', 403
         elif not isinstance(errors, bool) and len(errors) > 1:
             # We don't want to add exceptions for multiple errors (bis)
             cur.close()
-            con.close()
             return '', 400
 
         # Error to add to exception
         err_string = errors[0]["error"]
-        res, code = add_exception(err_type, ann_id or entry_acc, None,
-                                  err_string, use_term)
+        err_extra = None
+        if err_type == "ascii":
+            """
+            For encoding errors, the character to allow is the fourth argument,
+            so we overwrite the entry accession/abstract ID which we don't need
+            """
+            ann_id = entry_acc = err_string
+        elif err_type == "similar_names":
+            """
+            For similar names, the error string is the accession of the second entry,
+            which should be passed as fifth argument. 
+            """
+            err_extra = err_string
+
+        res, code = add_exception(err_type, term_based, err_string,
+                                  ann_id or entry_acc, err_extra)
         if code != 200:
             cur.close()
-            con.close()
             return '', code
 
     cur.execute(
@@ -798,7 +807,6 @@ def get_type_checks():
         """
     )
     for row in cur:
-        print(row)
         err_type = row[0]
         err_checks = err_types[err_type]["strings"]
 
@@ -932,120 +940,126 @@ def delete_check_term(check_type):
         cur.close()
 
 
-def add_exception(check_type, value1, value2, term, use_term):
-    # `value2` is ONLY used for exceptions involving two InterPro entries
+def add_exception(check_type, term_based, exc_term, exc_string, exc_extra):
     user = get_user()
     if not user:
-        return jsonify({
+        return {
             "status": False,
             "title": "Access denied",
             "message": 'Please <a href="/login/">log in</a> '
                        'to perform this operation.'
-        }), 401
+        }, 401
 
-    if use_term:
+    if term_based:
         # Exception for specific checked term found in abstract/entry
-        if not term or not value1:
-            return jsonify({
+        if not exc_term or not exc_string:
+            return {
                 "error": {
                     "title": "Bad request",
                     "message": "Invalid or missing parameters."
                 }
-            }), 400
-        elif re.match("IPR\d+$", value1):
-            params = (check_type, term, None, value1, None)
-        elif re.match("AB\d+$", value1):
-            params = (check_type, term, value1, None, None)
+            }, 400
+        elif re.match("AB\d+$", exc_string):
+            params = (check_type, exc_term, exc_string, None, None)
+        elif re.match("IPR\d+$", exc_string):
+            params = (check_type, exc_term, None, exc_string, None)
         else:
-            return jsonify({
+            return {
                 "error": {
                     "title": "Bad request",
                     "message": "'{}' is not a valid InterPro entry "
-                               "or abstract ID.".format(value1)
+                               "or abstract ID.".format(exc_string)
                 }
-            }), 400
+            }, 400
     elif check_type == "acc_in_name":
         # Requires a valid entry accession
-        if re.match("IPR\d+$", value1):
-            params = (check_type, value2, None, value1, None)
+        if re.match("IPR\d+$", exc_string):
+            """
+            `exc_extra` becomes the excused term, 
+            as it can be a signature accession
+            """
+            params = (check_type, exc_extra, None, exc_string, None)
         else:
-            return jsonify({
+            return {
                 "error": {
                     "title": "Bad request",
-                    "message": "'{}' is not a valid InterPro entry.".format(
-                        value1)
+                    "message": "'{}' is not a valid "
+                               "InterPro entry.".format(exc_string)
                 }
-            }), 400
+            }, 400
     elif check_type == "similar_names":
         # Requires two valid entry accessions
-        if not re.match("IPR\d+$", value1):
-            return jsonify({
+        if not re.match("IPR\d+$", exc_string):
+            return {
                 "error": {
                     "title": "Bad request",
-                    "message": "'{}' is not a valid InterPro entry.".format(
-                        value1)
+                    "message": "'{}' is not a valid "
+                               "InterPro entry.".format(exc_string)
                 }
-            }), 400
-        elif not re.match("IPR\d+$", value2):
-            return jsonify({
+            }, 400
+        elif not re.match("IPR\d+$", exc_extra):
+            return {
                 "error": {
                     "title": "Bad request",
-                    "message": "'{}' is not a valid InterPro entry.".format(
-                        value2)
+                    "message": "'{}' is not a valid "
+                               "InterPro entry.".format(exc_extra)
                 }
-            }), 400
-        elif value1 < value2:
-            params = (check_type, None, None, value1, value2)
-        else:
-            params = (check_type, None, None, value2, value1)
+            }, 400
+        elif exc_string > exc_extra:
+            exc_string, exc_extra = exc_extra, exc_string
+        params = (check_type, None, None, exc_string, exc_extra)
     elif check_type == "ascii":
-        # Requires a non-ascii character
+        """
+        Requires a non-ascii character
+        `exc_string` is NOT an InterPro entry or abstract ID, 
+        but the non-ASCII character to allow
+        """
         try:
-            integer = ord(value1)
+            integer = ord(exc_string)
         except TypeError:
-            return jsonify({
+            return {
                 "error": {
                     "title": "Bad request",
-                    "message": "Expected a character, but string of length {} found.".format(
-                        len(value1))
+                    "message": "Expected a character, but string "
+                               "of length {} found.".format(len(exc_string))
                 }
-            }), 400
+            }, 400
 
         try:
-            value1.encode("ascii")
+            exc_string.encode("ascii")
         except UnicodeEncodeError:
             pass
         else:
-            return jsonify({
+            return {
                 "error": {
                     "title": "Bad request",
-                    "message": "'{}' is a ASCII character. Please enter non-ASCII characters only.".format(
-                        value1)
+                    "message": "'{}' is a ASCII character. Please enter "
+                               "non-ASCII characters only.".format(exc_string)
                 }
-            }), 400
+            }, 400
 
-        params = (check_type, value1, None, None, None)
+        params = (check_type, exc_string, None, None, None)
     elif check_type == "underscore":
         # Requires a valid entry accession
-        if re.match("IPR\d+$", value1):
-            params = (check_type, None, None, value1, None)
+        if re.match("IPR\d+$", exc_string):
+            params = (check_type, None, None, exc_string, None)
         else:
-            return jsonify({
+            return {
                 "error": {
                     "title": "Bad request",
-                    "message": "'{}' is not a valid InterPro entry.".format(
-                        value1)
+                    "message": "'{}' is not a valid "
+                               "InterPro entry.".format(exc_string)
                 }
-            }), 400
-    elif len(value1):
-        params = (check_type, value1, None, None, None)
+            }, 400
+    elif len(exc_string):
+        params = (check_type, exc_string, None, None, None)
     else:
-        return jsonify({
+        return {
             "error": {
                 "title": "Bad request",
                 "message": "Please enter at least one character."
             }
-        }), 400
+        }, 400
 
     con = db.get_oracle()
     cur = con.cursor()
@@ -1057,18 +1071,18 @@ def add_exception(check_type, value1, value2, term, use_term):
             """, params
         )
     except DatabaseError as exc:
-        return jsonify({
+        return {
             "error": {
                 "status": False,
                 "title": "Database error",
                 "message": "Could not add exception ({}).".format(exc)
             }
-        }), 500
+        }, 500
     else:
         con.commit()
-        return jsonify({
+        return {
             "status": True
-        }), 200
+        }, 200
     finally:
         cur.close()
 
@@ -1076,10 +1090,10 @@ def add_exception(check_type, value1, value2, term, use_term):
 @app.route("/api/sanitychecks/exception/<check_type>/", methods=["PUT"])
 def api_add_exception(check_type):
     try:
-        value1 = request.json["value1"]
-        value2 = request.json["value2"]
-        term = request.json["term"]
-        label, accept_exceptions, use_term = _ERR_TYPES[check_type]
+        exc_term = request.json["term"]
+        exc_string = request.json["exc_string"]
+        exc_extra = request.json["exc_extra"]
+        label, accept_exceptions, term_based = _ERR_TYPES[check_type]
     except KeyError:
         return jsonify({
             "error": {
@@ -1088,7 +1102,8 @@ def api_add_exception(check_type):
             }
         }), 400
 
-    return add_exception(check_type, value1, value2, term, use_term)
+    obj, code = add_exception(check_type, term_based, exc_term, exc_string, exc_extra)
+    return jsonify(obj), code
 
 
 @app.route("/api/sanitychecks/exception/<int:exc_id>/", methods=["DELETE"])

@@ -6,7 +6,7 @@ function createCards(checkType, checks) {
     let html = '';
     for (let item of checks) {
         const string = item.string.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        html += '<div class="ui card" data-type="'+ checkType +'" data-string="'+ item.string +'">'
+        html += '<div class="ui card" data-type="'+ checkType +'" data-term="'+ item.string +'">'
             + '<div class="content">'
             + '<a class="right floated meta"><i class="delete fitted icon"></i></a>'
             + '&ldquo;'+ string +'&rdquo;'
@@ -105,14 +105,14 @@ function loadSanityChecks() {
                 elem.addEventListener('click', e => {
                     const card = e.currentTarget.closest('.ui.card');
                     const ckType = card.getAttribute('data-type');
-                    const ckString = encodeURI(card.getAttribute('data-string'));
+                    const ckTerm = encodeURI(card.getAttribute('data-term'));
 
                     ui.openConfirmModal(
                         'Delete term?',
                         'Are you sure to delete this term? It will not be searched any more. <strong>This action is irreversible.</strong>',
                         'Delete',
                         () => {
-                            fetch('/api/sanitychecks/term/'+ ckType +'/?str=' + ckString, {method: 'DELETE'})
+                            fetch('/api/sanitychecks/term/'+ ckType +'/?str=' + ckTerm, {method: 'DELETE'})
                                 .then(response => response.json())
                                 .then(result => {
                                     if (result.status)
@@ -130,8 +130,8 @@ function loadSanityChecks() {
                 elem.addEventListener('click', e => {
                     const card = e.currentTarget.closest('.ui.card');
                     const ckType = card.getAttribute('data-type');
-                    const ckString = card.getAttribute('data-string');
-                    addTermOrException(ckType, true, ckString);
+                    const ckTerm = card.getAttribute('data-term');
+                    addTermOrException(ckType, ckTerm, true);
                 });
             });
 
@@ -164,23 +164,23 @@ function loadSanityChecks() {
         });
 }
 
-function addTermOrException(ckType, useTerm, ckString) {
+function addTermOrException(ckType, ckTerm, termBased) {
     const modal = document.getElementById('new-term-modal');
     const message = modal.querySelector('.message');
     const label1 = modal.querySelector('#label-1');
     const label2 = modal.querySelector('#label-2');
 
     ui.setClass(message, 'hidden', true);
-    if (useTerm && ckString === null) {
+    if (ckTerm === null && termBased) {
         // New term
         modal.querySelector('.header').innerHTML = 'Add term';
         label1.querySelector('label').innerHTML = 'New term to check';
         label1.querySelector('input').placeholder = 'Term to check';
         ui.setClass(label2, 'hidden', true);
     }
-    else if (useTerm) {
+    else if (termBased) {
         // New exception for existing term
-        modal.querySelector('.header').innerHTML = 'Add exception for &ldquo;' + ckString + '&rdquo;';
+        modal.querySelector('.header').innerHTML = 'Add exception for &ldquo;' + ckTerm + '&rdquo;';
         label1.querySelector('label').innerHTML = 'Entry or abstract';
         label1.querySelector('input').placeholder = 'Entry accession or abstract ID';
         ui.setClass(label2, 'hidden', true);
@@ -218,7 +218,7 @@ function addTermOrException(ckType, useTerm, ckString) {
             onApprove: function () {
                 const options = {method: 'PUT'};
 
-                if (useTerm && ckString === null) {
+                if (termBased && ckTerm === null) {
                     // New term
                     const term = encodeURI(label1.querySelector('input').value);
                     fetch('/api/sanitychecks/term/' + ckType + '/?term=' + term, options)
@@ -235,9 +235,9 @@ function addTermOrException(ckType, useTerm, ckString) {
                 } else {
                     options.headers = {'Content-Type': 'application/json; charset=utf-8'};
                     options.body = JSON.stringify({
-                        value1: label1.querySelector('input').value,
-                        value2: label2.querySelector('input').value,
-                        term: ckString
+                        term: ckTerm,
+                        string: label1.querySelector('input').value,
+                        extra: label2.querySelector('input').value,
                     });
                     fetch('/api/sanitychecks/exception/' + ckType + '/', options)
                         .then(response => response.json())
@@ -266,7 +266,7 @@ $(function () {
     document.querySelectorAll('button[data-type]').forEach(elem => {
         elem.addEventListener('click', e => {
             const btn = e.currentTarget;
-            addTermOrException(btn.getAttribute('data-type'), btn.hasAttribute('data-use-term'), null);
+            addTermOrException(btn.getAttribute('data-type'), null, btn.hasAttribute('data-use-term'));
         });
     });
 });
