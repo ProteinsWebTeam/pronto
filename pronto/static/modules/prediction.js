@@ -1,7 +1,6 @@
 import {dimmer, renderCheckbox, openErrorModal, useWhiteText, toRGB} from "../ui.js";
-import {finaliseHeader} from "../header.js";
+import {finaliseHeader, nvl} from "../header.js";
 import {getSignatureComments, postSignatureComment} from "../comments.js";
-import {nvl} from "../utils.js";
 import {selector} from "../signatures.js";
 import {checkEntry} from "../events.js";
 

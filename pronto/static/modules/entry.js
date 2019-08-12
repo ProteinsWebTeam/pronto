@@ -1,7 +1,6 @@
 import * as ui from "../ui.js";
-import {finaliseHeader} from "../header.js";
+import {finaliseHeader, nvl} from "../header.js";
 import {getEntryComments, postEntryComment} from "../comments.js";
-import {nvl} from "../utils.js";
 
 const annotationEditor = {
     element: null,
