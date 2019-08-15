@@ -173,6 +173,157 @@ def get_signature_predictions(accession):
     return jsonify(signatures)
 
 
+def nvl(*args, default=0):
+    return [default if arg is None else arg for arg in args]
+
+
+def _predict(idx, ct1, ct2, threshold, inverse=False):
+    if idx >= threshold:
+        return "Similar"
+    elif ct1 >= threshold:
+        if ct2 >= threshold:
+            return "Alike"
+        elif inverse:
+            return "Contains"
+        else:
+            return "Contained by"
+    elif ct2 >= threshold:
+        return "Contained by" if inverse else "Contains"
+    else:
+        return None
+
+
+@app.route("/api/signature/<accession>/predictions2/")
+def get_signature_predictions2(accession):
+    try:
+        min_colloc_sim = float(request.args["mincollocation"])
+        assert 0 <= min_colloc_sim <= 1
+    except KeyError:
+        min_colloc_sim = 0.5
+    except (ValueError, AssertionError):
+        return jsonify({
+            "error": {
+                "title": "Bad request",
+                "message": "Parameter 'mincollocation' "
+                           "expects a number between 0 and 1."
+            }
+        }), 400
+
+    try:
+        min_sim = float(request.args["minsimilarity"])
+        assert 0 <= min_sim <= 1
+    except KeyError:
+        min_sim = 0.75
+    except (ValueError, AssertionError):
+        return jsonify({
+            "error": {
+                "title": "Bad request",
+                "message": "Parameter 'minsimilarity' "
+                           "expects a number between 0 and 1."
+            }
+        }), 400
+
+    cur = db.get_oracle().cursor()
+    cur.execute(
+        """
+        SELECT 
+          MS.METHOD_AC1, MS.METHOD_AC2, MS.COLL_INDEX,
+          M1.FULL_SEQ_COUNT, M1.DBCODE,
+          E1.ENTRY_AC, E1.ENTRY_TYPE, E1.NAME, E1.CHECKED,
+          M2.FULL_SEQ_COUNT, M2.DBCODE,
+          E2.ENTRY_AC, E2.ENTRY_TYPE, E2.NAME, E2.CHECKED,
+          MS.POVR_INDEX, MS.POVR_CONT1, MS.POVR_CONT2,
+          MS.ROVR_INDEX, MS.ROVR_CONT1, MS.ROVR_CONT2,
+          MS.DESC_INDEX, MS.DESC_CONT1, MS.DESC_CONT2,
+          MS.TAXA_INDEX, MS.TAXA_CONT1, MS.TAXA_CONT2,
+          MS.TERM_INDEX, MS.TERM_CONT1, MS.TERM_CONT2
+        FROM INTERPRO_ANALYSIS_LOAD.METHOD_SIMILARITY MS
+        INNER JOIN INTERPRO_ANALYSIS_LOAD.METHOD M1 
+          ON MS.METHOD_AC1 = M1.METHOD_AC
+        LEFT OUTER JOIN INTERPRO.ENTRY2METHOD EM1
+          ON M1.METHOD_AC = EM1.METHOD_AC
+        LEFT OUTER JOIN INTERPRO.ENTRY E1
+          ON EM1.ENTRY_AC = E1.ENTRY_AC
+        INNER JOIN INTERPRO_ANALYSIS_LOAD.METHOD M2
+          ON MS.METHOD_AC2 = M2.METHOD_AC
+        LEFT OUTER JOIN INTERPRO.ENTRY2METHOD EM2
+          ON M2.METHOD_AC = EM2.METHOD_AC
+        LEFT OUTER JOIN INTERPRO.ENTRY E2
+          ON EM2.ENTRY_AC = E2.ENTRY_AC
+        WHERE MS.METHOD_AC1 = :acc OR MS.METHOD_AC2 = :acc 
+        """, dict(acc=accession)
+    )
+
+    signatures = []
+    for row in cur:
+        s_acc1, s_acc2, coll_idx = row[:3]
+
+        if coll_idx < min_colloc_sim:
+            continue
+        elif accession == s_acc1:
+            s_acc = s_acc2
+            s_count, s_dbcode = row[9:11]
+            e_acc, e_type, e_name, e_checked = row[11:15]
+            inverse = False
+        else:
+            s_acc = s_acc1
+            s_count, s_dbcode = row[3:5]
+            e_acc, e_type, e_name, e_checked = row[5:9]
+            inverse = True
+
+        predictions = {
+            "proteins": _predict(*nvl(*row[15:18]), min_sim, inverse),
+            "residues": _predict(*nvl(*row[18:21]), min_sim, inverse),
+            "descriptions": _predict(*nvl(*row[21:24]), min_sim, inverse),
+            "taxa": _predict(*nvl(*row[24:27]), min_sim, inverse),
+            "terms": _predict(*nvl(*row[27:30]), min_sim, inverse)
+        }
+
+        if any(predictions.values()):
+            database = xref.find_ref(dbcode=s_dbcode, ac=s_acc)
+            signatures.append({
+                # Signature
+                "accession": s_acc,
+                "link": database.gen_link() if database else None,
+
+                # Entry
+                "entry": {
+                    "accession": e_acc,
+                    "type_code": e_type,
+                    "name": e_name,
+                    "checked": e_checked == 'Y',
+                    "hierarchy": []
+                },
+
+                "proteins": s_count,
+                "common_proteins": None,
+                "predictions": predictions
+            })
+
+    cur.execute(
+        """
+        SELECT ENTRY_AC, PARENT_AC
+        FROM INTERPRO.ENTRY2ENTRY
+        """
+    )
+    parent_of = dict(cur.fetchall())
+    cur.close()
+
+    for p in signatures:
+        entry_acc = p["entry"]["accession"]
+        if entry_acc:
+            hierarchy = []
+
+            while entry_acc in parent_of:
+                entry_acc = parent_of[entry_acc]
+                hierarchy.append(entry_acc)
+
+            # Transform child -> parent into parent -> child
+            p["entry"]["hierarchy"] = hierarchy[::-1]
+
+    return jsonify(signatures), 200
+
+
 @app.route("/api/signature/<accession>/comments/")
 def get_signature_comments(accession):
     try:
@@ -236,7 +387,7 @@ def delete_signature_comment(accession, _id):
             "status": False,
             "message": "Could not delete comment "
                        "for {}: {}".format(accession, e)
-        }), 400
+        }), 500
     else:
         con.commit()
         cur.close()
@@ -291,7 +442,7 @@ def add_signature_comment(accession):
             "status": False,
             "message": "Could not add comment "
                        "for {}: {}".format(accession, e)
-        }), 400
+        }), 500
     else:
         con.commit()
         cur.close()
@@ -568,13 +719,13 @@ def get_signature_proteins(accession):
 
     cur.close()
     return jsonify({
-            "count": len(proteins),
-            "proteins": proteins,
-            "page_info": {
-                "page": 1,
-                "page_size": len(proteins)
-            }
-        })
+        "count": len(proteins),
+        "proteins": proteins,
+        "page_info": {
+            "page": 1,
+            "page_size": len(proteins)
+        }
+    })
 
 
 @app.route('/api/signature/<accession>/references/<go_id>/')
