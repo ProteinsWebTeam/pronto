@@ -85,7 +85,7 @@ function getOverlap() {
 }
 
 function getPredictions(accession) {
-    let url = "/api/signature/" + accession + "/predictions/";
+    let url = "/api/signature/" + accession + "/predictions2/";
     let overlap = getOverlap();
     if (overlap !== null)
         url += "?overlap=" + overlap;
@@ -211,52 +211,77 @@ function getPredictions(accession) {
 $(function () {
     const match = location.pathname.match(/\/prediction\/([^\/]+)/i);
     const accession = match[1];
-    selector.init(document.getElementById('methods'), accession);
     document.title = accession + " predictions | Pronto";
-    document.querySelector("h1.ui.header .sub").innerHTML = accession;
-
-    overlapHeatmap.calcPixels();
-    overlapHeatmap.render();
-
-    // Init Semantic-UI elements
-    $('[data-content]').popup();
-
-    (function () {
-        const overlap = getOverlap() || 0.3;
-        const slider = document.getElementById('over-range');
-        const span = document.getElementById('over-value');
-
-        slider.value = overlap;
-        span.innerHTML = (overlap * 100).toFixed(0);
-        slider.addEventListener('change', e => {
-            const overlap = parseFloat(e.target.value);
-            span.innerHTML = (overlap * 100).toFixed(0);
-            const url = new URL(location.href);
-            url.searchParams.set("overlap", overlap);
-            history.replaceState(null, null, url.toString());
-            getPredictions(accession);
-        });
-        slider.addEventListener('input', evt => {
-            span.innerHTML = (parseFloat(evt.target.value) * 100).toFixed(0);
-        });
-    })();
-
-    document.querySelector('.ui.comments form button').addEventListener('click', e => {
-        e.preventDefault();
-        const form = e.target.closest('form');
-        const accession = form.getAttribute('data-id');
-        const textarea = form.querySelector('textarea');
-
-        postSignatureComment(accession, textarea.value.trim())
-            .then(result => {
-                if (result.status)
-                    getSignatureComments(accession, 2, e.target.closest(".ui.comments"));
-                else
-                    openErrorModal(result.message);
-            });
-    });
-
     finaliseHeader(accession);
-    getPredictions(accession);
-    getSignatureComments(accession, 2, document.querySelector('.ui.comments'));
+    fetch('/api/signature/'+ accession +'/')
+        .then(response => {
+            if (!response.ok)
+                throw Error();
+            return response.json();
+        })
+        .then(response => {
+            selector.init(document.getElementById('methods'), accession);
+
+            if (response.name && response.name !== accession)
+                document.querySelector("h1.ui.header .sub").innerHTML = response.name + ' (' + accession + ')';
+            else
+                document.querySelector("h1.ui.header .sub").innerHTML = accession;
+
+            document.querySelector('.ui.comments form button').addEventListener('click', e => {
+                e.preventDefault();
+                const form = e.target.closest('form');
+                const accession = form.getAttribute('data-id');
+                const textarea = form.querySelector('textarea');
+
+                postSignatureComment(accession, textarea.value.trim())
+                    .then(result => {
+                        if (result.status)
+                            getSignatureComments(accession, 2, e.target.closest(".ui.comments"));
+                        else
+                            openErrorModal(result.message);
+                    });
+            });
+
+            getSignatureComments(accession, 2, document.querySelector('.ui.comments'));
+            getPredictions(accession);
+
+            return;
+            overlapHeatmap.calcPixels();
+            overlapHeatmap.render();
+
+            // Init Semantic-UI elements
+            $('[data-content]').popup();
+
+            (function () {
+                const overlap = getOverlap() || 0.3;
+                const slider = document.getElementById('over-range');
+                const span = document.getElementById('over-value');
+
+                slider.value = overlap;
+                span.innerHTML = (overlap * 100).toFixed(0);
+                slider.addEventListener('change', e => {
+                    const overlap = parseFloat(e.target.value);
+                    span.innerHTML = (overlap * 100).toFixed(0);
+                    const url = new URL(location.href);
+                    url.searchParams.set("overlap", overlap);
+                    history.replaceState(null, null, url.toString());
+                    getPredictions(accession);
+                });
+                slider.addEventListener('input', evt => {
+                    span.innerHTML = (parseFloat(evt.target.value) * 100).toFixed(0);
+                });
+            })();
+
+
+
+            finaliseHeader(accession);
+            getPredictions(accession);
+
+        })
+        .catch(error => {
+            document.querySelector('.ui.container.segment').innerHTML = '<div class="ui error message">'
+                + '<div class="header">Signature not found</div>'
+                + '<p><strong>'+ accession +'</strong> is not a valid member database signature accession.</p>'
+                + '</div>';
+        });
 });
