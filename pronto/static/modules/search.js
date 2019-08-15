@@ -34,7 +34,7 @@ function callEBISearch(query, page, pageSize) {
 
             const table = document.querySelector("#search-results");
             table.querySelector("tbody").innerHTML = html;
-            ui.paginate(table, page, pageSize, result.hitCount, (newHref, ) => {
+            ui.paginate(table, page, pageSize, result.hitCount, (newHref) => {
                 const newURL = new URL(newHref);
                 const newPage = Number(newURL.searchParams.get("page"));
                 ui.dimmer(true);
