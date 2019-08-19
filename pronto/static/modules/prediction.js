@@ -79,58 +79,76 @@ const overlapHeatmap = {
     }
 };
 
-function getOverlap() {
-    let overlap = parseFloat(new URL(location.href).searchParams.get("overlap"));
-    return Number.isNaN(overlap) ? null : overlap;
+function parseParams(name) {
+    const value = parseFloat(new URL(location.href).searchParams.get(name));
+    return Number.isNaN(value) ? null : value;
 }
 
 function getPredictions(accession) {
-    let url = "/api/signature/" + accession + "/predictions2/";
-    let overlap = getOverlap();
-    if (overlap !== null)
-        url += "?overlap=" + overlap;
+    const params = [];
+    const minSimilarity = parseParams('minsimilarity');
+    if (minSimilarity !== null)
+        params.push('minsimilarity=' + minSimilarity);
+
+    if (document.querySelector('tfoot .checkbox input').checked)
+        params.push('mincollocation=0.5');
+    else
+        params.push('mincollocation=0');
+
+    const url = "/api/signature/" + accession + "/predictions2/?" + params.join('&');
 
     dimmer(true);
     fetch(url)
         .then(response => response.json())
         .then(signatures => {
-            let html = "";
+            let html = '';
+
             signatures.forEach(s => {
-                let queryRatio = Math.min(s.n_proteins / s.query.n_proteins, 1);
-                let candidateRatio = Math.min(s.n_proteins / s.candidate.n_proteins, 1);
-                let x = overlapHeatmap.size - Math.floor(candidateRatio * overlapHeatmap.size);
-                let y = overlapHeatmap.size - Math.floor(queryRatio * overlapHeatmap.size);
+                const predictions = new Map();
+                let numTypes = 0;
+                for (let value of Object.values(s.predictions)) {
+                    numTypes++;
+                    if (value === null)
+                        continue;
+                    else if (predictions.has(value))
+                        predictions.set(value, predictions.get(value)+1);
+                    else
+                        predictions.set(value, 1);
+                }
 
-                if (x >= overlapHeatmap.size)
-                    x = overlapHeatmap.size - 1;
+                let prediction = null;
+                for (let [pred, count] of predictions.entries()) {
+                    if (count > numTypes/2) {
+                        prediction = pred;
+                        break;
+                    }
+                }
 
-                if (y >= overlapHeatmap.size)
-                    y = overlapHeatmap.size - 1;
+                let circles = '<div class="ui tiny circular labels">';
+                ['proteins', 'residues', 'descriptions', 'taxa', 'terms'].forEach(key => {
+                    const value = s.predictions[key];
+                    let labelClass;
+                    if (value === 'Similar to')
+                        labelClass = 'ui green label';
+                    else if (value === 'Relates to')
+                        labelClass = 'ui blue label';
+                    else if (value === 'Contains')
+                        labelClass = 'ui violet label';
+                    else if (value === 'Contained by')
+                        labelClass = 'ui purple label';
+                    else
+                        labelClass = 'ui red label';
 
-                const c1 = overlapHeatmap.getPixel(x, y);
+                    if (key === 'proteins' || key === 'residues')
+                        circles += '<span data-key="'+ key +'" class="'+ labelClass +'"></span>';
+                    else
+                        circles += '<span data-accession="'+ s.accession +'" data-key="'+ key +'" class="'+ labelClass +'"></span>';
+                });
+                circles += '</div>';
 
-                queryRatio = Math.min(s.n_overlaps / s.query.n_matches, 1);
-                candidateRatio = Math.min(s.n_overlaps / s.candidate.n_matches, 1);
-                x = overlapHeatmap.size - Math.floor(candidateRatio * overlapHeatmap.size);
-                y = overlapHeatmap.size - Math.floor(queryRatio * overlapHeatmap.size);
-
-                if (x >= overlapHeatmap.size)
-                    x = overlapHeatmap.size - 1;
-
-                if (y >= overlapHeatmap.size)
-                    y = overlapHeatmap.size - 1;
-
-                const c2 = overlapHeatmap.getPixel(x, y);
-
-                if (s.accession === accession)
-                    html += '<tr class="active">';
-                else
-                    html += '<tr>';
-
-                html += '<td>'+ nvl(s.relation, "") +'</td>'
-                    + '<td>'
-                    + '<a href="/prediction/'+ s.accession +'/">'+ s.accession +'</a>'
-                    + '</td>';
+                html += '<tr>'
+                    + '<td>'+ (prediction === null ? 'N/A' : prediction) +'</td><td class="collapsing">'+ circles +'</td>'
+                    + '<td class="collapsing"><a href="/prediction/'+ s.accession +'/">'+ s.accession +'</a></td>';
 
                 if (s.link !== null) {
                     html += '<td class="collapsing">'
@@ -142,24 +160,11 @@ function getPredictions(accession) {
                     html += '<td></td>';
 
                 html += '<td class="collapsing">'
-                    + '<a href="#" data-add-id="'+ s.accession +'">'
-                    + '<i class="cart plus icon"></i>'
-                    + '</a>'
+                    + '<a href="#" data-add-id="'+ s.accession +'"><i class="cart plus icon"></i></a>'
                     + '</td>'
-                    + '<td class="right aligned">' + s.candidate.n_proteins.toLocaleString() + '</td>'
-                    + '<td class="right aligned">' + s.candidate.n_matches.toLocaleString() + '</td>';
-
-                if (useWhiteText(c1))
-                    html += '<td class="light right aligned" style="background-color: '+ toRGB(c1) +'">';
-                else
-                    html += '<td class="dark right aligned" style="background-color: '+ toRGB(c1) +'">';
-                html += s.n_proteins.toLocaleString() + '</td>';
-
-                if (useWhiteText(c2))
-                    html += '<td class="light right aligned" style="background-color: '+ toRGB(c2) +'">';
-                else
-                    html += '<td class="dark right aligned" style="background-color: '+ toRGB(c2) +'">';
-                html += s.n_overlaps.toLocaleString() + '</td>';
+                    + '<td class="collapsing right aligned">' + s.proteins.toLocaleString() + '</td>'
+                    + '<td class="collapsing right aligned">'+ s.common_proteins.toLocaleString() +'</td>'
+                    + '<td class="collapsing right aligned">'+ s.overlap_proteins.toLocaleString() +'</td>';
 
                 if (s.entry.accession !== null) {
                     html += '<td class="nowrap">'
@@ -174,19 +179,19 @@ function getPredictions(accession) {
                             + '</div>';
                     });
 
-
                     html += '<div class="item">'
                         + '<div class="content">'
                         + '<span class="ui circular mini label type-'+ s.entry.type_code +'">'+ s.entry.type_code +'</span>'
-                        + '<a href="/entry/'+ s.entry.accession +'/">'+ s.entry.accession +'</a>'
+                        + '<a href="/entry/'+ s.entry.accession +'/">'+ s.entry.accession +' ('+ s.entry.name +')</a>'
                         + '</div>'
                         + '</div>'
                         + '</td>'
-                        + '<td>'+ s.entry.name +'</td>'
-                        + '<td>'+ renderCheckbox(s.entry.accession, s.entry.checked) +'</td>'
-                        + '</tr>';
+                        + '<td class="collapsing">'+ renderCheckbox(s.entry.accession, s.entry.checked) +'</td>';
                 } else
-                    html += '<td></td><td></td><td></td>';
+                    html += '<td></td><td></td>';
+
+                html += '</tr>';
+
             });
 
             document.querySelector("tbody").innerHTML = html;
@@ -201,6 +206,74 @@ function getPredictions(accession) {
 
             Array.from(document.querySelectorAll('tbody input[type=checkbox]')).forEach(input => {
                 input.addEventListener('change', e => checkEntry(input));
+            });
+
+            Array.from(document.querySelectorAll('tbody .ui.circular.labels .label[data-key]')).forEach(elem => {
+                const title = elem.getAttribute('data-key');
+                let content = null;
+                if (title === 'descriptions')
+                    content = 'Common UniProtKB descriptions';
+                else if (title === 'proteins')
+                    content = 'Overlapping proteins';
+                else if (title === 'residues')
+                    content = 'Overlapping residues';
+                else if (title === 'taxa')
+                    content = 'Common taxonomic origins';
+                else if (title === 'terms')
+                    content = 'Common GO terms';
+
+                $(elem)
+                    .popup({
+                        title: title.substr(0, 1).toUpperCase() + title.substr(1),
+                        content: content,
+                        position: 'top center',
+                        variation: 'small'
+                    });
+            });
+
+            Array.from(document.querySelectorAll('span[data-accession]')).forEach(elem => {
+                elem.addEventListener('click', e => {
+                    const key = e.target.getAttribute('data-key');
+                    const otherAcc = e.target.getAttribute('data-accession');
+
+                    fetch('/api/signature/'+ accession +'/comparison/'+ otherAcc +'/'+ key +'/')
+                        .then(response => response.json())
+                        .then(results => {
+                            const modal = document.getElementById('comparison');
+                            $(modal)
+                                .modal({
+                                    onVisible: function () {
+                                        const content = this.querySelector('.content');
+                                        const style = window.getComputedStyle(content, null);
+                                        const width = content.offsetWidth - parseFloat(style.getPropertyValue('padding-left')) - parseFloat(style.getPropertyValue('padding-right'));
+
+                                        const union = (results[accession] + results[otherAcc] - results["common"]);
+                                        const rect1Width = Math.floor(results[accession] * width / union);
+
+                                        const rect2Width = Math.floor(results["common"] * width / union);
+                                        const rect2X = Math.floor((results[accession] - results["common"]) * width / union);
+
+                                        const rect3Width = Math.floor(results[otherAcc] * width / union);
+                                        const rect3X = width - rect3Width;
+
+
+                                        let svg = '<svg width="' + width + 'px" height="100px">'
+                                            + '<text dominant-baseline="hanging" text-anchor="start" x="0" y="0" fill="#333">'+ accession +'</text>'
+                                            + '<rect class="light-blue" x="0" y="20px" width="'+ rect1Width +'px" height="20px"/>'
+                                            + '<rect class="green" x="'+ rect2X +'px" y="40px"width="'+ rect2Width +'px"  height="20px"/>'
+                                            + '<rect class="lime" x="'+ rect3X +'px" y="60px"width="'+ rect3Width +'px"  height="20px"/>'
+                                            + '<text dominant-baseline="hanging" text-anchor="end" x="'+ width +'px" y="80px" fill="#333">'+ otherAcc +'</text>'
+                                            + '</svg>';
+
+                                        content.innerHTML = svg;
+                                    }
+                                })
+                                .modal('show');
+                            //console.log(window)
+                            //console.log(modal.querySelector('.content').getC);
+
+                        });
+                })
             });
 
             dimmer(false);
@@ -238,45 +311,43 @@ $(function () {
                         if (result.status)
                             getSignatureComments(accession, 2, e.target.closest(".ui.comments"));
                         else
-                            openErrorModal(result.message);
+                            openErrorModal(result);
                     });
             });
-
-            getSignatureComments(accession, 2, document.querySelector('.ui.comments'));
-            getPredictions(accession);
-
-            return;
-            overlapHeatmap.calcPixels();
-            overlapHeatmap.render();
 
             // Init Semantic-UI elements
             $('[data-content]').popup();
 
+            const toggle = document.querySelector('tfoot .ui.toggle.checkbox');
+            $(toggle).checkbox('set checked');
+            $(toggle).checkbox({
+                onChange: function () {
+                    getPredictions(accession);
+                }
+            });
+
             (function () {
-                const overlap = getOverlap() || 0.3;
+                const minSimilarity = parseParams('minsimilarity') || 0.75;
                 const slider = document.getElementById('over-range');
                 const span = document.getElementById('over-value');
 
-                slider.value = overlap;
-                span.innerHTML = (overlap * 100).toFixed(0);
+                slider.value = minSimilarity;
+                span.innerHTML = minSimilarity.toFixed(2);
                 slider.addEventListener('change', e => {
-                    const overlap = parseFloat(e.target.value);
-                    span.innerHTML = (overlap * 100).toFixed(0);
+                    const minSimilarity = parseFloat(e.target.value);
+                    span.innerHTML = minSimilarity.toFixed(2);
                     const url = new URL(location.href);
-                    url.searchParams.set("overlap", overlap);
+                    url.searchParams.set("minsimilarity", minSimilarity);
                     history.replaceState(null, null, url.toString());
                     getPredictions(accession);
                 });
                 slider.addEventListener('input', evt => {
-                    span.innerHTML = (parseFloat(evt.target.value) * 100).toFixed(0);
+                    span.innerHTML = (parseFloat(evt.target.value)).toFixed(2);
                 });
             })();
 
-
-
-            finaliseHeader(accession);
+            getSignatureComments(accession, 2, document.querySelector('.ui.comments'));
             getPredictions(accession);
-
         })
         .catch(error => {
             document.querySelector('.ui.container.segment').innerHTML = '<div class="ui error message">'

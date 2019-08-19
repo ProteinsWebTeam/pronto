@@ -6,6 +6,56 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
     <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}">
     <title>Pronto</title>
+    <style type="text/css">
+        .ui.circular.labels > .ui.label {
+            margin-bottom: 0;
+        }
+
+        tbody tr td:first-child {
+            font-weight: 700;
+        }
+
+        span[data-accession] {
+            cursor: pointer;
+        }
+
+        tfoot {
+            font-size: 1rem;
+        }
+
+        tfoot .field {
+            margin-top: .5rem;
+        }
+
+        tfoot .ui.labels > .label {
+            margin-right: 0;
+        }
+
+        tfoot .ui.labels > span {
+            margin-right: .8rem;
+        }
+
+        svg rect.light-blue {
+            fill: #03A9F4;
+        }
+        svg rect.light-blue:hover {
+            fill: #0288D1;
+        }
+
+        svg rect.green {
+            fill: #4CAF50;
+        }
+        svg rect.green:hover {
+            fill: #388E3C;
+        }
+
+        svg rect.lime {
+            fill: #CDDC39;
+        }
+        svg rect.lime:hover {
+            fill: #AFB42B;
+        }
+    </style>
 </head>
 <body>
 
@@ -68,33 +118,28 @@
     <table class="ui very compact celled structured small table">
         <thead>
         <tr>
-            <th rowspan="2">Prediction</th>
-            <th class="center aligned" colspan="5">Candidate</th>
-            <th class="center aligned" colspan="2">Overlap</th>
-            <th class="center aligned" colspan="3">Integration</th>
+            <th colspan="2" rowspan="2">Prediction</th>
+            <th class="center aligned" colspan="4">Signature</th>
+            <th class="center aligned" colspan="2">Comparison</th>
+            <th class="center aligned" colspan="2">Integration</th>
         </tr>
         <tr>
             <th colspan="3">Accession</th>
             <th class="nowrap right aligned">
-                Prot.&nbsp;
-                <i class="help circle icon" data-content="Number of proteins matched by candidate signature" data-variation="tiny"></i>
-            </th>
-            <th class="nowrap right aligned">
-                Matches&nbsp;
-                <i class="help circle icon" data-content="Number of matches of candidate signature" data-variation="tiny"></i>
+                Proteins&nbsp;
+                <i class="help circle icon" data-content="Number of matched proteins" data-position="top center" data-variation="small"></i>
             </th>
 
             <th class="nowrap right aligned">
-                Prot.&nbsp;
-                <i class="help circle icon" data-content="Number of proteins where query and candidate signatures overlap" data-variation="tiny"></i>
+                Proteins&nbsp;
+                <i class="help circle icon" data-content="Number of proteins mached by both signatures" data-position="top center" data-variation="small"></i>
             </th>
             <th class="nowrap right aligned">
-                Matches&nbsp;
-                <i class="help circle icon" data-content="Number of matches where query and candidate signatures overlap" data-variation="tiny"></i>
+                Overlaps&nbsp;
+                <i class="help circle icon" data-content="Number of matches where both signatures overlap" data-position="top center" data-variation="small"></i>
             </th>
 
-            <th>Accession</th>
-            <th>Name</th>
+            <th>Entry</th>
             <th></th>
         </tr>
         </thead>
@@ -102,22 +147,54 @@
         </tbody>
         <tfoot>
         <tr>
-            <th colspan="11">
-                <span>Show predictions where query and candidate signatures overlap for at least <span id="over-value"></span>% of proteins matched by either</span>
-                <input id="over-range" type="range" min="0.01" max="1" step="0.01" value="">
+            <th colspan="10">
+                <div class="ui tiny circular labels">
+                    <div class="ui green label">&nbsp;</div>
+                    <span>Similar to</span>
+
+                    <div class="ui blue label">&nbsp;</div>
+                    <span>Relates to</span>
+
+                    <div class="ui violet label">&nbsp;</div>
+                    <span>Contains</span>
+
+                    <div class="ui purple label">&nbsp;</div>
+                    <span>Contained by</span>
+
+                    <div class="ui red label">&nbsp;</div>
+                    <span>Disimilar</span>
+                </div>
+
+                <div class="ui divider"></div>
+
+
+                <div class="ui toggle checkbox">
+                    <input type="checkbox">
+                    <label>Hide predictions with low collocation similarities (&lt;0.5)</label>
+                </div>
+
+                <div class="field">
+                    <label>Jaccard similarity threshold (<span id="over-value"></span>)</label>
+                    <input id="over-range" type="range" min="0.5" max="1" step="0.01" value="">
+                </div>
             </th>
         </tr>
         </tfoot>
     </table>
 
-    <div class="ui grid">
-        <div class="right floated four wide column">
-            <div id="heatmap" data-colors="#6ca75d,#9372c6,#bf823b,#cc556f" data-size="5">
-                <h3 class="ui header">Overlap colour keys</h3>
-                <svg version="1.1" xmlns="http://www.w3.org/2000/svg"></svg>
-            </div>
-        </div>
-    </div>
+    {#    <div class="ui grid">#}
+    {#        <div class="right floated four wide column">#}
+    {#            <div id="heatmap" data-colors="#6ca75d,#9372c6,#bf823b,#cc556f" data-size="5">#}
+    {#                <h3 class="ui header">Overlap colour keys</h3>#}
+    {#                <svg version="1.1" xmlns="http://www.w3.org/2000/svg"></svg>#}
+    {#            </div>#}
+    {#        </div>#}
+    {#    </div>#}
+
+    <div id="comparison" class="ui tiny modal">
+    <i class="close icon"></i>
+    <div class="content"></div>
+</div>
 </div>
 
 {% include 'footer.html' %}

@@ -179,10 +179,10 @@ def nvl(*args, default=0):
 
 def _predict(idx, ct1, ct2, threshold, inverse=False):
     if idx >= threshold:
-        return "Similar"
+        return "Similar to"
     elif ct1 >= threshold:
         if ct2 >= threshold:
-            return "Alike"
+            return "Relates to"
         elif inverse:
             return "Contains"
         else:
@@ -191,6 +191,45 @@ def _predict(idx, ct1, ct2, threshold, inverse=False):
         return "Contained by" if inverse else "Contains"
     else:
         return None
+
+
+@app.route("/api/signature/<accession1>/comparison/<accession2>/<cmp_type>/")
+def get_signatures_comparison(accession1, accession2, cmp_type):
+    if cmp_type == "descriptions":
+        column = "DESC_ID"
+        table = "METHOD_DESC"
+    elif cmp_type == "taxa":
+        column = "TAX_ID"
+        table = "METHOD_TAXA"
+    elif cmp_type == "terms":
+        column = "GO_ID"
+        table = "METHOD_TERM"
+    else:
+        return jsonify({
+            "error": {
+                "title": "Bad request",
+                "message": "Invalid or missing parameters."
+            }
+        }), 400
+
+    query = """
+      SELECT {} 
+      FROM {}.{} 
+      WHERE METHOD_AC = :1
+    """.format(column, app.config["DB_SCHEMA"], table)
+
+    cur = db.get_oracle().cursor()
+    cur.execute(query, (accession1,))
+    set1 = {row[0] for row in cur}
+    cur.execute(query, (accession2,))
+    set2 = {row[0] for row in cur}
+    cur.close()
+
+    return jsonify({
+        accession1: len(set1),
+        accession2: len(set2),
+        "common": len(set1 & set2)
+    }), 200
 
 
 @app.route("/api/signature/<accession>/predictions2/")
@@ -227,7 +266,7 @@ def get_signature_predictions2(accession):
     cur.execute(
         """
         SELECT 
-          MS.METHOD_AC1, MS.METHOD_AC2, MS.COLL_INDEX,
+          MS.METHOD_AC1, MS.METHOD_AC2, MS.COLL_COUNT, MS.POVR_COUNT,
           M1.FULL_SEQ_COUNT, M1.DBCODE,
           E1.ENTRY_AC, E1.ENTRY_TYPE, E1.NAME, E1.CHECKED,
           M2.FULL_SEQ_COUNT, M2.DBCODE,
@@ -237,46 +276,47 @@ def get_signature_predictions2(accession):
           MS.DESC_INDEX, MS.DESC_CONT1, MS.DESC_CONT2,
           MS.TAXA_INDEX, MS.TAXA_CONT1, MS.TAXA_CONT2,
           MS.TERM_INDEX, MS.TERM_CONT1, MS.TERM_CONT2
-        FROM INTERPRO_ANALYSIS_LOAD.METHOD_SIMILARITY MS
-        INNER JOIN INTERPRO_ANALYSIS_LOAD.METHOD M1 
+        FROM {0}.METHOD_SIMILARITY MS
+        INNER JOIN {0}.METHOD M1 
           ON MS.METHOD_AC1 = M1.METHOD_AC
         LEFT OUTER JOIN INTERPRO.ENTRY2METHOD EM1
           ON M1.METHOD_AC = EM1.METHOD_AC
         LEFT OUTER JOIN INTERPRO.ENTRY E1
           ON EM1.ENTRY_AC = E1.ENTRY_AC
-        INNER JOIN INTERPRO_ANALYSIS_LOAD.METHOD M2
+        INNER JOIN {0}.METHOD M2
           ON MS.METHOD_AC2 = M2.METHOD_AC
         LEFT OUTER JOIN INTERPRO.ENTRY2METHOD EM2
           ON M2.METHOD_AC = EM2.METHOD_AC
         LEFT OUTER JOIN INTERPRO.ENTRY E2
           ON EM2.ENTRY_AC = E2.ENTRY_AC
-        WHERE MS.METHOD_AC1 = :acc OR MS.METHOD_AC2 = :acc 
-        """, dict(acc=accession)
+        WHERE (MS.METHOD_AC1 = :acc OR MS.METHOD_AC2 = :acc)
+          AND MS.COLL_INDEX >= :mcs
+        ORDER BY MS.POVR_INDEX DESC, MS.COLL_INDEX DESC
+        """.format(app.config["DB_SCHEMA"]),
+        dict(acc=accession, mcs=min_colloc_sim)
     )
 
     signatures = []
     for row in cur:
-        s_acc1, s_acc2, coll_idx = row[:3]
+        s_acc1, s_acc2, coll_cnt, povr_cnt = row[:4]
 
-        if coll_idx < min_colloc_sim:
-            continue
-        elif accession == s_acc1:
+        if accession == s_acc1:
             s_acc = s_acc2
-            s_count, s_dbcode = row[9:11]
-            e_acc, e_type, e_name, e_checked = row[11:15]
+            s_count, s_dbcode = row[10:12]
+            e_acc, e_type, e_name, e_checked = row[12:16]
             inverse = False
         else:
             s_acc = s_acc1
-            s_count, s_dbcode = row[3:5]
-            e_acc, e_type, e_name, e_checked = row[5:9]
+            s_count, s_dbcode = row[4:6]
+            e_acc, e_type, e_name, e_checked = row[6:10]
             inverse = True
 
         predictions = {
-            "proteins": _predict(*nvl(*row[15:18]), min_sim, inverse),
-            "residues": _predict(*nvl(*row[18:21]), min_sim, inverse),
-            "descriptions": _predict(*nvl(*row[21:24]), min_sim, inverse),
-            "taxa": _predict(*nvl(*row[24:27]), min_sim, inverse),
-            "terms": _predict(*nvl(*row[27:30]), min_sim, inverse)
+            "proteins": _predict(*nvl(*row[16:19]), min_sim, inverse),
+            "residues": _predict(*nvl(*row[19:22]), min_sim, inverse),
+            "descriptions": _predict(*nvl(*row[22:25]), min_sim, inverse),
+            "taxa": _predict(*nvl(*row[25:28]), min_sim, inverse),
+            "terms": _predict(*nvl(*row[28:31]), min_sim, inverse)
         }
 
         if any(predictions.values()):
@@ -296,7 +336,8 @@ def get_signature_predictions2(accession):
                 },
 
                 "proteins": s_count,
-                "common_proteins": None,
+                "common_proteins": coll_cnt,
+                "overlap_proteins": povr_cnt,
                 "predictions": predictions
             })
 
