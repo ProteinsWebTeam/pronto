@@ -184,11 +184,11 @@ def _predict(idx, ct1, ct2, threshold, inverse=False):
         if ct2 >= threshold:
             return "Relates to"
         elif inverse:
-            return "Contains"
+            return "Parent of"
         else:
-            return "Contained by"
+            return "Child of"
     elif ct2 >= threshold:
-        return "Contained by" if inverse else "Contains"
+        return "Child of" if inverse else "Parent of"
     else:
         return None
 
@@ -290,7 +290,7 @@ def get_signature_predictions2(accession):
         LEFT OUTER JOIN INTERPRO.ENTRY E2
           ON EM2.ENTRY_AC = E2.ENTRY_AC
         WHERE (MS.METHOD_AC1 = :acc OR MS.METHOD_AC2 = :acc)
-          AND MS.COLL_INDEX >= :mcs
+          AND (MS.COLL_CONT1 >= :mcs OR MS.COLL_CONT2 >= :mcs)
         ORDER BY MS.POVR_INDEX DESC, MS.COLL_INDEX DESC
         """.format(app.config["DB_SCHEMA"]),
         dict(acc=accession, mcs=min_colloc_sim)

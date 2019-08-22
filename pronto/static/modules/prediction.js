@@ -132,9 +132,9 @@ function getPredictions(accession) {
                         labelClass = 'ui green label';
                     else if (value === 'Relates to')
                         labelClass = 'ui blue label';
-                    else if (value === 'Contains')
+                    else if (value === 'Parent of')
                         labelClass = 'ui violet label';
-                    else if (value === 'Contained by')
+                    else if (value === 'Child of')
                         labelClass = 'ui purple label';
                     else
                         labelClass = 'ui red label';
@@ -233,6 +233,7 @@ function getPredictions(accession) {
 
             Array.from(document.querySelectorAll('span[data-accession]')).forEach(elem => {
                 elem.addEventListener('click', e => {
+                    dimmer(true);
                     const key = e.target.getAttribute('data-key');
                     const otherAcc = e.target.getAttribute('data-accession');
 
@@ -242,6 +243,7 @@ function getPredictions(accession) {
                             const modal = document.getElementById('comparison');
                             $(modal)
                                 .modal({
+                                    // Use onVisible() and not onShow() because we need to modal to actually be visible to compute styles
                                     onVisible: function () {
                                         const content = this.querySelector('.content');
                                         const style = window.getComputedStyle(content, null);
@@ -258,14 +260,15 @@ function getPredictions(accession) {
 
 
                                         let svg = '<svg width="' + width + 'px" height="100px">'
-                                            + '<text dominant-baseline="hanging" text-anchor="start" x="0" y="0" fill="#333">'+ accession +'</text>'
+                                            + '<text dominant-baseline="hanging" text-anchor="start" x="0" y="0" fill="#333">'+ accession +' ('+ results[accession].toLocaleString() +')</text>'
                                             + '<rect class="light-blue" x="0" y="20px" width="'+ rect1Width +'px" height="20px"/>'
                                             + '<rect class="green" x="'+ rect2X +'px" y="40px"width="'+ rect2Width +'px"  height="20px"/>'
                                             + '<rect class="lime" x="'+ rect3X +'px" y="60px"width="'+ rect3Width +'px"  height="20px"/>'
-                                            + '<text dominant-baseline="hanging" text-anchor="end" x="'+ width +'px" y="80px" fill="#333">'+ otherAcc +'</text>'
+                                            + '<text dominant-baseline="hanging" text-anchor="end" x="'+ width +'px" y="80px" fill="#333">'+ otherAcc +' ('+ results[otherAcc].toLocaleString() +')</text>'
                                             + '</svg>';
 
                                         content.innerHTML = svg;
+                                        dimmer(false);
                                     }
                                 })
                                 .modal('show');
