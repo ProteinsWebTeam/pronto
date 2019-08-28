@@ -49,47 +49,51 @@ function getCurrentUser() {
         });
 }
 
-function getTasks() {
-    fetch('/api/tasks/')
-        .then(response => response.json())
-        .then(tasks => {
-            let menu = '';
-            let errors = 0;
-            let success = 0;
+export function getTasks() {
+    return new Promise((resolve, reject) => {
+        fetch('/api/tasks/')
+            .then(response => response.json())
+            .then(tasks => {
+                let menu = '';
+                let errors = 0;
+                let success = 0;
 
-            if (tasks.length) {
-                tasks.forEach(task => {
-                    menu += '<div class="item">';
+                if (tasks.length) {
+                    tasks.forEach(task => {
+                        menu += '<div class="item">';
 
-                    if (task.status === null)
-                        menu += '<i class="loading notched circle icon"></i>';
-                    else if (task.status) {
-                        menu += '<i class="green check circle icon"></i>';
-                        success++;
-                    }
-                    else {
-                        menu += '<i class="red exclamation circle icon"></i>';
-                        errors++;
-                    }
-                    menu += task.name + '</div>';
-                });
-            } else
-                menu += '<div class="item">No tasks</div>';
+                        if (task.status === null)
+                            menu += '<i class="loading notched circle icon"></i>';
+                        else if (task.status) {
+                            menu += '<i class="green check circle icon"></i>';
+                            success++;
+                        }
+                        else {
+                            menu += '<i class="red exclamation circle icon"></i>';
+                            errors++;
+                        }
+                        menu += task.name + '</div>';
+                    });
+                } else
+                    menu += '<div class="item">No tasks</div>';
 
-            let html = '<i class="tasks icon"></i>&nbsp;Tasks';
+                let html = '<i class="tasks icon"></i>&nbsp;Tasks';
 
-            if (errors)
-                html += '<a class="ui red mini circular label">'+ tasks.length +'</a>';
-            else if (success)
-                html += '<a class="ui green mini circular label">'+ tasks.length +'</a>';
-            else if (tasks.length)
-                html += '<a class="ui grey mini circular label">'+ tasks.length +'</a>';
+                if (errors)
+                    html += '<a class="ui red mini circular label">'+ tasks.length +'</a>';
+                else if (success)
+                    html += '<a class="ui green mini circular label">'+ tasks.length +'</a>';
+                else if (tasks.length)
+                    html += '<a class="ui grey mini circular label">'+ tasks.length +'</a>';
 
-            html += '<i class="dropdown icon"></i>'
-                + '<div class="menu">' + menu + '</div>';
+                html += '<i class="dropdown icon"></i>'
+                    + '<div class="menu">' + menu + '</div>';
 
-            document.getElementById('tasks').innerHTML = html;
-        })
+                document.getElementById('tasks').innerHTML = html;
+                resolve(tasks);
+            });
+    });
+
 }
 
 function getInstance() {
@@ -275,13 +279,31 @@ export function finaliseHeader(signatureAcc) {
                     })
                 });
             } else {
-                // TODO: something?
-                console.error("database schema not ready");
+                // const tooltip = document.createElement("div");
+                // tooltip.className = 'ui tooltip';
+                // tooltip.innerHTML = '<div class="content"><div class="header">Watch out!</div><div class="description">The database behind this instance of Pronto is being updated.<br>Some pages or features may not work.</div></div>';
+                // tooltip.style.position = 'fixed';
+                // tooltip.style.display = 'block';
+                // tooltip.style.left = '5px';
+                // tooltip.style.top = '70px';
+                // tooltip.style.width = '250px';
+                // tooltip.style.color = '#fff';
+                // tooltip.style.zIndex = 'inherit';
+                // tooltip.style.backgroundColor = 'rgba(219, 40, 40, 0.9)';
+                // tooltip.querySelector('.description').style.color = '#fff';
+                // document.body.appendChild(tooltip);
             }
 
             getUniProtVersion();
-            getInstance();
+            //getInstance();
             getTasks();
             return getCurrentUser();
         });
+}
+
+export function nvl(expr1, expr2, expr3) {
+    if (expr1 !== null && expr1 !== undefined)
+        return expr3 ? expr3 : expr1;
+    else
+        return expr2;
 }

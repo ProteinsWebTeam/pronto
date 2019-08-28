@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/semantic.min.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+    <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}">
+    <title>Sanity check settings | Pronto</title>
+    <style type="text/css">
+        .ui.card a.meta:hover {
+            color: #FF2733;
+        }
+        .ui.label > a.header {
+            opacity: inherit;
+        }
+        .ui.label > a.detail {
+            opacity: .5;
+        }
+        .ui.label > a.detail:hover {
+            opacity: .8;
+        }
+        .ui.label {
+            margin-bottom: .15rem;
+        }
+        .ui.button[data-type] {
+            margin-bottom: .75rem;
+        }
+        .ui.cards ~ .ui.cards {
+            margin-top: 0;  /* superset Semantic behaviour */
+        }
+        div.hidden {
+            display: none;
+        }
+        section > h2.ui.header {
+            margin-top: 1.71428571rem !important;
+        }
+
+        #new-term-modal label {
+            display: block;
+            margin: .5rem 0 .3rem 0;
+            color: rgba(0,0,0,.87);
+            font-size: .92857143em;
+            font-weight: 700;
+            text-transform: none;
+        }
+    </style>
+</head>
+<body>
+
+{% include 'header.html' %}
+
+<div class="ui container basic vertical segment">
+    <h1 class="ui dividing header">Sanity check settings</h1>
+
+    <div class="ui grid">
+        <div class="three wide column">
+            <div class="ui sticky">
+                <div class="ui fluid secondary vertical pointing menu">
+                    <a href="#abbreviations" class="item active">Abbreviations</a>
+                    <a href="#accessions" class="item">Accessions in names</a>
+                    <a href="#encoding" class="item">Encoding</a>
+                    <a href="#citations" class="item">Citations</a>
+                    <a href="#similar-names" class="item">Similar names</a>
+                    <a href="#gene-symbols" class="item">Gene symbols</a>
+                    <a href="#lower-case" class="item">Lower case</a>
+                    <a href="#punctuations" class="item">Punctuation</a>
+                    <a href="#misspellings" class="item">Misspellings</a>
+                    <a href="#substitutions" class="item">Substitutions</a>
+                    <a href="#underscores" class="item">Underscores</a>
+                    <a href="#forbidden-words" class="item">Forbidden words</a>
+                </div>
+            </div>
+        </div>
+        <div class="thirteen wide column">
+
+            <section id="abbreviations">
+                <h2 class="ui header">
+                    Invalid abbreviations
+                    <div class="sub header">
+                        The following abbreviations are forbidden in entry names, short names, and abstracts
+                    </div>
+                </h2>
+                <button class="ui basic compact secondary button" data-type="abbr"></button>
+                <div id="abbr" class="ui four cards"></div>
+            </section>
+
+            <section  id="accessions">
+                <h2 class="ui header">
+                    Entry names containing an accession
+                    <div class="sub header">
+                        The following pairs of accessions are authorized
+                    </div>
+                </h2>
+                <button class="ui basic compact secondary button" data-type="acc_in_name"></button>
+                <div id="acc_in_name"></div>
+            </section>
+
+            <section id="encoding">
+                <h2 class="ui header">
+                    Non-ASCII characters
+                    <div class="sub header">
+                        Below are listed authorized characters and abstracts in which they are found
+                    </div>
+                </h2>
+                <button class="ui basic compact secondary button" data-type="ascii"></button>
+                <div id="ascii"></div>
+            </section>
+
+            <section id="citations">
+                <h2 class="ui header">Invalid citations
+                    <div class="sub header">
+                        Abstracts must not contain any of the following citation-related terms
+                    </div>
+                </h2>
+                <button class="ui basic compact secondary button" data-type="citation"></button>
+                <div id="citation" class="ui four cards"></div>
+            </section>
+
+            <section id="similar-names">
+                <h2 class="ui header">
+                    Similar names
+                    <div class="sub header">
+                        Exceptions are listed below
+                    </div>
+                </h2>
+                <button class="ui basic compact secondary button" data-type="similar_names"></button>
+                <div id="similar_names"></div>
+            </section>
+
+            <section id="gene-symbols">
+                <h2 class="ui header">
+                    Names containing potential gene symbols
+                    <div class="sub header">
+                        Names can contain any of the following words
+                    </div>
+                </h2>
+                <button class="ui basic compact secondary button" data-type="gene_symbol"></button>
+                <div id="gene_symbol"></div>
+            </section>
+
+            <section id="lower-case">
+                <h2 class="ui header">
+                    Entry names starting with lower case
+                    <div class="sub header">
+                        Names can start with any of the following words
+                    </div>
+                </h2>
+                <button class="ui basic compact secondary button" data-type="lower_case"></button>
+                <div id="lower_case"></div>
+            </section>
+
+            <section id="punctuations">
+                <h2 class="ui header">Invalid punctuation
+                    <div class="sub header">
+                        Abstracts must not contain any of the following strings
+                    </div>
+                </h2>
+                <button class="ui basic compact secondary button" data-type="punctuation"></button>
+                <div id="punctuation" class="ui four cards"></div>
+            </section>
+
+            <section id="misspellings">
+                <h2 class="ui header">Spelling mistakes
+                    <div class="sub header">Common spellings to check</div>
+                </h2>
+                <button class="ui basic compact secondary button" data-type="spelling"></button>
+                <div id="spelling" class="ui four cards"></div>
+            </section>
+
+            <section id="substitutions">
+                <h2 class="ui header">Substitution errors
+                    <div class="sub header">Non-word character substitutions to check</div>
+                </h2>
+                <button class="ui basic compact secondary button" data-type="substitution"></button>
+                <div id="substitution" class="ui four cards"></div>
+            </section>
+
+            <section id="underscores">
+                <h2 class="ui header">Underscore in names
+                    <div class="sub header">The following entries can have underscores in their names or short names</div>
+                </h2>
+                <button class="ui basic compact secondary button" data-type="underscore"></button>
+                <div id="underscore"></div>
+            </section>
+
+            <section id="forbidden-words">
+                <h2 class="ui header">Forbidden words
+                    <div class="sub header">Entry names must not contain any of the following words</div>
+                </h2>
+                <button class="ui basic compact secondary button" data-type="illegal_term"></button>
+                <div id="illegal_term" class="ui four cards"></div>
+            </section>
+        </div>
+    </div>
+</div>
+
+<div id="new-term-modal" class="ui tiny modal">
+    <i class="close icon"></i>
+    <div class="header"></div>
+    <div class="content">
+        <p>Please note that leading and trailing spaces are not trimmed.</p>
+
+        <div class="ui hidden error message"></div>
+
+        <div id="label-1">
+            <label></label>
+            <div class="ui fluid icon input">
+                <input type="text" placeholder="">
+            </div>
+        </div>
+
+        <div id="label-2">
+            <label></label>
+            <div class="ui fluid icon input">
+                <input type="text" placeholder="">
+            </div>
+        </div>
+    </div>
+    <div class="actions">
+        <div class="ui basic deny button">Cancel</div>
+        <div class="ui primary approve button">Add</div>
+    </div>
+</div>
+
+{% include 'footer.html' %}
+
+<script src="{{ url_for('static', filename='vendor/jquery.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/semantic.min.js') }}"></script>
+<script src="{{ url_for('static', filename='modules/sanitycheck/settings.js') }}" type="module"></script>
+
+</body>
+</html>

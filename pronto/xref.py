@@ -278,7 +278,8 @@ def find_xref(dbcode):
     return {
         'CATHGENE3D': 'http://www.cathdb.info/superfamily/{}',
         'CAZY': 'http://www.cazy.org/fam/{}.html',
-        'COG': 'http://www.ncbi.nlm.nih.gov/COG/new/release/cow.cgi?cog={}',
+        #'COG': 'http://www.ncbi.nlm.nih.gov/COG/new/release/cow.cgi?cog={}',
+        'COG': 'https://ftp.ncbi.nih.gov/pub/COG/COG2014/static/byCOG/{}.html',
         'EC': 'http://www.ebi.ac.uk/intenz/query?cmd=SearchEC&ec={}',
         'INTENZ': 'http://www.ebi.ac.uk/intenz/query?cmd=SearchEC&ec={}',
         'GENPROP': 'https://www.ebi.ac.uk/interpro/genomeproperties/#{}',

@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 
@@ -11,14 +13,18 @@ class Executor(object):
 
     def enqueue(self, name, fn, *args, **kwargs):
         self.update()
-        if name not in self._tasks:
+        if name in self._tasks and self._tasks[name]["status"] is None:
+            # Running
+            return False
+        else:
             self._tasks[name] = {
                 "name": name,
-                "future": self.executor.submit(fn, *args, **kwargs),
+                "future": self.submit(fn, *args, **kwargs),
                 "started": datetime.now(),
-                "terminated": None,
+                "completed": None,
                 "status": None
             }
+            return True
 
     def submit(self, fn, *args, **kwargs):
         return self.executor.submit(fn, *args, **kwargs)
@@ -33,14 +39,16 @@ class Executor(object):
             task = self._tasks[name]
             future = task["future"]
             if future.done():
+                now = datetime.now()
                 if future.exception() is not None:
                     # Call raised: error
+                    print(future.exception())
                     task["status"] = False
-                elif task["terminated"] is None:
-                    # First time we see the task as terminated
-                    task["terminated"] = datetime.now()
+                elif task["completed"] is None:
+                    # First time we see the task as completed
+                    task["completed"] = now
                     task["status"] = True
-                elif (datetime.now() - task["terminated"]).total_seconds() > 3600:
+                elif (now - task["completed"]).total_seconds() > 3600:
                     # Finished more than one hour ago: clean
                     del self._tasks[name]
 

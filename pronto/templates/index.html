@@ -14,8 +14,8 @@
 <div class="ui container basic vertical segment">
     <div class="ui divided grid">
         <div class="row">
-            <div class="sixteen wide column">
-                <table class="ui selectable table">
+            <div class="twelve wide column">
+                <table id="databases" class="ui selectable table">
                     <thead>
                     <tr>
                         <th colspan="2"><i class="database icon"></i>Member databases</th>
@@ -26,6 +26,24 @@
                     </thead>
                     <tbody></tbody>
                 </table>
+            </div>
+            <div class="four wide column">
+                <div id="sanity-checks" class="ui basic segment">
+                    <h3 class="ui dividing header">
+                        <i class="checkmark box icon"></i>
+                        Sanity checks
+                    </h3>
+                    <button class="ui compact primary button">
+                        <i class="play icon"></i>
+                        Run
+                    </button>
+                    <a class="ui compact basic button" href="/sanitychecks/settings/">
+                        <i class="setting icon"></i>
+                        Settings
+                    </a>
+                    <div class="ui hidden message"></div>
+                    <div class="ui feed"></div>
+                </div>
             </div>
         </div>
     </div>

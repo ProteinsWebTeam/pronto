@@ -40,7 +40,14 @@ def integrate_signature(e_acc, s_acc):
 
     cur.execute(
         """
-        SELECT M.METHOD_AC, EM.ENTRY_AC
+        SELECT 
+          M.METHOD_AC, 
+          EM.ENTRY_AC,
+          (
+            SELECT COUNT(*) 
+            FROM INTERPRO.UNIRULE 
+            WHERE ENTRY_AC = EM.ENTRY_AC OR METHOD_AC = M.METHOD_AC
+          ) CNT
         FROM {}.METHOD M
         LEFT OUTER JOIN INTERPRO.ENTRY2METHOD EM 
           ON M.METHOD_AC = EM.METHOD_AC
@@ -68,7 +75,7 @@ def integrate_signature(e_acc, s_acc):
     """
     unchecked = False
 
-    s_acc, in_entry_acc = row
+    s_acc, in_entry_acc, in_unirule = row
     if in_entry_acc == e_acc:
         # Already integrated in this entry: do noting
         cur.close()
@@ -129,7 +136,8 @@ def integrate_signature(e_acc, s_acc):
             return jsonify({
                 "status": True,
                 "signature": s_acc,
-                "entry": in_entry_acc
+                "entry": in_entry_acc,
+                "unirule": in_unirule > 0
             }), 200
 
     try:
@@ -256,23 +264,41 @@ def unintegrate_signature(e_acc, s_acc):
 @app.route("/api/entry/<accession>/signatures/")
 def get_entry_signatures(accession):
     cur = db.get_oracle().cursor()
+    # cur.execute(
+    #     """
+    #     SELECT
+    #       M.DBCODE,
+    #       M.METHOD_AC,
+    #       M.NAME,
+    #       M.PROTEIN_COUNT,
+    #       MM.N_PROT
+    #     FROM {0}.METHOD M
+    #     INNER JOIN {0}.METHOD_MATCH MM
+    #       ON M.METHOD_AC = MM.METHOD_AC
+    #     WHERE M.METHOD_AC IN (
+    #       SELECT METHOD_AC
+    #       FROM INTERPRO.ENTRY2METHOD
+    #       WHERE ENTRY_AC = :1
+    #     )
+    #     ORDER BY M.METHOD_AC
+    #     """.format(app.config['DB_SCHEMA']),
+    #     (accession,)
+    # )
     cur.execute(
         """
         SELECT
-          M.DBCODE,
-          M.METHOD_AC,
-          M.NAME,
-          M.PROTEIN_COUNT,
-          MM.N_PROT
-        FROM {0}.METHOD M 
-        INNER JOIN {0}.METHOD_MATCH MM
-          ON M.METHOD_AC = MM.METHOD_AC
-        WHERE M.METHOD_AC IN (
+          DBCODE,
+          METHOD_AC,
+          NAME,
+          PROTEIN_COUNT,
+          FULL_SEQ_COUNT
+        FROM {0}.METHOD
+        WHERE METHOD_AC IN (
           SELECT METHOD_AC
           FROM INTERPRO.ENTRY2METHOD
           WHERE ENTRY_AC = :1
         )
-        ORDER BY M.METHOD_AC
+        ORDER BY METHOD_AC
         """.format(app.config['DB_SCHEMA']),
         (accession,)
     )

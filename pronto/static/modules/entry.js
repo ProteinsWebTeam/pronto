@@ -1,7 +1,6 @@
 import * as ui from "../ui.js";
-import {finaliseHeader} from "../header.js";
+import {finaliseHeader, nvl} from "../header.js";
 import {getEntryComments, postEntryComment} from "../comments.js";
-import {nvl} from "../utils.js";
 
 const annotationEditor = {
     element: null,
@@ -120,7 +119,7 @@ const annotationEditor = {
     delete: function (annID, accession, callback) {
         ui.openConfirmModal(
             'Delete annotation?',
-            'Are you sure you want to delete this annotation?',
+            'Do you want to to delete this annotation?',
             'Delete',
             () => {
                 fetch('/api/annotation/' + annID + '/', {method: 'DELETE'})
@@ -199,40 +198,43 @@ function integrateSignature(entryAcc, signatureAcc, moveIfIntegrated) {
     fetch('/api/entry/' + entryAcc + '/signature/' + signatureAcc + '/', options)
         .then(response => response.json())
         .then(result => {
-            const msg = document.querySelector('#signatures .ui.message');
-
-            if (!result.status) {
-                msg.querySelector('.header').innerHTML = result.title;
-                msg.querySelector('p').innerHTML = result.message;
-                msg.className = 'ui error message';
-            } else if (result.unchecked) {
+            if (!result.status)
+                ui.openErrorModal(result);
+            else if (result.unchecked) {
                 /*
                     Moved signature to one entry to another,
                     and unchecked previous entry (no signature any more)
                 */
-                msg.querySelector('.header').innerHTML = 'Entry unchecked';
-                msg.querySelector('p').innerHTML = '<em><a href="/entry/'+ result.entry +'/">'+ result.entry +'</a></em> has been unchecked because it does not have any signatures.';
-                msg.className = 'ui info message';
-
-                $('#signatures .ui.form').form('clear');
-                getSignatures(entryAcc).then(() => { $('.ui.sticky').sticky(); });
-
+                const modal = document.getElementById('message-info');
+                modal.querySelector('.header').innerHTML = 'Entry unchecked';
+                modal.querySelector('.content').innerHTML = '<p><strong><a href="/entry/'+ result.entry +'/">'+ result.entry +'</a></strong> has been unchecked because it does not have any signatures left.</p>';
+                $(modal)
+                    .modal({
+                        closable: false,
+                        onApprove: function() {
+                            $('#signatures .ui.form').form('clear');
+                            getSignatures(entryAcc).then(() => { $('.ui.sticky').sticky(); });
+                        }
+                    })
+                    .modal('show');
             } else if (result.entry) {
                 // Signature already integrated: ask for confirmation
+                let content = '<strong>' + result.signature + '</strong> is integrated in <strong><a href="/entry/'+ result.entry+'/">'+ result.entry +'</a></strong>';
 
-                msg.querySelector('.header').innerHTML = 'Signature already integrated';
-                msg.querySelector('p').innerHTML = '<em>'+ result.signature +'</em> is integrated into '
-                    + '<em><a href="/entry/'+ result.entry +'/">'+ result.entry +'</a></em>. '
-                    + 'Click <strong><a href="#" data-confirm>here</a></strong> to move it to <em>'+ entryAcc +'</em>.';
-                msg.className = 'ui error message';
+                if (result.unirule)
+                    content += ', <strong>which is used by UniRule</strong>';
 
-                // Event listener to confirm re-integration
-                msg.querySelector('[data-confirm]').addEventListener('click', e => {
-                    e.preventDefault();
-                    integrateSignature(entryAcc, signatureAcc, true);
-                });
+                content += '. Do you want to move it to <strong>'+ entryAcc +'</strong>?';
+
+                ui.openConfirmModal(
+                    'Signature already integrated',
+                    content,
+                    'Move signature',
+                    () => {
+                        integrateSignature(entryAcc, signatureAcc, true);
+                    }
+                );
             }  else {
-                ui.setClass(msg, 'hidden', true);
                 $('#signatures .ui.form').form('clear');
                 getSignatures(entryAcc).then(() => { $('.ui.sticky').sticky(); });
             }
@@ -537,7 +539,7 @@ function getAnnotations(accession) {
 
                                 });
 
-                                const modal = document.getElementById('modal-entries');
+                                const modal = document.getElementById('list-entries');
                                 modal.querySelector('.content').innerHTML = html;
                                 $(modal).modal('show');
                             });
@@ -698,10 +700,16 @@ function getSignatures(accession) {
             Array.from(tbody.querySelectorAll('[data-accession]')).forEach(elem => {
                 elem.addEventListener('click', e => {
                     const signatureAcc = elem.getAttribute('data-accession');
+                    let message;
+
+                    if (entryEditor.inUnirule)
+                        message = '<strong>'+ accession +' is used by UniRule.</strong> Do you want to unintegrate <strong>'+ signatureAcc +'</strong>?';
+                    else
+                        message = 'Do you want to unintegrate <strong>'+ signatureAcc +'</strong> from <strong>'+ accession +'</strong>?';
 
                     ui.openConfirmModal(
                         'Unintegrate signature?',
-                        '<strong>' + signatureAcc + '</strong> will not be integrated into <strong>'+ accession +'</strong> any more.',
+                        message,
                         'Unintegrate',
                         () => {
                             fetch('/api/entry/' + accession + '/signature/' + signatureAcc + '/', {method: 'DELETE'})
@@ -798,6 +806,7 @@ const entryEditor = {
     description: null,
     type: null,
     isChecked: false,
+    inUnirule: false,
     init: function () {
         const fields = {
             type: 'empty'
@@ -831,12 +840,13 @@ const entryEditor = {
             self.delete(self.accession);
         });
     },
-    update: function (accession, name, description, type, isChecked) {
+    update: function (accession, name, description, type, isChecked, inUnirule) {
         this.accession = accession;
         this.name = name;
         this.description = description;
         this.type = type;
         this.isChecked = isChecked;
+        this.inUnirule= inUnirule;
     },
     open: function () {
         const segment = document.getElementById('edit-entry');
@@ -860,6 +870,7 @@ const entryEditor = {
         $('.ui.sticky').sticky();
     },
     save: function (fields) {
+        const self = this;
         const options = {
             method: 'POST',
             headers: {
@@ -870,6 +881,22 @@ const entryEditor = {
             + '&type=' + encodeURIComponent(fields.type)
             + '&checked=' + (fields.checked ? 1 : 0)
         };
+
+        if (this.inUnirule) {
+            return new Promise(((resolve, reject) => {
+                ui.openConfirmModal(
+                    'Update entry?',
+                    '<strong>' + this.accession + ' is used by UniRule.</strong> Do you want to update it?',
+                    'Update',
+                    () => {
+                        resolve(self.ssave(options));
+                    }
+                );
+            }));
+        } else
+            return self.ssave(options);
+    },
+    ssave: function (options) {
         return fetch('/api/entry/' + this.accession + '/', options)
             .then(response => response.json())
             .then(result => {
@@ -882,15 +909,21 @@ const entryEditor = {
 
                 return result.status;
             });
-
     },
     close: function () {
         ui.setClass(document.getElementById('edit-entry'), 'hidden', true);
     },
     delete: function (accession) {
+        let html;
+
+        if (this.inUnirule) {
+            html = '<strong>' + accession + ' is used by UniRule.</strong> Do you want to delete it?'
+        } else
+            html = 'Do you want to delete <strong>' + accession + '</strong>?';
+
         ui.openConfirmModal(
             'Delete entry?',
-            'Are you sure you want to delete <strong>' + accession + '</strong>?',
+            html,
             'Delete',
             () => {
                 fetch('/api/entry/' + accession + '/', {method: 'DELETE'})
@@ -941,8 +974,7 @@ function getEntry(accession) {
         .then(entry => {
             if (entry === null) return;
             document.title = entry.name + ' (' + entry.accession + ') | Pronto';
-
-            entryEditor.update(accession, entry.short_name, entry.name, entry.type.code, entry.is_checked);
+            entryEditor.update(accession, entry.short_name, entry.name, entry.type.code, entry.is_checked, entry.unirule);
 
             // Header
             let html = '';
@@ -1122,7 +1154,7 @@ $(function () {
                     } else
                         html = '<p><strong>' + accession + '</strong> does not have any signatures.</p>';
 
-                    const modal = document.getElementById('modal-annotations');
+                    const modal = document.getElementById('list-annotations');
                     modal.querySelector('.header').innerHTML = 'Signatures annotations';
                     modal.querySelector('.content').innerHTML = html;
 
@@ -1182,7 +1214,7 @@ $(function () {
 
     // Event to show formatting help
     document.getElementById('help-format').addEventListener('click', e => {
-        $('#help-modal').modal('show');
+        $('#format-help').modal('show');
     });
 
     // Event to search annotations
@@ -1234,7 +1266,7 @@ $(function () {
                             html = '<p>No annotations found for <strong>'+ query +'</strong>.</p>';
                         }
 
-                        const modal = document.getElementById('modal-annotations');
+                        const modal = document.getElementById('list-annotations');
                         modal.querySelector('.header').innerHTML = 'Results found:&nbsp;'+ result.hits.length.toLocaleString();
                         modal.querySelector('.content').innerHTML = html;
 
@@ -1255,7 +1287,7 @@ $(function () {
 
                                         });
 
-                                        const modal = document.getElementById('modal-entries');
+                                        const modal = document.getElementById('list-entries');
                                         modal.querySelector('.content').innerHTML = html;
                                         $(modal).modal('show');
                                     });

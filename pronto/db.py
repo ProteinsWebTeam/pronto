@@ -15,8 +15,12 @@ def get_mysql_db():
     return g.mysql_db
 
 
-def connect_oracle(user: dict, dsn: str):
-    url = user["dbuser"] + "/" + user["password"] + "@" + dsn
+def connect_oracle(user, dsn):
+    if isinstance(user, dict):
+        con_str = user["dbuser"] + "/" + user["password"]
+    else:
+        con_str = user
+    url = con_str + '@' + dsn
     return cx_Oracle.connect(url, encoding="utf-8", nencoding="utf-8")
 
 
