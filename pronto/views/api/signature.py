@@ -173,6 +173,198 @@ def get_signature_predictions(accession):
     return jsonify(signatures)
 
 
+def nvl(*args, default=0):
+    return [default if arg is None else arg for arg in args]
+
+
+def _predict(idx, ct1, ct2, threshold, inverse=False):
+    if idx >= threshold:
+        return "Similar to"
+    elif ct1 >= threshold:
+        if ct2 >= threshold:
+            return "Relates to"
+        elif inverse:
+            return "Parent of"
+        else:
+            return "Child of"
+    elif ct2 >= threshold:
+        return "Child of" if inverse else "Parent of"
+    else:
+        return None
+
+
+@app.route("/api/signature/<accession1>/comparison/<accession2>/<cmp_type>/")
+def get_signatures_comparison(accession1, accession2, cmp_type):
+    if cmp_type == "descriptions":
+        column = "DESC_ID"
+        table = "METHOD_DESC"
+    elif cmp_type == "taxa":
+        column = "TAX_ID"
+        table = "METHOD_TAXA"
+    elif cmp_type == "terms":
+        column = "GO_ID"
+        table = "METHOD_TERM"
+    else:
+        return jsonify({
+            "error": {
+                "title": "Bad request",
+                "message": "Invalid or missing parameters."
+            }
+        }), 400
+
+    query = """
+      SELECT {} 
+      FROM {}.{} 
+      WHERE METHOD_AC = :1
+    """.format(column, app.config["DB_SCHEMA"], table)
+
+    cur = db.get_oracle().cursor()
+    cur.execute(query, (accession1,))
+    set1 = {row[0] for row in cur}
+    cur.execute(query, (accession2,))
+    set2 = {row[0] for row in cur}
+    cur.close()
+
+    return jsonify({
+        accession1: len(set1),
+        accession2: len(set2),
+        "common": len(set1 & set2)
+    }), 200
+
+
+@app.route("/api/signature/<accession>/predictions2/")
+def get_signature_predictions2(accession):
+    try:
+        min_colloc_sim = float(request.args["mincollocation"])
+        assert 0 <= min_colloc_sim <= 1
+    except KeyError:
+        min_colloc_sim = 0.5
+    except (ValueError, AssertionError):
+        return jsonify({
+            "error": {
+                "title": "Bad request",
+                "message": "Parameter 'mincollocation' "
+                           "expects a number between 0 and 1."
+            }
+        }), 400
+
+    try:
+        min_sim = float(request.args["minsimilarity"])
+        assert 0 <= min_sim <= 1
+    except KeyError:
+        min_sim = 0.75
+    except (ValueError, AssertionError):
+        return jsonify({
+            "error": {
+                "title": "Bad request",
+                "message": "Parameter 'minsimilarity' "
+                           "expects a number between 0 and 1."
+            }
+        }), 400
+
+    cur = db.get_oracle().cursor()
+    cur.execute(
+        """
+        SELECT 
+          MS.METHOD_AC1, MS.METHOD_AC2, MS.COLL_COUNT, MS.POVR_COUNT,
+          M1.FULL_SEQ_COUNT, M1.DBCODE,
+          E1.ENTRY_AC, E1.ENTRY_TYPE, E1.NAME, E1.CHECKED,
+          M2.FULL_SEQ_COUNT, M2.DBCODE,
+          E2.ENTRY_AC, E2.ENTRY_TYPE, E2.NAME, E2.CHECKED,
+          MS.POVR_INDEX, MS.POVR_CONT1, MS.POVR_CONT2,
+          MS.ROVR_INDEX, MS.ROVR_CONT1, MS.ROVR_CONT2,
+          MS.DESC_INDEX, MS.DESC_CONT1, MS.DESC_CONT2,
+          MS.TAXA_INDEX, MS.TAXA_CONT1, MS.TAXA_CONT2,
+          MS.TERM_INDEX, MS.TERM_CONT1, MS.TERM_CONT2
+        FROM {0}.METHOD_SIMILARITY MS
+        INNER JOIN {0}.METHOD M1 
+          ON MS.METHOD_AC1 = M1.METHOD_AC
+        LEFT OUTER JOIN INTERPRO.ENTRY2METHOD EM1
+          ON M1.METHOD_AC = EM1.METHOD_AC
+        LEFT OUTER JOIN INTERPRO.ENTRY E1
+          ON EM1.ENTRY_AC = E1.ENTRY_AC
+        INNER JOIN {0}.METHOD M2
+          ON MS.METHOD_AC2 = M2.METHOD_AC
+        LEFT OUTER JOIN INTERPRO.ENTRY2METHOD EM2
+          ON M2.METHOD_AC = EM2.METHOD_AC
+        LEFT OUTER JOIN INTERPRO.ENTRY E2
+          ON EM2.ENTRY_AC = E2.ENTRY_AC
+        WHERE (MS.METHOD_AC1 = :acc OR MS.METHOD_AC2 = :acc)
+          AND (MS.COLL_CONT1 >= :mcs OR MS.COLL_CONT2 >= :mcs)
+        ORDER BY MS.POVR_INDEX DESC, MS.COLL_INDEX DESC
+        """.format(app.config["DB_SCHEMA"]),
+        dict(acc=accession, mcs=min_colloc_sim)
+    )
+
+    signatures = []
+    for row in cur:
+        s_acc1, s_acc2, coll_cnt, povr_cnt = row[:4]
+
+        if accession == s_acc1:
+            s_acc = s_acc2
+            s_count, s_dbcode = row[10:12]
+            e_acc, e_type, e_name, e_checked = row[12:16]
+            inverse = False
+        else:
+            s_acc = s_acc1
+            s_count, s_dbcode = row[4:6]
+            e_acc, e_type, e_name, e_checked = row[6:10]
+            inverse = True
+
+        predictions = {
+            "proteins": _predict(*nvl(*row[16:19]), min_sim, inverse),
+            "residues": _predict(*nvl(*row[19:22]), min_sim, inverse),
+            "descriptions": _predict(*nvl(*row[22:25]), min_sim, inverse),
+            "taxa": _predict(*nvl(*row[25:28]), min_sim, inverse),
+            "terms": _predict(*nvl(*row[28:31]), min_sim, inverse)
+        }
+
+        if any(predictions.values()):
+            database = xref.find_ref(dbcode=s_dbcode, ac=s_acc)
+            signatures.append({
+                # Signature
+                "accession": s_acc,
+                "link": database.gen_link() if database else None,
+
+                # Entry
+                "entry": {
+                    "accession": e_acc,
+                    "type_code": e_type,
+                    "name": e_name,
+                    "checked": e_checked == 'Y',
+                    "hierarchy": []
+                },
+
+                "proteins": s_count,
+                "common_proteins": coll_cnt,
+                "overlap_proteins": povr_cnt,
+                "predictions": predictions
+            })
+
+    cur.execute(
+        """
+        SELECT ENTRY_AC, PARENT_AC
+        FROM INTERPRO.ENTRY2ENTRY
+        """
+    )
+    parent_of = dict(cur.fetchall())
+    cur.close()
+
+    for p in signatures:
+        entry_acc = p["entry"]["accession"]
+        if entry_acc:
+            hierarchy = []
+
+            while entry_acc in parent_of:
+                entry_acc = parent_of[entry_acc]
+                hierarchy.append(entry_acc)
+
+            # Transform child -> parent into parent -> child
+            p["entry"]["hierarchy"] = hierarchy[::-1]
+
+    return jsonify(signatures), 200
+
+
 @app.route("/api/signature/<accession>/comments/")
 def get_signature_comments(accession):
     try:
@@ -236,7 +428,7 @@ def delete_signature_comment(accession, _id):
             "status": False,
             "message": "Could not delete comment "
                        "for {}: {}".format(accession, e)
-        }), 400
+        }), 500
     else:
         con.commit()
         cur.close()
@@ -291,7 +483,7 @@ def add_signature_comment(accession):
             "status": False,
             "message": "Could not add comment "
                        "for {}: {}".format(accession, e)
-        }), 400
+        }), 500
     else:
         con.commit()
         cur.close()
@@ -568,13 +760,13 @@ def get_signature_proteins(accession):
 
     cur.close()
     return jsonify({
-            "count": len(proteins),
-            "proteins": proteins,
-            "page_info": {
-                "page": 1,
-                "page_size": len(proteins)
-            }
-        })
+        "count": len(proteins),
+        "proteins": proteins,
+        "page_info": {
+            "page": 1,
+            "page_size": len(proteins)
+        }
+    })
 
 
 @app.route('/api/signature/<accession>/references/<go_id>/')
