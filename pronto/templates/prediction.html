@@ -29,6 +29,7 @@
 
         tfoot .ui.labels > .label {
             margin-right: 0;
+            cursor: default;
         }
 
         tfoot .ui.labels > span {
@@ -54,6 +55,10 @@
         }
         svg rect.lime:hover {
             fill: #AFB42B;
+        }
+
+        .hidden.field {
+            display: none;
         }
     </style>
 </head>
@@ -149,32 +154,60 @@
         <tr>
             <th colspan="10">
                 <div class="ui tiny circular labels">
-                    <div class="ui green label">&nbsp;</div>
-                    <span>Similar to</span>
+                    <div class="ui green label" data-content="Jaccard coefficient is greater or equal to #" data-position="top center">&nbsp;</div>
+                    <span>Similar</span>
 
-                    <div class="ui blue label">&nbsp;</div>
-                    <span>Relates to</span>
+                    <div class="ui blue label" data-content="Both query and target signatures contain at least $% of the other signature" data-position="top center">&nbsp;</div>
+                    <span>Related</span>
 
-                    <div class="ui violet label">&nbsp;</div>
-                    <span>Parent of</span>
+                    <div class="ui violet label" data-content="Query signature contains at least $% of the target signature" data-position="top center">&nbsp;</div>
+                    <span>Parent</span>
 
-                    <div class="ui purple label">&nbsp;</div>
-                    <span>Child of</span>
+                    <div class="ui purple label" data-content="Target signature contains at least $% of the query signature" data-position="top center">&nbsp;</div>
+                    <span>Child</span>
 
-                    <div class="ui red label">&nbsp;</div>
-                    <span>Disimilar</span>
+                    <div class="ui red label" data-content="Query and target signatures have very little in common" data-position="top center">&nbsp;</div>
+                    <span>Dissimilar</span>
+
+                    <span><i class="yellow fitted star icon"></i>&nbsp;Residues-based</span>
                 </div>
+
 
                 <div class="ui divider"></div>
 
 
-                <div class="ui toggle checkbox">
-                    <input type="checkbox">
-                    <label>Hide predictions with low collocation similarities (&lt;0.5)</label>
+                <div class="ui form">
+                    <div class="inline fields">
+                        <label>Collocation threshold</label>
+                        <div class="field">
+                            <div class="ui radio checkbox">
+                                <input type="radio" name="mincollocation" value="0">
+                                <label>Disabled</label>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <div class="ui radio checkbox">
+                                <input type="radio" name="mincollocation" value="0.5" checked="checked">
+                                <label>50%</label>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <div class="ui radio checkbox">
+                                <input type="radio" name="mincollocation" value="0.75">
+                                <label>75%</label>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <div class="ui radio checkbox">
+                                <input type="radio" name="mincollocation" value="0.9">
+                                <label>90%</label>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="field">
-                    <label>Jaccard similarity threshold (<span id="over-value"></span>)</label>
+                <div class="hidden field">
+                    <label>Similarity threshold (<span id="over-value"></span>)</label>
                     <input id="over-range" type="range" min="0.5" max="1" step="0.01" value="">
                 </div>
             </th>
@@ -182,19 +215,10 @@
         </tfoot>
     </table>
 
-    {#    <div class="ui grid">#}
-    {#        <div class="right floated four wide column">#}
-    {#            <div id="heatmap" data-colors="#6ca75d,#9372c6,#bf823b,#cc556f" data-size="5">#}
-    {#                <h3 class="ui header">Overlap colour keys</h3>#}
-    {#                <svg version="1.1" xmlns="http://www.w3.org/2000/svg"></svg>#}
-    {#            </div>#}
-    {#        </div>#}
-    {#    </div>#}
-
     <div id="comparison" class="ui tiny modal">
-    <i class="close icon"></i>
-    <div class="content"></div>
-</div>
+        <i class="close icon"></i>
+        <div class="content"></div>
+    </div>
 </div>
 
 {% include 'footer.html' %}
