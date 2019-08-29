@@ -77,7 +77,7 @@ function refreshTable(minSimilarity) {
         circles += '</div>';
 
         html += '<tr>'
-            + '<td>'+ predictGlobal(predictions) +'</td><td class="collapsing">'+ circles +'</td>'
+            + '<td class="nowrap">'+ predictGlobal(predictions) +'</td><td class="collapsing">'+ circles +'</td>'
             + '<td class="collapsing"><a href="/prediction/'+ s.accession +'/">'+ s.accession +'</a></td>';
 
         if (s.link !== null) {
