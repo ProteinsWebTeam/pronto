@@ -267,18 +267,20 @@ def get_entry_signatures(accession):
     cur.execute(
         """
         SELECT
-          DBCODE,
-          METHOD_AC,
-          NAME,
-          PROTEIN_COUNT,
-          FULL_SEQ_COUNT
-        FROM {0}.METHOD
-        WHERE METHOD_AC IN (
+          M.DBCODE,
+          M.METHOD_AC,
+          M.NAME,
+          M.PROTEIN_COUNT,
+          MM.N_PROT
+        FROM {0}.METHOD M
+        INNER JOIN {0}.METHOD_MATCH MM
+          ON M.METHOD_AC = MM.METHOD_AC
+        WHERE M.METHOD_AC IN (
           SELECT METHOD_AC
           FROM INTERPRO.ENTRY2METHOD
           WHERE ENTRY_AC = :1
         )
-        ORDER BY METHOD_AC
+        ORDER BY M.METHOD_AC
         """.format(app.config['DB_SCHEMA']),
         (accession,)
     )
