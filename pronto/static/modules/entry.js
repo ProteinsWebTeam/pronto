@@ -164,7 +164,7 @@ const annotationEditor = {
             headers: {
                 'Content-type': 'application/x-www-form-urlencoded; charset=UTF-8'
             },
-            body: 'text=' + textareaText + '&reason=' + reason
+            body: 'text=' + encodeURIComponent(textareaText) + '&reason=' + reason
         };
 
         // Update annotation
@@ -176,7 +176,7 @@ const annotationEditor = {
                 else {
                     const form = this.element.querySelector('.ui.form');
                     // Escape lesser/greater signs because if the error message contains "<p>" it will be interpreted
-                    form.querySelector('.ui.message').innerHTML = '<div class="header">'+ result.title +'</div><p>'+ result.message.replace(/</g, '&lt;').replace(/>/g, '&gt;') +'</p>';
+                    form.querySelector('.ui.message').innerHTML = '<div class="header">'+ result.error.title +'</div><p>'+ result.error.message.replace(/</g, '&lt;').replace(/>/g, '&gt;') +'</p>';
                     ui.setClass(textarea.parentNode, 'error', true);
                     ui.setClass(form, 'error', true);
                 }
