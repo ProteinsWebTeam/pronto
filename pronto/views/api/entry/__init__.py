@@ -228,7 +228,7 @@ def get_entry(accession):
                 "user": row[7],
                 "date": row[8].strftime("%d %b %Y")
             },
-            "unirule": row[9] is not None
+            "unirule": row[9] > 0
         }
         return jsonify(entry), 200
     else:
