@@ -44,153 +44,10 @@ def get_signature(accession):
         }), 404
 
 
-@app.route("/api/signature/<accession>/predictions/")
-def get_signature_predictions(accession):
-    try:
-        overlap = float(request.args["overlap"])
-    except (KeyError, ValueError):
-        overlap = 0.3
-
-    cur = db.get_oracle().cursor()
-    cur.execute(
-        """
-        SELECT
-          MO.C_AC,
-          DB.DBCODE,
-
-          E.ENTRY_AC,
-          E.CHECKED,
-          E.ENTRY_TYPE,
-          E.NAME,
-
-          MO.N_PROT_OVER,
-          MO.N_OVER,          
-
-          MO.Q_N_PROT,
-          MO.Q_N_MATCHES,
-          MO.C_N_PROT,
-          MO.C_N_MATCHES,
-
-          MP.RELATION
-        FROM (
-            SELECT
-              MMQ.METHOD_AC Q_AC,
-              MMQ.N_PROT Q_N_PROT,
-              MMQ.N_MATCHES Q_N_MATCHES,
-              MMC.METHOD_AC C_AC,
-              MMC.N_PROT C_N_PROT,
-              MMC.N_MATCHES C_N_MATCHES,
-              MO.N_PROT_OVER,
-              MO.N_OVER
-            FROM (
-                SELECT 
-                  METHOD_AC1, METHOD_AC2, N_PROT_OVER, 
-                  N_OVER, AVG_FRAC1, AVG_FRAC2
-                FROM {0}.METHOD_OVERLAP
-                WHERE METHOD_AC1 = :accession
-            ) MO
-            INNER JOIN {0}.METHOD_MATCH MMQ 
-              ON MO.METHOD_AC1 = MMQ.METHOD_AC
-            INNER JOIN {0}.METHOD_MATCH MMC 
-              ON MO.METHOD_AC2 = MMC.METHOD_AC
-            WHERE ((MO.N_PROT_OVER >= (:overlap * MMQ.N_PROT)) 
-            OR (MO.N_PROT_OVER >= (:overlap * MMC.N_PROT)))        
-        ) MO
-        LEFT OUTER JOIN {0}.METHOD_PREDICTION MP 
-          ON (MO.Q_AC = MP.METHOD_AC1 AND MO.C_AC = MP.METHOD_AC2)
-        LEFT OUTER JOIN {0}.METHOD M 
-          ON MO.C_AC = M.METHOD_AC
-        LEFT OUTER JOIN {0}.CV_DATABASE DB 
-          ON M.DBCODE = DB.DBCODE
-        LEFT OUTER JOIN INTERPRO.ENTRY2METHOD E2M 
-          ON MO.C_AC = E2M.METHOD_AC
-        LEFT OUTER JOIN INTERPRO.ENTRY E 
-          ON E2M.ENTRY_AC = E.ENTRY_AC
-        ORDER BY MO.N_PROT_OVER DESC, MO.N_OVER DESC, MO.C_AC
-        """.format(app.config["DB_SCHEMA"]),
-        dict(accession=accession, overlap=overlap)
-    )
-
-    signatures = []
-    for row in cur:
-        database = xref.find_ref(dbcode=row[1], ac=row[0])
-
-        signatures.append({
-            # Signature
-            "accession": row[0],
-            "link": database.gen_link() if database else None,
-
-            # Entry
-            "entry": {
-                "accession": row[2],
-                "hierarchy": [],
-                "checked": row[3] == 'Y',
-                "type_code": row[4],
-                "name": row[5]
-            },
-
-            # number of proteins where query and candidate overlap
-            "n_proteins": row[6],
-
-            # number of matches where query and candidate overlap
-            "n_overlaps": row[7],
-
-            # number of proteins/matches for query and candidate
-            "query": {
-                "n_proteins": row[8],
-                "n_matches": row[9],
-            },
-            "candidate": {
-                "n_proteins": row[10],
-                "n_matches": row[11],
-            },
-
-            # Predicted relationship
-            "relation": row[12]
-        })
-
-    cur.execute(
-        """
-        SELECT ENTRY_AC, PARENT_AC
-        FROM INTERPRO.ENTRY2ENTRY
-        """
-    )
-    parent_of = dict(cur.fetchall())
-    cur.close()
-
-    for s in signatures:
-        entry_acc = s["entry"]["accession"]
-        if entry_acc:
-            hierarchy = []
-
-            while entry_acc in parent_of:
-                entry_acc = parent_of[entry_acc]
-                hierarchy.append(entry_acc)
-
-            # Transform child -> parent into parent -> child
-            s["entry"]["hierarchy"] = hierarchy[::-1]
-
-    return jsonify(signatures)
-
-
-def nvl(*args, default=0):
-    return [default if arg is None else arg for arg in args]
-
-
-def _predict(idx, ct1, ct2, threshold, inverse=False):
-    if idx >= threshold:
-        return "Similar to"
-    elif ct1 >= threshold:
-        if ct2 >= threshold:
-            return "Relates to"
-        elif inverse:
-            return "Parent of"
-        else:
-            return "Child of"
-    elif ct2 >= threshold:
-        return "Child of" if inverse else "Parent of"
-    else:
-        return None
+def _wrap_similarity(idx, ct1, ct2, inverse):
+    if inverse:
+        ct1, ct2 = ct2, ct1
+    return dict(similarity=idx, query=ct1, target=ct2)
 
 
 @app.route("/api/signature/<accession1>/comparison/<accession2>/<cmp_type>/")
@@ -232,8 +89,8 @@ def get_signatures_comparison(accession1, accession2, cmp_type):
     }), 200
 
 
-@app.route("/api/signature/<accession>/predictions2/")
-def get_signature_predictions2(accession):
+@app.route("/api/signature/<accession>/predictions/")
+def get_signature_predictions(accession):
     try:
         min_colloc_sim = float(request.args["mincollocation"])
         assert 0 <= min_colloc_sim <= 1
@@ -248,30 +105,17 @@ def get_signature_predictions2(accession):
             }
         }), 400
 
-    try:
-        min_sim = float(request.args["minsimilarity"])
-        assert 0 <= min_sim <= 1
-    except KeyError:
-        min_sim = 0.75
-    except (ValueError, AssertionError):
-        return jsonify({
-            "error": {
-                "title": "Bad request",
-                "message": "Parameter 'minsimilarity' "
-                           "expects a number between 0 and 1."
-            }
-        }), 400
-
     cur = db.get_oracle().cursor()
     cur.execute(
         """
         SELECT 
-          MS.METHOD_AC1, MS.METHOD_AC2, MS.COLL_COUNT, MS.POVR_COUNT,
-          M1.FULL_SEQ_COUNT, M1.DBCODE,
+          MS.METHOD_AC1, MS.METHOD_AC2,
+          M1.DBCODE, M1.FULL_SEQ_COUNT,
           E1.ENTRY_AC, E1.ENTRY_TYPE, E1.NAME, E1.CHECKED,
-          M2.FULL_SEQ_COUNT, M2.DBCODE,
+          M2.DBCODE, M2.FULL_SEQ_COUNT,
           E2.ENTRY_AC, E2.ENTRY_TYPE, E2.NAME, E2.CHECKED,
-          MS.POVR_INDEX, MS.POVR_CONT1, MS.POVR_CONT2,
+          MS.COLL_COUNT, MS.COLL_INDEX, MS.COLL_CONT1, MS.COLL_CONT2,
+          MS.POVR_COUNT, MS.POVR_INDEX, MS.POVR_CONT1, MS.POVR_CONT2,
           MS.ROVR_INDEX, MS.ROVR_CONT1, MS.ROVR_CONT2,
           MS.DESC_INDEX, MS.DESC_CONT1, MS.DESC_CONT2,
           MS.TAXA_INDEX, MS.TAXA_CONT1, MS.TAXA_CONT2,
@@ -298,48 +142,50 @@ def get_signature_predictions2(accession):
 
     signatures = []
     for row in cur:
-        s_acc1, s_acc2, coll_cnt, povr_cnt = row[:4]
+        s_acc1, s_acc2 = row[:2]
 
         if accession == s_acc1:
+            # Query is METHOD_AC1
+            q_count = row[3]
             s_acc = s_acc2
-            s_count, s_dbcode = row[10:12]
-            e_acc, e_type, e_name, e_checked = row[12:16]
+            s_dbcode, s_count, e_acc, e_type, e_name, e_checked = row[8:14]
             inverse = False
         else:
+            # Query is METHOD_AC2
+            q_count = row[9]
             s_acc = s_acc1
-            s_count, s_dbcode = row[4:6]
-            e_acc, e_type, e_name, e_checked = row[6:10]
+            s_dbcode, s_count, e_acc, e_type, e_name, e_checked = row[2:8]
             inverse = True
 
-        predictions = {
-            "proteins": _predict(*nvl(*row[16:19]), min_sim, inverse),
-            "residues": _predict(*nvl(*row[19:22]), min_sim, inverse),
-            "descriptions": _predict(*nvl(*row[22:25]), min_sim, inverse),
-            "taxa": _predict(*nvl(*row[25:28]), min_sim, inverse),
-            "terms": _predict(*nvl(*row[28:31]), min_sim, inverse)
-        }
+        database = xref.find_ref(dbcode=s_dbcode, ac=s_acc)
+        signatures.append({
+            "_proteins": q_count,
 
-        if any(predictions.values()):
-            database = xref.find_ref(dbcode=s_dbcode, ac=s_acc)
-            signatures.append({
-                # Signature
-                "accession": s_acc,
-                "link": database.gen_link() if database else None,
+            # Signature
+            "accession": s_acc,
+            "link": database.gen_link() if database else None,
 
-                # Entry
-                "entry": {
-                    "accession": e_acc,
-                    "type_code": e_type,
-                    "name": e_name,
-                    "checked": e_checked == 'Y',
-                    "hierarchy": []
-                },
+            # Entry
+            "entry": {
+                "accession": e_acc,
+                "type_code": e_type,
+                "name": e_name,
+                "checked": e_checked == 'Y',
+                "hierarchy": []
+            },
 
-                "proteins": s_count,
-                "common_proteins": coll_cnt,
-                "overlap_proteins": povr_cnt,
-                "predictions": predictions
-            })
+            "proteins": s_count,
+            "common_proteins": row[14],
+            "overlap_proteins": row[18],
+            "similarities": {
+                "collocations": _wrap_similarity(*row[15:18], inverse),
+                "proteins": _wrap_similarity(*row[19:22], inverse),
+                "residues": _wrap_similarity(*row[22:25], inverse),
+                "descriptions": _wrap_similarity(*row[25:28], inverse),
+                "taxa": _wrap_similarity(*row[28:31], inverse),
+                "terms": _wrap_similarity(*row[31:34], inverse),
+            }
+        })
 
     cur.execute(
         """
