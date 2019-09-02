@@ -66,8 +66,6 @@ def api_integrated_signatures(dbshort):
 
     base_sql = """
             FROM {0}.METHOD M
-            LEFT OUTER JOIN {0}.METHOD_MATCH MM 
-                ON M.METHOD_AC = MM.METHOD_AC
             LEFT OUTER JOIN INTERPRO.ENTRY2METHOD EM 
                 ON M.METHOD_AC = EM.METHOD_AC
             LEFT OUTER JOIN INTERPRO.ENTRY E 
@@ -141,7 +139,7 @@ def api_integrated_signatures(dbshort):
                     EM.ENTRY_AC,
                     E.CHECKED,
                     E.ENTRY_TYPE,
-                    MM.N_PROT,
+                    M.PROTEIN_COUNT,
                     C.VALUE,
                     C.NAME,
                     C.CREATED_ON
