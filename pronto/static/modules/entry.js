@@ -726,8 +726,8 @@ function getSignatures(accession) {
                                         ui.setClass(msg, 'hidden', true);
                                         getSignatures(accession).then(() => { $('.ui.sticky').sticky(); });
                                     } else {
-                                        msg.querySelector('.header').innerHTML = result.title;
-                                        msg.querySelector('p').innerHTML = result.message;
+                                        msg.querySelector('.header').innerHTML = result.error.title;
+                                        msg.querySelector('p').innerHTML = result.error.message;
                                         msg.className = 'ui error message';
                                     }
                                 });
@@ -902,8 +902,8 @@ const entryEditor = {
             .then(result => {
                 if (!result.status) {
                     const msg = document.querySelector('#edit-entry .ui.error.message');
-                    msg.innerHTML = '<div class="header">'+ result.title +'</div>'
-                        + '<p>'+ result.message +'</p>';
+                    msg.innerHTML = '<div class="header">'+ result.error.title +'</div>'
+                        + '<p>'+ result.error.message +'</p>';
                     ui.setClass(msg, 'hidden', false);
                 }
 
@@ -939,8 +939,8 @@ const entryEditor = {
                         }
                         else {
                             const msg = document.querySelector('#edit-entry .ui.error.message');
-                            msg.innerHTML = '<div class="header">'+ result.title +'</div>'
-                                + '<p>'+ result.message +'</p>';
+                            msg.innerHTML = '<div class="header">'+ result.error.title +'</div>'
+                                + '<p>'+ result.error.message +'</p>';
                             ui.setClass(msg, 'hidden', false);
                         }
                     });
@@ -1100,8 +1100,8 @@ $(function () {
                                     // Return a promise to link the created annotation to the entry
                                     return linkAnnotation(accession, result.id);
                                 } else {
-                                    msg.querySelector('.header').innerHTML = result.title;
-                                    msg.querySelector('p').innerHTML = result.message.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                                    msg.querySelector('.header').innerHTML = result.error.title;
+                                    msg.querySelector('p').innerHTML = result.error.message.replace(/</g, '&lt;').replace(/>/g, '&gt;');
                                     ui.setClass(msg, 'hidden', false);
                                 }
                             })
@@ -1180,13 +1180,13 @@ $(function () {
                                 .then(response => response.json())
                                 .then(result => {
                                     /*
-                                        Whether the annotation was created (code 200) or it already exists (code 400),
+                                        Whether the annotation was created or it already exists,
                                         we want to link it to
                                      */
                                     if (result.id)
                                         return linkAnnotation(accession, result.id);
                                     else {
-                                        msg.innerHTML = result.message;
+                                        msg.innerHTML = result.error.message;
                                         msg.className = 'item negative message';
                                         ui.setClass(btn, 'disabled', false);
                                     }
@@ -1197,7 +1197,7 @@ $(function () {
                                         getAnnotations(accession).then(() => { $('.ui.sticky').sticky(); });
                                         $(modal).modal('hide');
                                     } else {
-                                        msg.innerHTML = result.message;
+                                        msg.innerHTML = result.error.message;
                                         msg.className = 'item negative message';
                                     }
                                 });
@@ -1391,8 +1391,8 @@ $(function () {
                             ui.setClass(msg, 'hidden', true);
                             getRelationships(accession).then(() => { $('.ui.sticky').sticky(); });
                         } else {
-                            msg.querySelector('.header').innerHTML = result.title;
-                            msg.querySelector('p').innerHTML = result.message;
+                            msg.querySelector('.header').innerHTML = result.error.title;
+                            msg.querySelector('p').innerHTML = result.error.message;
                             ui.setClass(msg, 'hidden', false);
                         }
                     });

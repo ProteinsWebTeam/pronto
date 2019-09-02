@@ -315,15 +315,18 @@ def create_annotation():
     if not user:
         return jsonify({
             "status": False,
-            "title": "Access denied",
-            "message": 'Please <a href="/login/">log in</a> '
-                       'to perform this operation.'
+            "error": {
+                "title": "Access denied",
+                "message": 'Please <a href="/login/">log in</a> '
+                           'to perform this operation.'
+            }
         }), 401
 
     try:
         text = request.form["text"].strip()
     except (AttributeError, KeyError):
         return jsonify({
+            "status": False,
             "error": {
                 "title": "Bad request",
                 "message": "Invalid or missing parameters."
@@ -334,22 +337,28 @@ def create_annotation():
     if not ann.validate_html():
         return jsonify({
             "status": False,
-            "title": "Text error",
-            "message": ann.error
+            "error": {
+                "title": "Text error",
+                "message": ann.error
+            }
         }), 400
     elif not ann.validate_xref_tags():
         return jsonify({
             "status": False,
-            "title": "Text error",
-            "message": ann.error
+            "error": {
+                "title": "Text error",
+                "message": ann.error
+            }
         }), 400
 
     status = ann.update_references()
     if status != 200:
         return jsonify({
             "status": False,
-            "title": "Text error",
-            "message": ann.error
+            "error": {
+                "title": "Text error",
+                "message": ann.error
+            }
         }), status
 
     con = db.get_oracle()
@@ -388,28 +397,32 @@ def create_annotation():
                 """, (ann.text,)
             )
 
-            res = {
+            return jsonify({
                 "status": False,
-                "title": "Integrity error",
-                "message": "Another annotation with the same text "
-                           "already exists.".format(exc),
-                "id": cur.fetchone()[0]
-            }
+                "id": cur.fetchone()[0],
+                "error": {
+                    "title": "Integrity error",
+                    "message": "Another annotation with the same text "
+                               "already exists.".format(exc),
+                }
+            }), 500
         else:
-            res = {
+            return jsonify({
                 "status": False,
-                "title": "Integrity error",
-                "message": "The annotation could not be created: "
-                           "{}.".format(exc),
-            }
-
-        return jsonify(res), 500
+                "error": {
+                    "title": "Integrity error",
+                    "message": "The annotation could not be created: "
+                               "{}.".format(exc),
+                }
+            }), 500
 
     except DatabaseError as exc:
         return jsonify({
             "status": False,
-            "title": "Database error",
-            "message": "The annotation could not be created: {}.".format(exc)
+            "error": {
+                "title": "Database error",
+                "message": "The annotation could not be created: {}.".format(exc)
+            }
         }), 500
     else:
         cur.execute(
@@ -441,9 +454,11 @@ def update_annotations(ann_id):
     if not user:
         return jsonify({
             "status": False,
-            "title": "Access denied",
-            "message": 'Please <a href="/login/">log in</a> '
-                       'to perform this operation.'
+            "error": {
+                "title": "Access denied",
+                "message": 'Please <a href="/login/">log in</a> '
+                           'to perform this operation.'
+            }
         }), 401
 
     try:
@@ -452,6 +467,7 @@ def update_annotations(ann_id):
         assert len(text) and len(comment)
     except (AssertionError, KeyError):
         return jsonify({
+            "status": False,
             "error": {
                 "title": "Bad request",
                 "message": "Invalid or missing parameters."
@@ -462,22 +478,28 @@ def update_annotations(ann_id):
     if not ann.validate_html():
         return jsonify({
             "status": False,
-            "title": "Text error",
-            "message": ann.error
+            "error": {
+                "title": "Text error",
+                "message": ann.error
+            }
         }), 400
     elif not ann.validate_xref_tags():
         return jsonify({
             "status": False,
-            "title": "Text error",
-            "message": ann.error
+            "error": {
+                "title": "Text error",
+                "message": ann.error
+            }
         }), 400
 
     status = ann.update_references()
     if status != 200:
         return jsonify({
             "status": False,
-            "title": "Text error",
-            "message": ann.error
+            "error": {
+                "title": "Text error",
+                "message": ann.error
+            }
         }), status
 
     con = db.get_oracle()
@@ -494,8 +516,10 @@ def update_annotations(ann_id):
         cur.close()
         return jsonify({
             "status": False,
-            "title": "Invalid annotation",
-            "message": "{} is not a valid annotation ID.".format(ann_id)
+            "error": {
+                "title": "Invalid annotation",
+                "message": "{} is not a valid annotation ID.".format(ann_id)
+            }
         }), 400
 
     """
@@ -545,8 +569,10 @@ def update_annotations(ann_id):
                 cur.close()
                 return jsonify({
                     "status": False,
-                    "title": "Database error",
-                    "message": str(e)
+                    "error": {
+                        "title": "Database error",
+                        "message": str(e)
+                    }
                 }), 500
 
         """
@@ -615,8 +641,10 @@ def update_annotations(ann_id):
             cur.close()
             return jsonify({
                 "status": False,
-                "title": "Database error",
-                "message": str(e)
+                "error": {
+                    "title": "Database error",
+                    "message": str(e)
+                }
             }), 500
 
         for entry_ac, pub_id in to_insert:
@@ -639,8 +667,10 @@ def update_annotations(ann_id):
                 cur.close()
                 return jsonify({
                     "status": False,
-                    "title": "Database error",
-                    "message": str(e)
+                    "error": {
+                        "title": "Database error",
+                        "message": str(e)
+                    }
                 }), 500
 
     comment += ' updated by {} on {}'.format(
@@ -660,8 +690,10 @@ def update_annotations(ann_id):
     except DatabaseError:
         return jsonify({
             "status": False,
-            "title": "Database error",
-            "message": "Changes could not be saved."
+            "error": {
+                "title": "Database error",
+                "message": "Changes could not be saved."
+            }
         }), 500
     else:
         con.commit()
@@ -678,9 +710,11 @@ def delete_annotations(ann_id):
     if not user:
         return jsonify({
             "status": False,
-            "title": "Access denied",
-            "message": 'Please <a href="/login/">log in</a> '
-                       'to perform this operation.'
+            "error": {
+                "title": "Access denied",
+                "message": 'Please <a href="/login/">log in</a> '
+                           'to perform this operation.'
+            }
         }), 401
 
     con = db.get_oracle()
@@ -703,8 +737,10 @@ def delete_annotations(ann_id):
     except DatabaseError as e:
         return jsonify({
             "status": False,
-            "title": "Database error",
-            "message": str(e)
+            "error": {
+                "title": "Database error",
+                "message": str(e)
+            }
         }), 500
     else:
         con.commit()
