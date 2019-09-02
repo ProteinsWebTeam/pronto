@@ -22,7 +22,7 @@ _ERR_TYPES = {
     "illegal_term": ("Illegal term", True, True),
     "invalid_signature": ("Invalid signature", False, False),
     "link": ("Link", False, False),
-    "lower_case": ("Lower case", False, False),
+    "lower_case": ("Lower case", True, False),
     "same_names": ("Name clash", False, False),
     "similar_names": ("Similar names", True, False),
     "no_signatures": ("No signatures", False, False),
@@ -200,6 +200,19 @@ def check_underscore(text, exceptions, id):
     for match in re.findall(r"\w*_\w*", text):
         if id not in exceptions:
             errors.append(match)
+    return errors
+
+
+def check_lower_case(name, short_name, exceptions):
+    errors = []
+    prog = re.compile("[a-z]")
+
+    if prog.match(name) and not name.startswith(exceptions):
+        errors.append(name.split(' ', 1)[0])
+
+    if prog.match(short_name) and not short_name.startswith(exceptions):
+        errors.append(short_name.split('_', 1)[0])
+
     return errors
 
 
@@ -460,11 +473,7 @@ def check_entries(cur, checks, exceptions):
             ),
             "same_names": same_names.get(acc),
             "similar_names": similar_names.get(acc),
-            "lower_case": (
-                    (lc_prog.match(name) and not name.startswith(lower_case_excs))
-                    or
-                    (lc_prog.match(short_name) and not short_name.startswith(lower_case_excs))
-            ),
+            "lower_case": check_lower_case(name, short_name, lower_case_excs),
             "gene_symbol": check_gene_symbol(
                 name, short_name,
                 exceptions=exceptions.get("gene_symbol", [])
@@ -1043,6 +1052,17 @@ def add_exception(check_type, term_based, exc_term, exc_string, exc_extra):
         # Requires a valid entry accession
         if re.match("IPR\d+$", exc_string):
             params = (check_type, None, None, exc_string, None)
+        else:
+            return {
+                "error": {
+                    "title": "Bad request",
+                    "message": "'{}' is not a valid "
+                               "InterPro entry.".format(exc_string)
+                }
+            }, 400
+    elif check_type == "lower_case":
+        if re.match("IPR\d+$", exc_string):
+            params = (check_type, exc_term, None, exc_string, None)
         else:
             return {
                 "error": {
