@@ -1117,7 +1117,7 @@ def add_exception(check_type, term_based, exc_term, exc_string, exc_extra):
                    }, 400
     elif check_type == "lower_case":
         if re.match("IPR\d+$", exc_string):
-            params = (check_type, exc_term, None, exc_string, None)
+            params = (check_type, exc_term or exc_extra, None, exc_string, None)
         else:
             return {
                        "error": {
