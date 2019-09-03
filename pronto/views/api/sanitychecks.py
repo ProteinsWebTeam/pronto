@@ -111,10 +111,16 @@ def check_citations(text, checks, exceptions, id):
     return errors
 
 
-def check_gram(text):
+def check_gram(text, exceptions, id):
+    # Correct spelling: Gram-positive, Gram-negative
+    errors = []
     terms = ("gram\s*-(?!negative|positive)", "gram\s*\+", "gram pos",
              "gram neg", "g-positive", "g-negative")
-    return re.findall('|'.join(terms), text, re.I)
+    for match in re.findall('|'.join(terms), text, re.I):
+        if id not in exceptions.get(match, []):
+            errors.append(match)
+
+    return errors
 
 
 def check_illegal_terms(text, checks, exceptions, id):
@@ -218,9 +224,9 @@ def check_lower_case(name, short_name, exceptions):
 
 def check_gene_symbol(name, short_name, exceptions):
     gene_symbols = set()
-    gene = re.search(r"(?:^|_)[a-z]{3}[A-Z]\b", short_name)
+    gene = re.search(r"(?:^|_)([a-z]{3}[A-Z])\b", short_name)
     if gene:
-        gene = gene.group()
+        gene = gene.group(1)
         if gene not in exceptions:
             gene_symbols.add(gene)
 
@@ -295,7 +301,9 @@ def check_abstracts(cur, checks, exceptions):
                 text,
                 checks=checks.get("spelling", []),
                 exceptions=exceptions.get("spelling", {}),
-                id=ann_id) + check_gram(text),
+                id=ann_id) + check_gram(text,
+                                        exceptions=exceptions.get("spelling", {}),
+                                        id=ann_id),
             "link": check_links(text),
             "punctuation": check_punctuation(
                 text,
@@ -715,7 +723,13 @@ def get_sanitychecks_report(run_id):
 def resolve_error(run_id, err_id):
     user = get_user()
     if not user:
-        return '', 401
+        return jsonify({
+            "error": {
+                "title": "Access denied",
+                "message": 'Please <a href="/login/">log in</a> '
+                           'to perform this operation.'
+            }
+        }), 401
 
     add_exc = request.args.get("exception") is not None
 
@@ -734,7 +748,12 @@ def resolve_error(run_id, err_id):
         if not row:
             # Nothing to do here
             cur.close()
-            return '', 404
+            return jsonify({
+                "error": {
+                    "title": "Not found",
+                    "message": "This error does not exist."
+                }
+            }), 404
 
         ann_id = row[0]
         entry_acc = row[1]
@@ -742,18 +761,36 @@ def resolve_error(run_id, err_id):
         if len(err_types) > 1:
             # We don't want to add exceptions for multiple errors
             cur.close()
-            return '', 400
+            return jsonify({
+                "error": {
+                    "title": "Too many errors",
+                    "message": "An exception can be added only "
+                               "when there is one single error."
+                }
+            }), 400
 
         err_type, errors = err_types.popitem()
         label, accept_exceptions, term_based = _ERR_TYPES[err_type]
         if not accept_exceptions:
             # Exceptions not allowed for this type
             cur.close()
-            return '', 403
+            return jsonify({
+                "error": {
+                    "title": "Exceptions not supported",
+                    "message": "This type of error "
+                               "does not support exceptions."
+                }
+            }), 403
         elif not isinstance(errors, bool) and len(errors) > 1:
             # We don't want to add exceptions for multiple errors (bis)
             cur.close()
-            return '', 400
+            return jsonify({
+                "error": {
+                    "title": "Too many errors",
+                    "message": "An exception can be added only "
+                               "when there is one single error."
+                }
+            }), 400
 
         # Error to add to exception
         err_string = errors[0]["error"]
@@ -775,7 +812,7 @@ def resolve_error(run_id, err_id):
                                   ann_id or entry_acc, err_extra)
         if code != 200:
             cur.close()
-            return '', code
+            return jsonify(res), code
 
     cur.execute(
         """
@@ -787,7 +824,15 @@ def resolve_error(run_id, err_id):
     n = cur.rowcount
     cur.close()
     con.commit()
-    return '', 200 if n else 404
+    if n:
+        return jsonify({}), 200
+    else:
+        return jsonify({
+            "error": {
+                "title": "Not found",
+                "message": "This error does not exist."
+            }
+        }), 404
 
 
 @app.route("/api/sanitychecks/checks/")
@@ -953,33 +998,37 @@ def add_exception(check_type, term_based, exc_term, exc_string, exc_extra):
     user = get_user()
     if not user:
         return {
-            "status": False,
-            "title": "Access denied",
-            "message": 'Please <a href="/login/">log in</a> '
-                       'to perform this operation.'
-        }, 401
+                   "error": {
+                       "title": "Access denied",
+                       "message": 'Please <a href="/login/">log in</a> '
+                                  'to perform this operation.'
+                   },
+                   "status": False
+               }, 401
 
     if term_based:
         # Exception for specific checked term found in abstract/entry
         if not exc_term or not exc_string:
             return {
-                "error": {
-                    "title": "Bad request",
-                    "message": "Invalid or missing parameters."
-                }
-            }, 400
+                       "error": {
+                           "title": "Bad request",
+                           "message": "Invalid or missing parameters."
+                       },
+                       "status": False
+                   }, 400
         elif re.match("AB\d+$", exc_string):
             params = (check_type, exc_term, exc_string, None, None)
         elif re.match("IPR\d+$", exc_string):
             params = (check_type, exc_term, None, exc_string, None)
         else:
             return {
-                "error": {
-                    "title": "Bad request",
-                    "message": "'{}' is not a valid InterPro entry "
-                               "or abstract ID.".format(exc_string)
-                }
-            }, 400
+                       "error": {
+                           "title": "Bad request",
+                           "message": "'{}' is not a valid InterPro entry "
+                                      "or abstract ID.".format(exc_string)
+                       },
+                       "status": False
+                   }, 400
     elif check_type == "acc_in_name":
         # Requires a valid entry accession
         if re.match("IPR\d+$", exc_string):
@@ -990,30 +1039,33 @@ def add_exception(check_type, term_based, exc_term, exc_string, exc_extra):
             params = (check_type, exc_extra, None, exc_string, None)
         else:
             return {
-                "error": {
-                    "title": "Bad request",
-                    "message": "'{}' is not a valid "
-                               "InterPro entry.".format(exc_string)
-                }
-            }, 400
+                       "error": {
+                           "title": "Bad request",
+                           "message": "'{}' is not a valid "
+                                      "InterPro entry.".format(exc_string)
+                       },
+                       "status": False
+                   }, 400
     elif check_type == "similar_names":
         # Requires two valid entry accessions
         if not re.match("IPR\d+$", exc_string):
             return {
-                "error": {
-                    "title": "Bad request",
-                    "message": "'{}' is not a valid "
-                               "InterPro entry.".format(exc_string)
-                }
-            }, 400
+                       "error": {
+                           "title": "Bad request",
+                           "message": "'{}' is not a valid "
+                                      "InterPro entry.".format(exc_string)
+                       },
+                       "status": False
+                   }, 400
         elif not re.match("IPR\d+$", exc_extra):
             return {
-                "error": {
-                    "title": "Bad request",
-                    "message": "'{}' is not a valid "
-                               "InterPro entry.".format(exc_extra)
-                }
-            }, 400
+                       "error": {
+                           "title": "Bad request",
+                           "message": "'{}' is not a valid "
+                                      "InterPro entry.".format(exc_extra)
+                       },
+                       "status": False
+                   }, 400
         elif exc_string > exc_extra:
             exc_string, exc_extra = exc_extra, exc_string
         params = (check_type, None, None, exc_string, exc_extra)
@@ -1027,12 +1079,13 @@ def add_exception(check_type, term_based, exc_term, exc_string, exc_extra):
             integer = ord(exc_string)
         except TypeError:
             return {
-                "error": {
-                    "title": "Bad request",
-                    "message": "Expected a character, but string "
-                               "of length {} found.".format(len(exc_string))
-                }
-            }, 400
+                       "error": {
+                           "title": "Bad request",
+                           "message": "Expected a character, but string "
+                                      "of length {} found.".format(len(exc_string))
+                       },
+                       "status": False
+                   }, 400
 
         try:
             exc_string.encode("ascii")
@@ -1040,12 +1093,13 @@ def add_exception(check_type, term_based, exc_term, exc_string, exc_extra):
             pass
         else:
             return {
-                "error": {
-                    "title": "Bad request",
-                    "message": "'{}' is a ASCII character. Please enter "
-                               "non-ASCII characters only.".format(exc_string)
-                }
-            }, 400
+                       "error": {
+                           "title": "Bad request",
+                           "message": "'{}' is a ASCII character. Please enter "
+                                      "non-ASCII characters only.".format(exc_string)
+                       },
+                       "status": False
+                   }, 400
 
         params = (check_type, str(integer), None, None, None)
     elif check_type == "underscore":
@@ -1054,32 +1108,37 @@ def add_exception(check_type, term_based, exc_term, exc_string, exc_extra):
             params = (check_type, None, None, exc_string, None)
         else:
             return {
-                "error": {
-                    "title": "Bad request",
-                    "message": "'{}' is not a valid "
-                               "InterPro entry.".format(exc_string)
-                }
-            }, 400
+                       "error": {
+                           "title": "Bad request",
+                           "message": "'{}' is not a valid "
+                                      "InterPro entry.".format(exc_string)
+                       },
+                       "status": False
+                   }, 400
     elif check_type == "lower_case":
         if re.match("IPR\d+$", exc_string):
             params = (check_type, exc_term, None, exc_string, None)
         else:
             return {
-                "error": {
-                    "title": "Bad request",
-                    "message": "'{}' is not a valid "
-                               "InterPro entry.".format(exc_string)
-                }
-            }, 400
+                       "error": {
+                           "title": "Bad request",
+                           "message": "'{}' is not a valid "
+                                      "InterPro entry.".format(exc_string)
+                       },
+                       "status": False
+                   }, 400
+    elif check_type == "gene_symbol":
+        params = (check_type, exc_term, None, None, None)
     elif len(exc_string):
         params = (check_type, exc_string, None, None, None)
     else:
         return {
-            "error": {
-                "title": "Bad request",
-                "message": "Please enter at least one character."
-            }
-        }, 400
+                   "error": {
+                       "title": "Bad request",
+                       "message": "Please enter at least one character."
+                   },
+                   "status": False
+               }, 400
 
     con = db.get_oracle()
     cur = con.cursor()
@@ -1092,17 +1151,17 @@ def add_exception(check_type, term_based, exc_term, exc_string, exc_extra):
         )
     except DatabaseError as exc:
         return {
-            "error": {
-                "status": False,
-                "title": "Database error",
-                "message": "Could not add exception ({}).".format(exc)
-            }
-        }, 500
+                   "error": {
+                       "title": "Database error",
+                       "message": "Could not add exception ({}).".format(exc)
+                   },
+                   "status": False
+               }, 500
     else:
         con.commit()
         return {
-            "status": True
-        }, 200
+                   "status": True
+               }, 200
     finally:
         cur.close()
 

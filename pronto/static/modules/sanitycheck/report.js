@@ -119,14 +119,17 @@ function getErrors(runId) {
 
                             return fetch(url, {method: "POST"})
                                 .then(response => {
-                                    if (response.ok)
+                                    if (response.ok) {
                                         getErrors(runId);
-                                    else if (response.status === 401)
-                                        ui.openErrorModal({title: 'Access denied', message: 'Please <a href="/login/">log in</a> to perform this operation.'});
-                                    else if (response.status === 404)
-                                        ui.openErrorModal({title: 'Not found', message: 'This error does not exist.'});
-                                    else
-                                        ui.openErrorModal({title: 'Something went wrong', message: 'An unexpected error occurred. No details available.'});
+                                        return null;
+                                    }
+
+                                    return response.json();
+                                })
+                                .then(response => {
+                                    if (response !== null)
+                                        console.log(response);
+                                        ui.openErrorModal({title: response.error.title, message: response.error.message});
                                 });
                         });
                     });
