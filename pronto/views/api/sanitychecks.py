@@ -359,7 +359,7 @@ def check_entries(cur, checks, exceptions):
         else:
             same_names[acc1] = [acc2]
 
-    exc = exceptions.get("similar_name", {})
+    exc = exceptions.get("similar_names", {})
     cur.execute(
         """
         SELECT A.ENTRY_AC, B.ENTRY_AC
