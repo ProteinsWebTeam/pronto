@@ -555,7 +555,7 @@ def load_sanity_checks(cur):
             if exc_id in excpts:
                 excpts[exc_id].add(exc_entry_ac2)
             else:
-                excpts[exc_id] = {exc_entry_ac}
+                excpts[exc_id] = {exc_entry_ac2}
 
     return checks, abstr_excpts, entry_excpts
 
