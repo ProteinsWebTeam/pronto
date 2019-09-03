@@ -129,6 +129,9 @@ def check_illegal_terms(text, checks, exceptions, id):
         if term in text and id not in exceptions.get(term, []):
             errors.append(term)
 
+    if '\t' in text:
+        errors.append('\t')
+
     return errors
 
 
