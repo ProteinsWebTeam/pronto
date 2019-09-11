@@ -38,16 +38,6 @@ def get_signature(accession):
         }), 200
     else:
         return jsonify(None), 404
-        return jsonify({
-            "title": "Invalid signature",
-            "message": "".format(accession)
-        }), 404
-
-
-def _wrap_similarity(idx, ct1, ct2, inverse):
-    if inverse:
-        ct1, ct2 = ct2, ct1
-    return dict(similarity=idx, query=ct1, target=ct2)
 
 
 @app.route("/api/signature/<accession1>/comparison/<accession2>/<cmp_type>/")
@@ -110,34 +100,25 @@ def get_signature_predictions(accession):
         """
         SELECT 
           MS.METHOD_AC1, MS.METHOD_AC2,
-          M1.DBCODE, M1.FULL_SEQ_COUNT,
+          MS.DBCODE1, MS.PROT_COUNT1,
           E1.ENTRY_AC, E1.ENTRY_TYPE, E1.NAME, E1.CHECKED,
-          M2.DBCODE, M2.FULL_SEQ_COUNT,
+          MS.DBCODE2, MS.PROT_COUNT2,
           E2.ENTRY_AC, E2.ENTRY_TYPE, E2.NAME, E2.CHECKED,
-          MS.COLL_COUNT, MS.COLL_INDEX, MS.COLL_CONT1, MS.COLL_CONT2,
-          MS.POVR_COUNT, MS.POVR_INDEX, MS.POVR_CONT1, MS.POVR_CONT2,
-          MS.ROVR_INDEX, MS.ROVR_CONT1, MS.ROVR_CONT2,
-          MS.DESC_INDEX, MS.DESC_CONT1, MS.DESC_CONT2,
-          MS.TAXA_INDEX, MS.TAXA_CONT1, MS.TAXA_CONT2,
-          MS.TERM_INDEX, MS.TERM_CONT1, MS.TERM_CONT2
-        FROM {0}.METHOD_SIMILARITY MS
-        INNER JOIN {0}.METHOD M1 
-          ON MS.METHOD_AC1 = M1.METHOD_AC
+          MS.COLL_COUNT, MS.PROT_OVER_COUNT, 
+          MS.PROT_PRED, MS.RESI_PRED, MS.DESC_PRED, MS.TAXA_PRED, MS.TERM_PRED
+        FROM {}.METHOD_SIMILARITY MS
         LEFT OUTER JOIN INTERPRO.ENTRY2METHOD EM1
-          ON M1.METHOD_AC = EM1.METHOD_AC
+          ON MS.METHOD_AC1 = EM1.METHOD_AC
         LEFT OUTER JOIN INTERPRO.ENTRY E1
           ON EM1.ENTRY_AC = E1.ENTRY_AC
-        INNER JOIN {0}.METHOD M2
-          ON MS.METHOD_AC2 = M2.METHOD_AC
         LEFT OUTER JOIN INTERPRO.ENTRY2METHOD EM2
-          ON M2.METHOD_AC = EM2.METHOD_AC
+          ON MS.METHOD_AC2 = EM2.METHOD_AC
         LEFT OUTER JOIN INTERPRO.ENTRY E2
           ON EM2.ENTRY_AC = E2.ENTRY_AC
-        WHERE (MS.METHOD_AC1 = :acc OR MS.METHOD_AC2 = :acc)
-          AND (MS.COLL_CONT1 >= :mcs OR MS.COLL_CONT2 >= :mcs)
-        ORDER BY MS.POVR_INDEX DESC, MS.COLL_INDEX DESC
+        WHERE MS.METHOD_AC1 = :acc OR MS.METHOD_AC2 = :acc
+        ORDER BY MS.PROT_SIM DESC, MS.PROT_OVER_COUNT DESC
         """.format(app.config["DB_SCHEMA"]),
-        dict(acc=accession, mcs=min_colloc_sim)
+        dict(acc=accession)
     )
 
     signatures = []
@@ -145,22 +126,25 @@ def get_signature_predictions(accession):
         s_acc1, s_acc2 = row[:2]
 
         if accession == s_acc1:
-            # Query is METHOD_AC1
-            q_count = row[3]
+            # Query is METHOD_AC1, target is METHOD_AC2
             s_acc = s_acc2
             s_dbcode, s_count, e_acc, e_type, e_name, e_checked = row[8:14]
+            q_count = row[3]
             inverse = False
         else:
-            # Query is METHOD_AC2
-            q_count = row[9]
+            # Query is METHOD_AC2, target is METHOD_AC1
             s_acc = s_acc1
             s_dbcode, s_count, e_acc, e_type, e_name, e_checked = row[2:8]
+            q_count = row[9]
             inverse = True
+
+        colloc_cnt = row[14]
+        if (colloc_cnt / q_count < min_colloc_sim
+                and colloc_cnt / s_count < min_colloc_sim):
+            continue
 
         database = xref.find_ref(dbcode=s_dbcode, ac=s_acc)
         signatures.append({
-            "_proteins": q_count,
-
             # Signature
             "accession": s_acc,
             "link": database.gen_link() if database else None,
@@ -175,15 +159,14 @@ def get_signature_predictions(accession):
             },
 
             "proteins": s_count,
-            "common_proteins": row[14],
-            "overlap_proteins": row[18],
-            "similarities": {
-                "collocations": _wrap_similarity(*row[15:18], inverse),
-                "proteins": _wrap_similarity(*row[19:22], inverse),
-                "residues": _wrap_similarity(*row[22:25], inverse),
-                "descriptions": _wrap_similarity(*row[25:28], inverse),
-                "taxa": _wrap_similarity(*row[28:31], inverse),
-                "terms": _wrap_similarity(*row[31:34], inverse),
+            "common_proteins": colloc_cnt,
+            "overlap_proteins": row[15],
+            "predictions": {
+                "proteins": fix_prediction(row[16], inverse),
+                "residues": fix_prediction(row[17], inverse),
+                "descriptions": fix_prediction(row[18], inverse),
+                "taxa": fix_prediction(row[19], inverse),
+                "terms": fix_prediction(row[20], inverse),
             }
         })
 
@@ -209,6 +192,14 @@ def get_signature_predictions(accession):
             p["entry"]["hierarchy"] = hierarchy[::-1]
 
     return jsonify(signatures), 200
+
+
+def fix_prediction(prediction, inverse):
+    if inverse and prediction in ('P', 'C'):
+        return 'C' if prediction == 'P' else 'P'
+    else:
+        return prediction
+
 
 
 @app.route("/api/signature/<accession>/comments/")

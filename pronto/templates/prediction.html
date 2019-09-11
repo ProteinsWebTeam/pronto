@@ -7,6 +7,10 @@
     <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}">
     <title>Pronto</title>
     <style type="text/css">
+        .sub .ui.label {
+            margin: 0 .25rem 0;
+        }
+
         .ui.circular.labels > .ui.label {
             margin-bottom: 0;
         }
@@ -75,7 +79,6 @@
     <div class="ui comments">
         <h3 class="ui dividing header">
             <i class="comments icon"></i>Comments
-            <div class="sub header"></div>
         </h3>
 
         <div class="ui grid">
@@ -154,16 +157,16 @@
         <tr>
             <th colspan="10">
                 <div class="ui tiny circular labels">
-                    <div class="ui green label" data-content="Jaccard coefficient is greater or equal to #" data-position="top center">&nbsp;</div>
+                    <div class="ui green label" data-content="Jaccard coefficient is greater or equal to 0.75" data-position="top center">&nbsp;</div>
                     <span>Similar</span>
 
-                    <div class="ui blue label" data-content="Both query and target signatures contain at least $% of the other signature" data-position="top center">&nbsp;</div>
+                    <div class="ui blue label" data-content="Both query and target signatures contain at least 75% of the other signature" data-position="top center">&nbsp;</div>
                     <span>Related</span>
 
-                    <div class="ui violet label" data-content="Query signature contains at least $% of the target signature" data-position="top center">&nbsp;</div>
+                    <div class="ui violet label" data-content="Query signature contains at least 75% of the target signature" data-position="top center">&nbsp;</div>
                     <span>Parent</span>
 
-                    <div class="ui purple label" data-content="Target signature contains at least $% of the query signature" data-position="top center">&nbsp;</div>
+                    <div class="ui purple label" data-content="Target signature contains at least 75% of the query signature" data-position="top center">&nbsp;</div>
                     <span>Child</span>
 
                     <div class="ui red label" data-content="Query and target signatures have very little in common" data-position="top center">&nbsp;</div>
@@ -204,11 +207,6 @@
                             </div>
                         </div>
                     </div>
-                </div>
-
-                <div class="hidden field">
-                    <label>Similarity threshold (<span id="over-value"></span>)</label>
-                    <input id="over-range" type="range" min="0.5" max="1" step="0.01" value="">
                 </div>
             </th>
         </tr>
