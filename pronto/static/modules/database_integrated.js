@@ -55,10 +55,11 @@ function getSignatures() {
             } else
                 html = '<tr><td class="center aligned" colspan="7">No matching signatures found</td></tr>';
 
-            document.querySelector('tbody').innerHTML = html;
+            const table = document.getElementById("table-signatures");
+            table.querySelector('tbody').innerHTML = html;
 
             ui.paginate(
-                document.querySelector("table"),
+                table,
                 results.page_info.page,
                 results.page_info.page_size,
                 results.count,
