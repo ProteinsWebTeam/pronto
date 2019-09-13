@@ -79,6 +79,15 @@ function renderOverlap(accession1, accession2, key) {
         });
 }
 
+function getGlobalPredictionLabel(predictions) {
+    let label = PREDICTIONS.get(predictions['proteins']).label;
+
+    if (predictions['proteins'] && predictions['proteins'] === predictions['residues'])
+        label += '&nbsp;<i class="yellow star fitted icon"></i>';
+
+    return label;
+}
+
 function getPredictions(accession) {
     const minCollocation = document.querySelector('tfoot input[type=radio]:checked').value;
     const url = "/api/signature/" + accession + "/predictions/?mincollocation=" + minCollocation;
@@ -89,6 +98,8 @@ function getPredictions(accession) {
         .then(signatures => {
             let html = '';
 
+            document.getElementById('predictions-count').innerHTML = signatures.length.toLocaleString();
+
             signatures.forEach(s => {
                 const circles = '<div class="ui tiny circular labels">'
                     + '<span data-key="proteins" class="ui '+ PREDICTIONS.get(s.predictions['proteins']).color +' label"></span>'
@@ -98,7 +109,7 @@ function getPredictions(accession) {
                     + '</div>';
 
                 html += '<tr>'
-                    + '<td class="nowrap">'+ PREDICTIONS.get(s.predictions['proteins']).label +'</td><td class="collapsing">'+ circles +'</td>'
+                    + '<td class="nowrap">'+ getGlobalPredictionLabel(s.predictions) +'</td><td class="collapsing">'+ circles +'</td>'
                     + '<td class="collapsing"><a href="/prediction/'+ s.accession +'/">'+ s.accession +'</a></td>';
 
                 if (s.link !== null) {
