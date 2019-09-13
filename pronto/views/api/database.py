@@ -215,6 +215,156 @@ def api_integrated_signatures(dbshort):
 
 
 @app.route("/api/database/<dbshort>/unintegrated/<mode>/")
+def api_unintegrated_signatures2(dbshort, mode):
+    if mode not in ("integrated", "unintegrated", "norelation"):
+        return jsonify({}), 400
+
+    db_name, db_code, db_version = get_database(dbshort)
+    if not db_name:
+        return jsonify({}), 404
+
+    if request.args.get("allpredictions") is not None:
+        pred_cond = "IS NOT NULL"
+    else:
+        pred_cond = "= 'S'"
+
+    try:
+        page = int(request.args["page"])
+    except (KeyError, ValueError):
+        page = 1
+
+    try:
+        page_size = int(request.args["page_size"])
+    except (KeyError, ValueError):
+        page_size = 20
+
+    search_query = request.args.get("search", "").strip()
+    params = {"dbcode": db_code}
+
+    if mode == "integrated":
+        base_sql = """
+          SELECT DISTINCT MS.METHOD_AC1 AS METHOD_AC
+          FROM {}.METHOD_SIMILARITY MS
+          LEFT OUTER JOIN INTERPRO.ENTRY2METHOD EM1 
+            ON MS.METHOD_AC1 = EM1.METHOD_AC
+          INNER JOIN INTERPRO.ENTRY2METHOD EM2 
+            ON MS.METHOD_AC2 = EM2.METHOD_AC
+          WHERE MS.DBCODE1 = :dbcode
+            AND EM1.ENTRY_AC IS NULL 
+            AND MS.PROT_PRED {}
+        """.format(app.config["DB_SCHEMA"], pred_cond)
+    elif mode == "unintegrated":
+        base_sql = """
+          SELECT DISTINCT MS.METHOD_AC1 AS METHOD_AC
+          FROM {}.METHOD_SIMILARITY MS
+          LEFT OUTER JOIN INTERPRO.ENTRY2METHOD EM1 
+            ON MS.METHOD_AC1 = EM1.METHOD_AC
+          INNER JOIN INTERPRO.ENTRY2METHOD EM2 
+            ON MS.METHOD_AC2 = EM2.METHOD_AC
+          WHERE MS.DBCODE1 = :dbcode
+            AND EM1.ENTRY_AC IS NULL 
+            AND MS.PROT_PRED {}
+        """.format(app.config["DB_SCHEMA"], pred_cond)
+    else:
+        base_sql = """
+          SELECT DISTINCT MS.METHOD_AC1 AS METHOD_AC
+          FROM {0}.METHOD_SIMILARITY MS
+          LEFT OUTER JOIN INTERPRO.ENTRY2METHOD EM1 
+            ON MS.METHOD_AC1 = EM1.METHOD_AC
+          WHERE MS.DBCODE1 = :dbcode
+          AND EM1.ENTRY_AC IS NULL
+          MINUS 
+          SELECT DISTINCT MS.METHOD_AC1
+          FROM {0}.METHOD_SIMILARITY MS
+          WHERE MS.DBCODE1 = :dbcode AND MS.PROT_PRED {1}
+        """.format(app.config["DB_SCHEMA"], pred_cond)
+
+    if search_query:
+        base_sql += " AND MS.METHOD_AC1 LIKE :q"
+        params["q"] = search_query.upper() + "%"
+
+    cur = db.get_oracle().cursor()
+    cur.execute(
+        """
+        SELECT COUNT(*)
+        FROM ({})
+        """.format(base_sql),
+        params
+    )
+    num_rows, = cur.fetchone()
+    params.update({
+        "i_start": (page - 1) * page_size,
+        "i_end": page * page_size
+    })
+
+    cur.execute(
+        """
+        SELECT 
+          MS.METHOD_AC1, MS.METHOD_AC2, MS.PROT_PRED, E.ENTRY_AC, E.ENTRY_TYPE 
+        FROM {}.METHOD_SIMILARITY MS
+        LEFT OUTER JOIN INTERPRO.ENTRY2METHOD EM 
+          ON MS.METHOD_AC2 = EM.METHOD_AC
+        LEFT OUTER JOIN INTERPRO.ENTRY E 
+          ON EM.ENTRY_AC = E.ENTRY_AC
+        WHERE MS.METHOD_AC1 IN (
+          SELECT METHOD_AC
+          FROM (
+            SELECT RES.*, ROWNUM RN
+            FROM (
+              {}
+              ORDER BY METHOD_AC
+            ) RES
+            WHERE ROWNUM <= :i_end
+          ) WHERE RN > :i_start
+        )
+        AND MS.PROT_PRED IS NOT NULL 
+        ORDER BY MS.METHOD_AC1, MS.METHOD_AC2
+        """.format(app.config["DB_SCHEMA"], base_sql),
+        **params
+    )
+
+    signatures = {}
+    for s_acc1, s_acc2, pred, e_acc, e_type in cur:
+        if mode == "integrated" and not e_acc:
+            continue
+        elif mode == "unintegrated" and e_acc:
+            continue
+
+        try:
+            s = signatures[s_acc1]
+        except KeyError:
+            s = signatures[s_acc1] = {
+                "accession": s_acc1,
+                "signatures": []
+            }
+
+        s["signatures"].append({
+            "accession": s_acc2,
+            "entry": {
+                "accession": e_acc,
+                "type": e_type
+            },
+            "prediction": pred
+        })
+
+    cur.close()
+
+    return jsonify({
+        "page_info": {
+            "page": page,
+            "page_size": page_size
+        },
+        "signatures": list(sorted(signatures.values(),
+                                  key=lambda e: e["accession"])),
+        "count": num_rows,
+        "database": {
+            "name": db_name,
+            "version": db_version
+        }
+    })
+
+
+@app.route("/api/database/<dbshort>/unintegrated2/<mode>/")
 def api_unintegrated_signatures(dbshort, mode):
     if mode not in ("integrated", "candidate", "norelation"):
         return jsonify({

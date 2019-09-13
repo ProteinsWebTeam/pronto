@@ -13,62 +13,67 @@ function setFilter(filter) {
     return url;
 }
 
+function renderCell(targets) {
+    let html = '<div class="ui list">';
+    targets.forEach(t => {
+        html += '<div class="item">'
+            + '<div class="content">'
+            + '<a href="/prediction/'+ t.accession +'/">'+ t.accession +'</a>'
+            + (
+                t.entry.accession === null ? '' : '&nbsp;<span class="ui circular mini label type-'+ t.entry.type +'">'+ t.entry.type +'</span><a href="/entry/'+ t.entry.accession +'/">'+ t.entry.accession +'</a>'
+            )
+            + '</div>'
+            + '</div>'
+    });
+
+    return html + '</div>';
+}
+
 function getSignatures() {
     ui.dimmer(true);
     const pathname = location.pathname.match(/(\/database\/.+\/)/)[1];
     fetch("/api" + pathname + location.search)
-        .then(response => response.json())
-        .then(results => {
-            if (!results.database) {
-                // TODO: show error
+        .then(response => response.ok ? response.json() : null)
+        .then(response => {
+            if (response === null)
                 return;
-            }
-            const title = results.database.name + ' (' + results.database.version + ') unintegrated signatures';
+
+            const title = response.database.name + ' (' + response.database.version + ') unintegrated signatures';
             document.querySelector('h1.ui.header').innerHTML = title;
             document.title = title + ' | Pronto';
 
             let html = '';
-            if (results.signatures.length) {
-                results.signatures.forEach(signature => {
-                    html += '<tr>' 
-                        + '<td><a href="/prediction/'+ signature["accession"] +'/">'+ signature["accession"] +'</a></td>' 
-                        + '<td class="nowrap">'
-                        + '<div class="ui list">';
-                    
-                    signature.add_to.forEach(prediction => {
-                        html += '<div class="item">';
-                        
-                        if (prediction.type !== null) {
-                            html += '<div class="content">'
-                                + '<span class="ui circular mini label type-'+ prediction.type +'">'+ prediction.type +'</span>'
-                                + '<a href="/entry/'+ prediction.accession +'/">'+ prediction.accession +'</a>'
-                                + '</div>';
-                        } else {
-                            html += '<div class="content">'
-                                + '<span class="ui circular mini label">&nbsp;</span>'
-                                + '<a href="/entry/'+ prediction.accession +'/">'+ prediction.accession +'</a>'
-                                + '</div>';
-                        }
+            if (response.signatures.length) {
+                response.signatures.forEach(query => {
+                    const columns = {
+                        S: [],
+                        R: [],
+                        P: [],
+                        C: []
+                    };
 
-                        html += '</div>';
+                    query.signatures.forEach(target => {
+                        columns[target.prediction].push(target);
                     });
 
-                    html += '</div></td>'
-                        + '<td>'+ signature.parents.join(", ") +'</td>'
-                        + '<td>'+ signature.children.join(", ") +'</td>';
-
-
+                    html += '<tr>'
+                        + '<td><a href="/prediction/'+ query.accession +'/">'+ query.accession +'</a></td>'
+                        + '<td class="nowrap">' + renderCell(columns['S']) + '</td>'
+                        + '<td class="nowrap">' + renderCell(columns['R']) + '</td>'
+                        + '<td class="nowrap">' + renderCell(columns['P']) + '</td>'
+                        + '<td class="nowrap">' + renderCell(columns['C']) + '</td>'
+                        + '</tr>';
                 });
             } else
-                html = '<tr><td class="center aligned" colspan="4">No matching signatures found</td></tr>';
+                html = '<tr><td class="center aligned" colspan="5">No matching signatures found</td></tr>';
 
-            document.querySelector('tbody').innerHTML = html;
-
+            const table = document.getElementById("table-signatures");
+            table.querySelector('tbody').innerHTML = html;
             ui.paginate(
-                document.querySelector("table"),
-                results.page_info.page,
-                results.page_info.page_size,
-                results.count,
+                table,
+                response.page_info.page,
+                response.page_info.page_size,
+                response.count,
                 (url,) => {
                     history.replaceState(null, null, url);
                     getSignatures();
@@ -112,5 +117,17 @@ $(function () {
             history.replaceState(null, null, url.toString());
             getSignatures();
         });
+    });
+
+    document.querySelector('input[type=checkbox][name=allpredictions]').addEventListener('change', e => {
+        const url = new URL(location.href);
+
+        if (e.target.checked)
+            url.searchParams.set(e.target.name, '');
+        else
+            url.searchParams.delete(e.target.name);
+
+        history.replaceState(null, null, url.toString());
+        getSignatures();
     });
 });
