@@ -99,23 +99,16 @@ def get_signature_predictions(accession):
     cur.execute(
         """
         SELECT 
-          MS.METHOD_AC1, MS.METHOD_AC2,
-          MS.DBCODE1, MS.PROT_COUNT1,
-          E1.ENTRY_AC, E1.ENTRY_TYPE, E1.NAME, E1.CHECKED,
-          MS.DBCODE2, MS.PROT_COUNT2,
-          E2.ENTRY_AC, E2.ENTRY_TYPE, E2.NAME, E2.CHECKED,
+          MS.PROT_COUNT1, MS.METHOD_AC2, MS.DBCODE2, MS.PROT_COUNT2,
+          E.ENTRY_AC, E.ENTRY_TYPE, E.NAME, E.CHECKED,
           MS.COLL_COUNT, MS.PROT_OVER_COUNT, 
           MS.PROT_PRED, MS.RESI_PRED, MS.DESC_PRED, MS.TAXA_PRED, MS.TERM_PRED
         FROM {}.METHOD_SIMILARITY MS
-        LEFT OUTER JOIN INTERPRO.ENTRY2METHOD EM1
-          ON MS.METHOD_AC1 = EM1.METHOD_AC
-        LEFT OUTER JOIN INTERPRO.ENTRY E1
-          ON EM1.ENTRY_AC = E1.ENTRY_AC
-        LEFT OUTER JOIN INTERPRO.ENTRY2METHOD EM2
-          ON MS.METHOD_AC2 = EM2.METHOD_AC
-        LEFT OUTER JOIN INTERPRO.ENTRY E2
-          ON EM2.ENTRY_AC = E2.ENTRY_AC
-        WHERE MS.METHOD_AC1 = :acc OR MS.METHOD_AC2 = :acc
+        LEFT OUTER JOIN INTERPRO.ENTRY2METHOD EM
+          ON MS.METHOD_AC2 = EM.METHOD_AC
+        LEFT OUTER JOIN INTERPRO.ENTRY E
+          ON EM.ENTRY_AC = E.ENTRY_AC
+        WHERE MS.METHOD_AC1 = :acc
         ORDER BY MS.PROT_SIM DESC, MS.PROT_OVER_COUNT DESC
         """.format(app.config["DB_SCHEMA"]),
         dict(acc=accession)
@@ -123,50 +116,39 @@ def get_signature_predictions(accession):
 
     signatures = []
     for row in cur:
-        s_acc1, s_acc2 = row[:2]
-
-        if accession == s_acc1:
-            # Query is METHOD_AC1, target is METHOD_AC2
-            s_acc = s_acc2
-            s_dbcode, s_count, e_acc, e_type, e_name, e_checked = row[8:14]
-            q_count = row[3]
-            inverse = False
-        else:
-            # Query is METHOD_AC2, target is METHOD_AC1
-            s_acc = s_acc1
-            s_dbcode, s_count, e_acc, e_type, e_name, e_checked = row[2:8]
-            q_count = row[9]
-            inverse = True
-
-        colloc_cnt = row[14]
+        q_count = row[0]
+        t_acc = row[1]
+        t_dbcode = row[2]
+        t_count = row[3]
+        colloc_cnt = row[8]
         if (colloc_cnt / q_count < min_colloc_sim
-                and colloc_cnt / s_count < min_colloc_sim):
+                and colloc_cnt / t_count < min_colloc_sim):
             continue
 
-        database = xref.find_ref(dbcode=s_dbcode, ac=s_acc)
+        database = xref.find_ref(dbcode=t_dbcode, ac=t_acc)
         signatures.append({
             # Signature
-            "accession": s_acc,
+            "accession": t_acc,
             "link": database.gen_link() if database else None,
 
             # Entry
             "entry": {
-                "accession": e_acc,
-                "type_code": e_type,
-                "name": e_name,
-                "checked": e_checked == 'Y',
+                "accession": row[4],
+                "type_code": row[5],
+                "name": row[6],
+                "checked": row[7] == 'Y',
                 "hierarchy": []
             },
 
-            "proteins": s_count,
+            "proteins": t_count,
             "common_proteins": colloc_cnt,
-            "overlap_proteins": row[15],
+            "overlap_proteins": row[9],
             "predictions": {
-                "proteins": fix_prediction(row[16], inverse),
-                "residues": fix_prediction(row[17], inverse),
-                "descriptions": fix_prediction(row[18], inverse),
-                "taxa": fix_prediction(row[19], inverse),
-                "terms": fix_prediction(row[20], inverse),
+                "proteins": row[10],
+                "residues": row[11],
+                "descriptions": row[12],
+                "taxa": row[13],
+                "terms": row[14],
             }
         })
 
@@ -192,14 +174,6 @@ def get_signature_predictions(accession):
             p["entry"]["hierarchy"] = hierarchy[::-1]
 
     return jsonify(signatures), 200
-
-
-def fix_prediction(prediction, inverse):
-    if inverse and prediction in ('P', 'C'):
-        return 'C' if prediction == 'P' else 'P'
-    else:
-        return prediction
-
 
 
 @app.route("/api/signature/<accession>/comments/")
