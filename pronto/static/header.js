@@ -111,20 +111,7 @@ function getStatus() {
     return fetch("/api/status/")
         .then(response => {
             return new Promise(((resolve, reject) => {
-                const dst = document.getElementById("status");
-                if (response.status === 200) {
-                    if (dst) {
-                        setClass(dst, 'green', true);
-                        dst.querySelector('.detail').innerHTML = '<i class="fitted check icon"></i>';
-                    }
-                    resolve(true);
-                } else {
-                    if (dst) {
-                        setClass(dst, 'red', true);
-                        dst.querySelector('.detail').innerHTML = '<i class="fitted close icon"></i>';
-                    }
-                    resolve(false);
-                }
+                resolve(response.status === 200);
             }));
         });
 }
@@ -292,6 +279,16 @@ export function finaliseHeader(signatureAcc) {
                 // tooltip.style.backgroundColor = 'rgba(219, 40, 40, 0.9)';
                 // tooltip.querySelector('.description').style.color = '#fff';
                 // document.body.appendChild(tooltip);
+
+                document.querySelector('header').insertAdjacentHTML(
+                    'afterend',
+                    '<div class="ui noradius red borderless inverted menu">'
+                    + '<div class="ui container">'
+                    + '<div class="header item"><i class="big warning sign icon"></i></div>'
+                    + '<div class="item">The database behind this instance of Pronto is being updated. Some pages or features may not work.</div>'
+                    + '</div>'
+                    + '</div>'
+                );
             }
 
             getUniProtVersion();

@@ -453,3 +453,8 @@ i.button.icon:hover {
 .ui.modal .content.justified {
     text-align: justify;
 }
+
+/* For header menu */
+.ui.noradius.menu {
+    border-radius: 0;
+}
