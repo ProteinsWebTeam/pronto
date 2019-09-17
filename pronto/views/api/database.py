@@ -240,10 +240,8 @@ def api_unintegrated_signatures2(dbshort, mode):
 
     search_query = request.args.get("search", "").strip()
 
-    query = "SELECT METHOD_AC FROM ("
-
     if mode == "integrated":
-        query += """
+        query = """
           SELECT DISTINCT MS.METHOD_AC1 AS METHOD_AC
           FROM {}.METHOD_SIMILARITY MS
           LEFT OUTER JOIN INTERPRO.ENTRY2METHOD EM1 
@@ -255,7 +253,7 @@ def api_unintegrated_signatures2(dbshort, mode):
             AND MS.PROT_PRED {}
         """.format(app.config["DB_SCHEMA"], pred_cond)
     elif mode == "unintegrated":
-        query += """
+        query = """
           SELECT DISTINCT MS.METHOD_AC1 AS METHOD_AC
           FROM {}.METHOD_SIMILARITY MS
           LEFT OUTER JOIN INTERPRO.ENTRY2METHOD EM1 
@@ -267,7 +265,7 @@ def api_unintegrated_signatures2(dbshort, mode):
             AND MS.PROT_PRED {}
         """.format(app.config["DB_SCHEMA"], pred_cond)
     else:
-        query += """
+        query = """
           SELECT DISTINCT MS.METHOD_AC1 AS METHOD_AC
           FROM {0}.METHOD_SIMILARITY MS
           LEFT OUTER JOIN INTERPRO.ENTRY2METHOD EM1 
@@ -280,7 +278,7 @@ def api_unintegrated_signatures2(dbshort, mode):
           WHERE MS.DBCODE1 = :dbcode AND MS.PROT_PRED {1}
         """.format(app.config["DB_SCHEMA"], pred_cond)
 
-    query += ")"
+    query = "SELECT METHOD_AC FROM ({})".format(query)
     params = {"dbcode": db_code}
 
     if search_query:
