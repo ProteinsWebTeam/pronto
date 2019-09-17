@@ -294,7 +294,7 @@ def api_unintegrated_signatures2(dbshort, mode):
     signatures = {}
 
     if count:
-        accessions = accessions[(page-1)*page_size:page*page_size+1]
+        accessions = accessions[(page-1)*page_size:page*page_size]
 
         cur.execute(
             """
