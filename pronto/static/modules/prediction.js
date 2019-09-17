@@ -156,7 +156,7 @@ function getPredictions(accession) {
 
             });
 
-            document.querySelector("tbody").innerHTML = html;
+            document.querySelector("#table-predictions tbody").innerHTML = html;
 
             // Adding/removing signatures
             Array.from(document.querySelectorAll('tbody a[data-add-id]')).forEach(elem => {
