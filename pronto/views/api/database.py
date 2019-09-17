@@ -239,10 +239,11 @@ def api_unintegrated_signatures2(dbshort, mode):
         page_size = 20
 
     search_query = request.args.get("search", "").strip()
-    params = {"dbcode": db_code}
+
+    query = "SELECT METHOD_AC FROM ("
 
     if mode == "integrated":
-        base_sql = """
+        query += """
           SELECT DISTINCT MS.METHOD_AC1 AS METHOD_AC
           FROM {}.METHOD_SIMILARITY MS
           LEFT OUTER JOIN INTERPRO.ENTRY2METHOD EM1 
@@ -254,7 +255,7 @@ def api_unintegrated_signatures2(dbshort, mode):
             AND MS.PROT_PRED {}
         """.format(app.config["DB_SCHEMA"], pred_cond)
     elif mode == "unintegrated":
-        base_sql = """
+        query += """
           SELECT DISTINCT MS.METHOD_AC1 AS METHOD_AC
           FROM {}.METHOD_SIMILARITY MS
           LEFT OUTER JOIN INTERPRO.ENTRY2METHOD EM1 
@@ -266,7 +267,7 @@ def api_unintegrated_signatures2(dbshort, mode):
             AND MS.PROT_PRED {}
         """.format(app.config["DB_SCHEMA"], pred_cond)
     else:
-        base_sql = """
+        query += """
           SELECT DISTINCT MS.METHOD_AC1 AS METHOD_AC
           FROM {0}.METHOD_SIMILARITY MS
           LEFT OUTER JOIN INTERPRO.ENTRY2METHOD EM1 
@@ -279,73 +280,66 @@ def api_unintegrated_signatures2(dbshort, mode):
           WHERE MS.DBCODE1 = :dbcode AND MS.PROT_PRED {1}
         """.format(app.config["DB_SCHEMA"], pred_cond)
 
+    query += ")"
+    params = {"dbcode": db_code}
+
     if search_query:
-        base_sql += " AND MS.METHOD_AC1 LIKE :q"
+        query += " WHERE METHOD_AC LIKE :q"
         params["q"] = search_query.upper() + "%"
 
+    query += " ORDER BY METHOD_AC"
+
     cur = db.get_oracle().cursor()
-    cur.execute(
-        """
-        SELECT COUNT(*)
-        FROM ({})
-        """.format(base_sql),
-        params
-    )
-    num_rows, = cur.fetchone()
-    params.update({
-        "i_start": (page - 1) * page_size,
-        "i_end": page * page_size
-    })
-
-    cur.execute(
-        """
-        SELECT 
-          MS.METHOD_AC1, MS.METHOD_AC2, MS.PROT_PRED, E.ENTRY_AC, E.ENTRY_TYPE 
-        FROM {}.METHOD_SIMILARITY MS
-        LEFT OUTER JOIN INTERPRO.ENTRY2METHOD EM 
-          ON MS.METHOD_AC2 = EM.METHOD_AC
-        LEFT OUTER JOIN INTERPRO.ENTRY E 
-          ON EM.ENTRY_AC = E.ENTRY_AC
-        WHERE MS.METHOD_AC1 IN (
-          SELECT METHOD_AC
-          FROM (
-            SELECT RES.*, ROWNUM RN
-            FROM (
-              {}
-              ORDER BY METHOD_AC
-            ) RES
-            WHERE ROWNUM <= :i_end
-          ) WHERE RN > :i_start
-        )
-        AND MS.PROT_PRED IS NOT NULL 
-        ORDER BY MS.METHOD_AC1, MS.METHOD_AC2
-        """.format(app.config["DB_SCHEMA"], base_sql),
-        **params
-    )
-
+    cur.execute(query, params)
+    accessions = [row[0] for row in cur]
+    count = len(accessions)
     signatures = {}
-    for s_acc1, s_acc2, pred, e_acc, e_type in cur:
-        if mode == "integrated" and not e_acc:
-            continue
-        elif mode == "unintegrated" and e_acc:
-            continue
 
-        try:
-            s = signatures[s_acc1]
-        except KeyError:
-            s = signatures[s_acc1] = {
-                "accession": s_acc1,
-                "signatures": []
-            }
+    if count:
+        accessions = accessions[(page-1)*page_size:page*page_size+1]
 
-        s["signatures"].append({
-            "accession": s_acc2,
-            "entry": {
-                "accession": e_acc,
-                "type": e_type
-            },
-            "prediction": pred
-        })
+        cur.execute(
+            """
+            SELECT 
+              MS.METHOD_AC1, MS.METHOD_AC2, MS.PROT_PRED, E.ENTRY_AC, 
+              E.ENTRY_TYPE 
+            FROM {}.METHOD_SIMILARITY MS
+            LEFT OUTER JOIN INTERPRO.ENTRY2METHOD EM 
+              ON MS.METHOD_AC2 = EM.METHOD_AC
+            LEFT OUTER JOIN INTERPRO.ENTRY E 
+              ON EM.ENTRY_AC = E.ENTRY_AC
+            WHERE MS.METHOD_AC1 IN ({})
+            AND MS.PROT_PRED IS NOT NULL 
+            ORDER BY MS.METHOD_AC1, MS.METHOD_AC2
+            """.format(
+                app.config["DB_SCHEMA"],
+                ','.join([':'+str(i+1) for i in range(len(accessions))])
+            ),
+            accessions
+        )
+
+        for s_acc1, s_acc2, pred, e_acc, e_type in cur:
+            if mode == "integrated" and not e_acc:
+                continue
+            elif mode == "unintegrated" and e_acc:
+                continue
+
+            try:
+                s = signatures[s_acc1]
+            except KeyError:
+                s = signatures[s_acc1] = {
+                    "accession": s_acc1,
+                    "signatures": []
+                }
+
+            s["signatures"].append({
+                "accession": s_acc2,
+                "entry": {
+                    "accession": e_acc,
+                    "type": e_type
+                },
+                "prediction": pred
+            })
 
     cur.close()
 
@@ -356,7 +350,7 @@ def api_unintegrated_signatures2(dbshort, mode):
         },
         "signatures": list(sorted(signatures.values(),
                                   key=lambda e: e["accession"])),
-        "count": num_rows,
+        "count": count,
         "database": {
             "name": db_name,
             "version": db_version
