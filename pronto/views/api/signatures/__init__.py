@@ -249,7 +249,7 @@ def get_best_candidates():
     cur = db.get_oracle().cursor()
     cur.execute(
         """
-        SELECT MS.METHOD_AC1, MAX(MS.PROT_SIM) PROT_SIM
+        SELECT MS.METHOD_AC1, MAX(MS.PROT_SIM), MAX(MS.PROT_OVER_COUNT)
         FROM {}.METHOD_SIMILARITY MS
         LEFT OUTER JOIN INTERPRO.ENTRY2METHOD EM1 
           ON MS.METHOD_AC1 = EM1.METHOD_AC
@@ -266,7 +266,7 @@ def get_best_candidates():
           OR (M1.SIG_TYPE != 'H' AND M2.SIG_TYPE != 'H')
         )
         GROUP BY MS.METHOD_AC1
-        ORDER BY PROT_SIM DESC
+        ORDER BY 2 DESC, 3 DESC
         """.format(app.config["DB_SCHEMA"], base_cond, resi_cond),
         params
     )
@@ -298,7 +298,7 @@ def get_best_candidates():
               (M1.SIG_TYPE = 'H' AND M2.SIG_TYPE = 'H')
               OR (M1.SIG_TYPE != 'H' AND M2.SIG_TYPE != 'H')
             )
-            ORDER BY MS.PROT_SIM DESC
+            ORDER BY MS.PROT_SIM DESC, MS.PROT_OVER_COUNT DESC
             """.format(
                 app.config["DB_SCHEMA"],
                 ','.join([':'+str(i+1) for i in range(len(accessions))]),
