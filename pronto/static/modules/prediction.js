@@ -214,7 +214,7 @@ $(function () {
             if (response.link)
                 html += '&nbsp;<i class="external fitted icon"></i></a>';
 
-            html += ' &mdash; ' + response.num_proteins.toLocaleString() +' proteins';
+            html += ' &mdash; ' + response.num_sequences.toLocaleString() +' proteins';
 
             if (response.integrated) {
                 html += ' &mdash; '
