@@ -12,7 +12,7 @@ def get_signature(accession):
         """
         SELECT 
           M.METHOD_AC, M.NAME, M.DESCRIPTION, M.DBCODE, M.SIG_TYPE, 
-          M.PROTEIN_COUNT, EM.ENTRY_AC
+          M.PROTEIN_COUNT, M.FULL_SEQ_COUNT, EM.ENTRY_AC
         FROM {}.METHOD M
         LEFT OUTER JOIN INTERPRO.ENTRY2METHOD EM 
           ON M.METHOD_AC = EM.METHOD_AC
@@ -30,11 +30,12 @@ def get_signature(accession):
             "name": row[1],
             "description": row[2],
             "num_proteins": row[5],
+            "num_sequences": row[6],
             "type": row[4],
             "link": database.gen_link(),
             "color": database.color,
             "database": database.name,
-            "integrated": row[6]
+            "integrated": row[7]
         }), 200
     else:
         return jsonify(None), 404
