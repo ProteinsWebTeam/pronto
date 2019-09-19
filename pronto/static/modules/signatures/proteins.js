@@ -93,16 +93,14 @@ function getProteins() {
                         html += '<td></td>';
 
                     html += '<td class="nowrap">'
-                        + '<a target="_blank" href="'+ signature.link +'">'+ signature.accession +'&nbsp;'
-                        + '<i class="external icon"></i>'
-                        + '</a>'
+                        + '<a href="/prediction/'+ signature.accession +'/">'+ signature.accession +'</a>'
                         + '</td>'
                         + '<td class="collapsing">'
-                        + '<a href="#" data-add-id="'+ signature.accession +'">'
+                        + '<a href="#" data-add-id="'+ signature.accession +'">&nbsp;'
                         + '<i class="cart plus icon"></i>'
                         + '</a>'
                         + '</td>'
-                        + '<td>'+ signature.name +'</td>';
+                        + '<td class="nowrap"><a target="_blank" href="'+ signature.link +'">'+ signature.name +'<i class="external icon"></i></a></td>';
 
                     if (signature.candidate)
                         html += '<td><i class="checkmark box icon"></i></td>';
