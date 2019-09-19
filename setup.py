@@ -2,10 +2,12 @@
 # -*- coding: utf-8 -*-
 
 from setuptools import setup, find_packages
+from .pronto import __version__
+
 
 setup(
     name="pronto",
-    version="1.5.0",
+    version=__version__,
     packages=find_packages(),
     include_package_data=True,
     zip_safe=False,
