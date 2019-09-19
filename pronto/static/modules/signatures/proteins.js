@@ -125,15 +125,15 @@ function getProteins() {
                             const x = Math.round(frag.start * width / protein.length) + paddingLeft;
                             const w = Math.round((frag.end - frag.start) * width / protein.length);
 
+                            html += '<g>';
                             if (i) {
                                 // Discontinuous domain: draw arc
                                 const px = Math.round(fragments[i-1].end * width / protein.length) + paddingLeft;
                                 const x1 = (px + x) / 2;
-                                html += '<path d="M'+px +' Q '+ [x1, 0, x, 15].join(' ') +'" fill="none" stroke="'+ signature.color +'" />';
+                                html += '<path d="M'+px +' 15 Q '+ [x1, 0, x, 15].join(' ') +'" fill="none" stroke="'+ signature.color +'" />';
                             }
 
-                            html += '<g>'
-                                + '<rect x="'+ x +'" y="15" width="'+ w +'" height="10" rx="1" ry="1" style="fill: '+ signature.color +';" />'
+                            html += '<rect x="'+ x +'" y="15" width="'+ w +'" height="10" rx="1" ry="1" style="fill: '+ signature.color +';" />'
                                 + '<text x="'+ x +'" y="10" class="position">'+ frag.start +'</text>'
                                 + '<text x="'+ (x + w) +'" y="10" class="position">'+ frag.end +'</text>'
                                 + '</g>';
