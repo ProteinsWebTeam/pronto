@@ -1,6 +1,6 @@
 from flask import jsonify, request
 
-from pronto import app, db
+from pronto import app, db, xref
 from . import proteins, taxonomy
 
 
@@ -220,57 +220,131 @@ def build_method2protein_query(signatures: dict, **kwargs):
     return final_query, params
 
 
-@app.route("/api/signatures/<path:accessions_str>/descriptions/")
-def get_uniprot_descriptions(accessions_str):
-    accessions = []
-    for acc in accessions_str.split("/"):
-        acc = acc.strip()
-        if acc and acc not in accessions:
-            accessions.append(acc)
+@app.route("/api/signatures/")
+def get_best_candidates():
+    try:
+        page = int(request.args["page"])
+    except (KeyError, ValueError):
+        page = 1
 
-    dbcode = request.args.get("db", "S").upper()
-    if dbcode == "S":
-        column = "M.REVIEWED_COUNT"
-        condition = "AND M.REVIEWED_COUNT > 0"
-    elif dbcode == "T":
-        column = "M.UNREVIEWED_COUNT"
-        condition = "AND M.UNREVIEWED_COUNT > 0"
+    try:
+        page_size = int(request.args["page_size"])
+    except (KeyError, ValueError):
+        page_size = 20
+
+    search_query = request.args.get("search", "").strip()
+    if search_query:
+        base_cond = "WHERE MS.METHOD_AC1 LIKE :1 AND MS.PROT_PRED = 'S'"
+        params = (search_query.upper() + '%',)
     else:
-        column = "M.REVIEWED_COUNT + M.UNREVIEWED_COUNT"
-        condition = ""
+        base_cond = "WHERE MS.PROT_PRED = 'S'"
+        params = ()
 
-    query = """
-        SELECT M.DESC_ID, D.TEXT, M.METHOD_AC, {0}
-        FROM {1}.METHOD_DESC M
-        INNER JOIN {1}.DESC_VALUE D
-        ON M.DESC_ID = D.DESC_ID
-        WHERE M.METHOD_AC IN ({2})
-        {3}
-    """.format(
-        column,
-        app.config["DB_SCHEMA"],
-        ','.join([":" + str(i) for i in range(len(accessions))]),
-        condition
+    residue_evidence = request.args.get("resevi") is not None
+    if residue_evidence:
+        resi_cond = "AND MS.RESI_PRED = 'S'"
+    else:
+        resi_cond = ""
+
+    cur = db.get_oracle().cursor()
+    cur.execute(
+        """
+        SELECT MS.METHOD_AC1, MAX(MS.PROT_SIM) PROT_SIM
+        FROM {}.METHOD_SIMILARITY MS
+        LEFT OUTER JOIN INTERPRO.ENTRY2METHOD EM1 
+          ON MS.METHOD_AC1 = EM1.METHOD_AC
+        INNER JOIN INTERPRO.ENTRY2METHOD EM2 
+          ON MS.METHOD_AC2 = EM2.METHOD_AC
+        INNER JOIN INTERPRO.METHOD M1 
+          ON MS.METHOD_AC1 = M1.METHOD_AC
+        INNER JOIN INTERPRO.METHOD M2 
+          ON MS.METHOD_AC2 = M2.METHOD_AC
+        {} {}
+        AND EM1.ENTRY_AC IS NULL
+        AND (
+          (M1.SIG_TYPE = 'H' AND M2.SIG_TYPE = 'H')
+          OR (M1.SIG_TYPE != 'H' AND M2.SIG_TYPE != 'H')
+        )
+        GROUP BY MS.METHOD_AC1
+        ORDER BY PROT_SIM DESC
+        """.format(app.config["DB_SCHEMA"], base_cond, resi_cond),
+        params
     )
 
-    descriptions = {}
-    cur = db.get_oracle().cursor()
-    cur.execute(query, accessions)
-    for _id, text, accession, n_proteins in cur:
-        if _id in descriptions:
-            descriptions[_id]["signatures"][accession] = n_proteins
-        else:
-            descriptions[_id] = {
-                "id": _id,
-                "value": text,
-                "signatures": {accession: n_proteins}
-            }
+    accessions = [row[0] for row in cur]
+    count = len(accessions)
+    signatures = {}
+    if count:
+        accessions = accessions[(page-1)*page_size:page*page_size]
+        cur.execute(
+            """
+            SELECT 
+              MS.METHOD_AC1, MS.DBCODE1, MS.PROT_COUNT1,
+              MS.METHOD_AC2, MS.PROT_COUNT2, E.ENTRY_AC, E.ENTRY_TYPE, E.NAME, 
+              MS.COLL_COUNT, MS.PROT_OVER_COUNT, MS.RESI_PRED
+            FROM {}.METHOD_SIMILARITY MS
+            INNER JOIN INTERPRO.ENTRY2METHOD EM2 
+              ON MS.METHOD_AC2 = EM2.METHOD_AC
+            INNER JOIN INTERPRO.ENTRY E
+              ON EM2.ENTRY_AC = E.ENTRY_AC
+            INNER JOIN INTERPRO.METHOD M1 
+              ON MS.METHOD_AC1 = M1.METHOD_AC
+            INNER JOIN INTERPRO.METHOD M2 
+              ON MS.METHOD_AC2 = M2.METHOD_AC
+            WHERE MS.METHOD_AC1 IN ({}) 
+            AND MS.PROT_PRED = 'S'
+            {}
+            AND (
+              (M1.SIG_TYPE = 'H' AND M2.SIG_TYPE = 'H')
+              OR (M1.SIG_TYPE != 'H' AND M2.SIG_TYPE != 'H')
+            )
+            ORDER BY MS.PROT_SIM DESC
+            """.format(
+                app.config["DB_SCHEMA"],
+                ','.join([':'+str(i+1) for i in range(len(accessions))]),
+                resi_cond),
+            accessions
+        )
+
+        accessions = []
+        for row in cur:
+            acc1 = row[0]
+
+            try:
+                s = signatures[acc1]
+            except KeyError:
+                accessions.append(acc1)
+                database = xref.find_ref(dbcode=row[1], ac=acc1)
+                s = signatures[acc1] = {
+                    "accession": acc1,
+                    "link": database.gen_link(),
+                    "color": database.color,
+                    "database": database.name,
+                    "proteins": row[2],
+                    "predictions": []
+                }
+
+            s["predictions"].append({
+                "accession": row[3],
+                "proteins": row[4],
+                "entry": {
+                    "accession": row[5],
+                    "type": row[6],
+                    "name": row[7]
+                },
+                "collocations": row[8],
+                "overlaps": row[9],
+                "residues": row[10] == 'S'
+            })
 
     cur.close()
     return jsonify({
-        "descriptions": sorted(descriptions.values(),
-                               key=lambda d: -sum(d["signatures"].values())),
-        "source_database": dbcode
+        "count": count,
+        "results": [signatures[acc] for acc in accessions],
+        "page_info": {
+            "page": page,
+            "page_size": page_size
+        }
     })
 
 
