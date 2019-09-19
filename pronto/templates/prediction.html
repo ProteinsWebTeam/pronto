@@ -7,6 +7,10 @@
     <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}">
     <title>Pronto</title>
     <style type="text/css">
+        .ui.header .fitted.icon:only-child {
+            margin-right: 0;  /* override SemanticUI's default behaviour */
+        }
+
         .sub .ui.label {
             margin: 0 .25rem 0;
         }

@@ -212,11 +212,14 @@ $(function () {
                 html += accession;
 
             if (response.link)
-                html += '&nbsp;<i class="external icon"></i></a>';
+                html += '&nbsp;<i class="external fitted icon"></i></a>';
+
+            html += ' &mdash; ' + response.num_proteins.toLocaleString() +' proteins';
 
             if (response.integrated) {
-                html += 'integrated into <a href="/entry/'+ response.integrated +'/">'
-                    + '<span class="ui small circular label type-'+ response.type +'">'+ response.type +'</span>'
+                html += ' &mdash; '
+                    + '<span class="ui small circular label type-'+ response.type +'" style="margin-left: 0 !important;">'+ response.type +'</span>'
+                    + '<a href="/entry/'+ response.integrated +'/">'
                     + response.integrated
                     + '</a>';
             }
