@@ -10,7 +10,7 @@ def get_version():
     with open(path, "rt") as fh:
         for line in fh:
             if line.startswith("__version__"):
-                return line.split('=', 1)[1].strip()
+                return line.split('=', 1)[1].strip().replace('"', '')
 
 
 setup(
