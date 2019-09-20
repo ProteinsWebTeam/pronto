@@ -11,15 +11,6 @@ def get_databases():
     """
     Retrieves the number of signatures (all, integrated into InterPro, and unintegrated) for each member database.
     """
-
-    # Previous SUM statements were:
-    ## SUM(CASE WHEN E2M.ENTRY_AC IS NOT NULL  AND FS.FEATURE_ID IS NOT NULL THEN 1 ELSE 0 END),
-    ## SUM(CASE WHEN M.CANDIDATE != 'N' AND E2M.ENTRY_AC IS NULL AND FS.FEATURE_ID IS NOT NULL THEN 1 ELSE 0 END)
-
-    # Removed the join with FEATURE_SUMMARY:
-    ## LEFT OUTER JOIN {}.FEATURE_SUMMARY FS ON M.METHOD_AC = FS.FEATURE_ID
-    # that can be used to get the number of methods without matches:
-    ## sum(case when m.method_ac is not null and feature_id is null then 1 else 0 end) nomatch,
     cur = db.get_oracle().cursor()
     cur.execute(
         """
@@ -43,6 +34,9 @@ def get_databases():
 
     databases = []
     for row in cur:
+        dbcode = row[0]
+        _database = xref.find_ref(dbcode)
+
         databases.append({
             "code": row[0],
             "name": row[1],
@@ -53,6 +47,7 @@ def get_databases():
             "count_signatures": row[5],
             "count_integrated": row[6],
             "count_unintegrated": row[7],
+            "color": _database.color
         })
 
     cur.close()
