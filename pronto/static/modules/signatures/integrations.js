@@ -96,7 +96,7 @@ function getDatabases(dbcode) {
                 html += '<div class="field">'
                     + '<div class="ui radio checkbox">'
                     + '<input type="radio" name="database" value="'+ db.code +'" class="hidden"'+ (dbcode === db.code ? 'checked="checked"': '') +'>'
-                    + '<label><span style="border-bottom: 3px solid '+db.color+';">'+ db.name +'</span></label>'
+                    + '<label><span style="border-bottom: 5px solid '+db.color+';">'+ db.name +'</span></label>'
                     + '</div>'
                     + '</div>';
                 i++;

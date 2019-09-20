@@ -50,7 +50,7 @@ $(function () {
             let html = '';
             databases.forEach(db => {
                 html += '<tr>'
-                    + '<td class="collapsing">'
+                    + '<td style="border-left: 5px solid '+ db.color +';" class="collapsing">'
                     + '<a target="_blank" href="'+ db.home +'">'+ db.name +'&nbsp;<i class="external icon"></i></a>'
                     + '</td>'
                     + '<td><span class="ui basic label">'+ db.version +'<span class="detail">'+ db.date +'</span></span></td>'
