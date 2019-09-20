@@ -232,13 +232,22 @@ def get_best_candidates():
     except (KeyError, ValueError):
         page_size = 20
 
+    base_cond = "WHERE "
+    params = {}
+    try:
+        dbcode = request.args["database"].strip()
+    except KeyError:
+        pass
+    else:
+        base_cond += "MS.DBCODE1 = :dbcode AND "
+        params["dbcode"] = dbcode
+
     search_query = request.args.get("search", "").strip()
     if search_query:
-        base_cond = "WHERE MS.METHOD_AC1 LIKE :1 AND MS.PROT_PRED = 'S'"
-        params = (search_query.upper() + '%',)
-    else:
-        base_cond = "WHERE MS.PROT_PRED = 'S'"
-        params = ()
+        base_cond += "UPPER(MS.METHOD_AC1) LIKE :q AND "
+        params["q"] = search_query.upper() + '%'
+
+    base_cond += "MS.PROT_PRED = 'S'"
 
     residue_evidence = request.args.get("resevi") is not None
     if residue_evidence:

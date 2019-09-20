@@ -63,10 +63,71 @@ function getSignatures() {
 }
 
 
+function getDatabases(dbcode) {
+    fetch('/api/databases/')
+        .then(response => response.json())
+        .then(databases => {
+            /*
+                `.equal.width.fields` class only works with `field` (not `fields`)
+                so we wrap our `.grouped.fields` in a `.field`
+             */
+            let html = '<div class="field">'
+                + '<div class="grouped fields">'
+                + '<label for="database">Select your database:</label>'
+                + '<div class="field">'
+                + '<div class="ui radio checkbox">'
+                + '<input type="radio" name="database" value="" class="hidden" '+ (dbcode === null ? 'checked="checked"': '') +'>'
+                + '<label>All</label>'
+                + '</div>'
+                + '</div>';
+
+            let i = 1;
+            databases.filter(db => db.short_name !== 'mobidblt').sort((a, b) => a.name.localeCompare(b.name)).forEach(db => {
+                html += '<div class="field">'
+                    + '<div class="ui radio checkbox">'
+                    + '<input type="radio" name="database" value="'+ db.code +'" class="hidden"'+ (dbcode === db.code ? 'checked="checked"': '') +'>'
+                    + '<label><span style="border-bottom: 3px solid '+db.color+';">'+ db.name +'</span></label>'
+                    + '</div>'
+                    + '</div>';
+                i++;
+                if (i === 5) {
+                    /*
+                        Close `.field .grouped.fields` and open a new one
+                        (note the empty label to have all groups aligned)
+                     */
+                    html += '</div>'
+                        + '</div>'
+                        + '<div class="field">'
+                        + '<div class="grouped fields">'
+                        + '<label for="database">&nbsp;</label>';
+                    i = 0;
+                }
+            });
+
+            html += '</div></div>';
+
+            document.querySelector('#form-signatures .fields').innerHTML = html;
+            $('.ui.radio.checkbox').checkbox({
+                onChecked: function () {
+                    const val = this.value.trim();
+                    const url = new URL(location.href);
+                    if (val)
+                        url.searchParams.set(this.name, val);
+                    else
+                        url.searchParams.delete(this.name);
+                    history.replaceState(null, null, url.toString());
+                    getSignatures();
+                }
+            });
+        });
+}
+
+
 $(function () {
     finaliseHeader(null);
     getSignatures();
     const url = new URL(location.href);
+    getDatabases(url.searchParams.get('database'));
     ui.initSearchBox(
         document.querySelector("thead input"),
         url.searchParams.get("search"),
