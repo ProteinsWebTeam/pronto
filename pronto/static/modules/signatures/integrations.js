@@ -142,6 +142,7 @@ $(function () {
         document.querySelector("thead input"),
         url.searchParams.get("search"),
         (value, ) => {
+            const url = new URL(location.href);
             url.searchParams.delete("page");
             if (value !== null)
                 url.searchParams.set("search", value);
@@ -153,6 +154,7 @@ $(function () {
         }
     );
     document.querySelector('input[type=checkbox][name=resevi]').addEventListener('change', e => {
+        const url = new URL(location.href);
         if (e.currentTarget.checked)
             url.searchParams.set(e.currentTarget.name, '');
         else
