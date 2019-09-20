@@ -290,7 +290,12 @@ def get_best_candidates():
             SELECT 
               MS.METHOD_AC1, MS.DBCODE1, MS.PROT_COUNT1,
               MS.METHOD_AC2, MS.PROT_COUNT2, E.ENTRY_AC, E.ENTRY_TYPE, E.NAME, 
-              MS.COLL_COUNT, MS.PROT_OVER_COUNT, MS.RESI_PRED
+              MS.COLL_COUNT, MS.PROT_OVER_COUNT, MS.RESI_PRED, 
+              (
+                SELECT COUNT(*) 
+                FROM INTERPRO.METHOD_COMMENT 
+                WHERE METHOD_AC=MS.METHOD_AC1
+              ) NUM_COMMENTS
             FROM {}.METHOD_SIMILARITY MS
             INNER JOIN INTERPRO.ENTRY2METHOD EM2 
               ON MS.METHOD_AC2 = EM2.METHOD_AC
@@ -330,7 +335,8 @@ def get_best_candidates():
                     "color": database.color,
                     "database": database.name,
                     "proteins": row[2],
-                    "predictions": []
+                    "predictions": [],
+                    "comments": row[11]
                 }
 
             s["predictions"].append({
