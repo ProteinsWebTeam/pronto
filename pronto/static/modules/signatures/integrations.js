@@ -1,5 +1,6 @@
 import {finaliseHeader} from "../../header.js";
 import * as ui from "../../ui.js";
+import {getSignatureComments, postSignatureComment} from "../../comments.js";
 
 function getSignatures() {
     ui.dimmer(true);
@@ -17,6 +18,7 @@ function getSignatures() {
                     + '<a href="/prediction/'+s.accession+'/" class="ui label" style="background-color: '+s.color+'!important;color: #fff;">'+ s.accession +'</a>'
                     + '</td>'
                     + '<td rowspan="'+rowspan+'" class="collapsing"><a target="_blank" href="'+s.link+'"><i class="fitted external icon"></i></a></td>'
+                    + '<td rowspan="'+ rowspan +'" class="collapsing"><a data-comment="'+ s.accession +'" class="ui basic label"><i class="comments icon"></i>&nbsp;<span>'+ s.comments +'</span></a></td>'
                     + '<td rowspan="'+rowspan+'" class="collapsing">'+ s.proteins.toLocaleString() +'</td>';
 
                 s.predictions.forEach((p, i) => {
@@ -46,6 +48,14 @@ function getSignatures() {
                     history.replaceState(null, null, url);
                     getSignatures();
                 });
+
+            Array.from(document.querySelectorAll('[data-comment]')).forEach(elem => {
+                elem.addEventListener('click', e => {
+                    const accession = e.currentTarget.getAttribute('data-comment');
+                    const div = document.querySelector('.ui.sticky .ui.comments');
+                    getSignatureComments(accession, null, div);
+                });
+            });
         })
         .catch(error => {
             if (error.message === '404') {
@@ -143,12 +153,28 @@ $(function () {
         }
     );
     document.querySelector('input[type=checkbox][name=resevi]').addEventListener('change', e => {
-        if (e.target.checked)
-            url.searchParams.set(e.target.name, '');
+        if (e.currentTarget.checked)
+            url.searchParams.set(e.currentTarget.name, '');
         else
-            url.searchParams.delete(e.target.name);
+            url.searchParams.delete(e.currentTarget.name);
 
         history.replaceState(null, null, url.toString());
         getSignatures();
+    });
+    document.querySelector('.ui.comments form button').addEventListener('click', e => {
+        e.preventDefault();
+        const form = e.currentTarget.closest('form');
+        const accession = form.getAttribute('data-id');
+        const textarea = form.querySelector('textarea');
+
+        postSignatureComment(accession, textarea.value.trim())
+            .then(result => {
+                if (result.status) {
+                    getSignatureComments(accession, null, e.currentTarget.closest(".ui.comments"));
+                    const span = document.querySelector('[data-comment="'+ accession +'"] span');
+                    span.innerHTML = (Number.parseInt(span.innerHTML) + 1).toString();
+                 } else
+                    ui.openErrorModal(result.error);
+            });
     });
 });
