@@ -10,9 +10,11 @@ def add_child_relationship(parent_acc, child_acc):
     if not user:
         return jsonify({
             "status": False,
-            "title": "Access denied",
-            "message": 'Please <a href="/login/">log in</a> '
-                       'to perform this operation.'
+            "error": {
+                "title": "Access denied",
+                "message": 'Please <a href="/login/">log in</a> '
+                           'to perform this operation.'
+            }
         }), 401
 
     con = db.get_oracle()
@@ -30,26 +32,32 @@ def add_child_relationship(parent_acc, child_acc):
         cur.close()
         return jsonify({
             "status": False,
-            "title": "Invalid entry",
-            "message": "{} is not "
-                       "a valid InterPro accession.".format(parent_acc)
+            "error": {
+                "title": "Invalid entry",
+                "message": "{} is not "
+                           "a valid InterPro accession.".format(parent_acc)
+            }
         }), 400
     elif child_acc not in entries:
         cur.close()
         return jsonify({
             "status": False,
-            "title": "Invalid entry",
-            "message": "{} is not "
-                       "a valid InterPro accession.".format(child_acc)
+            "error": {
+                "title": "Invalid entry",
+                "message": "{} is not "
+                           "a valid InterPro accession.".format(child_acc)
+            }
         }), 400
     elif entries[parent_acc] != entries[child_acc]:
         cur.close()
         return jsonify({
             "status": False,
-            "title": "Invalid relationship",
-            "message": "{} and {} do not have the same type.".format(
-                parent_acc, child_acc
-            )
+            "error": {
+                "title": "Invalid relationship",
+                "message": "{} and {} do not have the same type.".format(
+                    parent_acc, child_acc
+                )
+            }
         }), 400
 
     cur.execute(
@@ -75,8 +83,10 @@ def add_child_relationship(parent_acc, child_acc):
     except (DatabaseError, IntegrityError):
         return jsonify({
             "status": False,
-            "title": "Database error",
-            "message": "Could not link {} to {}.".format(parent_acc, child_acc)
+            "error": {
+                "title": "Database error",
+                "message": "Could not link {} to {}.".format(parent_acc, child_acc)
+            }
         }), 500
     else:
         con.commit()
@@ -94,9 +104,11 @@ def delete_relationship(acc1, acc2):
     if not user:
         return jsonify({
             "status": False,
-            "title": "Access denied",
-            "message": 'Please <a href="/login/">log in</a> '
-                       'to perform this operation.'
+            "error": {
+                "title": "Access denied",
+                "message": 'Please <a href="/login/">log in</a> '
+                           'to perform this operation.'
+            }
         }), 401
 
     con = db.get_oracle()
@@ -113,17 +125,15 @@ def delete_relationship(acc1, acc2):
     except IntegrityError:
         return jsonify({
             "status": False,
-            "title": "Database error",
-            "message": "Could not delete unlink {} and {}".format(acc1, acc2)
+            "error": {
+                "title": "Database error",
+                "message": "Could not delete unlink {} and {}".format(acc1, acc2)
+            }
         }), 500
     else:
         # row_count = cur.rowcount  # TODO: check that row_count == 1?
         con.commit()
-        return jsonify({
-            "status": True,
-            "title": None,
-            "message": None
-        }), 200
+        return jsonify({"status": True}), 200
     finally:
         cur.close()
 

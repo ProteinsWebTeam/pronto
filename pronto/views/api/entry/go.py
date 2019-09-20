@@ -45,9 +45,11 @@ def delete_go_term(accession, term_id):
     if not user:
         return jsonify({
             "status": False,
-            "title": "Access denied",
-            "message": 'Please <a href="/login/">log in</a> '
-                       'to perform this operation.'
+            "error": {
+                "title": "Access denied",
+                "message": 'Please <a href="/login/">log in</a> '
+                           'to perform this operation.'
+            }
         }), 401
 
     con = db.get_oracle()
@@ -63,17 +65,17 @@ def delete_go_term(accession, term_id):
     except IntegrityError:
         return jsonify({
             "status": False,
-            "title": "Database error",
-            "message": "Could not delete GO term {} "
-                       "from InterPro entry {}".format(accession, term_id)
+            "error": {
+                "title": "Database error",
+                "message": "Could not delete GO term {} "
+                           "from InterPro entry {}".format(accession, term_id)
+            }
         }), 500
     else:
         # row_count = cur.rowcount  # TODO: check that row_count == 1?
         con.commit()
         return jsonify({
-            "status": True,
-            "title": None,
-            "message": None
+            "status": True
         }), 200
     finally:
         cur.close()
@@ -85,9 +87,11 @@ def add_go_term(accession, term_id):
     if not user:
         return jsonify({
             "status": False,
-            "title": "Access denied",
-            "message": 'Please <a href="/login/">log in</a> '
-                       'to perform this operation.'
+            "error": {
+                "title": "Access denied",
+                "message": 'Please <a href="/login/">log in</a> '
+                           'to perform this operation.'
+            }
         }), 401
 
     con = db.get_oracle()
@@ -103,8 +107,10 @@ def add_go_term(accession, term_id):
         cur.close()
         return jsonify({
             "status": False,
-            "title": "Invalid entry",
-            "message": "{} is not a valid InterPro accession.".format(accession)
+            "error": {
+                "title": "Invalid entry",
+                "message": "{} is not a valid InterPro accession.".format(accession)
+            }
         }), 400
 
     cur.execute(
@@ -118,8 +124,10 @@ def add_go_term(accession, term_id):
         cur.close()
         return jsonify({
             "status": False,
-            "title": "Invalid GO term",
-            "message": "{} is not a valid GO term ID".format(term_id)
+            "error": {
+                "title": "Invalid GO term",
+                "message": "{} is not a valid GO term ID".format(term_id)
+            }
         }), 401
 
     cur.execute(
@@ -145,8 +153,10 @@ def add_go_term(accession, term_id):
     except (DatabaseError, IntegrityError):
         return jsonify({
             "status": False,
-            "title": "Database error",
-            "message": "Could not add {} to {}".format(term_id, accession)
+            "error": {
+                "title": "Database error",
+                "message": "Could not add {} to {}".format(term_id, accession)
+            }
         }), 500
     else:
         con.commit()

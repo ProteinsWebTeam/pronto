@@ -42,9 +42,11 @@ def link_reference(accession, pmid):
     if not user:
         return jsonify({
             "status": False,
-            "title": "Access denied",
-            "message": 'Please <a href="/login/">log in</a> '
-                       'to perform this operation.'
+            "error": {
+                "title": "Access denied",
+                "message": 'Please <a href="/login/">log in</a> '
+                           'to perform this operation.'
+            }
         }), 401
 
     con = db.get_oracle()
@@ -65,9 +67,11 @@ def link_reference(accession, pmid):
             cur.close()
             return jsonify({
                 "status": False,
-                "title": "Invalid reference",
-                "message": "<strong>{}</strong> is not "
-                           "a valid PubMed ID".format(pmid)
+                "error": {
+                    "title": "Invalid reference",
+                    "message": "<strong>{}</strong> is not "
+                               "a valid PubMed ID".format(pmid)
+                }
             }), 400
 
         error = insert_citations(cur, citations)
@@ -75,8 +79,10 @@ def link_reference(accession, pmid):
             cur.close()
             return jsonify({
                 "status": False,
-                "title": "Database error",
-                "message": error
+                "error": {
+                    "title": "Database error",
+                    "message": error
+                }
             }), 500
 
         pub_id = citations[pmid]
@@ -93,10 +99,12 @@ def link_reference(accession, pmid):
         cur.close()
         return jsonify({
             "status": False,
-            "title": "Existing reference",
-            "message": "<strong>{}</strong> cannot be a supplementary "
-                       "reference because it is already "
-                       "in the main references.".format(pmid)
+            "error": {
+                "title": "Existing reference",
+                "message": "<strong>{}</strong> cannot be a supplementary "
+                           "reference because it is already "
+                           "in the main references.".format(pmid)
+            }
         }), 400
 
     cur.execute(
@@ -121,8 +129,10 @@ def link_reference(accession, pmid):
     except DatabaseError:
         return jsonify({
             "status": False,
-            "title": "Database error",
-            "message": "Could not add {} to {}.".format(pmid, accession)
+            "error": {
+                "title": "Database error",
+                "message": "Could not add {} to {}.".format(pmid, accession)
+            }
         }), 500
     else:
         con.commit()
@@ -137,9 +147,11 @@ def unlink_reference(accession, pub_id):
     if not user:
         return jsonify({
             "status": False,
-            "title": "Access denied",
-            "message": 'Please <a href="/login/">log in</a> '
-                       'to perform this operation.'
+            "error": {
+                "title": "Access denied",
+                "message": 'Please <a href="/login/">log in</a> '
+                           'to perform this operation.'
+            }
         }), 401
 
     con = db.get_oracle()
@@ -154,8 +166,10 @@ def unlink_reference(accession, pub_id):
     except DatabaseError:
         return jsonify({
             "status": False,
-            "title": "Database error",
-            "message": "Could not unlink reference."
+            "error": {
+                "title": "Database error",
+                "message": "Could not unlink reference."
+            }
         }), 500
     else:
         if cur.rowcount:

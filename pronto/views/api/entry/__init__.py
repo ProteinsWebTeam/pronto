@@ -30,9 +30,12 @@ def create_entry():
     if not user:
         return jsonify({
             "status": False,
-            "title": "Access denied",
-            "message": 'Please <a href="/login/">log in</a> '
-                       'to perform this operation.'
+            "error": {
+                "title": "Access denied",
+                "message": 'Please <a href="/login/">log in</a> '
+                           'to perform this operation.'
+            }
+
         }), 401
 
     try:
@@ -51,8 +54,10 @@ def create_entry():
         # Unknown type is not allowed
         return jsonify({
             "status": False,
-            "title": "Invalid type",
-            "message": "InterPro entries cannot be of type Unknown."
+            "error": {
+                "title": "Invalid type",
+                "message": "InterPro entries cannot be of type Unknown."
+            }
         }), 400
 
     con = db.get_oracle()
@@ -73,8 +78,10 @@ def create_entry():
         cur.close()
         return jsonify({
             "status": False,
-            "title": "Database error",
-            "message": str(e)
+            "error": {
+                "title": "Database error",
+                "message": str(e)
+            }
         }), 401
 
     #
@@ -111,9 +118,11 @@ def create_entry():
                 cur.close()
                 return jsonify({
                     "status": False,
-                    "title": "Invalid signature",
-                    "message": "<strong>{}</strong> is not a valid "
-                               "member database accession.".format(acc)
+                    "error": {
+                        "title": "Invalid signature",
+                        "message": "<strong>{}</strong> is not a valid "
+                                   "member database accession.".format(acc)
+                    }
                 }), 401
 
         try:
@@ -141,8 +150,10 @@ def create_entry():
             cur.close()
             return jsonify({
                 "status": False,
-                "title": "Database error",
-                "message": str(e)
+                "error": {
+                    "title": "Database error",
+                    "message": str(e)
+                }
             }), 401
 
     con.commit()
@@ -241,9 +252,11 @@ def update_entry(accession):
     if not user:
         return jsonify({
             "status": False,
-            "title": "Access denied",
-            "message": 'Please <a href="/login/">log in</a> '
-                       'to perform this operation.'
+            "error": {
+                "title": "Access denied",
+                "message": 'Please <a href="/login/">log in</a> '
+                           'to perform this operation.'
+            }
         }), 401
 
     try:
@@ -252,8 +265,10 @@ def update_entry(accession):
     except (AssertionError, KeyError):
         return jsonify({
             "status": False,
-            "title": "Invalid or missing parameter",
-            "message": "'name' must be between 1 and 30 characters long."
+            "error": {
+                "title": "Invalid or missing parameter",
+                "message": "'name' must be between 1 and 30 characters long."
+            }
         }), 400
 
     try:
@@ -262,9 +277,11 @@ def update_entry(accession):
     except (AssertionError, KeyError):
         return jsonify({
             "status": False,
-            "title": "Invalid or missing parameter",
-            "message": "'description' must be between 1 "
-                       "and 100 characters long."
+            "error": {
+                "title": "Invalid or missing parameter",
+                "message": "'description' must be between 1 "
+                           "and 100 characters long."
+            }
         }), 400
 
     try:
@@ -272,8 +289,10 @@ def update_entry(accession):
     except KeyError:
         return jsonify({
             "status": False,
-            "title": "Missing parameter",
-            "message": "'type' must be provided."
+            "error": {
+                "title": "Missing parameter",
+                "message": "'type' must be provided."
+            }
         }), 400
 
     try:
@@ -281,8 +300,10 @@ def update_entry(accession):
     except (KeyError, ValueError):
         return jsonify({
             "status": False,
-            "title": "Invalid or missing parameter",
-            "message": "'checked' must be an integer."
+            "error": {
+                "title": "Invalid or missing parameter",
+                "message": "'checked' must be an integer."
+            }
         }), 400
 
     con = db.get_oracle()
@@ -299,9 +320,11 @@ def update_entry(accession):
         cur.close()
         return jsonify({
             "status": False,
-            "title": "Invalid entry",
-            "message": "{} is not a "
-                       "valid InterPro accession.".format(accession)
+            "error": {
+                "title": "Invalid entry",
+                "message": "{} is not a "
+                           "valid InterPro accession.".format(accession)
+            }
         }), 404
     current_type = row[0]
     if _type == 'U':
@@ -309,8 +332,10 @@ def update_entry(accession):
         cur.close()
         return jsonify({
             "status": False,
-            "title": "Invalid type",
-            "message": "InterPro entries cannot be of type Unknown."
+            "error": {
+                "title": "Invalid type",
+                "message": "InterPro entries cannot be of type Unknown."
+            }
         }), 400
     elif _type != current_type:
         # Check that we do not have relationships with other entries
@@ -327,9 +352,11 @@ def update_entry(accession):
             cur.close()
             return jsonify({
                 "status": False,
-                "title": "Cannot update type",
-                "message": "{} cannot have its type changed because "
-                           "it has InterPro relationships.".format(accession)
+                "error": {
+                    "title": "Cannot update type",
+                    "message": "{} cannot have its type changed because "
+                               "it has InterPro relationships.".format(accession)
+                }
             }), 400
 
     if is_checked:
@@ -344,9 +371,11 @@ def update_entry(accession):
             cur.close()
             return jsonify({
                 "status": False,
-                "title": "Cannot check entry",
-                "message": "{} cannot be checked because it does not have "
-                           "any signatures.".format(accession)
+                "error": {
+                    "title": "Cannot check entry",
+                    "message": "{} cannot be checked because it does not have "
+                               "any signatures.".format(accession)
+                }
             }), 400
 
         cur.execute(
@@ -360,9 +389,11 @@ def update_entry(accession):
             cur.close()
             return jsonify({
                 "status": False,
-                "title": "Cannot check entry",
-                "message": "{} cannot be checked because it does not have "
-                           "any annotations.".format(accession)
+                "error": {
+                    "title": "Cannot check entry",
+                    "message": "{} cannot be checked because it does not have "
+                               "any annotations.".format(accession)
+                }
             }), 400
     try:
         cur.execute(
@@ -381,8 +412,10 @@ def update_entry(accession):
     except DatabaseError as e:
         return jsonify({
             "status": False,
-            "title": "Database error",
-            "message": "Could not update {}.".format(accession)
+            "error": {
+                "title": "Database error",
+                "message": "Could not update {}.".format(accession)
+            }
         }), 500
     else:
         con.commit()
@@ -399,9 +432,11 @@ def delete_entry(accession):
     if not user:
         return jsonify({
             "status": False,
-            "title": "Access denied",
-            "message": 'Please <a href="/login/">log in</a> '
-                       'to perform this operation.'
+            "error": {
+                "title": "Access denied",
+                "message": 'Please <a href="/login/">log in</a> '
+                           'to perform this operation.'
+            }
         }), 401
 
     con = db.get_oracle()
@@ -417,9 +452,11 @@ def delete_entry(accession):
         cur.close()
         return jsonify({
             "status": False,
-            "title": "Invalid entry",
-            "message": "{} is not a "
-                       "valid InterPro accession.".format(accession)
+            "error": {
+                "title": "Invalid entry",
+                "message": "{} is not a "
+                           "valid InterPro accession.".format(accession)
+            }
         }), 404
 
     cur.execute(
@@ -435,9 +472,11 @@ def delete_entry(accession):
     if n_signatures:
         return jsonify({
             "status": False,
-            "title": "Cannot delete entry",
-            "message": "{} cannot be deleted because "
-                       "it has one or more signatures.".format(accession)
+            "error": {
+                "title": "Cannot delete entry",
+                "message": "{} cannot be deleted because "
+                           "it has one or more signatures.".format(accession)
+            }
         }), 400
     else:
         dsn = app.config["ORACLE_DB"]["dsn"]
@@ -453,8 +492,10 @@ def check_entry(accession):
     except (KeyError, ValueError):
         return jsonify({
             "status": False,
-            "title": "Bad request",
-            "message": "Invalid or missing parameters."
+            "error": {
+                "title": "Bad request",
+                "message": "Invalid or missing parameters."
+            }
         }), 400
 
     user = get_user()
@@ -462,9 +503,11 @@ def check_entry(accession):
     if not user:
         return jsonify({
             "status": False,
-            "title": "Access denied",
-            "message": 'Please <a href="/login/">log in</a> '
-                       'to perform this operation.'
+            "error": {
+                "title": "Access denied",
+                "message": 'Please <a href="/login/">log in</a> '
+                           'to perform this operation.'
+            }
         }), 401
 
     con = db.get_oracle()
@@ -482,9 +525,11 @@ def check_entry(accession):
             cur.close()
             return jsonify({
                 "status": False,
-                "title": "Cannot check entry",
-                "message": "{} cannot be checked because it does not have "
-                           "any signatures.".format(accession)
+                "error": {
+                    "title": "Cannot check entry",
+                    "message": "{} cannot be checked because it does not have "
+                               "any signatures.".format(accession)
+                }
             }), 400
 
         cur.execute(
@@ -498,9 +543,11 @@ def check_entry(accession):
             cur.close()
             return jsonify({
                 "status": False,
-                "title": "Cannot check entry",
-                "message": "{} cannot be checked because it does not have "
-                           "any annotations.".format(accession)
+                "error": {
+                    "title": "Cannot check entry",
+                    "message": "{} cannot be checked because it does not have "
+                               "any annotations.".format(accession)
+                }
             }), 400
 
     try:
@@ -516,8 +563,10 @@ def check_entry(accession):
         cur.close()
         return jsonify({
             "status": False,
-            "title": "Database error",
-            "message": "Could not update {}: {}".format(accession, e)
+            "error": {
+                "title": "Database error",
+                "message": "Could not update {}: {}".format(accession, e)
+            }
         }), 500
     else:
         con.commit()
