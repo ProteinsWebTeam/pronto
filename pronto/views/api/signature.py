@@ -220,7 +220,10 @@ def delete_signature_comment(accession, _id):
     if not user:
         return jsonify({
             "status": False,
-            "message": "Please log in to perform this action."
+            "error": {
+                "title": "Access denied",
+                "message": "Please log in to perform this action."
+            }
         }), 401
 
     con = db.get_oracle()
@@ -238,16 +241,16 @@ def delete_signature_comment(accession, _id):
         cur.close()
         return jsonify({
             "status": False,
-            "message": "Could not delete comment "
-                       "for {}: {}".format(accession, e)
+            "error": {
+                "title": "Database error",
+                "message": "Could not delete comment "
+                           "for {}: {}".format(accession, e)
+            }
         }), 500
     else:
         con.commit()
         cur.close()
-        return jsonify({
-            "status": True,
-            "message": None
-        }), 200
+        return jsonify({"status": True}), 200
 
 
 @app.route("/api/signature/<accession>/comment/", methods=["PUT"])
@@ -256,7 +259,10 @@ def add_signature_comment(accession):
     if not user:
         return jsonify({
             "status": False,
-            "message": "Please log in to perform this action."
+            "error": {
+                "title": "Access denied",
+                "message": "Please log in to perform this action."
+            }
         }), 401
 
     content = request.get_json()
@@ -264,8 +270,10 @@ def add_signature_comment(accession):
     if len(text) < 3:
         return jsonify({
             "status": False,
-            "message": "Comment too short (must be at least "
-                       "three characters long)."
+            "error": {
+                "message": "Comment too short (must be at least "
+                           "three characters long)."
+            }
         }), 400
 
     con = db.get_oracle()
@@ -293,16 +301,16 @@ def add_signature_comment(accession):
         cur.close()
         return jsonify({
             "status": False,
-            "message": "Could not add comment "
-                       "for {}: {}".format(accession, e)
+            "error": {
+                "title": "Database error",
+                "message": "Could not add comment "
+                           "for {}: {}".format(accession, e)
+            }
         }), 500
     else:
         con.commit()
         cur.close()
-        return jsonify({
-            "status": True,
-            "message": None
-        }), 200
+        return jsonify({"status": True}), 200
 
 
 @app.route("/api/signature/<accession>/matches/")

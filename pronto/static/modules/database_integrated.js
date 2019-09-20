@@ -132,7 +132,7 @@ $(function () {
                 if (result.status)
                     getSignatureComments(accession, 2, e.target.closest(".ui.comments"));
                  else
-                    ui.openErrorModal(result.message);
+                    ui.openErrorModal(result.error);
             });
     });
 });
