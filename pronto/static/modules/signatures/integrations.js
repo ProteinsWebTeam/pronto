@@ -22,7 +22,7 @@ function getSignatures() {
                 s.predictions.forEach((p, i) => {
                     if (i) html += '<tr>';
 
-                    html += '<td>'
+                    html += '<td class="nowrap">'
                         + '<a href="/prediction/'+ p.accession +'/">'+p.accession+'</a>'
                         + (p.residues ? '&nbsp;<i class="yellow fitted star icon"></i>' : '')
                         + '</td>'
