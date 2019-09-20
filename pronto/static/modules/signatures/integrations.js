@@ -92,7 +92,7 @@ function getDatabases(dbcode) {
                 + '</div>';
 
             let i = 1;
-            databases.filter(db => db.short_name !== 'mobidblt').sort((a, b) => a.name.localeCompare(b.name)).forEach(db => {
+            databases.filter(db => db.short_name !== 'mobidblt').forEach(db => {
                 html += '<div class="field">'
                     + '<div class="ui radio checkbox">'
                     + '<input type="radio" name="database" value="'+ db.code +'" class="hidden"'+ (dbcode === db.code ? 'checked="checked"': '') +'>'
