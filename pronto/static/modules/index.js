@@ -85,4 +85,10 @@ $(function () {
 
             })
     });
+
+    fetch('/api/signatures/integrations/')
+        .then(response => response.json())
+        .then(response => {
+            document.getElementById('recent-integrations').innerHTML = '<strong>'+ response.results.length +'</strong> signatures integrated since <strong>'+ response.date +'</strong>.';
+        });
 });

@@ -15,30 +15,35 @@
     <div class="ui divided grid">
         <div class="row">
             <div class="twelve wide column">
-                <table id="databases" class="ui selectable table">
-                    <thead>
-                    <tr>
-                        <th colspan="2"><i class="database icon"></i>Member databases</th>
-                        <th>Signatures</th>
-                        <th>Integrated</th>
-                        <th>Unintegrated</th>
-                    </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-            <div class="four wide column">
                 <div class="ui basic segment">
                     <h3 class="ui dividing header">
                         <i class="fitted lightning icon"></i>
                         Integration
                     </h3>
-                    <a href="/signatures/" class="ui basic compact button">
-                        <i class="in cart icon"></i>
-                        Similar signatures
-                    </a>
+                    <p>
+                        <span id="recent-integrations"></span>
+                        Display the <a href="/signatures/">integration recommendations</a>.
+                    </p>
+
+                    <h3 class="ui dividing header">
+                        <i class="fitted database icon"></i>
+                        Member databases
+                    </h3>
+                    <table id="databases" class="ui selectable table">
+                        <thead>
+                        <tr>
+                            <th colspan="2"></th>
+                            <th>Signatures</th>
+                            <th>Integrated</th>
+                            <th>Unintegrated</th>
+                        </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
                 </div>
 
+            </div>
+            <div class="four wide column">
                 <div id="sanity-checks" class="ui basic segment">
                     <h3 class="ui dividing header">
                         <i class="fitted checkmark box icon"></i>
