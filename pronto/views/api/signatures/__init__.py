@@ -363,6 +363,34 @@ def get_best_candidates():
     })
 
 
+@app.route("/api/signatures/integrations/")
+def get_recent_integrations():
+    cur = db.get_oracle().cursor()
+    cur.execute("SELECT FILE_DATE FROM INTERPRO.DB_VERSION WHERE DBCODE = 'I'")
+    date, = cur.fetchone()
+    cur.execute(
+        """
+        SELECT METHOD_AC
+        FROM INTERPRO.ENTRY2METHOD_AUDIT 
+        WHERE ACTION='I' AND TIMESTAMP >= (
+          SELECT FILE_DATE FROM INTERPRO.DB_VERSION WHERE DBCODE = 'I'
+        )
+        MINUS
+        SELECT METHOD_AC
+        FROM INTERPRO.ENTRY2METHOD_AUDIT 
+        WHERE ACTION='D' AND TIMESTAMP >= (
+          SELECT FILE_DATE FROM INTERPRO.DB_VERSION WHERE DBCODE = 'I'
+        )
+        """
+    )
+    signatures = [row[0] for row in cur]
+    cur.close()
+    return jsonify({
+        "date": date.strftime("%d %B %Y"),
+        "results": signatures,
+    })
+
+
 @app.route("/api/signatures/<path:accessions_str>/descriptions/")
 def get_uniprot_descriptions(accessions_str):
     accessions = []
