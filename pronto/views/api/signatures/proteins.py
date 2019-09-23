@@ -1,8 +1,8 @@
-from concurrent.futures import as_completed
+from concurrent.futures import as_completed, ThreadPoolExecutor
 
 from flask import jsonify, request
 
-from pronto import app, db, executor, xref
+from pronto import app, db, xref
 
 
 def filter_proteins(user, dsn, accession, **kwargs):
@@ -237,34 +237,35 @@ def get_overlapping_proteins(accessions_str):
     )
     dsn = app.config["ORACLE_DB"]["dsn"]
 
-    fs = {}
-    for acc in signatures:
-        f = executor.submit(filter_proteins, user, dsn, acc, **kwargs)
-        fs[f] = acc
-
     proteins = {}
     exclude = set()
-    for f in as_completed(fs):
-        try:
-            rows = f.result()
-        except Exception as e:
-            print(e)  # TODO: return error?
-        else:
-            signature_acc = fs[f]
-            for protein_acc, md5, length in rows:
-                if protein_acc in exclude:
-                    continue
-                elif signature_acc in not_matched_by:
-                    exclude.add(protein_acc)
-                elif protein_acc in proteins:
-                    proteins[protein_acc]["signatures"].add(signature_acc)
-                else:
-                    proteins[protein_acc] = {
-                        "accession": protein_acc,
-                        "md5": md5,
-                        "length": length,
-                        "signatures": {signature_acc}
-                    }
+    with ThreadPoolExecutor() as executor:
+        fs = {}
+        for acc in signatures:
+            f = executor.submit(filter_proteins, user, dsn, acc, **kwargs)
+            fs[f] = acc
+
+        for f in as_completed(fs):
+            try:
+                rows = f.result()
+            except Exception as e:
+                print(e)  # TODO: return error?
+            else:
+                signature_acc = fs[f]
+                for protein_acc, md5, length in rows:
+                    if protein_acc in exclude:
+                        continue
+                    elif signature_acc in not_matched_by:
+                        exclude.add(protein_acc)
+                    elif protein_acc in proteins:
+                        proteins[protein_acc]["signatures"].add(signature_acc)
+                    else:
+                        proteins[protein_acc] = {
+                            "accession": protein_acc,
+                            "md5": md5,
+                            "length": length,
+                            "signatures": {signature_acc}
+                        }
 
     if matched_by:
         proteins = {
