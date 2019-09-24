@@ -371,16 +371,14 @@ def get_recent_integrations():
     cur.execute(
         """
         SELECT METHOD_AC
-        FROM INTERPRO.ENTRY2METHOD_AUDIT 
-        WHERE ACTION='I' AND TIMESTAMP >= (
+        FROM INTERPRO.ENTRY2METHOD_AUDIT
+        WHERE TIMESTAMP >= (
           SELECT FILE_DATE FROM INTERPRO.DB_VERSION WHERE DBCODE = 'I'
         )
-        MINUS
-        SELECT METHOD_AC
-        FROM INTERPRO.ENTRY2METHOD_AUDIT 
-        WHERE ACTION='D' AND TIMESTAMP >= (
-          SELECT FILE_DATE FROM INTERPRO.DB_VERSION WHERE DBCODE = 'I'
-        )
+        GROUP BY METHOD_AC
+        HAVING SUM(CASE WHEN ACTION='I' THEN 1 
+                        WHEN ACTION='D' THEN -1 
+                        ELSE 0 END) > 0
         """
     )
     signatures = [row[0] for row in cur]
