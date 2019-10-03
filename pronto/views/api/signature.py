@@ -10,12 +10,16 @@ def get_signature(accession):
     cur = db.get_oracle().cursor()
     cur.execute(
         """
-        SELECT 
-          M.METHOD_AC, M.NAME, M.DESCRIPTION, M.DBCODE, M.SIG_TYPE, 
-          M.PROTEIN_COUNT, M.FULL_SEQ_COUNT, EM.ENTRY_AC
+        SELECT M.METHOD_AC, M.NAME, M.DESCRIPTION, M.DBCODE, M.SIG_TYPE, 
+               M.PROTEIN_COUNT, M.FULL_SEQ_COUNT, EM.ENTRY_AC, E.ENTRY_TYPE, 
+               EE.PARENT_AC
         FROM {}.METHOD M
         LEFT OUTER JOIN INTERPRO.ENTRY2METHOD EM 
           ON M.METHOD_AC = EM.METHOD_AC
+        LEFT OUTER JOIN INTERPRO.ENTRY E 
+          ON EM.ENTRY_AC = E.ENTRY_AC
+        LEFT OUTER JOIN INTERPRO.ENTRY2ENTRY EE
+          ON E.ENTRY_AC = EE.ENTRY_AC
         WHERE UPPER(M.METHOD_AC) = :acc OR UPPER(M.NAME) = :acc
         """.format(app.config["DB_SCHEMA"]),
         dict(acc=accession.upper())
@@ -25,6 +29,7 @@ def get_signature(accession):
 
     if row:
         database = xref.find_ref(row[3], row[0])
+
         return jsonify({
             "accession": row[0],
             "name": row[1],
@@ -35,7 +40,11 @@ def get_signature(accession):
             "link": database.gen_link(),
             "color": database.color,
             "database": database.name,
-            "integrated": row[7]
+            "entry": {
+                "accession": row[7],
+                "type": row[8],
+                "parent": row[9]
+            }
         }), 200
     else:
         return jsonify(None), 404
