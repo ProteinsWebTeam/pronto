@@ -131,7 +131,7 @@ function renderSignatures(signatures) {
                 + '<td>'+ (s.name === null ? '' : s.name) +'</td>'
                 + '<td>'+ (s.description === null ? '' : s.description) +'</td>'
                 + '<td class="right aligned">'+ s.num_proteins.toLocaleString() +'</td>'
-                + '<td class="">'+ (s.integrated ? '<a href="/entry/'+ s.integrated +'/">'+ s.integrated +'</a>' : '') +'</td>'
+                + '<td class="">'+ (s.entry.accession ? '<a href="/entry/'+ s.entry.accession +'/">'+ s.entry.accession +'</a>' : '') +'</td>'
                 + '<td class="collapsing"><i class="remove button icon" data-remove="'+ s.accession +'"></i></td>'
                 + '</tr>';
         }

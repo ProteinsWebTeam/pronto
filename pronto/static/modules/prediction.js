@@ -216,11 +216,16 @@ $(function () {
 
             html += ' &mdash; ' + response.num_sequences.toLocaleString() +' proteins';
 
-            if (response.integrated) {
-                html += ' &mdash; '
-                    + '<span class="ui small circular label type-'+ response.type +'" style="margin-left: 0 !important;">'+ response.type +'</span>'
-                    + '<a href="/entry/'+ response.integrated +'/">'
-                    + response.integrated
+            if (response.entry.accession) {
+                html += '&nbsp;&mdash;&nbsp;';
+
+                if (response.entry.parent) {
+                    html += '<a href="/entry/'+response.entry.parent+'/">'+response.entry.parent+'</a>&nbsp;'
+                        + '<i class="fitted right chevron icon"></i>&nbsp;';
+                }
+
+                html += '<a class="underline-'+response.entry.type+'" href="/entry/'+ response.entry.accession +'/">'
+                    + response.entry.accession
                     + '</a>';
             }
 
