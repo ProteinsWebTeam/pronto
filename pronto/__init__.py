@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from flask import Flask, g, session
 
 
-__version__ = "1.5.1"
+__version__ = "1.5.2"
 
 
 class Executor(object):
