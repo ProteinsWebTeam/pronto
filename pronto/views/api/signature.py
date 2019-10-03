@@ -89,8 +89,8 @@ def get_signatures_comparison(accession1, accession2, cmp_type):
     }), 200
 
 
-@app.route("/api/signature/<accession>/predictions/")
-def get_signature_predictions(accession):
+@app.route("/api/signature/<query_acc>/predictions/")
+def get_signature_predictions(query_acc):
     try:
         min_colloc_sim = float(request.args["mincollocation"])
         assert 0 <= min_colloc_sim <= 1
@@ -106,73 +106,136 @@ def get_signature_predictions(accession):
         }), 400
 
     cur = db.get_oracle().cursor()
+
+    # Get the InterPro entry integrating the query signature (if any)
     cur.execute(
         """
-        SELECT 
-          MS.PROT_COUNT1, MS.METHOD_AC2, MS.DBCODE2, MS.PROT_COUNT2,
-          E.ENTRY_AC, E.ENTRY_TYPE, E.NAME, E.CHECKED,
-          MS.COLL_COUNT, MS.PROT_OVER_COUNT, 
-          MS.PROT_PRED, MS.RESI_PRED, MS.DESC_PRED, MS.TAXA_PRED, MS.TERM_PRED
+        SELECT ENTRY_AC 
+        FROM INTERPRO.ENTRY2METHOD 
+        WHERE METHOD_AC = :1
+        """, (query_acc,)
+    )
+    row = cur.fetchone()
+    if row:
+        query_entry = row[0]
+
+        # Get ancestors
+        cur.execute(
+            """
+            SELECT PARENT_AC
+            FROM INTERPRO.ENTRY2ENTRY
+            START WITH ENTRY_AC = :1
+            CONNECT BY PRIOR PARENT_AC = ENTRY_AC
+            """, (query_entry,)
+        )
+        ancestors = {row[0] for row in cur}
+
+        # Get descendants
+        cur.execute(
+            """
+            SELECT ENTRY_AC
+            FROM INTERPRO.ENTRY2ENTRY
+            START WITH PARENT_AC = :1
+            CONNECT BY PRIOR ENTRY_AC = PARENT_AC
+            """, (query_entry,)
+        )
+        descendants = {row[0] for row in cur}
+    else:
+        query_entry = None
+        ancestors = set()
+        descendants = set()
+
+    # Get (child -> parent) relationships
+    cur.execute("SELECT ENTRY_AC, PARENT_AC FROM INTERPRO.ENTRY2ENTRY")
+    parent_of = dict(cur.fetchall())
+
+    cur.execute(
+        """
+        SELECT MS.METHOD_AC2, MS.DBCODE2, MS.PROT_COUNT1, MS.PROT_COUNT2,
+               E.ENTRY_AC, E.ENTRY_TYPE, E.NAME, E.CHECKED,
+               MS.COLL_COUNT, MS.PROT_OVER_COUNT, MS.PROT_SIM,
+               MS.PROT_PRED, MS.RESI_PRED, MS.DESC_PRED, MS.TAXA_PRED, 
+               MS.TERM_PRED
         FROM {}.METHOD_SIMILARITY MS
         LEFT OUTER JOIN INTERPRO.ENTRY2METHOD EM
           ON MS.METHOD_AC2 = EM.METHOD_AC
         LEFT OUTER JOIN INTERPRO.ENTRY E
           ON EM.ENTRY_AC = E.ENTRY_AC
         WHERE MS.METHOD_AC1 = :acc
-        ORDER BY MS.PROT_SIM DESC, MS.PROT_OVER_COUNT DESC
         """.format(app.config["DB_SCHEMA"]),
-        dict(acc=accession)
+        dict(acc=query_acc)
     )
 
     signatures = []
     for row in cur:
-        q_count = row[0]
-        t_acc = row[1]
-        t_dbcode = row[2]
-        t_count = row[3]
+        target_acc = row[0]
+        target_dbcode = row[1]
+        query_count = row[2]
+        target_count = row[3]
+        entry_acc = row[4]
+        entry_type = row[5]
+        entry_name = row[6]
+        entry_checked = row[7] == 'Y'
         colloc_cnt = row[8]
-        if (colloc_cnt / q_count < min_colloc_sim
-                and colloc_cnt / t_count < min_colloc_sim):
+        overlp_cnt = row[9]
+        similarity = row[10]
+        pred_prot = row[11]
+        pred_resi = row[12]
+        pred_desc = row[13]
+        pred_taxa = row[14]
+        pred_term = row[15]
+
+        if (colloc_cnt / query_count < min_colloc_sim
+                and colloc_cnt / target_count < min_colloc_sim):
             continue
 
-        database = xref.find_ref(dbcode=t_dbcode, ac=t_acc)
+        database = xref.find_ref(dbcode=target_dbcode, ac=target_acc)
         signatures.append({
             # Signature
-            "accession": t_acc,
+            "accession": target_acc,
             "link": database.gen_link() if database else None,
 
             # Entry
             "entry": {
-                "accession": row[4],
-                "type_code": row[5],
-                "name": row[6],
-                "checked": row[7] == 'Y',
+                "accession": entry_acc,
+                "type_code": entry_type,
+                "name": entry_name,
+                "checked": entry_checked,
                 "hierarchy": []
             },
 
-            "proteins": t_count,
+            "proteins": target_count,
             "common_proteins": colloc_cnt,
-            "overlap_proteins": row[9],
+            "overlap_proteins": overlp_cnt,
             "predictions": {
-                "proteins": row[10],
-                "residues": row[11],
-                "descriptions": row[12],
-                "taxa": row[13],
-                "terms": row[14],
-            }
+                "proteins": pred_prot,
+                "residues": pred_resi,
+                "descriptions": pred_desc,
+                "taxa": pred_taxa,
+                "terms": pred_term,
+            },
+
+            # Will be removed later (used for sorting)
+            "_similarity": similarity,
         })
 
-    cur.execute(
-        """
-        SELECT ENTRY_AC, PARENT_AC
-        FROM INTERPRO.ENTRY2ENTRY
-        """
-    )
-    parent_of = dict(cur.fetchall())
     cur.close()
 
-    for p in signatures:
-        entry_acc = p["entry"]["accession"]
+    def _sort(s):
+        if s["entry"]["accession"] in ancestors:
+            return 0, -s["_similarity"], -s["overlap_proteins"]
+        elif s["entry"]["accession"] == query_entry:
+            return 1, -s["_similarity"], -s["overlap_proteins"]
+        elif s["entry"]["accession"] in descendants:
+            return 2, -s["_similarity"], -s["overlap_proteins"]
+        else:
+            return 3, -s["_similarity"], -s["overlap_proteins"]
+
+    results = []
+    for s in sorted(signatures, key=_sort):
+        del s["_similarity"]
+
+        entry_acc = s["entry"]["accession"]
         if entry_acc:
             hierarchy = []
 
@@ -181,9 +244,11 @@ def get_signature_predictions(accession):
                 hierarchy.append(entry_acc)
 
             # Transform child -> parent into parent -> child
-            p["entry"]["hierarchy"] = hierarchy[::-1]
+            s["entry"]["hierarchy"] = hierarchy[::-1]
 
-    return jsonify(signatures), 200
+        results.append(s)
+
+    return jsonify(results), 200
 
 
 @app.route("/api/signature/<accession>/comments/")
