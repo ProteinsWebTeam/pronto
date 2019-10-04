@@ -224,7 +224,8 @@ $(function () {
                         + '<i class="fitted right chevron icon"></i>&nbsp;';
                 }
 
-                html += '<a class="underline-'+response.entry.type+'" href="/entry/'+ response.entry.accession +'/">'
+                html += '<span class="ui small circular label type-'+ response.entry.type +'" style="margin-left: 0 !important;">'+ response.entry.type +'</span>'
+                    + '<a href="/entry/'+ response.entry.accession +'/">'
                     + response.entry.accession
                     + '</a>';
             }
