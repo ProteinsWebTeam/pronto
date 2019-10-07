@@ -1,9 +1,10 @@
 import {finaliseHeader} from "../../header.js"
 import * as ui from "../../ui.js";
+import * as config from "../../config.js"
 
 
 function getErrors(runId) {
-    fetch('/api/sanitychecks/runs/' + runId + '/')
+    fetch(config.PREFIX+'/api/sanitychecks/runs/' + runId + '/')
         .then(response => {
             if (response.ok) {
                 response.json().then(run => {
@@ -28,12 +29,12 @@ function getErrors(runId) {
                             html += '<div class="red card"><div class="content">';
 
                         if (err.ann_id) {
-                            html += '<a class="header" target="_blank" href="/entry/' + err.entry_ac + '/">'
+                            html += '<a class="header" target="_blank" href="'+config.PREFIX+'/entry/' + err.entry_ac + '/">'
                                 + err.ann_id
                                 + '&nbsp;<i class="external icon"></i>'
                                 +'</a>';
                         } else {
-                            html += '<a class="header" target="_blank" href="/entry/' + err.entry_ac + '/">'
+                            html += '<a class="header" target="_blank" href="'+config.PREFIX+'/entry/' + err.entry_ac + '/">'
                                 + err.entry_ac
                                 + '&nbsp;<i class="external icon"></i>'
                                 +'</a>';
@@ -112,7 +113,7 @@ function getErrors(runId) {
                     Array.from(document.querySelectorAll('[data-id]')).forEach(elem => {
                         elem.addEventListener('click', e => {
                             const errId = e.currentTarget.getAttribute('data-id');
-                            let url = '/api/sanitychecks/runs/' + runId + '/' + errId + '/';
+                            let url = config.PREFIX + '/api/sanitychecks/runs/' + runId + '/' + errId + '/';
 
                             if (e.currentTarget.hasAttribute('data-add-exception'))
                                 url += '?exception';

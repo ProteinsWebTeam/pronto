@@ -1,5 +1,6 @@
 import {finaliseHeader} from "../../header.js"
 import * as ui from "../../ui.js";
+import * as config from "../../config.js"
 
 
 function createCards(checkType, checks) {
@@ -38,12 +39,12 @@ function createLabels(checks) {
             html += '<div class="ui basic label" data-exc-id="'+ exc.id +'">';
             if (exc.ann_id || exc.entry_acc) {
                 acc = exc.ann_id || exc.entry_acc;
-                html += '<a class="header" href="/search/?q='+ acc +'">'+ acc +'</a>';
+                html += '<a class="header" href="'+config.PREFIX+'/search/?q='+ acc +'">'+ acc +'</a>';
             } else
                 html += exc.string;
 
             if (exc.entry_acc2)
-                html += '<a class="detail" href="/search/?q='+ exc.entry_acc2 +'">'+ exc.entry_acc2 +'</a>';
+                html += '<a class="detail" href="'+config.PREFIX+'/search/?q='+ exc.entry_acc2 +'">'+ exc.entry_acc2 +'</a>';
             else if (acc != null && exc.string !== null)
                 html += '<div class="detail">'+ exc.string +'</div>';
 
@@ -54,7 +55,7 @@ function createLabels(checks) {
 }
 
 function loadSanityChecks() {
-    fetch('/api/sanitychecks/checks/')
+    fetch(config.PREFIX+'/api/sanitychecks/checks/')
         .then(response => response.json())
         .then(checks => {
             for (let [key, value] of Object.entries(checks)) {
@@ -88,7 +89,7 @@ function loadSanityChecks() {
                         'Are you sure to delete this sanity check exception? <strong>This action is irreversible.</strong>',
                         'Delete',
                         () => {
-                            fetch('/api/sanitychecks/exception/'+ exceptionId +'/', {method: 'DELETE'})
+                            fetch(config.PREFIX+'/api/sanitychecks/exception/'+ exceptionId +'/', {method: 'DELETE'})
                                 .then(response => response.json())
                                 .then(result => {
                                     if (result.status)
@@ -112,7 +113,7 @@ function loadSanityChecks() {
                         'Are you sure to delete this term? It will not be searched any more. <strong>This action is irreversible.</strong>',
                         'Delete',
                         () => {
-                            fetch('/api/sanitychecks/term/'+ ckType +'/?str=' + ckTerm, {method: 'DELETE'})
+                            fetch(config.PREFIX+'/api/sanitychecks/term/'+ ckType +'/?str=' + ckTerm, {method: 'DELETE'})
                                 .then(response => response.json())
                                 .then(result => {
                                     if (result.status)
@@ -227,7 +228,7 @@ function addTermOrException(ckType, ckTerm, termBased) {
                 if (termBased && ckTerm === null) {
                     // New term
                     const term = encodeURI(label1.querySelector('input').value);
-                    fetch('/api/sanitychecks/term/' + ckType + '/?term=' + term, options)
+                    fetch(config.PREFIX+'/api/sanitychecks/term/' + ckType + '/?term=' + term, options)
                         .then(response => response.json())
                         .then(result => {
                             if (result.status) {
@@ -245,7 +246,7 @@ function addTermOrException(ckType, ckTerm, termBased) {
                         string: label1.querySelector('input').value,
                         extra: label2.querySelector('input').value,
                     });
-                    fetch('/api/sanitychecks/exception/' + ckType + '/', options)
+                    fetch(config.PREFIX+'/api/sanitychecks/exception/' + ckType + '/', options)
                         .then(response => response.json())
                         .then(result => {
                             if (result.status) {
