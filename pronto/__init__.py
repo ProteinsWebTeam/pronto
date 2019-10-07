@@ -6,6 +6,9 @@ from datetime import datetime, timedelta
 from flask import Flask, g, session
 
 
+__version__ = "1.5.3"
+
+
 class Executor(object):
     def __init__(self):
         self.executor = ThreadPoolExecutor()

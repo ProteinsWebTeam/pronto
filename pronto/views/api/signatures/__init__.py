@@ -1,6 +1,6 @@
 from flask import jsonify, request
 
-from pronto import app, db
+from pronto import app, db, xref
 from . import proteins, taxonomy
 
 
@@ -218,6 +218,175 @@ def build_method2protein_query(signatures: dict, **kwargs):
     """.format(app.config["DB_SCHEMA"], query)
 
     return final_query, params
+
+
+@app.route("/api/signatures/")
+def get_best_candidates():
+    try:
+        page = int(request.args["page"])
+    except (KeyError, ValueError):
+        page = 1
+
+    try:
+        page_size = int(request.args["page_size"])
+    except (KeyError, ValueError):
+        page_size = 20
+
+    base_cond = "WHERE "
+    params = {}
+    try:
+        dbcode = request.args["database"].strip()
+    except KeyError:
+        pass
+    else:
+        base_cond += "MS.DBCODE1 = :dbcode AND "
+        params["dbcode"] = dbcode
+
+    search_query = request.args.get("search", "").strip()
+    if search_query:
+        base_cond += "UPPER(MS.METHOD_AC1) LIKE :q AND "
+        params["q"] = search_query.upper() + '%'
+
+    base_cond += "MS.PROT_PRED = 'S'"
+
+    residue_evidence = request.args.get("resevi") is not None
+    if residue_evidence:
+        resi_cond = "AND MS.RESI_PRED = 'S'"
+    else:
+        resi_cond = ""
+
+    cur = db.get_oracle().cursor()
+    cur.execute(
+        """
+        SELECT MS.METHOD_AC1, MAX(MS.PROT_SIM), MAX(MS.PROT_OVER_COUNT)
+        FROM {}.METHOD_SIMILARITY MS
+        LEFT OUTER JOIN INTERPRO.ENTRY2METHOD EM1 
+          ON MS.METHOD_AC1 = EM1.METHOD_AC
+        INNER JOIN INTERPRO.ENTRY2METHOD EM2 
+          ON MS.METHOD_AC2 = EM2.METHOD_AC
+        INNER JOIN INTERPRO.METHOD M1 
+          ON MS.METHOD_AC1 = M1.METHOD_AC
+        INNER JOIN INTERPRO.METHOD M2 
+          ON MS.METHOD_AC2 = M2.METHOD_AC
+        {} {}
+        AND EM1.ENTRY_AC IS NULL
+        AND (
+          (M1.SIG_TYPE = 'H' AND M2.SIG_TYPE = 'H')
+          OR (M1.SIG_TYPE != 'H' AND M2.SIG_TYPE != 'H')
+        )
+        GROUP BY MS.METHOD_AC1
+        ORDER BY 2 DESC, 3 DESC
+        """.format(app.config["DB_SCHEMA"], base_cond, resi_cond),
+        params
+    )
+
+    accessions = [row[0] for row in cur]
+    count = len(accessions)
+    signatures = {}
+    if count:
+        accessions = accessions[(page-1)*page_size:page*page_size]
+        cur.execute(
+            """
+            SELECT 
+              MS.METHOD_AC1, MS.DBCODE1, MS.PROT_COUNT1,
+              MS.METHOD_AC2, MS.PROT_COUNT2, E.ENTRY_AC, E.ENTRY_TYPE, E.NAME, 
+              MS.COLL_COUNT, MS.PROT_OVER_COUNT, MS.RESI_PRED, 
+              (
+                SELECT COUNT(*) 
+                FROM INTERPRO.METHOD_COMMENT 
+                WHERE METHOD_AC=MS.METHOD_AC1
+              ) NUM_COMMENTS
+            FROM {}.METHOD_SIMILARITY MS
+            INNER JOIN INTERPRO.ENTRY2METHOD EM2 
+              ON MS.METHOD_AC2 = EM2.METHOD_AC
+            INNER JOIN INTERPRO.ENTRY E
+              ON EM2.ENTRY_AC = E.ENTRY_AC
+            INNER JOIN INTERPRO.METHOD M1 
+              ON MS.METHOD_AC1 = M1.METHOD_AC
+            INNER JOIN INTERPRO.METHOD M2 
+              ON MS.METHOD_AC2 = M2.METHOD_AC
+            WHERE MS.METHOD_AC1 IN ({}) 
+            AND MS.PROT_PRED = 'S'
+            {}
+            AND (
+              (M1.SIG_TYPE = 'H' AND M2.SIG_TYPE = 'H')
+              OR (M1.SIG_TYPE != 'H' AND M2.SIG_TYPE != 'H')
+            )
+            ORDER BY MS.PROT_SIM DESC, MS.PROT_OVER_COUNT DESC
+            """.format(
+                app.config["DB_SCHEMA"],
+                ','.join([':'+str(i+1) for i in range(len(accessions))]),
+                resi_cond),
+            accessions
+        )
+
+        accessions = []
+        for row in cur:
+            acc1 = row[0]
+
+            try:
+                s = signatures[acc1]
+            except KeyError:
+                accessions.append(acc1)
+                database = xref.find_ref(dbcode=row[1], ac=acc1)
+                s = signatures[acc1] = {
+                    "accession": acc1,
+                    "link": database.gen_link(),
+                    "color": database.color,
+                    "database": database.name,
+                    "proteins": row[2],
+                    "predictions": [],
+                    "comments": row[11]
+                }
+
+            s["predictions"].append({
+                "accession": row[3],
+                "proteins": row[4],
+                "entry": {
+                    "accession": row[5],
+                    "type": row[6],
+                    "name": row[7]
+                },
+                "collocations": row[8],
+                "overlaps": row[9],
+                "residues": row[10] == 'S'
+            })
+
+    cur.close()
+    return jsonify({
+        "count": count,
+        "results": [signatures[acc] for acc in accessions],
+        "page_info": {
+            "page": page,
+            "page_size": page_size
+        }
+    })
+
+
+@app.route("/api/signatures/integrations/")
+def get_recent_integrations():
+    cur = db.get_oracle().cursor()
+    cur.execute("SELECT FILE_DATE FROM INTERPRO.DB_VERSION WHERE DBCODE = 'I'")
+    date, = cur.fetchone()
+    cur.execute(
+        """
+        SELECT METHOD_AC
+        FROM INTERPRO.ENTRY2METHOD_AUDIT
+        WHERE TIMESTAMP >= (
+          SELECT FILE_DATE FROM INTERPRO.DB_VERSION WHERE DBCODE = 'I'
+        )
+        GROUP BY METHOD_AC
+        HAVING SUM(CASE WHEN ACTION='I' THEN 1 
+                        WHEN ACTION='D' THEN -1 
+                        ELSE 0 END) > 0
+        """
+    )
+    signatures = [row[0] for row in cur]
+    cur.close()
+    return jsonify({
+        "date": date.strftime("%d %B %Y"),
+        "results": signatures,
+    })
 
 
 @app.route("/api/signatures/<path:accessions_str>/descriptions/")

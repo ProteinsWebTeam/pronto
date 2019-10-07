@@ -118,9 +118,11 @@ def unlink_annotation(acc, ann_id):
     if not user:
         return jsonify({
             "status": False,
-            "title": "Access denied",
-            "message": 'Please <a href="/login/">log in</a> '
-                       'to perform this operation.'
+            "error": {
+                "title": "Access denied",
+                "message": 'Please <a href="/login/">log in</a> '
+                           'to perform this operation.'
+            }
         }), 401
 
     con = db.get_oracle()
@@ -137,8 +139,10 @@ def unlink_annotation(acc, ann_id):
     except DatabaseError:
         return jsonify({
             "status": False,
-            "title": "Database error",
-            "message": "Could not unlink annotation."
+            "error": {
+                "title": "Database error",
+                "message": "Could not unlink annotation."
+            }
         }), 500
     else:
         con.commit()
@@ -156,9 +160,11 @@ def link_annotation(acc, ann_id):
     if not user:
         return jsonify({
             "status": False,
-            "title": "Access denied",
-            "message": 'Please <a href="/login/">log in</a> '
-                       'to perform this operation.'
+            "error": {
+                "title": "Access denied",
+                "message": 'Please <a href="/login/">log in</a> '
+                           'to perform this operation.'
+            }
         }), 401
 
     con = db.get_oracle()
@@ -187,8 +193,10 @@ def link_annotation(acc, ann_id):
     except (DatabaseError, IntegrityError):
         return jsonify({
             "status": False,
-            "title": "Database error",
-            "message": "Could not link annotation."
+            "error": {
+                "title": "Database error",
+                "message": "Could not link annotation."
+            }
         }), 500
     else:
         con.commit()
@@ -207,17 +215,21 @@ def reorder_annotation(acc, ann_id, x):
     except ValueError:
         return jsonify({
             "status": False,
-            "title": "Invalid parameters",
-            "message": "Expected an integer."
+            "error": {
+                "title": "Invalid parameters",
+                "message": "Expected an integer."
+            }
         }), 400
 
     user = get_user()
     if not user:
         return jsonify({
             "status": False,
-            "title": "Access denied",
-            "message": 'Please <a href="/login/">log in</a> '
-                       'to perform this operation.'
+            "error": {
+                "title": "Access denied",
+                "message": 'Please <a href="/login/">log in</a> '
+                           'to perform this operation.'
+            }
         }), 401
 
     con = db.get_oracle()
@@ -238,8 +250,10 @@ def reorder_annotation(acc, ann_id, x):
         cur.close()
         return jsonify({
             "status": False,
-            "title": "Invalid parameters",
-            "message": "{} is not linked by {}".format(ann_id, acc)
+            "error": {
+                "title": "Invalid parameters",
+                "message": "{} is not linked by {}".format(ann_id, acc)
+            }
         }), 400
 
     max_order = max(annotations.values())

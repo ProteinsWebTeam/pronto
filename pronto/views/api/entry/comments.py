@@ -12,9 +12,11 @@ def add_entry_comment(accession):
     if not user:
         return jsonify({
             "status": False,
-            "title": "Access denied",
-            "message": 'Please <a href="/login/">log in</a> '
-                       'to perform this operation.'
+            "error": {
+                "title": "Access denied",
+                "message": 'Please <a href="/login/">log in</a> '
+                           'to perform this operation.'
+            }
         }), 401
 
     content = request.get_json()
@@ -22,8 +24,10 @@ def add_entry_comment(accession):
     if len(text) < 3:
         return jsonify({
             "status": False,
-            "title": "Comment to short",
-            "message": "Comment must be at least three characters long."
+            "error": {
+                "title": "Comment to short",
+                "message": "Comment must be at least three characters long."
+            }
         }), 400
 
     con = db.get_oracle()
@@ -51,9 +55,11 @@ def add_entry_comment(accession):
         cur.close()
         return jsonify({
             "status": False,
-            "title": "Database error",
-            "message": "Could not add comment "
-                       "for {}: {}".format(accession, e)
+            "error": {
+                "title": "Database error",
+                "message": "Could not add comment "
+                           "for {}: {}".format(accession, e)
+            }
         }), 500
     else:
         con.commit()
@@ -70,9 +76,11 @@ def delete_entry_comment(accession, _id):
     if not user:
         return jsonify({
             "status": False,
-            "title": "Access denied",
-            "message": 'Please <a href="/login/">log in</a> '
-                       'to perform this operation.'
+            "error": {
+                "title": "Access denied",
+                "message": 'Please <a href="/login/">log in</a> '
+                           'to perform this operation.'
+            }
         }), 401
 
     con = db.get_oracle()
@@ -90,9 +98,11 @@ def delete_entry_comment(accession, _id):
         cur.close()
         return jsonify({
             "status": False,
-            "title": "Database error",
-            "message": "Could not delete comment "
-                       "for {}: {}".format(accession, e)
+            "error": {
+                "title": "Database error",
+                "message": "Could not delete comment "
+                           "for {}: {}".format(accession, e)
+            }
         }), 500
     else:
         con.commit()

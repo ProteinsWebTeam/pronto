@@ -1,136 +1,116 @@
-import {dimmer, renderCheckbox, openErrorModal, useWhiteText, toRGB} from "../ui.js";
+import {dimmer, renderCheckbox, openErrorModal} from "../ui.js";
 import {finaliseHeader, nvl} from "../header.js";
 import {getSignatureComments, postSignatureComment} from "../comments.js";
 import {selector} from "../signatures.js";
 import {checkEntry} from "../events.js";
 
-const overlapHeatmap = {
-    colors: {
-        topLeft: {r: 108, g: 167, b: 93},
-        topRight: {r: 147, g: 114, b: 198},
-        bottomLeft: {r: 191, g: 130, b: 59},
-        bottomRight: {r: 204, g: 85, b: 111},
-    },
-    size: 5,
-    pixels: [],
-    calcSlope: function (p1, p2) {
-        return {
-            r: (p2.r - p1.r) / this.size,
-            g: (p2.g - p1.g) / this.size,
-            b: (p2.b - p1.b) / this.size
-        }
-    },
-    calcGradient: function (p, distance, slope) {
-        return {
-            r: p.r + slope.r * distance,
-            g: p.g + slope.g * distance,
-            b: p.b + slope.b * distance
-        }
-    },
-    calcPixels: function () {
-        const top = this.calcSlope(this.colors.topLeft, this.colors.topRight);
-        const bottom = this.calcSlope(this.colors.bottomLeft, this.colors.bottomRight);
+const PREDICTIONS = new Map([
+    ['S', {color: 'green', label: 'Similar'}],
+    ['R', {color: 'blue', label: 'Related'}],
+    ['C', {color: 'purple', label: 'Child'}],
+    ['P', {color: 'violet', label: 'Parent'}],
+    [null, {color: 'red', label: 'Dissimilar'}]
+]);
 
-        // Interpolate from left to right, then from top to bottom
-        for (let x = 0; x < this.size; ++x) {
-            const p1 = this.calcGradient(this.colors.topLeft, x, top);
-            const p2 = this.calcGradient(this.colors.bottomLeft, x, bottom);
+function parseParams(name) {
+    const value = parseFloat(new URL(location.href).searchParams.get(name));
+    return Number.isNaN(value) ? null : value;
+}
 
-            for (let y = 0; y < this.size; ++y) {
-                const vertical = this.calcSlope(p1, p2);
-                this.pixels.push({
-                    x: x,
-                    y: y,
-                    c: this.calcGradient(p1, y, vertical)
-                });
-            }
-        }
-    },
-    getPixel: function (x, y) {
-        const p = this.pixels.find((e,) => e.x === x && e.y === y);
-        return p === undefined ? null : p.c;
-    },
-    render: function () {
-        const element = document.getElementById('heatmap');
-        const svg = element.querySelector('svg');
-        const size = element.offsetWidth;
-        svg.setAttribute('width', size.toString());
-        svg.setAttribute('height', size.toString());
-        const rectSize = Math.floor(size / (this.size + 1));
-        let html = '';
-        this.pixels.forEach(p => {
-            html += '<rect x="'+ ((p.x + 1) * rectSize) +'" y="'+ ((p.y + 1) * rectSize) +'" width="'+ (rectSize) +'" height="'+ (rectSize) +'" fill="'+ toRGB(p.c) +'"></rect>';
+function initPopup(elem) {
+    const title = elem.getAttribute('data-key');
+    let content = null;
+    if (title === 'collocations')
+        content = 'Common proteins';
+    else if (title === 'proteins')
+        content = 'Overlapping proteins';
+    else if (title === 'residues')
+        content = 'Overlapping residues';
+    else if (title === 'descriptions')
+        content = 'Common UniProtKB descriptions';
+    else if (title === 'taxa')
+        content = 'Common taxonomic origins';
+    else if (title === 'terms')
+        content = 'Common GO terms';
+
+    $(elem)
+        .popup({
+            title: title.substr(0, 1).toUpperCase() + title.substr(1),
+            content: content,
+            position: 'top center',
+            variation: 'small'
         });
+}
 
-        html += '<text dominant-baseline="hanging" text-anchor="middle" x="'+ ((size + rectSize) / 2) +'" y="0" fill="#333">Candidate</text>';
+function renderOverlap(accession1, accession2, key) {
+    dimmer(true);
+    fetch('/api/signature/'+ accession1 +'/comparison/'+ accession2 +'/'+ key +'/')
+        .then(response => response.json())
+        .then(results => {
+            dimmer(false);
+            const modal = document.getElementById('comparison');
+            $(modal)
+                .modal({
+                    // Use onVisible() and not onShow() because we need to modal to actually be visible to compute styles
+                    onVisible: function () {
+                        const content = this.querySelector('.content');
+                        const style = window.getComputedStyle(content, null);
+                        const width = content.offsetWidth - parseFloat(style.getPropertyValue('padding-left')) - parseFloat(style.getPropertyValue('padding-right'));
 
-        for (let x = 0; x <= this.size; ++x) {
-            let label = Math.floor(100 - (100 / this.size) * x);
-            html += '<text font-size=".8rem" dominant-baseline="hanging" text-anchor="end" x="'+ (rectSize * (x + 1)) +'" y="'+ (rectSize / 2) +'" fill="#333">'+ label +'%</text>';
-        }
+                        const union = (results[accession1] + results[accession2] - results["common"]);
+                        const rect1Width = Math.floor(results[accession1] * width / union);
 
-        html += '<text transform="rotate(-90 0,'+ ((size + rectSize) / 2) +')" dominant-baseline="hanging" text-anchor="middle" x="0" y="'+ ((size + rectSize) / 2) +'" fill="#333">Query</text>';
+                        const rect2Width = Math.floor(results["common"] * width / union);
+                        const rect2X = Math.floor((results[accession1] - results["common"]) * width / union);
 
-        for (let y = 1; y <= this.size; ++y) {
-            let label = Math.floor(100 - (100 / this.size) * y);
-            html += '<text font-size=".8rem" dominant-baseline="auto" text-anchor="end" x="'+ rectSize +'" y="'+ (rectSize * (y + 1)) +'" fill="#333">'+ label +'%</text>';
-        }
-        svg.innerHTML = html;
-    }
-};
+                        const rect3Width = Math.floor(results[accession2] * width / union);
+                        const rect3X = width - rect3Width;
 
-function getOverlap() {
-    let overlap = parseFloat(new URL(location.href).searchParams.get("overlap"));
-    return Number.isNaN(overlap) ? null : overlap;
+                        content.innerHTML = '<svg width="' + width + 'px" height="100px">'
+                            + '<text dominant-baseline="hanging" text-anchor="start" x="0" y="0" fill="#333">'+ accession1 +' ('+ results[accession1].toLocaleString() +')</text>'
+                            + '<rect class="light-blue" x="0" y="20px" width="'+ rect1Width +'px" height="20px"/>'
+                            + '<rect class="green" x="'+ rect2X +'px" y="40px"width="'+ rect2Width +'px"  height="20px"/>'
+                            + '<rect class="lime" x="'+ rect3X +'px" y="60px"width="'+ rect3Width +'px"  height="20px"/>'
+                            + '<text dominant-baseline="hanging" text-anchor="end" x="'+ width +'px" y="80px" fill="#333">'+ accession2 +' ('+ results[accession2].toLocaleString() +')</text>'
+                            + '</svg>';
+                    }
+                })
+                .modal('show');
+        });
+}
+
+function getGlobalPredictionLabel(predictions) {
+    let label = PREDICTIONS.get(predictions['proteins']).label;
+
+    if (predictions['proteins'] && predictions['proteins'] === predictions['residues'])
+        label += '&nbsp;<i class="yellow star fitted icon"></i>';
+
+    return label;
 }
 
 function getPredictions(accession) {
-    let url = "/api/signature/" + accession + "/predictions/";
-    let overlap = getOverlap();
-    if (overlap !== null)
-        url += "?overlap=" + overlap;
+    const minCollocation = document.querySelector('tfoot input[type=radio]:checked').value;
+    const url = "/api/signature/" + accession + "/predictions/?mincollocation=" + minCollocation;
 
     dimmer(true);
     fetch(url)
         .then(response => response.json())
         .then(signatures => {
-            let html = "";
+            let html = '';
+
+            document.getElementById('predictions-count').innerHTML = signatures.length.toLocaleString();
+
             signatures.forEach(s => {
-                let queryRatio = Math.min(s.n_proteins / s.query.n_proteins, 1);
-                let candidateRatio = Math.min(s.n_proteins / s.candidate.n_proteins, 1);
-                let x = overlapHeatmap.size - Math.floor(candidateRatio * overlapHeatmap.size);
-                let y = overlapHeatmap.size - Math.floor(queryRatio * overlapHeatmap.size);
+                const circles = '<div class="ui tiny circular labels">'
+                    + '<span data-key="proteins" class="ui '+ PREDICTIONS.get(s.predictions['proteins']).color +' label"></span>'
+                    + '<span data-key="descriptions" data-accession="'+ s.accession +'" class="ui '+ PREDICTIONS.get(s.predictions['descriptions']).color +' label"></span>'
+                    +'<span data-key="taxa" data-accession="'+ s.accession +'" class="ui '+ PREDICTIONS.get(s.predictions['taxa']).color +' label"></span>'
+                    + '<span data-key="terms" data-accession="'+ s.accession +'" class="ui '+ PREDICTIONS.get(s.predictions['terms']).color +' label"></span>'
+                    + '</div>';
 
-                if (x >= overlapHeatmap.size)
-                    x = overlapHeatmap.size - 1;
-
-                if (y >= overlapHeatmap.size)
-                    y = overlapHeatmap.size - 1;
-
-                const c1 = overlapHeatmap.getPixel(x, y);
-
-                queryRatio = Math.min(s.n_overlaps / s.query.n_matches, 1);
-                candidateRatio = Math.min(s.n_overlaps / s.candidate.n_matches, 1);
-                x = overlapHeatmap.size - Math.floor(candidateRatio * overlapHeatmap.size);
-                y = overlapHeatmap.size - Math.floor(queryRatio * overlapHeatmap.size);
-
-                if (x >= overlapHeatmap.size)
-                    x = overlapHeatmap.size - 1;
-
-                if (y >= overlapHeatmap.size)
-                    y = overlapHeatmap.size - 1;
-
-                const c2 = overlapHeatmap.getPixel(x, y);
-
-                if (s.accession === accession)
-                    html += '<tr class="active">';
-                else
-                    html += '<tr>';
-
-                html += '<td>'+ nvl(s.relation, "") +'</td>'
-                    + '<td>'
-                    + '<a href="/prediction/'+ s.accession +'/">'+ s.accession +'</a>'
-                    + '</td>';
+                html += '<tr>'
+                    + '<td class="nowrap">'+ getGlobalPredictionLabel(s.predictions) +'</td><td class="collapsing">'+ circles +'</td>'
+                    + '<td class="collapsing"><a href="/prediction/'+ s.accession +'/">'+ s.accession +'</a></td>';
 
                 if (s.link !== null) {
                     html += '<td class="collapsing">'
@@ -142,24 +122,11 @@ function getPredictions(accession) {
                     html += '<td></td>';
 
                 html += '<td class="collapsing">'
-                    + '<a href="#" data-add-id="'+ s.accession +'">'
-                    + '<i class="cart plus icon"></i>'
-                    + '</a>'
+                    + '<a href="#" data-add-id="'+ s.accession +'"><i class="cart plus icon"></i></a>'
                     + '</td>'
-                    + '<td class="right aligned">' + s.candidate.n_proteins.toLocaleString() + '</td>'
-                    + '<td class="right aligned">' + s.candidate.n_matches.toLocaleString() + '</td>';
-
-                if (useWhiteText(c1))
-                    html += '<td class="light right aligned" style="background-color: '+ toRGB(c1) +'">';
-                else
-                    html += '<td class="dark right aligned" style="background-color: '+ toRGB(c1) +'">';
-                html += s.n_proteins.toLocaleString() + '</td>';
-
-                if (useWhiteText(c2))
-                    html += '<td class="light right aligned" style="background-color: '+ toRGB(c2) +'">';
-                else
-                    html += '<td class="dark right aligned" style="background-color: '+ toRGB(c2) +'">';
-                html += s.n_overlaps.toLocaleString() + '</td>';
+                    + '<td class="collapsing right aligned">' + s.proteins.toLocaleString() + '</td>'
+                    + '<td class="collapsing right aligned">'+ s.common_proteins.toLocaleString() +'</td>'
+                    + '<td class="collapsing right aligned">'+ s.overlap_proteins.toLocaleString() +'</td>';
 
                 if (s.entry.accession !== null) {
                     html += '<td class="nowrap">'
@@ -174,22 +141,22 @@ function getPredictions(accession) {
                             + '</div>';
                     });
 
-
                     html += '<div class="item">'
                         + '<div class="content">'
                         + '<span class="ui circular mini label type-'+ s.entry.type_code +'">'+ s.entry.type_code +'</span>'
-                        + '<a href="/entry/'+ s.entry.accession +'/">'+ s.entry.accession +'</a>'
+                        + '<a href="/entry/'+ s.entry.accession +'/">'+ s.entry.accession +' ('+ s.entry.name +')</a>'
                         + '</div>'
                         + '</div>'
                         + '</td>'
-                        + '<td>'+ s.entry.name +'</td>'
-                        + '<td>'+ renderCheckbox(s.entry.accession, s.entry.checked) +'</td>'
-                        + '</tr>';
+                        + '<td class="collapsing">'+ renderCheckbox(s.entry.accession, s.entry.checked) +'</td>';
                 } else
-                    html += '<td></td><td></td><td></td>';
+                    html += '<td></td><td></td>';
+
+                html += '</tr>';
+
             });
 
-            document.querySelector("tbody").innerHTML = html;
+            document.querySelector("#table-predictions tbody").innerHTML = html;
 
             // Adding/removing signatures
             Array.from(document.querySelectorAll('tbody a[data-add-id]')).forEach(elem => {
@@ -203,6 +170,18 @@ function getPredictions(accession) {
                 input.addEventListener('change', e => checkEntry(input));
             });
 
+            Array.from(document.querySelectorAll('tbody .ui.circular.labels .label[data-key]')).map(initPopup);
+
+            Array.from(document.querySelectorAll('span[data-accession]')).forEach(elem => {
+                elem.addEventListener('click', e => {
+                    renderOverlap(
+                        accession,
+                        e.target.getAttribute('data-accession'),
+                        e.target.getAttribute('data-key')
+                    );
+                })
+            });
+
             dimmer(false);
         });
 }
@@ -211,52 +190,85 @@ function getPredictions(accession) {
 $(function () {
     const match = location.pathname.match(/\/prediction\/([^\/]+)/i);
     const accession = match[1];
-    selector.init(document.getElementById('methods'), accession);
     document.title = accession + " predictions | Pronto";
-    document.querySelector("h1.ui.header .sub").innerHTML = accession;
-
-    overlapHeatmap.calcPixels();
-    overlapHeatmap.render();
-
-    // Init Semantic-UI elements
-    $('[data-content]').popup();
-
-    (function () {
-        const overlap = getOverlap() || 0.3;
-        const slider = document.getElementById('over-range');
-        const span = document.getElementById('over-value');
-
-        slider.value = overlap;
-        span.innerHTML = (overlap * 100).toFixed(0);
-        slider.addEventListener('change', e => {
-            const overlap = parseFloat(e.target.value);
-            span.innerHTML = (overlap * 100).toFixed(0);
-            const url = new URL(location.href);
-            url.searchParams.set("overlap", overlap);
-            history.replaceState(null, null, url.toString());
-            getPredictions(accession);
-        });
-        slider.addEventListener('input', evt => {
-            span.innerHTML = (parseFloat(evt.target.value) * 100).toFixed(0);
-        });
-    })();
-
-    document.querySelector('.ui.comments form button').addEventListener('click', e => {
-        e.preventDefault();
-        const form = e.target.closest('form');
-        const accession = form.getAttribute('data-id');
-        const textarea = form.querySelector('textarea');
-
-        postSignatureComment(accession, textarea.value.trim())
-            .then(result => {
-                if (result.status)
-                    getSignatureComments(accession, 2, e.target.closest(".ui.comments"));
-                else
-                    openErrorModal(result.message);
-            });
-    });
-
     finaliseHeader(accession);
-    getPredictions(accession);
-    getSignatureComments(accession, 2, document.querySelector('.ui.comments'));
+    fetch('/api/signature/'+ accession +'/')
+        .then(response => {
+            if (!response.ok)
+                throw Error(response.status.toString());
+            return response.json();
+        })
+        .then(response => {
+            selector.init(document.getElementById('methods'), accession);
+
+            let html = '';
+
+            if (response.link)
+                html += '<a href="'+ response.link +'" target="_blank">';
+
+            if (response.name && response.name !== accession)
+                html += response.name + ' (' + accession + ')';
+            else
+                html += accession;
+
+            if (response.link)
+                html += '&nbsp;<i class="external fitted icon"></i></a>';
+
+            html += ' &mdash; ' + response.num_sequences.toLocaleString() +' proteins';
+
+            if (response.entry.accession) {
+                html += '&nbsp;&mdash;&nbsp;';
+
+                if (response.entry.parent) {
+                    html += '<a href="/entry/'+response.entry.parent+'/">'+response.entry.parent+'</a>&nbsp;'
+                        + '<i class="fitted right chevron icon"></i>&nbsp;';
+                }
+
+                html += '<span class="ui small circular label type-'+ response.entry.type +'" style="margin-left: 0 !important;">'+ response.entry.type +'</span>'
+                    + '<a href="/entry/'+ response.entry.accession +'/">'
+                    + response.entry.accession
+                    + '</a>';
+            }
+
+            document.querySelector("h1.ui.header .sub").innerHTML = html;
+            document.querySelector('.ui.comments form button').addEventListener('click', e => {
+                e.preventDefault();
+                const form = e.target.closest('form');
+                const accession = form.getAttribute('data-id');
+                const textarea = form.querySelector('textarea');
+
+                postSignatureComment(accession, textarea.value.trim())
+                    .then(result => {
+                        if (result.status)
+                            getSignatureComments(accession, 2, e.target.closest(".ui.comments"));
+                        else
+                            openErrorModal(result);
+                    });
+            });
+
+            // Init Semantic-UI elements
+            $('[data-content]').popup();
+
+            Array.from(document.querySelectorAll('tfoot input[type=radio]')).forEach(elem => {
+                elem.addEventListener('change', (e,) => {
+                    getPredictions(accession);
+                });
+            });
+
+            getSignatureComments(accession, 2, document.querySelector('.ui.comments'));
+            getPredictions(accession);
+        })
+        .catch(error => {
+            if (error.message === '404') {
+                document.querySelector('.ui.container.segment').innerHTML = '<div class="ui error message">'
+                    + '<div class="header">Signature not found</div>'
+                    + '<p><strong>'+ accession +'</strong> is not a valid member database signature accession.</p>'
+                    + '</div>';
+            } else {
+                document.querySelector('.ui.container.segment').innerHTML = '<div class="ui error message">'
+                    + '<div class="header">'+ error.name +'</div>'
+                    + '<p>'+ error.message +'</p>'
+                    + '</div>';
+            }
+        });
 });

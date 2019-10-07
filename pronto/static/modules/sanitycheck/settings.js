@@ -188,11 +188,17 @@ function addTermOrException(ckType, ckTerm, termBased) {
     else {
         // New exception for a type of check that does not require terms
         modal.querySelector('.header').innerHTML = 'Add exception';
-        if (ckType === 'acc_in_name' || ckType === 'similar_name') {
+        if (ckType === 'acc_in_name' || ckType === 'similar_names') {
             label1.querySelector('label').innerHTML = 'Entry #1';
             label1.querySelector('input').placeholder = 'Entry accession #1';
             label2.querySelector('label').innerHTML = 'Entry #2';
             label2.querySelector('input').placeholder = 'Entry accession #2';
+            ui.setClass(label2, 'hidden', false);
+        } else if (ckType === 'lower_case') {
+            label1.querySelector('label').innerHTML = 'Entry';
+            label1.querySelector('input').placeholder = 'Entry accession';
+            label2.querySelector('label').innerHTML = 'Term';
+            label2.querySelector('input').placeholder = 'Term to authorize';
             ui.setClass(label2, 'hidden', false);
         } else if (ckType === 'non_ascii') {
             label1.querySelector('label').innerHTML = 'Non-ASCII character';

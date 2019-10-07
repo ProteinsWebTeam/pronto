@@ -77,10 +77,11 @@ td > .ui.label, .item > .content > .label, .item > .content > .header > .label {
 }
 
 /* Header icon */
-h1.ui.header > .sub.header i.icon {
-    display: inline;
-    font-size: .75em;
-}
+/* todo: find where this was used */
+/*h1.ui.header > .sub.header i.icon {*/
+    /*display: inline;*/
+    /*font-size: .75em;*/
+/*}*/
 
 /* Entry types (entry page) */
 .ui.segment.type-R:not(.inverted) {
@@ -451,4 +452,9 @@ i.button.icon:hover {
 
 .ui.modal .content.justified {
     text-align: justify;
+}
+
+/* For header menu */
+.ui.noradius.menu {
+    border-radius: 0;
 }

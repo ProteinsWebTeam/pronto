@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/semantic.min.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+    <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}">
+    <title>Integrations | Pronto</title>
+</head>
+<body>
+
+{% include 'header.html' %}
+
+<div class="ui container basic vertical segment">
+    <h1 class="ui header">
+        Integration recommendations
+        <div class="sub header">Unintegrated signatures similar to integrated signatures</div>
+    </h1>
+
+    <div class="ui grid">
+        <div class="twelve wide column">
+            <div id="form-signatures" class="ui form">
+                <div class="equal width fields"></div>
+                <div class="field">
+                    <div class="ui checkbox">
+                        <input type="checkbox" name="resevi">
+                        <label>Only show similar signatures based on residues overlap (<i class="ui small fitted yellow star icon"></i>)</label>
+                    </div>
+                </div>
+            </div>
+
+            <table id="table-signatures" class="ui very compact celled structured small table">
+                <thead>
+                <tr>
+                    <th colspan="9">
+                        <div class="ui secondary menu">
+                            <span class="item"></span>
+                            <div class="right menu">
+                                <div class="item">
+                                    <div class="ui icon input">
+                                        <input placeholder="Search&hellip;" type="text">
+                                        <i class="search link icon"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </th>
+                </tr>
+                <tr>
+                    <th colspan="4">Unintegrated signature</th>
+                    <th colspan="3">Integrated signature</th>
+                    <th colspan="2">Comparison</th>
+                </tr>
+                <tr>
+                    <th colspan="3">Accession</th>
+                    <th>Proteins</th>
+                    <th>Accession</th>
+                    <th>Proteins</th>
+                    <th>Entry</th>
+                    <th>Proteins</th>
+                    <th>Overlaps</th>
+                </tr>
+                </thead>
+                <tbody>
+                </tbody>
+                <tfoot>
+                <tr>
+                    <th colspan="9">
+                        <div class="ui right floated pagination menu"></div>
+                    </th>
+                </tr>
+                </tfoot>
+            </table>
+        </div>
+        <div class="four wide column">
+            <div class="ui hidden sticky">
+                <div class="ui vertical segment comments">
+                    <h3 class="ui dividing header">
+                        <i class="comments icon"></i>Comments
+                        <div class="sub header"></div>
+                    </h3>
+                    <div class="comments-content"></div>
+                    <form class="ui reply form">
+                        <div class="field">
+                            <textarea placeholder="Write comment&hellip;"></textarea>
+                        </div>
+                        <button class="ui blue labeled icon button"><i class="icon edit"></i> Add comment</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    {% include 'footer.html' %}
+
+    <script src="{{ url_for('static', filename='vendor/jquery.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/semantic.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='modules/signatures/integrations.js') }}" type="module"></script>
+
+</body>
+</html>

@@ -16,32 +16,38 @@
 
     <div class="ui form">
         <div class="grouped fields">
-            <label>Predicted:</label>
+            <label>Predictions:</label>
             <div class="field">
                 <div class="ui radio checkbox">
                     <input name="filter" value="integrated" type="radio">
-                    <label>Integrate with existing entry</label>
+                    <label>Similar to an integrated signature</label>
                 </div>
             </div>
             <div class="field">
                 <div class="ui radio checkbox">
-                    <input name="filter" value="candidate" type="radio">
-                    <label>Integrate with unintegrated candidate signatures</label>
+                    <input name="filter" value="unintegrated" type="radio">
+                    <label>Similar to an unintegrated signature</label>
                 </div>
             </div>
             <div class="field">
                 <div class="ui radio checkbox">
                     <input name="filter" value="norelation" type="radio">
-                    <label>No relations</label>
+                    <label>Not similar to any signature</label>
                 </div>
+            </div>
+        </div>
+        <div class="field">
+            <div class="ui checkbox">
+                <input type="checkbox" name="allpredictions">
+                <label>Extend to other types of predictions (related, parent, child)</label>
             </div>
         </div>
     </div>
 
-    <table class="ui very compact celled structured table">
+    <table id="table-signatures" class="ui very compact celled structured table">
         <thead>
         <tr>
-            <th colspan="4">
+            <th colspan="5">
                 <div class="ui secondary menu">
                     <span class="item"></span>
                     <div class="right menu">
@@ -57,16 +63,17 @@
         </tr>
         <tr>
             <th>Signature</th>
-            <th>Add to</th>
-            <th>Parent</th>
-            <th>Children</th>
+            <th>Similar to</th>
+            <th>Related to</th>
+            <th>Parent of</th>
+            <th>Child of</th>
         </tr>
         </thead>
         <tbody>
         </tbody>
         <tfoot>
         <tr>
-            <th colspan="4">
+            <th colspan="5">
                 <div class="ui right floated pagination menu"></div>
             </th>
         </tr>

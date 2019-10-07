@@ -66,8 +66,6 @@ def api_integrated_signatures(dbshort):
 
     base_sql = """
             FROM {0}.METHOD M
-            LEFT OUTER JOIN {0}.METHOD_MATCH MM 
-                ON M.METHOD_AC = MM.METHOD_AC
             LEFT OUTER JOIN INTERPRO.ENTRY2METHOD EM 
                 ON M.METHOD_AC = EM.METHOD_AC
             LEFT OUTER JOIN INTERPRO.ENTRY E 
@@ -141,7 +139,7 @@ def api_integrated_signatures(dbshort):
                     EM.ENTRY_AC,
                     E.CHECKED,
                     E.ENTRY_TYPE,
-                    MM.N_PROT,
+                    M.PROTEIN_COUNT,
                     C.VALUE,
                     C.NAME,
                     C.CREATED_ON
@@ -218,20 +216,17 @@ def api_integrated_signatures(dbshort):
 
 @app.route("/api/database/<dbshort>/unintegrated/<mode>/")
 def api_unintegrated_signatures(dbshort, mode):
-    if mode not in ("integrated", "candidate", "norelation"):
-        return jsonify({
-            "results": [],
-            "count": 0,
-            "database": None
-        }), 400
+    if mode not in ("integrated", "unintegrated", "norelation"):
+        return jsonify({}), 400
 
     db_name, db_code, db_version = get_database(dbshort)
     if not db_name:
-        return jsonify({
-            "results": [],
-            "count": 0,
-            "database": None
-        }), 404
+        return jsonify({}), 404
+
+    if request.args.get("allpredictions") is not None:
+        pred_cond = "IS NOT NULL"
+    else:
+        pred_cond = "= 'S'"
 
     try:
         page = int(request.args["page"])
@@ -245,170 +240,117 @@ def api_unintegrated_signatures(dbshort, mode):
 
     search_query = request.args.get("search", "").strip()
 
-    params = {
-        "dbcode": db_code
-    }
-
     if mode == "integrated":
-        # Signature with at least one InterPro prediction
-        base_sql = """
-            SELECT DISTINCT MP.METHOD_AC1 AS METHOD_AC
-            FROM {0}.METHOD_PREDICTION MP
-            INNER JOIN INTERPRO.ENTRY2METHOD EM
-              ON MP.METHOD_AC2 = EM.METHOD_AC
-            WHERE MP.RELATION = 'ADD_TO'
-              AND MP.METHOD_AC1 IN (
-                SELECT METHOD_AC
-                FROM {0}.METHOD
-                WHERE DBCODE = :dbcode
-              )
-              AND MP.METHOD_AC1 NOT IN (
-                SELECT METHOD_AC
-                FROM INTERPRO.ENTRY2METHOD
-              )    
-        """.format(app.config["DB_SCHEMA"])
-
-        if search_query:
-            base_sql += " AND MP.METHOD_AC1 LIKE :q"
-            params["q"] = search_query.upper() + "%"
-    elif mode == "candidate":
-        """
-        Signature with at least one prediction 
-        that is an unintegrated candidate signature
-        """
-        base_sql = """
-            SELECT DISTINCT MP.METHOD_AC1 AS METHOD_AC
-            FROM {0}.METHOD_PREDICTION MP
-            INNER JOIN {0}.METHOD M
-              ON MP.METHOD_AC2 = M.METHOD_AC
-            WHERE MP.RELATION = 'ADD_TO'
-              AND MP.METHOD_AC1 IN (
-                SELECT METHOD_AC
-                FROM {0}.METHOD
-                WHERE DBCODE = :dbcode
-              )
-              AND MP.METHOD_AC1 NOT IN (
-                SELECT METHOD_AC
-                FROM INTERPRO.ENTRY2METHOD
-              )
-              AND M.CANDIDATE = 'Y'
-              AND MP.METHOD_AC2 NOT IN (
-                SELECT METHOD_AC
-                FROM INTERPRO.ENTRY2METHOD
-              )    
-        """.format(app.config["DB_SCHEMA"])
-
-        if search_query:
-            base_sql += " AND MP.METHOD_AC1 LIKE :q"
-            params["q"] = search_query.upper() + "%"
+        query = """
+          SELECT DISTINCT MS.METHOD_AC1 AS METHOD_AC
+          FROM {}.METHOD_SIMILARITY MS
+          LEFT OUTER JOIN INTERPRO.ENTRY2METHOD EM1 
+            ON MS.METHOD_AC1 = EM1.METHOD_AC
+          INNER JOIN INTERPRO.ENTRY2METHOD EM2 
+            ON MS.METHOD_AC2 = EM2.METHOD_AC
+          WHERE MS.DBCODE1 = :dbcode
+            AND EM1.ENTRY_AC IS NULL 
+            AND MS.PROT_PRED {}
+        """.format(app.config["DB_SCHEMA"], pred_cond)
+    elif mode == "unintegrated":
+        query = """
+          SELECT DISTINCT MS.METHOD_AC1 AS METHOD_AC
+          FROM {}.METHOD_SIMILARITY MS
+          LEFT OUTER JOIN INTERPRO.ENTRY2METHOD EM1 
+            ON MS.METHOD_AC1 = EM1.METHOD_AC
+          INNER JOIN INTERPRO.ENTRY2METHOD EM2 
+            ON MS.METHOD_AC2 = EM2.METHOD_AC
+          WHERE MS.DBCODE1 = :dbcode
+            AND EM1.ENTRY_AC IS NULL 
+            AND MS.PROT_PRED {}
+        """.format(app.config["DB_SCHEMA"], pred_cond)
     else:
-        # Signature without relations
-        base_sql = """
-            SELECT METHOD_AC
-            FROM {0}.METHOD_MATCH
-            WHERE METHOD_AC IN (
-              SELECT METHOD_AC 
-              FROM {0}.METHOD 
-              WHERE DBCODE = :dbcode
-            )
-            AND METHOD_AC NOT IN (
-              SELECT METHOD_AC 
-              FROM INTERPRO.ENTRY2METHOD
-            )
-            AND METHOD_AC NOT IN (
-              SELECT DISTINCT METHOD_AC1 
-              FROM {0}.METHOD_PREDICTION
-            )
-        """.format(app.config["DB_SCHEMA"])
+        query = """
+          SELECT DISTINCT MS.METHOD_AC1 AS METHOD_AC
+          FROM {0}.METHOD_SIMILARITY MS
+          LEFT OUTER JOIN INTERPRO.ENTRY2METHOD EM1 
+            ON MS.METHOD_AC1 = EM1.METHOD_AC
+          WHERE MS.DBCODE1 = :dbcode
+          AND EM1.ENTRY_AC IS NULL
+          MINUS 
+          SELECT DISTINCT MS.METHOD_AC1
+          FROM {0}.METHOD_SIMILARITY MS
+          WHERE MS.DBCODE1 = :dbcode AND MS.PROT_PRED {1}
+        """.format(app.config["DB_SCHEMA"], pred_cond)
 
-        if search_query:
-            base_sql += " AND METHOD_AC LIKE :q"
-            params["q"] = search_query.upper() + "%"
+    query = "SELECT METHOD_AC FROM ({})".format(query)
+    params = {"dbcode": db_code}
+
+    if search_query:
+        query += " WHERE METHOD_AC LIKE :q"
+        params["q"] = search_query.upper() + "%"
+
+    query += " ORDER BY METHOD_AC"
 
     cur = db.get_oracle().cursor()
-    cur.execute(
-        """
-        SELECT COUNT(*)
-        FROM ({})
-        """.format(base_sql),
-        params
-    )
-
-    num_rows = cur.fetchone()[0]
-    params.update({
-        "i_start": (page - 1) * page_size,
-        "i_end": page * page_size
-    })
-
-    cur.execute(
-        """
-        WITH FILTERV AS (
-            SELECT *
-            FROM (
-                SELECT T.*, ROWNUM RN
-                FROM (
-                    {0}
-                    ORDER BY METHOD_AC
-                ) T
-                WHERE ROWNUM <= :i_end
-            )
-            WHERE RN > :i_start
-        )
-        SELECT MM.METHOD_AC, MP.METHOD_AC2, MP.RELATION, E.ENTRY_AC, E.ENTRY_TYPE
-        FROM {1}.METHOD_MATCH MM
-        LEFT OUTER JOIN {1}.METHOD_PREDICTION MP
-          ON MM.METHOD_AC = MP.METHOD_AC1
-        LEFT OUTER JOIN INTERPRO.ENTRY2METHOD EM 
-          ON MP.METHOD_AC2 = EM.METHOD_AC
-        LEFT OUTER JOIN INTERPRO.ENTRY E 
-          ON EM.ENTRY_AC = E.ENTRY_AC
-        WHERE MM.METHOD_AC IN (SELECT METHOD_AC FROM FILTERV)
-        """.format(base_sql, app.config["DB_SCHEMA"]),
-        params
-    )
-
+    cur.execute(query, params)
+    accessions = [row[0] for row in cur]
+    count = len(accessions)
     signatures = {}
-    for method_acc1, method_acc2, relation, entry_acc, entry_type in cur:
-        if method_acc1 in signatures:
-            s = signatures[method_acc1]
-        else:
-            s = signatures[method_acc1] = {
-                "add_to": {},
-                "parents": set(),
-                "children": set()
-            }
 
-        acc = entry_acc if entry_acc else method_acc2
-        if relation == "ADD_TO":
-            s["add_to"][acc] = entry_type
-        elif relation == "PARENT_OF":
-            s["children"].add(acc)
-        elif relation == "CHILD_OF":
-            s["parents"].add(acc)
+    if count:
+        accessions = accessions[(page-1)*page_size:page*page_size]
 
-    _signatures = []
-    for method_acc1 in sorted(signatures):
-        s = signatures[method_acc1]
-        _signatures.append({
-            "accession": method_acc1,
-            "add_to": [{
-                "accession": acc,
-                "type": s["add_to"][acc]
-            } for acc in sorted(s["add_to"])],
-            "parents": list(sorted(s["parents"])),
-            "children": list(sorted(s["children"]))
-        })
+        cur.execute(
+            """
+            SELECT 
+              MS.METHOD_AC1, MS.METHOD_AC2, MS.PROT_PRED, E.ENTRY_AC, 
+              E.ENTRY_TYPE 
+            FROM {}.METHOD_SIMILARITY MS
+            LEFT OUTER JOIN INTERPRO.ENTRY2METHOD EM 
+              ON MS.METHOD_AC2 = EM.METHOD_AC
+            LEFT OUTER JOIN INTERPRO.ENTRY E 
+              ON EM.ENTRY_AC = E.ENTRY_AC
+            WHERE MS.METHOD_AC1 IN ({})
+            AND MS.PROT_PRED IS NOT NULL 
+            ORDER BY MS.METHOD_AC1, MS.METHOD_AC2
+            """.format(
+                app.config["DB_SCHEMA"],
+                ','.join([':'+str(i+1) for i in range(len(accessions))])
+            ),
+            accessions
+        )
+
+        for s_acc1, s_acc2, pred, e_acc, e_type in cur:
+            if mode == "integrated" and not e_acc:
+                continue
+            elif mode == "unintegrated" and e_acc:
+                continue
+
+            try:
+                s = signatures[s_acc1]
+            except KeyError:
+                s = signatures[s_acc1] = {
+                    "accession": s_acc1,
+                    "signatures": []
+                }
+
+            s["signatures"].append({
+                "accession": s_acc2,
+                "entry": {
+                    "accession": e_acc,
+                    "type": e_type
+                },
+                "prediction": pred
+            })
+
+    cur.close()
 
     return jsonify({
         "page_info": {
             "page": page,
             "page_size": page_size
         },
-        "signatures": _signatures,
-        "count": num_rows,
+        "signatures": list(sorted(signatures.values(),
+                                  key=lambda e: e["accession"])),
+        "count": count,
         "database": {
             "name": db_name,
             "version": db_version
         }
     })
-

@@ -48,9 +48,9 @@ $(function () {
         .then(response => response.json())
         .then(databases => {
             let html = '';
-            databases.forEach(db => {
+            databases.filter(db => db.short_name !== 'mobidblt').forEach(db => {
                 html += '<tr>'
-                    + '<td class="collapsing">'
+                    + '<td style="border-left: 5px solid '+ db.color +';" class="collapsing">'
                     + '<a target="_blank" href="'+ db.home +'">'+ db.name +'&nbsp;<i class="external icon"></i></a>'
                     + '</td>'
                     + '<td><span class="ui basic label">'+ db.version +'<span class="detail">'+ db.date +'</span></span></td>'
@@ -85,4 +85,10 @@ $(function () {
 
             })
     });
+
+    fetch('/api/signatures/integrations/')
+        .then(response => response.json())
+        .then(response => {
+            document.getElementById('recent-integrations').innerHTML = '<strong>'+ response.results.length +'</strong> signatures integrated since <strong>'+ response.date +'</strong>.';
+        });
 });

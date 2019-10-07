@@ -14,9 +14,11 @@ def integrate_signature(e_acc, s_acc):
     if not user:
         return jsonify({
             "status": False,
-            "title": "Access denied",
-            "message": 'Please <a href="/login/">log in</a> '
-                       'to perform this operation.'
+            "error": {
+                "title": "Access denied",
+                "message": 'Please <a href="/login/">log in</a> '
+                           'to perform this operation.'
+            }
         }), 401
 
     con = db.get_oracle()
@@ -33,9 +35,11 @@ def integrate_signature(e_acc, s_acc):
         cur.close()
         return jsonify({
             "status": False,
-            "title": "Invalid entry",
-            "message": "<strong>{}</strong> is not "
-                       "a valid InterPro accession".format(s_acc)
+            "error": {
+                "title": "Invalid entry",
+                "message": "<strong>{}</strong> is not "
+                           "a valid InterPro accession".format(s_acc)
+            }
         }), 401
 
     cur.execute(
@@ -61,9 +65,11 @@ def integrate_signature(e_acc, s_acc):
         cur.close()
         return jsonify({
             "status": False,
-            "title": "Invalid signature",
-            "message": "<strong>{}</strong> is not a valid member database "
-                       "accession or name.".format(s_acc)
+            "error": {
+                "title": "Invalid signature",
+                "message": "<strong>{}</strong> is not a valid member database "
+                           "accession or name.".format(s_acc)
+            }
         }), 401
 
     """
@@ -96,9 +102,11 @@ def integrate_signature(e_acc, s_acc):
                 cur.close()
                 return jsonify({
                     "status": False,
-                    "title": "Database error",
-                    "message": "Could not unintegrated "
-                               "{} from {}".format(s_acc, in_entry_acc)
+                    "error": {
+                        "title": "Database error",
+                        "message": "Could not unintegrated "
+                                   "{} from {}".format(s_acc, in_entry_acc)
+                    }
                 }), 500
 
             cur.execute(
@@ -125,8 +133,10 @@ def integrate_signature(e_acc, s_acc):
                     cur.close()
                     return jsonify({
                         "status": False,
-                        "title": "Database error",
-                        "message": "Could not uncheck {}".format(in_entry_acc)
+                        "error": {
+                            "title": "Database error",
+                            "message": "Could not uncheck {}".format(in_entry_acc)
+                        }
                     }), 500
                 else:
                     unchecked = True
@@ -151,9 +161,11 @@ def integrate_signature(e_acc, s_acc):
     except DatabaseError:
         return jsonify({
             "status": False,
-            "title": "Database error",
-            "message": "Could not integrated "
-                       "{} into {}".format(s_acc, e_acc)
+            "error": {
+                "title": "Database error",
+                "message": "Could not integrate "
+                           "{} into {}".format(s_acc, e_acc)
+            }
         }), 500
     else:
         con.commit()
@@ -164,9 +176,7 @@ def integrate_signature(e_acc, s_acc):
                 "entry": in_entry_acc
             }
         else:
-            res = {
-                "status": True
-            }
+            res = {"status": True}
 
         return jsonify(res), 200
     finally:
@@ -179,9 +189,11 @@ def unintegrate_signature(e_acc, s_acc):
     if not user:
         return jsonify({
             "status": False,
-            "title": "Access denied",
-            "message": 'Please <a href="/login/">log in</a> '
-                       'to perform this operation.'
+            "error": {
+                "title": "Access denied",
+                "message": 'Please <a href="/login/">log in</a> '
+                           'to perform this operation.'
+            }
         }), 401
 
     con = db.get_oracle()
@@ -198,9 +210,11 @@ def unintegrate_signature(e_acc, s_acc):
         cur.close()
         return jsonify({
             "status": False,
-            "title": "Invalid entry",
-            "message": "<strong>{}</strong> is not "
-                       "a valid InterPro accession".format(s_acc)
+            "error": {
+                "title": "Invalid entry",
+                "message": "<strong>{}</strong> is not "
+                           "a valid InterPro accession".format(s_acc)
+            }
         }), 401
 
     try:
@@ -216,9 +230,11 @@ def unintegrate_signature(e_acc, s_acc):
         cur.close()
         return jsonify({
             "status": False,
-            "title": "Database error",
-            "message": "Could not unintegrated "
-                       "{} from {}".format(s_acc, e_acc)
+            "error": {
+                "title": "Database error",
+                "message": "Could not unintegrated "
+                           "{} from {}".format(s_acc, e_acc)
+            }
         }), 500
 
     cur.execute(
@@ -247,8 +263,10 @@ def unintegrate_signature(e_acc, s_acc):
             cur.close()
             return jsonify({
                 "status": False,
-                "title": "Database error",
-                "message": "Could not uncheck {}".format(e_acc)
+                "error": {
+                    "title": "Database error",
+                    "message": "Could not uncheck {}".format(e_acc)
+                }
             }), 500
         else:
             unchecked = True
@@ -267,20 +285,18 @@ def get_entry_signatures(accession):
     cur.execute(
         """
         SELECT
-          M.DBCODE,
-          M.METHOD_AC,
-          M.NAME,
-          M.PROTEIN_COUNT,
-          MM.N_PROT
-        FROM {0}.METHOD M
-        INNER JOIN {0}.METHOD_MATCH MM
-          ON M.METHOD_AC = MM.METHOD_AC
-        WHERE M.METHOD_AC IN (
+          DBCODE,
+          METHOD_AC,
+          NAME,
+          PROTEIN_COUNT,
+          FULL_SEQ_COUNT
+        FROM {0}.METHOD
+        WHERE METHOD_AC IN (
           SELECT METHOD_AC
           FROM INTERPRO.ENTRY2METHOD
           WHERE ENTRY_AC = :1
         )
-        ORDER BY M.METHOD_AC
+        ORDER BY METHOD_AC
         """.format(app.config['DB_SCHEMA']),
         (accession,)
     )

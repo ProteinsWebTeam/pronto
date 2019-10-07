@@ -10,12 +10,16 @@ def get_signature(accession):
     cur = db.get_oracle().cursor()
     cur.execute(
         """
-        SELECT 
-          M.METHOD_AC, M.NAME, M.DESCRIPTION, M.DBCODE, M.SIG_TYPE, 
-          M.PROTEIN_COUNT, EM.ENTRY_AC
+        SELECT M.METHOD_AC, M.NAME, M.DESCRIPTION, M.DBCODE, M.SIG_TYPE, 
+               M.PROTEIN_COUNT, M.FULL_SEQ_COUNT, EM.ENTRY_AC, E.ENTRY_TYPE, 
+               EE.PARENT_AC
         FROM {}.METHOD M
         LEFT OUTER JOIN INTERPRO.ENTRY2METHOD EM 
           ON M.METHOD_AC = EM.METHOD_AC
+        LEFT OUTER JOIN INTERPRO.ENTRY E 
+          ON EM.ENTRY_AC = E.ENTRY_AC
+        LEFT OUTER JOIN INTERPRO.ENTRY2ENTRY EE
+          ON E.ENTRY_AC = EE.ENTRY_AC
         WHERE UPPER(M.METHOD_AC) = :acc OR UPPER(M.NAME) = :acc
         """.format(app.config["DB_SCHEMA"]),
         dict(acc=accession.upper())
@@ -25,140 +29,212 @@ def get_signature(accession):
 
     if row:
         database = xref.find_ref(row[3], row[0])
+
         return jsonify({
             "accession": row[0],
             "name": row[1],
             "description": row[2],
             "num_proteins": row[5],
+            "num_sequences": row[6],
             "type": row[4],
             "link": database.gen_link(),
             "color": database.color,
             "database": database.name,
-            "integrated": row[6]
+            "entry": {
+                "accession": row[7],
+                "type": row[8],
+                "parent": row[9]
+            }
         }), 200
     else:
         return jsonify(None), 404
+
+
+@app.route("/api/signature/<accession1>/comparison/<accession2>/<cmp_type>/")
+def get_signatures_comparison(accession1, accession2, cmp_type):
+    if cmp_type == "descriptions":
+        column = "DESC_ID"
+        table = "METHOD_DESC"
+    elif cmp_type == "taxa":
+        column = "TAX_ID"
+        table = "METHOD_TAXA"
+    elif cmp_type == "terms":
+        column = "GO_ID"
+        table = "METHOD_TERM"
+    else:
         return jsonify({
-            "title": "Invalid signature",
-            "message": "".format(accession)
-        }), 404
+            "error": {
+                "title": "Bad request",
+                "message": "Invalid or missing parameters."
+            }
+        }), 400
 
-
-@app.route("/api/signature/<accession>/predictions/")
-def get_signature_predictions(accession):
-    try:
-        overlap = float(request.args["overlap"])
-    except (KeyError, ValueError):
-        overlap = 0.3
+    query = """
+      SELECT {} 
+      FROM {}.{} 
+      WHERE METHOD_AC = :1
+    """.format(column, app.config["DB_SCHEMA"], table)
 
     cur = db.get_oracle().cursor()
+    cur.execute(query, (accession1,))
+    set1 = {row[0] for row in cur}
+    cur.execute(query, (accession2,))
+    set2 = {row[0] for row in cur}
+    cur.close()
+
+    return jsonify({
+        accession1: len(set1),
+        accession2: len(set2),
+        "common": len(set1 & set2)
+    }), 200
+
+
+@app.route("/api/signature/<query_acc>/predictions/")
+def get_signature_predictions(query_acc):
+    try:
+        min_colloc_sim = float(request.args["mincollocation"])
+        assert 0 <= min_colloc_sim <= 1
+    except KeyError:
+        min_colloc_sim = 0.5
+    except (ValueError, AssertionError):
+        return jsonify({
+            "error": {
+                "title": "Bad request",
+                "message": "Parameter 'mincollocation' "
+                           "expects a number between 0 and 1."
+            }
+        }), 400
+
+    cur = db.get_oracle().cursor()
+
+    # Get the InterPro entry integrating the query signature (if any)
     cur.execute(
         """
-        SELECT
-          MO.C_AC,
-          DB.DBCODE,
+        SELECT ENTRY_AC 
+        FROM INTERPRO.ENTRY2METHOD 
+        WHERE METHOD_AC = :1
+        """, (query_acc,)
+    )
+    row = cur.fetchone()
+    if row:
+        query_entry = row[0]
 
-          E.ENTRY_AC,
-          E.CHECKED,
-          E.ENTRY_TYPE,
-          E.NAME,
+        # Get ancestors
+        cur.execute(
+            """
+            SELECT PARENT_AC
+            FROM INTERPRO.ENTRY2ENTRY
+            START WITH ENTRY_AC = :1
+            CONNECT BY PRIOR PARENT_AC = ENTRY_AC
+            """, (query_entry,)
+        )
+        ancestors = {row[0] for row in cur}
 
-          MO.N_PROT_OVER,
-          MO.N_OVER,          
+        # Get descendants
+        cur.execute(
+            """
+            SELECT ENTRY_AC
+            FROM INTERPRO.ENTRY2ENTRY
+            START WITH PARENT_AC = :1
+            CONNECT BY PRIOR ENTRY_AC = PARENT_AC
+            """, (query_entry,)
+        )
+        descendants = {row[0] for row in cur}
+    else:
+        query_entry = None
+        ancestors = set()
+        descendants = set()
 
-          MO.Q_N_PROT,
-          MO.Q_N_MATCHES,
-          MO.C_N_PROT,
-          MO.C_N_MATCHES,
+    # Get (child -> parent) relationships
+    cur.execute("SELECT ENTRY_AC, PARENT_AC FROM INTERPRO.ENTRY2ENTRY")
+    parent_of = dict(cur.fetchall())
 
-          MP.RELATION
-        FROM (
-            SELECT
-              MMQ.METHOD_AC Q_AC,
-              MMQ.N_PROT Q_N_PROT,
-              MMQ.N_MATCHES Q_N_MATCHES,
-              MMC.METHOD_AC C_AC,
-              MMC.N_PROT C_N_PROT,
-              MMC.N_MATCHES C_N_MATCHES,
-              MO.N_PROT_OVER,
-              MO.N_OVER
-            FROM (
-                SELECT 
-                  METHOD_AC1, METHOD_AC2, N_PROT_OVER, 
-                  N_OVER, AVG_FRAC1, AVG_FRAC2
-                FROM {0}.METHOD_OVERLAP
-                WHERE METHOD_AC1 = :accession
-            ) MO
-            INNER JOIN {0}.METHOD_MATCH MMQ 
-              ON MO.METHOD_AC1 = MMQ.METHOD_AC
-            INNER JOIN {0}.METHOD_MATCH MMC 
-              ON MO.METHOD_AC2 = MMC.METHOD_AC
-            WHERE ((MO.N_PROT_OVER >= (:overlap * MMQ.N_PROT)) 
-            OR (MO.N_PROT_OVER >= (:overlap * MMC.N_PROT)))        
-        ) MO
-        LEFT OUTER JOIN {0}.METHOD_PREDICTION MP 
-          ON (MO.Q_AC = MP.METHOD_AC1 AND MO.C_AC = MP.METHOD_AC2)
-        LEFT OUTER JOIN {0}.METHOD M 
-          ON MO.C_AC = M.METHOD_AC
-        LEFT OUTER JOIN {0}.CV_DATABASE DB 
-          ON M.DBCODE = DB.DBCODE
-        LEFT OUTER JOIN INTERPRO.ENTRY2METHOD E2M 
-          ON MO.C_AC = E2M.METHOD_AC
-        LEFT OUTER JOIN INTERPRO.ENTRY E 
-          ON E2M.ENTRY_AC = E.ENTRY_AC
-        ORDER BY MO.N_PROT_OVER DESC, MO.N_OVER DESC, MO.C_AC
+    cur.execute(
+        """
+        SELECT MS.METHOD_AC2, MS.DBCODE2, MS.PROT_COUNT1, MS.PROT_COUNT2,
+               E.ENTRY_AC, E.ENTRY_TYPE, E.NAME, E.CHECKED,
+               MS.COLL_COUNT, MS.PROT_OVER_COUNT, MS.PROT_SIM,
+               MS.PROT_PRED, MS.RESI_PRED, MS.DESC_PRED, MS.TAXA_PRED, 
+               MS.TERM_PRED
+        FROM {}.METHOD_SIMILARITY MS
+        LEFT OUTER JOIN INTERPRO.ENTRY2METHOD EM
+          ON MS.METHOD_AC2 = EM.METHOD_AC
+        LEFT OUTER JOIN INTERPRO.ENTRY E
+          ON EM.ENTRY_AC = E.ENTRY_AC
+        WHERE MS.METHOD_AC1 = :acc
         """.format(app.config["DB_SCHEMA"]),
-        dict(accession=accession, overlap=overlap)
+        dict(acc=query_acc)
     )
 
     signatures = []
     for row in cur:
-        database = xref.find_ref(dbcode=row[1], ac=row[0])
+        target_acc = row[0]
+        target_dbcode = row[1]
+        query_count = row[2]
+        target_count = row[3]
+        entry_acc = row[4]
+        entry_type = row[5]
+        entry_name = row[6]
+        entry_checked = row[7] == 'Y'
+        colloc_cnt = row[8]
+        overlp_cnt = row[9]
+        similarity = row[10]
+        pred_prot = row[11]
+        pred_resi = row[12]
+        pred_desc = row[13]
+        pred_taxa = row[14]
+        pred_term = row[15]
 
+        if (colloc_cnt / query_count < min_colloc_sim
+                and colloc_cnt / target_count < min_colloc_sim):
+            continue
+
+        database = xref.find_ref(dbcode=target_dbcode, ac=target_acc)
         signatures.append({
             # Signature
-            "accession": row[0],
+            "accession": target_acc,
             "link": database.gen_link() if database else None,
 
             # Entry
             "entry": {
-                "accession": row[2],
-                "hierarchy": [],
-                "checked": row[3] == 'Y',
-                "type_code": row[4],
-                "name": row[5]
+                "accession": entry_acc,
+                "type_code": entry_type,
+                "name": entry_name,
+                "checked": entry_checked,
+                "hierarchy": []
             },
 
-            # number of proteins where query and candidate overlap
-            "n_proteins": row[6],
-
-            # number of matches where query and candidate overlap
-            "n_overlaps": row[7],
-
-            # number of proteins/matches for query and candidate
-            "query": {
-                "n_proteins": row[8],
-                "n_matches": row[9],
-            },
-            "candidate": {
-                "n_proteins": row[10],
-                "n_matches": row[11],
+            "proteins": target_count,
+            "common_proteins": colloc_cnt,
+            "overlap_proteins": overlp_cnt,
+            "predictions": {
+                "proteins": pred_prot,
+                "residues": pred_resi,
+                "descriptions": pred_desc,
+                "taxa": pred_taxa,
+                "terms": pred_term,
             },
 
-            # Predicted relationship
-            "relation": row[12]
+            # Will be removed later (used for sorting)
+            "_similarity": similarity,
         })
 
-    cur.execute(
-        """
-        SELECT ENTRY_AC, PARENT_AC
-        FROM INTERPRO.ENTRY2ENTRY
-        """
-    )
-    parent_of = dict(cur.fetchall())
     cur.close()
 
-    for s in signatures:
+    def _sort(s):
+        if s["entry"]["accession"] in ancestors:
+            return 0, -s["_similarity"], -s["overlap_proteins"]
+        elif s["entry"]["accession"] == query_entry:
+            return 1, -s["_similarity"], -s["overlap_proteins"]
+        elif s["entry"]["accession"] in descendants:
+            return 2, -s["_similarity"], -s["overlap_proteins"]
+        else:
+            return 3, -s["_similarity"], -s["overlap_proteins"]
+
+    results = []
+    for s in sorted(signatures, key=_sort):
+        del s["_similarity"]
+
         entry_acc = s["entry"]["accession"]
         if entry_acc:
             hierarchy = []
@@ -170,7 +246,9 @@ def get_signature_predictions(accession):
             # Transform child -> parent into parent -> child
             s["entry"]["hierarchy"] = hierarchy[::-1]
 
-    return jsonify(signatures)
+        results.append(s)
+
+    return jsonify(results), 200
 
 
 @app.route("/api/signature/<accession>/comments/")
@@ -216,7 +294,10 @@ def delete_signature_comment(accession, _id):
     if not user:
         return jsonify({
             "status": False,
-            "message": "Please log in to perform this action."
+            "error": {
+                "title": "Access denied",
+                "message": "Please log in to perform this action."
+            }
         }), 401
 
     con = db.get_oracle()
@@ -234,16 +315,16 @@ def delete_signature_comment(accession, _id):
         cur.close()
         return jsonify({
             "status": False,
-            "message": "Could not delete comment "
-                       "for {}: {}".format(accession, e)
-        }), 400
+            "error": {
+                "title": "Database error",
+                "message": "Could not delete comment "
+                           "for {}: {}".format(accession, e)
+            }
+        }), 500
     else:
         con.commit()
         cur.close()
-        return jsonify({
-            "status": True,
-            "message": None
-        }), 200
+        return jsonify({"status": True}), 200
 
 
 @app.route("/api/signature/<accession>/comment/", methods=["PUT"])
@@ -252,7 +333,10 @@ def add_signature_comment(accession):
     if not user:
         return jsonify({
             "status": False,
-            "message": "Please log in to perform this action."
+            "error": {
+                "title": "Access denied",
+                "message": "Please log in to perform this action."
+            }
         }), 401
 
     content = request.get_json()
@@ -260,8 +344,10 @@ def add_signature_comment(accession):
     if len(text) < 3:
         return jsonify({
             "status": False,
-            "message": "Comment too short (must be at least "
-                       "three characters long)."
+            "error": {
+                "message": "Comment too short (must be at least "
+                           "three characters long)."
+            }
         }), 400
 
     con = db.get_oracle()
@@ -289,16 +375,16 @@ def add_signature_comment(accession):
         cur.close()
         return jsonify({
             "status": False,
-            "message": "Could not add comment "
-                       "for {}: {}".format(accession, e)
-        }), 400
+            "error": {
+                "title": "Database error",
+                "message": "Could not add comment "
+                           "for {}: {}".format(accession, e)
+            }
+        }), 500
     else:
         con.commit()
         cur.close()
-        return jsonify({
-            "status": True,
-            "message": None
-        }), 200
+        return jsonify({"status": True}), 200
 
 
 @app.route("/api/signature/<accession>/matches/")
@@ -568,13 +654,13 @@ def get_signature_proteins(accession):
 
     cur.close()
     return jsonify({
-            "count": len(proteins),
-            "proteins": proteins,
-            "page_info": {
-                "page": 1,
-                "page_size": len(proteins)
-            }
-        })
+        "count": len(proteins),
+        "proteins": proteins,
+        "page_info": {
+            "page": 1,
+            "page_size": len(proteins)
+        }
+    })
 
 
 @app.route('/api/signature/<accession>/references/<go_id>/')
