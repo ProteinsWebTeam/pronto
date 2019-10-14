@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/semantic.min.css') }}" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
-    <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}">
+    <link rel="stylesheet" href="{{ config.PREFIX + url_for('static', filename='vendor/semantic.min.css') }}" />
+    <link rel="stylesheet" href="{{ config.PREFIX + url_for('static', filename='style.css') }}" />
+    <link rel="icon" href="{{ config.PREFIX + url_for('static', filename='favicon.png') }}">
     <title>Pronto</title>
 </head>
 <body>
@@ -22,7 +22,7 @@
                     </h3>
                     <p>
                         <span id="recent-integrations"></span>
-                        Display the <a href="/signatures/">integration recommendations</a>.
+                        Display the <a href="{{ config.PREFIX }}/signatures/">integration recommendations</a>.
                     </p>
 
                     <h3 class="ui dividing header">
@@ -53,7 +53,7 @@
                         <i class="play icon"></i>
                         Run
                     </button>
-                    <a class="ui compact basic button" href="/sanitychecks/settings/">
+                    <a class="ui compact basic button" href="{{ config.PREFIX }}/sanitychecks/settings/">
                         <i class="setting icon"></i>
                         Settings
                     </a>
@@ -65,9 +65,9 @@
     </div>
 </div>
 
-<script src="{{ url_for('static', filename='vendor/jquery.min.js') }}"></script>
-<script src="{{ url_for('static', filename='vendor/semantic.min.js') }}"></script>
-<script src="{{ url_for('static', filename='modules/index.js') }}" type="module"></script>
+<script src="{{ config.PREFIX + url_for('static', filename='vendor/jquery.min.js') }}"></script>
+<script src="{{ config.PREFIX + url_for('static', filename='vendor/semantic.min.js') }}"></script>
+<script src="{{ config.PREFIX + url_for('static', filename='modules/index.js') }}" type="module"></script>
 
 </body>
 </html>

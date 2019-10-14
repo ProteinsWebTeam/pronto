@@ -1,13 +1,14 @@
 import {dimmer, setClass, useWhiteText, toRGB} from '../../ui.js';
 import {finaliseHeader} from "../../header.js";
 import {selector, gradientPuBu, proteinViewer} from "../../signatures.js";
+import * as config from "../../config.js"
 
 function getTaxa(accessions) {
     dimmer(true);
     const url = new URL(location.href);
 
     const pathname = location.pathname.match(/(\/signatures\/.+\/)/)[1];
-    fetch("/api" + pathname + location.search)
+    fetch(config.PREFIX+"/api" + pathname + location.search)
         .then(response => response.json())
         .then(results => {
             // Update tab

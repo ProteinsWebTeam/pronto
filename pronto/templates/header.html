@@ -1,6 +1,6 @@
 <header class="ui noradius menu">
     <div class="ui container">
-        <a href="/" class="header item">
+        <a href="{{ config.PREFIX }}/" class="header item">
             Pronto!
         </a>
         <div class="item">
@@ -19,7 +19,7 @@
 
         <div class="right menu">
             <div class="item">
-                <form class="ui action input" action="/search/" method="get" role="search" autocomplete="off">
+                <form class="ui action input" action="{{ config.PREFIX }}/search/" method="get" role="search" autocomplete="off">
                     <input name="q" placeholder="Search&hellip;" type="text" value="">
                     <button class="ui basic icon button">
                         <i class="search icon"></i>

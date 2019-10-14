@@ -1,11 +1,12 @@
 import {finaliseHeader} from "../../header.js";
 import {dimmer, useWhiteText, toRGB} from '../../ui.js';
 import {selector, gradientPuBu, proteinViewer} from "../../signatures.js";
+import * as config from "../../config.js"
 
 function getDescriptions(accessions) {
     dimmer(true);
     const pathname = location.pathname.match(/(\/signatures\/.+\/)/)[1];
-    fetch("/api" + pathname + location.search)
+    fetch(config.PREFIX+"/api" + pathname + location.search)
         .then(response => response.json())
         .then(result => {
             // Find the highest protein count

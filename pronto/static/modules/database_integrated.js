@@ -2,11 +2,12 @@ import {finaliseHeader, nvl} from "../header.js"
 import * as ui from "../ui.js";
 import {checkEntry} from '../events.js';
 import {getSignatureComments, postSignatureComment} from "../comments.js";
+import * as config from "../config.js";
 
 function getSignatures() {
     ui.dimmer(true);
     const pathname = location.pathname.match(/(\/database\/.+\/)/)[1];
-    fetch("/api" + pathname + location.search)
+    fetch(config.PREFIX+"/api" + pathname + location.search)
         .then(response => response.json())
         .then(results => {
             if (!results.database) {
@@ -22,12 +23,12 @@ function getSignatures() {
             if (results.signatures.length) {
                 results.signatures.forEach(signature => {
                     html += '<tr data-id="'+ signature.accession +'">' +
-                        '<td><a href="/prediction/'+ signature.accession +'/">'+ signature.accession +'</a></td>';
+                        '<td><a href="'+config.PREFIX+'/prediction/'+ signature.accession +'/">'+ signature.accession +'</a></td>';
 
                     if (signature.entry !== null) {
                         html += '<td>'
                             + '<span class="ui circular mini label type-'+ signature.entry.type +'">'+ signature.entry.type +'</span>'
-                            + '<a href="/entry/'+ signature.entry.accession +'/">'+ signature.entry.accession +'</a>'
+                            + '<a href="'+config.PREFIX+'/entry/'+ signature.entry.accession +'/">'+ signature.entry.accession +'</a>'
                             + '</td>'
                             + '<td class="collapsing">'
                             + ui.renderCheckbox(signature.entry.accession, signature.entry.checked)

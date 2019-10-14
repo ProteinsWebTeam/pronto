@@ -1,11 +1,12 @@
 import {finaliseHeader} from "../../header.js";
 import {dimmer, renderCheckbox, toRGB, useWhiteText} from '../../ui.js';
 import {gradientPuBu, proteinViewer, selector} from "../../signatures.js";
+import * as config from "../../config.js"
 
 function getGoTerms(accessions) {
     dimmer(true);
     const pathname = location.pathname.match(/(\/signatures\/.+\/)/)[1];
-    fetch("/api" + pathname + location.search)
+    fetch(config.PREFIX+"/api" + pathname + location.search)
         .then(response => response.json())
         .then(result => {
             // Find the highest protein count
@@ -80,7 +81,7 @@ function getGoTerms(accessions) {
                     const goID = e.target.getAttribute('data-ref-id');
                     const accession = e.target.getAttribute('data-ref-ac');
                     dimmer(true);
-                    fetch('/api/signature/' + accession + '/references/' + goID +'/')
+                    fetch(config.PREFIX+'/api/signature/' + accession + '/references/' + goID +'/')
                         .then(response => response.json())
                         .then(references => {
 
