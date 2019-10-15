@@ -67,7 +67,7 @@ $(function () {
                 // Direct hit from Pronto API
                 const form = document.createElement("form");
                 form.name = "nevergonnagiveyouup";  // ;)
-                form.action = "/" + result.hit.type + "/" + result.hit.accession + "/";
+                form.action = config.PREFIX + "/" + result.hit.type + "/" + result.hit.accession + "/";
                 document.body.appendChild(form);
                 document.nevergonnagiveyouup.submit();
             } else {
