@@ -66,7 +66,7 @@ def check_user(username, password):
 @app.route("/login/", methods=["GET", "POST"])
 def login():
     if get_user():
-        return redirect(app.config.PREFIX + url_for("index"))
+        return redirect(app.config['PREFIX'] + url_for("index"))
     elif request.method == "GET":
         return render_template("login.html", referrer=request.referrer)
     else:
@@ -77,14 +77,14 @@ def login():
         if user and user["active"] and user["status"]:
             session.permanent = True
             session["user"] = user
-            return redirect(request.args.get("next", app.config.PREFIX + url_for("index")))
+            return redirect(request.args.get("next", app.config['PREFIX'] + url_for("index")))
         else:
             print(request.args.get("next", url_for("index")))
             return render_template(
                 "login.html",
                 username=username,
                 error="Wrong username or password.",
-                referrer=request.args.get("next", app.config.PREFIX + url_for("index"))
+                referrer=request.args.get("next", app.config['PREFIX'] + url_for("index"))
             )
 
 
