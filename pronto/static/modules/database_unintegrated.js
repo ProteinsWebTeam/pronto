@@ -1,7 +1,5 @@
 import {finaliseHeader} from "../header.js";
 import * as ui from "../ui.js";
-import * as config from "../config.js"
-
 
 function getFilter() {
     return new URL(location.href).pathname.match(/^.*\/([^/]+)\/?$/)[1];
@@ -19,9 +17,9 @@ function renderCell(targets) {
     targets.forEach(t => {
         html += '<div class="item">'
             + '<div class="content">'
-            + '<a href="'+config.PREFIX+'/prediction/'+ t.accession +'/">'+ t.accession +'</a>'
+            + '<a href="'+URL_PREFIX+'/prediction/'+ t.accession +'/">'+ t.accession +'</a>'
             + (
-                t.entry.accession === null ? '' : '&nbsp;<span class="ui circular mini label type-'+ t.entry.type +'">'+ t.entry.type +'</span><a href="'+config.PREFIX+'/entry/'+ t.entry.accession +'/">'+ t.entry.accession +'</a>'
+                t.entry.accession === null ? '' : '&nbsp;<span class="ui circular mini label type-'+ t.entry.type +'">'+ t.entry.type +'</span><a href="'+URL_PREFIX+'/entry/'+ t.entry.accession +'/">'+ t.entry.accession +'</a>'
             )
             + '</div>'
             + '</div>'
@@ -33,7 +31,7 @@ function renderCell(targets) {
 function getSignatures() {
     ui.dimmer(true);
     const pathname = location.pathname.match(/(\/database\/.+\/)/)[1];
-    fetch(config.PREFIX+"/api" + pathname + location.search)
+    fetch(URL_PREFIX+"/api" + pathname + location.search)
         .then(response => response.ok ? response.json() : null)
         .then(response => {
             if (response === null)
@@ -58,7 +56,7 @@ function getSignatures() {
                     });
 
                     html += '<tr>'
-                        + '<td><a href="'+config.PREFIX+'/prediction/'+ query.accession +'/">'+ query.accession +'</a></td>'
+                        + '<td><a href="'+URL_PREFIX+'/prediction/'+ query.accession +'/">'+ query.accession +'</a></td>'
                         + '<td class="nowrap">' + renderCell(columns['S']) + '</td>'
                         + '<td class="nowrap">' + renderCell(columns['R']) + '</td>'
                         + '<td class="nowrap">' + renderCell(columns['P']) + '</td>'

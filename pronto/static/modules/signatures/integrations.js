@@ -1,11 +1,10 @@
 import {finaliseHeader} from "../../header.js";
 import * as ui from "../../ui.js";
 import {getSignatureComments, postSignatureComment} from "../../comments.js";
-import * as config from "../../config.js"
 
 function getSignatures() {
     ui.dimmer(true);
-    fetch(config.PREFIX+'/api/signatures/' + location.search)
+    fetch(URL_PREFIX+'/api/signatures/' + location.search)
         .then(response => response.json())
         .then(response => {
             ui.dimmer(false);
@@ -16,7 +15,7 @@ function getSignatures() {
                 const rowspan = s.predictions.length;
                 html += '<tr>'
                     + '<td rowspan="'+rowspan+'">'
-                    + '<a href="'+config.PREFIX+'/prediction/'+s.accession+'/" class="ui label" style="background-color: '+s.color+'!important;color: #fff;">'+ s.accession +'</a>'
+                    + '<a href="'+URL_PREFIX+'/prediction/'+s.accession+'/" class="ui label" style="background-color: '+s.color+'!important;color: #fff;">'+ s.accession +'</a>'
                     + '</td>'
                     + '<td rowspan="'+rowspan+'" class="collapsing"><a target="_blank" href="'+s.link+'"><i class="fitted external icon"></i></a></td>'
                     + '<td rowspan="'+ rowspan +'" class="collapsing"><a data-comment="'+ s.accession +'" class="ui basic label"><i class="comments icon"></i>&nbsp;<span>'+ s.comments +'</span></a></td>'
@@ -26,11 +25,11 @@ function getSignatures() {
                     if (i) html += '<tr>';
 
                     html += '<td class="nowrap">'
-                        + '<a href="'+config.PREFIX+'/prediction/'+ p.accession +'/">'+p.accession+'</a>'
+                        + '<a href="'+URL_PREFIX+'/prediction/'+ p.accession +'/">'+p.accession+'</a>'
                         + (p.residues ? '&nbsp;<i class="yellow fitted star icon"></i>' : '')
                         + '</td>'
                         + '<td class="collapsing">'+ p.proteins.toLocaleString() +'</td>'
-                        + '<td><span class="ui circular mini label type-'+p.entry.type+'">'+p.entry.type+'</span><a href="'+config.PREFIX+'/entry/'+ p.entry.accession +'/">'+ p.entry.accession + '&nbsp;('+ p.entry.name +')</a></td>'
+                        + '<td><span class="ui circular mini label type-'+p.entry.type+'">'+p.entry.type+'</span><a href="'+URL_PREFIX+'/entry/'+ p.entry.accession +'/">'+ p.entry.accession + '&nbsp;('+ p.entry.name +')</a></td>'
                         + '<td class="collapsing">'+ p.collocations.toLocaleString() +'</td>'
                         + '<td class="collapsing">'+ p.overlaps.toLocaleString() +'</td>'
                         + '</tr>';
@@ -75,7 +74,7 @@ function getSignatures() {
 
 
 function getDatabases(dbcode) {
-    fetch(config.PREFIX+'/api/databases/')
+    fetch(URL_PREFIX+'/api/databases/')
         .then(response => response.json())
         .then(databases => {
             /*

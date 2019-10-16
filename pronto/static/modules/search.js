@@ -1,6 +1,5 @@
 import {finaliseHeader} from "../header.js"
 import * as ui from "../ui.js";
-import * as config from "../config.js"
 
 function callEBISearch(query, page, pageSize) {
     const url = new URL("https://www.ebi.ac.uk/ebisearch/ws/rest/interpro7");
@@ -23,7 +22,7 @@ function callEBISearch(query, page, pageSize) {
                     html += '<tr>'
                         + '<td>'
                         + '<span class="ui tiny circular label type-'+ type +'">'+ type +'</span>'
-                        + '<a href="'+config.PREFIX+'/'+ (database.toLowerCase() === "interpro" ? "entry" : "prediction") +'/'+ accession +'/">'+ accession +'</a>'
+                        + '<a href="'+URL_PREFIX+'/'+ (database.toLowerCase() === "interpro" ? "entry" : "prediction") +'/'+ accession +'/">'+ accession +'</a>'
                         + '</td>'
                         + '<td>'+ database +'</td>'
                         + '<td>'+ name +'</td>'
@@ -60,14 +59,14 @@ $(function () {
 
     finaliseHeader();
     ui.dimmer(true);
-    fetch(config.PREFIX+"/api/search/" + location.search)
+    fetch(URL_PREFIX+"/api/search/" + location.search)
         .then(response => response.json())
         .then(result => {
             if (result.hit !== null) {
                 // Direct hit from Pronto API
                 const form = document.createElement("form");
                 form.name = "nevergonnagiveyouup";  // ;)
-                form.action = config.PREFIX + "/" + result.hit.type + "/" + result.hit.accession + "/";
+                form.action = URL_PREFIX + "/" + result.hit.type + "/" + result.hit.accession + "/";
                 document.body.appendChild(form);
                 document.nevergonnagiveyouup.submit();
             } else {

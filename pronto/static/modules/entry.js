@@ -1,7 +1,6 @@
 import * as ui from "../ui.js";
 import {finaliseHeader, nvl} from "../header.js";
 import {getEntryComments, postEntryComment} from "../comments.js";
-import * as config from "../config.js"
 
 const annotationEditor = {
     element: null,
@@ -91,7 +90,7 @@ const annotationEditor = {
         this.reset();
     },
     reorder: function(accession, annID, x) {
-        fetch(config.PREFIX+'/api/entry/' + accession + '/annotation/' + annID + '/order/' + x + '/', { method: 'POST' })
+        fetch(URL_PREFIX+'/api/entry/' + accession + '/annotation/' + annID + '/order/' + x + '/', { method: 'POST' })
             .then(response => response.json())
             .then(result => {
                 if (result.status)
@@ -106,7 +105,7 @@ const annotationEditor = {
             'This annotation will not be associated to <strong>' + accession + '</strong> any more.',
             'Unlink',
             () => {
-                fetch(config.PREFIX+'/api/entry/' + accession + '/annotation/' + annID + '/', {method: 'DELETE'})
+                fetch(URL_PREFIX+'/api/entry/' + accession + '/annotation/' + annID + '/', {method: 'DELETE'})
                     .then(response => response.json())
                     .then(result => {
                         if (result.status)
@@ -123,7 +122,7 @@ const annotationEditor = {
             'Do you want to to delete this annotation?',
             'Delete',
             () => {
-                fetch(config.PREFIX+'/api/annotation/' + annID + '/', {method: 'DELETE'})
+                fetch(URL_PREFIX+'/api/annotation/' + annID + '/', {method: 'DELETE'})
                     .then(response => response.json())
                     .then(result => {
 
@@ -169,7 +168,7 @@ const annotationEditor = {
         };
 
         // Update annotation
-        fetch(config.PREFIX+'/api/annotation/' + annID + '/', options)
+        fetch(URL_PREFIX+'/api/annotation/' + annID + '/', options)
             .then(response => response.json())
             .then(result => {
                 if (result.status)
@@ -196,7 +195,7 @@ function integrateSignature(entryAcc, signatureAcc, moveIfIntegrated) {
     if (moveIfIntegrated)
         options.body = 'confirm';
 
-    fetch(config.PREFIX+'/api/entry/' + entryAcc + '/signature/' + signatureAcc + '/', options)
+    fetch(URL_PREFIX+'/api/entry/' + entryAcc + '/signature/' + signatureAcc + '/', options)
         .then(response => response.json())
         .then(result => {
             if (!result.status)
@@ -208,7 +207,7 @@ function integrateSignature(entryAcc, signatureAcc, moveIfIntegrated) {
                 */
                 const modal = document.getElementById('message-info');
                 modal.querySelector('.header').innerHTML = 'Entry unchecked';
-                modal.querySelector('.content').innerHTML = '<p><strong><a href="'+config.PREFIX+'/entry/'+ result.entry +'/">'+ result.entry +'</a></strong> has been unchecked because it does not have any signatures left.</p>';
+                modal.querySelector('.content').innerHTML = '<p><strong><a href="'+URL_PREFIX+'/entry/'+ result.entry +'/">'+ result.entry +'</a></strong> has been unchecked because it does not have any signatures left.</p>';
                 $(modal)
                     .modal({
                         closable: false,
@@ -220,7 +219,7 @@ function integrateSignature(entryAcc, signatureAcc, moveIfIntegrated) {
                     .modal('show');
             } else if (result.entry) {
                 // Signature already integrated: ask for confirmation
-                let content = '<strong>' + result.signature + '</strong> is integrated in <strong><a href="'+config.PREFIX+'/entry/'+ result.entry+'/">'+ result.entry +'</a></strong>';
+                let content = '<strong>' + result.signature + '</strong> is integrated in <strong><a href="'+URL_PREFIX+'/entry/'+ result.entry+'/">'+ result.entry +'</a></strong>';
 
                 if (result.unirule)
                     content += ', <strong>which is used by UniRule</strong>';
@@ -243,7 +242,7 @@ function integrateSignature(entryAcc, signatureAcc, moveIfIntegrated) {
 }
 
 function linkAnnotation(accession, annID) {
-    return fetch(config.PREFIX+'/api/entry/' + accession + '/annotation/' + annID + '/', { method: 'PUT' })
+    return fetch(URL_PREFIX+'/api/entry/' + accession + '/annotation/' + annID + '/', { method: 'PUT' })
         .then(response => response.json())
 }
 
@@ -262,7 +261,7 @@ function addHighlightEvenListeners(div) {
 
 function addGoTerm(accession, termID) {
     return new Promise(((resolve, reject) => {
-        return fetch(config.PREFIX+'/api/entry/' + accession + '/go/' + termID + '/', {method: 'PUT'})
+        return fetch(URL_PREFIX+'/api/entry/' + accession + '/go/' + termID + '/', {method: 'PUT'})
             .then(response => response.json())
             .then(result => {
                 if (result.status) {
@@ -275,7 +274,7 @@ function addGoTerm(accession, termID) {
 }
 
 function getSupplReferences(accession) {
-    return fetch(config.PREFIX+'/api/entry/' + accession + '/references/')
+    return fetch(URL_PREFIX+'/api/entry/' + accession + '/references/')
         .then(response => response.json())
         .then(references => {
             let html = '';
@@ -323,7 +322,7 @@ function getSupplReferences(accession) {
                         'This reference will not be associated to this entry any more.',
                         'Delete',
                         () => {
-                            fetch(config.PREFIX+'/api/entry/' + accession + '/reference/' + pubID + '/', {method: 'DELETE'})
+                            fetch(URL_PREFIX+'/api/entry/' + accession + '/reference/' + pubID + '/', {method: 'DELETE'})
                                 .then(response => response.json())
                                 .then(result => {
                                     if (result.status)
@@ -342,7 +341,7 @@ function getSupplReferences(accession) {
 function getAnnotations(accession) {
     getSupplReferences(accession).then(() => { $('.ui.sticky').sticky(); });
 
-    return fetch(config.PREFIX+'/api/entry/' + accession + '/annotations/')
+    return fetch(URL_PREFIX+'/api/entry/' + accession + '/annotations/')
         .then(response => response.json())
         .then(results => {
             const previewMode = $('.ui.toggle.checkbox').checkbox('is checked');
@@ -526,7 +525,7 @@ function getAnnotations(accession) {
                     } else if (action === 'cancel')
                         annotationEditor.close();
                     else if (action === 'list') {
-                        fetch(config.PREFIX+'/api/annotation/' + annID + '/entries/')
+                        fetch(URL_PREFIX+'/api/annotation/' + annID + '/entries/')
                             .then(response => response.json())
                             .then(entries => {
                                 let html = '<table class="ui very basic table"><tbody>';
@@ -535,7 +534,7 @@ function getAnnotations(accession) {
                                         '<td class="collapsing">' +
                                         '<span class="ui label circular type-'+ e.type +'">'+ e.type +'</span>' +
                                         '</td>'
-                                        + '<td><a href="'+config.PREFIX+'/entry/'+ e.accession +'/">'+ e.accession +'</a></td>'
+                                        + '<td><a href="'+URL_PREFIX+'/entry/'+ e.accession +'/">'+ e.accession +'</a></td>'
                                         + '<td>'+ e.name +'</td></tr>';
 
                                 });
@@ -553,7 +552,7 @@ function getAnnotations(accession) {
 }
 
 function getGOTerms(accession) {
-    return fetch(config.PREFIX+'/api/entry/' + accession + '/go/')
+    return fetch(URL_PREFIX+'/api/entry/' + accession + '/go/')
         .then(response => response.json())
         .then(terms => {
             // Stats
@@ -568,7 +567,7 @@ function getGOTerms(accession) {
 }
 
 function getRelationships(accession) {
-    return fetch(config.PREFIX+'/api/entry/' + accession + '/relationships/')
+    return fetch(URL_PREFIX+'/api/entry/' + accession + '/relationships/')
         .then(response => response.json())
         .then(relationships => {
             const nest = function(obj, isRoot, accession) {
@@ -590,7 +589,7 @@ function getRelationships(accession) {
                         if (node.accession === accession)
                             html += node.name + ' (' + node.accession + ')';
                         else {
-                            html += '<a href="'+config.PREFIX+'/entry/' + node.accession + '/">' + node.name + ' (' + node.accession + ')</a>';
+                            html += '<a href="'+URL_PREFIX+'/entry/' + node.accession + '/">' + node.name + ' (' + node.accession + ')</a>';
 
                             if (node.deletable)
                                 html += '<i data-id="'+ node.accession +'" class="right floated unlinkify button icon"></i>';
@@ -628,7 +627,7 @@ function getRelationships(accession) {
                         '<strong>' + accession + '</strong> and <strong>'+ accession2 +'</strong> will not be related any more.',
                         'Delete',
                         () => {
-                            fetch(config.PREFIX+'/api/entry/' + accession + '/relationship/' + accession2 + '/', {method: 'DELETE'})
+                            fetch(URL_PREFIX+'/api/entry/' + accession + '/relationship/' + accession2 + '/', {method: 'DELETE'})
                                 .then(response => response.json())
                                 .then(result => {
                                     if (result.status)
@@ -644,7 +643,7 @@ function getRelationships(accession) {
 }
 
 function getSignatures(accession) {
-    return fetch(config.PREFIX+'/api/entry/' + accession + '/signatures/')
+    return fetch(URL_PREFIX+'/api/entry/' + accession + '/signatures/')
         .then(response => response.json())
         .then(signatures => {
             // Stats
@@ -660,7 +659,7 @@ function getSignatures(accession) {
                 // Links to comparison pages
                 Array.from(document.querySelectorAll('a[data-signatures-page]')).forEach(elem => {
                     const page = elem.getAttribute('data-signatures-page');
-                    elem.href = config.PREFIX+'/signatures/' + accessions + '/' + page + '/';
+                    elem.href = URL_PREFIX+'/signatures/' + accessions + '/' + page + '/';
                 });
 
                 signatures.forEach(s => {
@@ -674,7 +673,7 @@ function getSignatures(accession) {
                         + '</a>'
                         + '</td>'
                         + '<td>'
-                        + '<a href="'+config.PREFIX+'/prediction/'+ s.accession +'/">'+ s.accession +'</a>'
+                        + '<a href="'+URL_PREFIX+'/prediction/'+ s.accession +'/">'+ s.accession +'</a>'
                         + '</td>'
                         + '<td>'+ s.name +'</td>'
                         + '<td class="right aligned">'+ s.num_uniprot.toLocaleString() +'</td>'
@@ -713,7 +712,7 @@ function getSignatures(accession) {
                         message,
                         'Unintegrate',
                         () => {
-                            fetch(config.PREFIX+'/api/entry/' + accession + '/signature/' + signatureAcc + '/', {method: 'DELETE'})
+                            fetch(URL_PREFIX+'/api/entry/' + accession + '/signature/' + signatureAcc + '/', {method: 'DELETE'})
                                 .then(response => response.json())
                                 .then(result => {
                                     const msg = document.querySelector('#signatures .ui.message');
@@ -787,7 +786,7 @@ function renderGoTerms(terms, div, accession) {
                 '<strong>' + termID + '</strong> will not be associated to <strong>'+ accession +'</strong> any more.',
                 'Delete',
                 () => {
-                    fetch(config.PREFIX+'/api/entry/' + accession + '/go/' + termID + '/', {method: 'DELETE'})
+                    fetch(URL_PREFIX+'/api/entry/' + accession + '/go/' + termID + '/', {method: 'DELETE'})
                         .then(response => response.json())
                         .then(result => {
                             if (result.status)
@@ -898,7 +897,7 @@ const entryEditor = {
             return self.ssave(options);
     },
     ssave: function (options) {
-        return fetch(config.PREFIX+'/api/entry/' + this.accession + '/', options)
+        return fetch(URL_PREFIX+'/api/entry/' + this.accession + '/', options)
             .then(response => response.json())
             .then(result => {
                 if (!result.status) {
@@ -927,7 +926,7 @@ const entryEditor = {
             html,
             'Delete',
             () => {
-                fetch(config.PREFIX+'/api/entry/' + accession + '/', {method: 'DELETE'})
+                fetch(URL_PREFIX+'/api/entry/' + accession + '/', {method: 'DELETE'})
                     .then(response => response.json())
                     .then(result => {
                         if (result.status) {
@@ -959,7 +958,7 @@ function escapeXmlTags(text) {
 }
 
 function getEntry(accession) {
-    fetch(config.PREFIX+'/api/entry/' + accession + '/')
+    fetch(URL_PREFIX+'/api/entry/' + accession + '/')
         .then(response => {
             if (response.status === 200)
                 return response.json();
@@ -1089,7 +1088,7 @@ $(function () {
                             body: 'text=' + modal.querySelector('textarea').value
                         };
 
-                        fetch(config.PREFIX+'/api/annotation/', options)
+                        fetch(URL_PREFIX+'/api/annotation/', options)
                             .then(response => response.json())
                             .then(result => {
                                 if (result.status) {
@@ -1126,7 +1125,7 @@ $(function () {
     // Event to list signatures annotations
     (function () {
         document.getElementById('signatures-annotations').addEventListener('click', e => {
-            fetch(config.PREFIX+'/api/entry/' + accession + '/signatures/annotations/')
+            fetch(URL_PREFIX+'/api/entry/' + accession + '/signatures/annotations/')
                 .then(response => response.json())
                 .then(results => {
                     const signatures = new Map();
@@ -1135,7 +1134,7 @@ $(function () {
                         results.forEach(s => {
                             signatures.set(s.accession, s.text);
                             html += '<div class="ui top attached mini menu">'
-                                + '<a href="'+config.PREFIX+'/prediction/'+ s.accession +'/" class="header item">'+ s.accession +'</a>';
+                                + '<a href="'+URL_PREFIX+'/prediction/'+ s.accession +'/" class="header item">'+ s.accession +'</a>';
 
                             if (s.name)
                                 html += '<span class="item">'+ s.name +'</span>';
@@ -1177,7 +1176,7 @@ $(function () {
                             const msg = menu.querySelector('.item.message');
                             ui.setClass(btn, 'disabled', true);
 
-                            fetch(config.PREFIX+'/api/annotation/', options)
+                            fetch(URL_PREFIX+'/api/annotation/', options)
                                 .then(response => response.json())
                                 .then(result => {
                                     /*
@@ -1231,7 +1230,7 @@ $(function () {
                 const annotations = new Set(Array.from(document.querySelectorAll('.annotation')).map(elem => elem.getAttribute('id')));
 
                 ui.dimmer(true);
-                fetch(config.PREFIX+'/api/annotation/search/?q=' + query)
+                fetch(URL_PREFIX+'/api/annotation/search/?q=' + query)
                     .then(response => response.json())
                     .then(result => {
                         let html = '';
@@ -1274,7 +1273,7 @@ $(function () {
                         Array.from(modal.querySelectorAll('.content .ui.bottom.menu > a')).forEach(elem => {
                             elem.addEventListener('click', e => {
                                 const annID = e.target.closest('[data-annid]').getAttribute('data-annid');
-                                fetch(config.PREFIX+'/api/annotation/' + annID + '/entries/')
+                                fetch(URL_PREFIX+'/api/annotation/' + annID + '/entries/')
                                     .then(response => response.json())
                                     .then(entries => {
                                         let html = '<table class="ui very basic table"><tbody>';
@@ -1283,7 +1282,7 @@ $(function () {
                                                 '<td class="collapsing">' +
                                                 '<span class="ui label circular type-'+ e.type +'">'+ e.type +'</span>' +
                                                 '</td>'
-                                                + '<td><a href="'+config.PREFIX+'/entry/'+ e.accession +'/">'+ e.accession +'</a></td>'
+                                                + '<td><a href="'+URL_PREFIX+'/entry/'+ e.accession +'/">'+ e.accession +'</a></td>'
                                                 + '<td>'+ e.name +'</td></tr>';
 
                                         });
@@ -1383,7 +1382,7 @@ $(function () {
                 else
                     url = '/api/entry/' + accession + '/child/' + fields.accession.trim() + '/';
 
-                fetch(config.PREFIX+url, {method: 'PUT'})
+                fetch(URL_PREFIX+url, {method: 'PUT'})
                     .then(response => response.json())
                     .then(result => {
                         const msg = document.querySelector('#relationships .ui.error.message');
@@ -1438,7 +1437,7 @@ $(function () {
         on: 'submit',
         fields: { pmid: 'integer' },
         onSuccess: function (event, fields) {
-            return fetch(config.PREFIX+'/api/entry/' + accession + '/reference/' + fields.pmid.trim() + '/', { method: 'PUT' })
+            return fetch(URL_PREFIX+'/api/entry/' + accession + '/reference/' + fields.pmid.trim() + '/', { method: 'PUT' })
                 .then(response => response.json())
                 .then(result => {
                     if (result.status) {

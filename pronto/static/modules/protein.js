@@ -1,6 +1,5 @@
 import * as ui from "../ui.js";
 import {finaliseHeader} from "../header.js";
-import * as config from "../config.js";
 
 // Global variables for SVG
 const matchHeight = 10;
@@ -118,7 +117,7 @@ function renderFeatures(svgWidth, rectWidth, proteinLength, features, multiLine 
         });
 
         if (labelLink)
-            html += '<text class="label" x="' + (rectWidth + 10) + '" y="'+ (y + matchHeight / 2) +'"><a href="'+config.PREFIX+'/prediction/'+ feature.accession +'/">'+ feature.accession +'</a></text>';
+            html += '<text class="label" x="' + (rectWidth + 10) + '" y="'+ (y + matchHeight / 2) +'"><a href="'+URL_PREFIX+'/prediction/'+ feature.accession +'/">'+ feature.accession +'</a></text>';
         else
             html += '<text class="label" x="' + (rectWidth + 10) + '" y="'+ (y + matchHeight / 2) +'">'+ feature.accession +'</text>';
 
@@ -196,7 +195,7 @@ $(function () {
     finaliseHeader();
 
     const proteinAcc = location.pathname.match(/\/protein\/([a-z0-9]+)\/$/i)[1];
-    fetch(config.PREFIX+"/api/protein/" + proteinAcc + "/")
+    fetch(URL_PREFIX+"/api/protein/" + proteinAcc + "/")
         .then(response => {
             ui.dimmer(false);
             if (response.status === 200)
@@ -263,7 +262,7 @@ $(function () {
                 entries.forEach(entry => {
                     html += '<h3 class="ui header">'
                         + '<span class="ui tiny type-'+ entry.type_code +' circular label">'+ entry.type_code +'</span>&nbsp;'
-                        + '<a href="'+config.PREFIX+'/entry/'+ entry.accession +'/">'+ entry.accession +'</a>'
+                        + '<a href="'+URL_PREFIX+'/entry/'+ entry.accession +'/">'+ entry.accession +'</a>'
                         + '<div class="sub header">'+ entry.name +'</div>'
                         + '</h3>';
 
