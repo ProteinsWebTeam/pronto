@@ -29,7 +29,7 @@ export function postEntryComment(accession, text) {
 }
 
 function getComments(type, accession, max, div, callback) {
-    const url = new URL("/api/"+ type +"/" + accession + "/comments/", location.origin);
+    const url = new URL("/api/"+ type +"/" + accession + "/comments/");
     if (max)
         url.searchParams.set("max", max);
 
