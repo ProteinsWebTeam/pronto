@@ -100,7 +100,8 @@ function getPredictions(accession) {
 
             document.getElementById('predictions-count').innerHTML = signatures.length.toLocaleString();
 
-            signatures.forEach(s => {
+            if (signatures.length) {
+                signatures.forEach(s => {
                 const circles = '<div class="ui tiny circular labels">'
                     + '<span data-key="proteins" class="ui '+ PREDICTIONS.get(s.predictions['proteins']).color +' label"></span>'
                     + '<span data-key="descriptions" data-accession="'+ s.accession +'" class="ui '+ PREDICTIONS.get(s.predictions['descriptions']).color +' label"></span>'
@@ -153,8 +154,9 @@ function getPredictions(accession) {
                     html += '<td></td><td></td>';
 
                 html += '</tr>';
-
             });
+            } else
+                html += '<tr><td colspan="10" class="center aligned">No predictions found for this signature</td></tr>';
 
             document.querySelector("#table-predictions tbody").innerHTML = html;
 
