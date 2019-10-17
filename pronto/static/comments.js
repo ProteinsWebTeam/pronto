@@ -29,11 +29,11 @@ export function postEntryComment(accession, text) {
 }
 
 function getComments(type, accession, max, div, callback) {
-    const url = new URL("/api/"+ type +"/" + accession + "/comments/");
+    const url = new URL(URL_PREFIX+"/api/"+ type +"/" + accession + "/comments/", location.origin);
     if (max)
         url.searchParams.set("max", max);
 
-    fetch(URL_PREFIX+url.toString())
+    fetch(url.toString())
         .then(response => response.json())
         .then(result => {
             const sub = div.querySelector('.ui.header .sub');
