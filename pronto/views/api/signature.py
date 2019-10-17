@@ -219,14 +219,15 @@ def get_signature_predictions(query_acc):
     cur.close()
 
     def _sort(s):
-        if s["entry"]["accession"] in ancestors:
-            return 0, -s["_similarity"], -s["overlap_proteins"]
-        elif s["entry"]["accession"] == query_entry:
-            return 1, -s["_similarity"], -s["overlap_proteins"]
-        elif s["entry"]["accession"] in descendants:
-            return 2, -s["_similarity"], -s["overlap_proteins"]
-        else:
-            return 3, -s["_similarity"], -s["overlap_proteins"]
+        if s["entry"]["accession"]:
+            if s["entry"]["accession"] in ancestors:
+                return 0, -s["_similarity"], -s["overlap_proteins"]
+            elif s["entry"]["accession"] == query_entry:
+                return 1, -s["_similarity"], -s["overlap_proteins"]
+            elif s["entry"]["accession"] in descendants:
+                return 2, -s["_similarity"], -s["overlap_proteins"]
+
+        return 3, -s["_similarity"], -s["overlap_proteins"]
 
     results = []
     for s in sorted(signatures, key=_sort):
