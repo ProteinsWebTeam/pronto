@@ -102,11 +102,6 @@ function getProteins() {
                         + '</td>'
                         + '<td class="nowrap"><a target="_blank" href="'+ signature.link +'">'+ signature.name +'<i class="external icon"></i></a></td>';
 
-                    if (signature.candidate)
-                        html += '<td><i class="checkmark box icon"></i></td>';
-                    else
-                        html += '<td></td>';
-
                     // Matches
                     const svgWidth = 700;
                     const paddingLeft = 5;

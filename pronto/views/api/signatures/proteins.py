@@ -316,7 +316,7 @@ def get_overlapping_proteins(accessions_str):
             """
             SELECT 
               P.PROTEIN_AC, P.DBCODE, P.LEN, E.FULL_NAME, 
-              D.TEXT, MA.METHOD_AC, ME.NAME, ME.CANDIDATE, ME.DBCODE,
+              D.TEXT, MA.METHOD_AC, ME.NAME, ME.DBCODE,
               EM.ENTRY_AC, MA.POS_FROM, MA.POS_TO, MA.FRAGMENTS
             FROM {0}.PROTEIN P
             INNER JOIN {0}.ETAXI E 
@@ -368,21 +368,20 @@ def get_overlapping_proteins(accessions_str):
             if signature_acc in p["signatures"]:
                 s = p["signatures"][signature_acc]
             else:
-                database = xref.find_ref(row[8], signature_acc)
+                database = xref.find_ref(row[7], signature_acc)
                 s = p["signatures"][signature_acc] = {
                     "accession": signature_acc,
                     "name": row[6],
-                    "candidate": row[7] == 'Y',
                     "link": database.gen_link(),
                     "color": database.color,
-                    "integrated": row[9],
+                    "integrated": row[8],
                     "matches": [],
                     "active": signature_acc in signatures
                 }
 
             fragments = []
-            if row[12] is not None:
-                for f in row[12].split(','):
+            if row[11] is not None:
+                for f in row[11].split(','):
                     pos_start, pos_end, _ = f.split('-')
                     pos_start = int(pos_start)
                     pos_end = int(pos_end)
@@ -394,7 +393,7 @@ def get_overlapping_proteins(accessions_str):
                 # Sort discontinuous fragments (in case they are not sorted in DB)
                 fragments.sort(key=lambda x: (x["start"], x["end"]))
             else:
-                fragments.append({"start": row[10], "end": row[11]})
+                fragments.append({"start": row[9], "end": row[10]})
 
             s["matches"].append(fragments)
 
