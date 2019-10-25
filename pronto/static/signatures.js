@@ -158,14 +158,14 @@ export const proteinViewer = {
             let url;
 
             if (mode === "common") {
-                url = new URL(URL_PREFIX + "/api/signatures/" + accessions.join('/') + suffixURL);
+                url = new URL(URL_PREFIX + "/api/signatures/" + accessions.join('/') + suffixURL, location.origin);
                 setClass(self.modal.querySelector('.actions'), 'hidden', true);
             } else if (mode === "matches") {
                 setClass(self.modal.querySelector('.actions'), 'hidden', false);
-                url = new URL(URL_PREFIX + "/api/signature/" + accessions[0] + "/matches/");
+                url = new URL(URL_PREFIX + "/api/signature/" + accessions[0] + "/matches/", location.origin);
             } else {
                 setClass(self.modal.querySelector('.actions'), 'hidden', false);
-                url = new URL(URL_PREFIX + "/api/signature/" + accessions[0] + "/proteins/");
+                url = new URL(URL_PREFIX + "/api/signature/" + accessions[0] + "/proteins/", location.origin);
             }
 
             self.accession = accessions[0];
