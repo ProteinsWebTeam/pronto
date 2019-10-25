@@ -434,6 +434,8 @@ def get_signature_matches(accession):
     if dbcode not in ("S", "T"):
         dbcode = None
 
+    reviewed_first = request.args.get("reviewedfirst") is not None
+
     go_id = request.args.get("go")
     ec_no = request.args.get("ec")
     search = request.args.get("search", "").strip()
@@ -483,13 +485,17 @@ def get_signature_matches(accession):
               SELECT A.*, ROWNUM RN
               FROM (
                 {1}
-                ORDER BY PROTEIN_AC
+                ORDER BY {2}
               ) A
               WHERE ROWNUM <= :max_row
           )
           WHERE RN > :min_row
         ) AND M.METHOD_AC = :acc
-        """.format(app.config["DB_SCHEMA"], query),
+        """.format(
+            app.config["DB_SCHEMA"],
+            query,
+            "DBCODE, PROTEIN_AC" if reviewed_first else "PROTEIN_AC"
+        ),
         params
     )
 
@@ -542,14 +548,23 @@ def get_signature_matches(accession):
     for p in proteins.values():
         p["matches"].sort(key=lambda x: x[0]["start"])
 
+    fn = _key_review_status if reviewed_first else _key_accession
     return jsonify({
         "count": n_proteins,
-        "proteins": sorted(proteins.values(), key=lambda x: x["accession"]),
+        "proteins": sorted(proteins.values(), key=fn),
         "page_info": {
             "page": page,
             "page_size": page_size
         }
     })
+
+
+def _key_accession(x):
+    return x["accession"]
+
+
+def _key_review_status(x):
+    return 0 if x["reviewed"] else 1, x["accession"]
 
 
 @app.route("/api/signature/<accession>/proteins/")
