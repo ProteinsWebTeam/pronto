@@ -583,17 +583,11 @@ def get_signature_matrices(accessions_str):
     cur = db.get_oracle().cursor()
     cur.execute(
         """
-        SELECT 
-          MM.METHOD_AC, MM.N_PROT, 
-          MO.METHOD_AC2, MO.N_PROT, MO.AVG_OVER, MO.N_PROT_OVER
-        FROM {0}.METHOD_MATCH MM
-        INNER JOIN (
-          SELECT METHOD_AC1, METHOD_AC2, N_PROT, AVG_OVER, N_PROT_OVER
-          FROM {0}.METHOD_OVERLAP MO
-          WHERE METHOD_AC1 IN ({1})
-          AND METHOD_AC2 IN ({1})
-        ) MO ON MM.METHOD_AC = MO.METHOD_AC1
-        WHERE METHOD_AC IN ({1})
+      SELECT METHOD_AC1, PROT_COUNT1, METHOD_AC2, PROT_COUNT2, 
+             COLL_COUNT, PROT_OVER_COUNT
+      FROM {0}.METHOD_OVERLAP
+      WHERE METHOD_AC1 IN ({1})
+      AND METHOD_AC2 IN ({1})
         """.format(
             app.config["DB_SCHEMA"],
             ','.join([":acc" + str(i) for i in range(len(accessions))])
@@ -602,19 +596,31 @@ def get_signature_matrices(accessions_str):
     )
 
     signatures = {}
-    for acc_1, n_prot, acc_2, n_coloc, avg_over, n_overlap in cur:
+    for acc_1, n_prot_1, acc_2, n_prot_2, n_coloc, n_overlap in cur:
         if acc_1 in signatures:
             s = signatures[acc_1]
         else:
             s = signatures[acc_1] = {
-                'num_proteins': n_prot,
+                'num_proteins': n_prot_1,
                 'signatures': {}
             }
 
         s['signatures'][acc_2] = {
             'num_coloc': n_coloc,
-            'num_overlap': n_overlap,
-            'avg_overlap': avg_over
+            'num_overlap': n_overlap
+        }
+
+        if acc_2 in signatures:
+            s = signatures[acc_2]
+        else:
+            s = signatures[acc_2] = {
+                'num_proteins': n_prot_2,
+                'signatures': {}
+            }
+
+        s['signatures'][acc_1] = {
+            'num_coloc': n_coloc,
+            'num_overlap': n_overlap
         }
 
     cur.close()
