@@ -8,7 +8,7 @@ Pronto is a web application aiming to assist InterPro curators by displaying pro
 
 ### Prerequisites
 
-- Python>=3.3 with `cx_Oracle`, `Flask`, `Jinja2`, and `mysqlclient`.
+- Python>=3.3 with `cx_Oracle`, `Flask`, and `mysqlclient`.
 - A public database link to the `LITPUB` database (literature service) must exist.
 
 ### Installation
@@ -28,6 +28,7 @@ Edit `config.cfg`, and set the following options:
 * `MYSQL_DB` - InterPro7 MySQL database (dictionary; keys: `host`, `user`, `passwd`, `port`, `db`).
 * `DB_SCHEMA` - Oracle database schema (i.e. owner of tables).
 * `SECRET_KEY` - key used to sign cookies (prevent forgery).
+* `PREFIX` - URL prefix to use for internal links and API calls.
 
 ### Generate secret key
 

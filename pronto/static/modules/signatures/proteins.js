@@ -2,13 +2,12 @@ import {finaliseHeader} from "../../header.js";
 import {paginate} from "../../ui.js";
 import {selector} from "../../signatures.js";
 import {dimmer} from "../../ui.js";
-import * as config from "../../config.js"
 
 function getProteins() {
     const url = new URL(location.href);
     dimmer(true);
     const pathname = location.pathname.match(/(\/signatures\/.+\/)/)[1];
-    fetch(config.PREFIX+"/api" + pathname + location.search)
+    fetch(URL_PREFIX+"/api" + pathname + location.search)
         .then(response => response.json())
         .then(response => {
 
@@ -88,13 +87,13 @@ function getProteins() {
 
                     if (signature.integrated) {
                         html += '<td class="nowrap">'
-                            + '<a href="'+config.PREFIX+'/entry/'+ signature.integrated +'/">'+ signature.integrated +'</a>'
+                            + '<a href="'+URL_PREFIX+'/entry/'+ signature.integrated +'/">'+ signature.integrated +'</a>'
                             + '</td>';
                     } else
                         html += '<td></td>';
 
                     html += '<td class="nowrap">'
-                        + '<a href="'+config.PREFIX+'/prediction/'+ signature.accession +'/">'+ signature.accession +'</a>'
+                        + '<a href="'+URL_PREFIX+'/prediction/'+ signature.accession +'/">'+ signature.accession +'</a>'
                         + '</td>'
                         + '<td class="collapsing">'
                         + '<a href="#" data-add-id="'+ signature.accession +'">&nbsp;'
@@ -102,11 +101,6 @@ function getProteins() {
                         + '</a>'
                         + '</td>'
                         + '<td class="nowrap"><a target="_blank" href="'+ signature.link +'">'+ signature.name +'<i class="external icon"></i></a></td>';
-
-                    if (signature.candidate)
-                        html += '<td><i class="checkmark box icon"></i></td>';
-                    else
-                        html += '<td></td>';
 
                     // Matches
                     const svgWidth = 700;

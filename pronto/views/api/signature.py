@@ -151,7 +151,7 @@ def get_signature_predictions(query_acc):
 
     cur.execute(
         """
-        SELECT MS.METHOD_AC2, MS.DBCODE2, MS.PROT_COUNT1, MS.PROT_COUNT2,
+        SELECT MS.METHOD_AC2, MS.DBCODE2, MS.PROT_COUNT2,
                E.ENTRY_AC, E.ENTRY_TYPE, E.NAME, E.CHECKED,
                MS.COLL_COUNT, MS.PROT_OVER_COUNT, MS.PROT_SIM,
                MS.PROT_PRED, MS.RESI_PRED, MS.DESC_PRED, MS.TAXA_PRED, 
@@ -162,32 +162,29 @@ def get_signature_predictions(query_acc):
         LEFT OUTER JOIN INTERPRO.ENTRY E
           ON EM.ENTRY_AC = E.ENTRY_AC
         WHERE MS.METHOD_AC1 = :acc
+        AND (MS.COLL_COUNT/MS.PROT_COUNT1 >= :mincolloc 
+             OR MS.COLL_COUNT/MS.PROT_COUNT2 >= :mincolloc)
         """.format(app.config["DB_SCHEMA"]),
-        dict(acc=query_acc)
+        dict(acc=query_acc, mincolloc=min_colloc_sim)
     )
 
     signatures = []
     for row in cur:
         target_acc = row[0]
         target_dbcode = row[1]
-        query_count = row[2]
-        target_count = row[3]
-        entry_acc = row[4]
-        entry_type = row[5]
-        entry_name = row[6]
-        entry_checked = row[7] == 'Y'
-        colloc_cnt = row[8]
-        overlp_cnt = row[9]
-        similarity = row[10]
-        pred_prot = row[11]
-        pred_resi = row[12]
-        pred_desc = row[13]
-        pred_taxa = row[14]
-        pred_term = row[15]
-
-        if (colloc_cnt / query_count < min_colloc_sim
-                and colloc_cnt / target_count < min_colloc_sim):
-            continue
+        target_count = row[2]
+        entry_acc = row[3]
+        entry_type = row[4]
+        entry_name = row[5]
+        entry_checked = row[6] == 'Y'
+        colloc_cnt = row[7]
+        overlp_cnt = row[8]
+        similarity = row[9]
+        pred_prot = row[10]
+        pred_resi = row[11]
+        pred_desc = row[12]
+        pred_taxa = row[13]
+        pred_term = row[14]
 
         database = xref.find_ref(dbcode=target_dbcode, ac=target_acc)
         signatures.append({
@@ -222,14 +219,15 @@ def get_signature_predictions(query_acc):
     cur.close()
 
     def _sort(s):
-        if s["entry"]["accession"] in ancestors:
-            return 0, -s["_similarity"], -s["overlap_proteins"]
-        elif s["entry"]["accession"] == query_entry:
-            return 1, -s["_similarity"], -s["overlap_proteins"]
-        elif s["entry"]["accession"] in descendants:
-            return 2, -s["_similarity"], -s["overlap_proteins"]
-        else:
-            return 3, -s["_similarity"], -s["overlap_proteins"]
+        if s["entry"]["accession"]:
+            if s["entry"]["accession"] in ancestors:
+                return 0, -s["_similarity"], -s["overlap_proteins"]
+            elif s["entry"]["accession"] == query_entry:
+                return 1, -s["_similarity"], -s["overlap_proteins"]
+            elif s["entry"]["accession"] in descendants:
+                return 2, -s["_similarity"], -s["overlap_proteins"]
+
+        return 3, -s["_similarity"], -s["overlap_proteins"]
 
     results = []
     for s in sorted(signatures, key=_sort):
@@ -436,6 +434,8 @@ def get_signature_matches(accession):
     if dbcode not in ("S", "T"):
         dbcode = None
 
+    reviewed_first = request.args.get("reviewedfirst") is not None
+
     go_id = request.args.get("go")
     ec_no = request.args.get("ec")
     search = request.args.get("search", "").strip()
@@ -485,13 +485,17 @@ def get_signature_matches(accession):
               SELECT A.*, ROWNUM RN
               FROM (
                 {1}
-                ORDER BY PROTEIN_AC
+                ORDER BY {2}
               ) A
               WHERE ROWNUM <= :max_row
           )
           WHERE RN > :min_row
         ) AND M.METHOD_AC = :acc
-        """.format(app.config["DB_SCHEMA"], query),
+        """.format(
+            app.config["DB_SCHEMA"],
+            query,
+            "DBCODE, PROTEIN_AC" if reviewed_first else "PROTEIN_AC"
+        ),
         params
     )
 
@@ -544,14 +548,23 @@ def get_signature_matches(accession):
     for p in proteins.values():
         p["matches"].sort(key=lambda x: x[0]["start"])
 
+    fn = _key_review_status if reviewed_first else _key_accession
     return jsonify({
         "count": n_proteins,
-        "proteins": sorted(proteins.values(), key=lambda x: x["accession"]),
+        "proteins": sorted(proteins.values(), key=fn),
         "page_info": {
             "page": page,
             "page_size": page_size
         }
     })
+
+
+def _key_accession(x):
+    return x["accession"]
+
+
+def _key_review_status(x):
+    return 0 if x["reviewed"] else 1, x["accession"]
 
 
 @app.route("/api/signature/<accession>/proteins/")

@@ -1,5 +1,4 @@
 import {setClass, dimmer, paginate, initSearchBox} from "./ui.js";
-import * as config from './config.js';
 
 export const selector = {
     elem: null,
@@ -64,7 +63,7 @@ export const selector = {
         }
 
         Array.from(this.elem.querySelectorAll('.links a')).forEach(element => {
-            element.setAttribute('href', config.PREFIX + '/signatures/' + this.signatures.join('/') + '/' + element.getAttribute('data-page') + '/');
+            element.setAttribute('href', URL_PREFIX + '/signatures/' + this.signatures.join('/') + '/' + element.getAttribute('data-page') + '/');
         });
     },
     tab: function (tabName) {
@@ -159,14 +158,14 @@ export const proteinViewer = {
             let url;
 
             if (mode === "common") {
-                url = new URL(location.origin + "/api/signatures/" + accessions.join('/') + suffixURL);
+                url = new URL(URL_PREFIX + "/api/signatures/" + accessions.join('/') + suffixURL, location.origin);
                 setClass(self.modal.querySelector('.actions'), 'hidden', true);
             } else if (mode === "matches") {
                 setClass(self.modal.querySelector('.actions'), 'hidden', false);
-                url = new URL(location.origin + "/api/signature/" + accessions[0] + "/matches/");
+                url = new URL(URL_PREFIX + "/api/signature/" + accessions[0] + "/matches/", location.origin);
             } else {
                 setClass(self.modal.querySelector('.actions'), 'hidden', false);
-                url = new URL(location.origin + "/api/signature/" + accessions[0] + "/proteins/");
+                url = new URL(URL_PREFIX + "/api/signature/" + accessions[0] + "/proteins/", location.origin);
             }
 
             self.accession = accessions[0];
@@ -285,7 +284,7 @@ export const proteinViewer = {
 
                     // Update button to load overlapping proteins
                     const url = new URL(self.url);
-                    url.pathname = config.PREFIX + "/signatures/" + self.accession + "/proteins/";
+                    url.pathname = URL_PREFIX + "/signatures/" + self.accession + "/proteins/";
                     url.searchParams.delete("search");
                     url.searchParams.delete("page");
                     url.searchParams.delete("page_size");

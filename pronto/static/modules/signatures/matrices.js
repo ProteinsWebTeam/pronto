@@ -1,12 +1,11 @@
 import {finaliseHeader} from "../../header.js";
 import {dimmer, useWhiteText, toRGB} from '../../ui.js';
 import {selector, gradientPuBu} from "../../signatures.js";
-import * as config from "../../config.js"
 
 function getMatrices(accessions) {
     dimmer(true);
     const pathname = location.pathname.match(/(\/signatures\/.+\/)/)[1];
-    fetch(config.PREFIX+"/api" + pathname + location.search)
+    fetch(URL_PREFIX+"/api" + pathname + location.search)
         .then(response => response.json())
         .then(signatures => {
             // Find the highest protein count
@@ -108,37 +107,37 @@ function getMatrices(accessions) {
                         + '<tr>'
                         + '<td>In both signatures</td>'
                         + '<td class="right aligned">'
-                        + '<a target="_blank" href="'+config.PREFIX+'/signatures/'+ acc1 + '/' + acc2 +'/proteins/?db=U&include='+ acc1 + ',' + acc2 +'">'+ s.num_coloc.toLocaleString() +'</a>'
+                        + '<a target="_blank" href="'+URL_PREFIX+'/signatures/'+ acc1 + '/' + acc2 +'/proteins/?db=U&include='+ acc1 + ',' + acc2 +'">'+ s.num_coloc.toLocaleString() +'</a>'
                         + '</td>'
                         + '</tr>'
                         + '<tr>'
                         + '<td>In either signatures</td>'
                         + '<td class="right aligned">'
-                        + '<a target="_blank" href="'+config.PREFIX+'/signatures/'+ acc1 + '/' + acc2 +'/proteins/?db=U&">'+ (s1.num_proteins + s2.num_proteins - s.num_coloc).toLocaleString() +'</a>'
+                        + '<a target="_blank" href="'+URL_PREFIX+'/signatures/'+ acc1 + '/' + acc2 +'/proteins/?db=U&">'+ (s1.num_proteins + s2.num_proteins - s.num_coloc).toLocaleString() +'</a>'
                         + '</td>'
                         + '</tr>'
                         + '<tr>'
                         + '<td>In '+ acc1 +' only</td>'
                         + '<td class="right aligned">'
-                        + '<a target="_blank" href="'+config.PREFIX+'/signatures/'+ acc1 + '/proteins/?db=U&exclude='+ acc2 +'">'+ (s1.num_proteins - s.num_coloc).toLocaleString() +'</a>'
+                        + '<a target="_blank" href="'+URL_PREFIX+'/signatures/'+ acc1 + '/proteins/?db=U&exclude='+ acc2 +'">'+ (s1.num_proteins - s.num_coloc).toLocaleString() +'</a>'
                         + '</td>'
                         + '</tr>'
                         + '<tr>'
                         + '<td>In '+ acc2 +' only</td>'
                         + '<td class="right aligned">'
-                        + '<a target="_blank" href="'+config.PREFIX+'/signatures/'+ acc2 + '/proteins/?db=U&exclude='+ acc1 +'">'+ (s2.num_proteins - s.num_coloc).toLocaleString() +'</a>'
+                        + '<a target="_blank" href="'+URL_PREFIX+'/signatures/'+ acc2 + '/proteins/?db=U&exclude='+ acc1 +'">'+ (s2.num_proteins - s.num_coloc).toLocaleString() +'</a>'
                         + '</td>'
                         + '</tr>'
                         + '<tr>'
                         + '<td>In '+ acc1 +'</td>'
                         + '<td class="right aligned">'
-                        + '<a target="_blank" href="'+config.PREFIX+'/signatures/'+ acc1 + '/proteins/?db=U">'+ s1.num_proteins.toLocaleString() +'</a>'
+                        + '<a target="_blank" href="'+URL_PREFIX+'/signatures/'+ acc1 + '/proteins/?db=U">'+ s1.num_proteins.toLocaleString() +'</a>'
                         + '</td>'
                         + '</tr>'
                         + '<tr>'
                         + '<td>In '+ acc2 +'</td>'
                         + '<td class="right aligned">'
-                        + '<a target="_blank" href="'+config.PREFIX+'/signatures/'+ acc2 + '/proteins/?db=U">'+ s2.num_proteins.toLocaleString() +'</a>'
+                        + '<a target="_blank" href="'+URL_PREFIX+'/signatures/'+ acc2 + '/proteins/?db=U">'+ s2.num_proteins.toLocaleString() +'</a>'
                         + '</td>'
                         + '</tr>';
 

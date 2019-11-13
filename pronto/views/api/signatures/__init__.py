@@ -210,7 +210,7 @@ def build_method2protein_query(signatures: dict, **kwargs):
         params["rank"] = rank
 
     final_query = """
-        SELECT DISTINCT PROTEIN_AC, MD5, LEN
+        SELECT DISTINCT PROTEIN_AC, MD5, LEN, DBCODE
         FROM {0}.METHOD2PROTEIN
         WHERE PROTEIN_AC IN (
           {1}

@@ -225,8 +225,8 @@
 
 {% include 'footer.html' %}
 
-<script src="{{ config.PREFIX + url_for('static', filename='vendor/jquery.min.js') }}"></script>
-<script src="{{ config.PREFIX + url_for('static', filename='vendor/semantic.min.js') }}"></script>
+<script src="{{ config.PREFIX + url_for('static', filename='vendor/jquery.min.js') }}" type="application/javascript"></script>
+<script src="{{ config.PREFIX + url_for('static', filename='vendor/semantic.min.js') }}" type="application/javascript"></script>
 <script src="{{ config.PREFIX + url_for('static', filename='modules/prediction.js') }}" type="module"></script>
 
 </body>

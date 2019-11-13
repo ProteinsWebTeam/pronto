@@ -1,5 +1,4 @@
 import {finaliseHeader, getTasks} from "../header.js"
-import * as config from "../config.js";
 
 
 function waitForTask() {
@@ -21,7 +20,7 @@ function waitForTask() {
 
 
 function getReports() {
-    fetch(config.PREFIX + '/api/sanitychecks/runs/')
+    fetch(URL_PREFIX + '/api/sanitychecks/runs/')
         .then(response => response.json())
         .then(results => {
             let html = '';
@@ -32,7 +31,7 @@ function getReports() {
                     + '<div class="summary">'
                     + '<a class="user">' + res.user + '</a> ran sanity checks'
                     + '</div>'
-                    + '<div class="meta"><a href="'+config.PREFIX+'/sanitychecks/runs/'+ res.id +'/"><i class="file text icon"></i> '+ res.errors +' errors.</a></div>'
+                    + '<div class="meta"><a href="'+URL_PREFIX+'/sanitychecks/runs/'+ res.id +'/"><i class="file text icon"></i> '+ res.errors +' errors.</a></div>'
                     + '</div>'
                     + '</div>';
             });
@@ -45,7 +44,7 @@ function getReports() {
 $(function () {
     finaliseHeader();
 
-    fetch(config.PREFIX+'/api/databases/')
+    fetch(URL_PREFIX+'/api/databases/')
         .then(response => response.json())
         .then(databases => {
             let html = '';
@@ -55,9 +54,9 @@ $(function () {
                     + '<a target="_blank" href="'+ db.home +'">'+ db.name +'&nbsp;<i class="external icon"></i></a>'
                     + '</td>'
                     + '<td><span class="ui basic label">'+ db.version +'<span class="detail">'+ db.date +'</span></span></td>'
-                    + '<td><a href="'+config.PREFIX+'/database/' + db.short_name + '/">'+ db.count_signatures.toLocaleString() +'</a></td>'
+                    + '<td><a href="'+URL_PREFIX+'/database/' + db.short_name + '/">'+ db.count_signatures.toLocaleString() +'</a></td>'
                     + '<td>'+ db.count_integrated.toLocaleString() +'</td>'
-                    + '<td><a href="'+config.PREFIX+'/database/' + db.short_name + '/unintegrated/integrated/">'+ db.count_unintegrated.toLocaleString() +'</a></td>'
+                    + '<td><a href="'+URL_PREFIX+'/database/' + db.short_name + '/unintegrated/integrated/">'+ db.count_unintegrated.toLocaleString() +'</a></td>'
                     + '</tr>';
             });
 
@@ -67,7 +66,7 @@ $(function () {
     getReports();
 
     document.querySelector('#sanity-checks button.primary').addEventListener('click', evt => {
-        fetch(config.PREFIX+'/api/sanitychecks/runs/', {method: 'PUT'})
+        fetch(URL_PREFIX+'/api/sanitychecks/runs/', {method: 'PUT'})
             .then(response => {
                 const elem = document.querySelector('#sanity-checks .message');
                 if (response.ok) {
@@ -77,7 +76,7 @@ $(function () {
                 }
                 else if (response.status === 401) {
                     elem.className = 'ui error message';
-                    elem.innerHTML = '<p>Please <a href="'+config.PREFIX+'/login/">log in</a> to perform this operation.</p>';
+                    elem.innerHTML = '<p>Please <a href="'+URL_PREFIX+'/login/">log in</a> to perform this operation.</p>';
                 }
                 else if (response.status === 409) {
                     elem.className = 'ui error message';
@@ -87,7 +86,7 @@ $(function () {
             })
     });
 
-    fetch(config.PREFIX+'/api/signatures/integrations/')
+    fetch(URL_PREFIX+'/api/signatures/integrations/')
         .then(response => response.json())
         .then(response => {
             document.getElementById('recent-integrations').innerHTML = '<strong>'+ response.results.length +'</strong> signatures integrated since <strong>'+ response.date +'</strong>.';

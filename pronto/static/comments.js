@@ -1,5 +1,4 @@
 import * as ui from "./ui.js";
-import * as config from "./config.js";
 
 export function getEntryComments(accession, max, div, callback) {
     getComments("entry", accession, max, div, callback);
@@ -10,7 +9,7 @@ export function getSignatureComments(accession, max, div, callback) {
 }
 
 function postComment(type, accession, text) {
-    return fetch(config.PREFIX+"/api/" + type + "/" + accession + "/comment/", {
+    return fetch(URL_PREFIX+"/api/" + type + "/" + accession + "/comment/", {
         method: "PUT",
         headers: {
             "Content-Type": "application/json; charset=utf-8"
@@ -30,11 +29,11 @@ export function postEntryComment(accession, text) {
 }
 
 function getComments(type, accession, max, div, callback) {
-    const url = new URL("/api/"+ type +"/" + accession + "/comments/", location.origin);
+    const url = new URL(URL_PREFIX+"/api/"+ type +"/" + accession + "/comments/", location.origin);
     if (max)
         url.searchParams.set("max", max);
 
-    fetch(config.PREFIX+url.toString())
+    fetch(url.toString())
         .then(response => response.json())
         .then(result => {
             const sub = div.querySelector('.ui.header .sub');
@@ -91,7 +90,7 @@ function getComments(type, accession, max, div, callback) {
                         "This comment will be marked as obsolete.",
                         "Deprecate",
                         () => {
-                            fetch(config.PREFIX+"/api/"+ type +"/" + accession + "/comment/" + id + "/", { method: "DELETE" })
+                            fetch(URL_PREFIX+"/api/"+ type +"/" + accession + "/comment/" + id + "/", { method: "DELETE" })
                                 .then(response => response.json())
                                 .then(result => {
                                     if (result.status)

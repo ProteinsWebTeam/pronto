@@ -3,7 +3,6 @@ import {finaliseHeader, nvl} from "../header.js";
 import {getSignatureComments, postSignatureComment} from "../comments.js";
 import {selector} from "../signatures.js";
 import {checkEntry} from "../events.js";
-import * as config from "../config.js";
 
 const PREDICTIONS = new Map([
     ['S', {color: 'green', label: 'Similar'}],
@@ -45,7 +44,7 @@ function initPopup(elem) {
 
 function renderOverlap(accession1, accession2, key) {
     dimmer(true);
-    fetch(config.PREFIX+'/api/signature/'+ accession1 +'/comparison/'+ accession2 +'/'+ key +'/')
+    fetch(URL_PREFIX+'/api/signature/'+ accession1 +'/comparison/'+ accession2 +'/'+ key +'/')
         .then(response => response.json())
         .then(results => {
             dimmer(false);
@@ -91,7 +90,7 @@ function getGlobalPredictionLabel(predictions) {
 
 function getPredictions(accession) {
     const minCollocation = document.querySelector('tfoot input[type=radio]:checked').value;
-    const url = config.PREFIX + "/api/signature/" + accession + "/predictions/?mincollocation=" + minCollocation;
+    const url = URL_PREFIX + "/api/signature/" + accession + "/predictions/?mincollocation=" + minCollocation;
 
     dimmer(true);
     fetch(url)
@@ -101,7 +100,8 @@ function getPredictions(accession) {
 
             document.getElementById('predictions-count').innerHTML = signatures.length.toLocaleString();
 
-            signatures.forEach(s => {
+            if (signatures.length) {
+                signatures.forEach(s => {
                 const circles = '<div class="ui tiny circular labels">'
                     + '<span data-key="proteins" class="ui '+ PREDICTIONS.get(s.predictions['proteins']).color +' label"></span>'
                     + '<span data-key="descriptions" data-accession="'+ s.accession +'" class="ui '+ PREDICTIONS.get(s.predictions['descriptions']).color +' label"></span>'
@@ -111,7 +111,7 @@ function getPredictions(accession) {
 
                 html += '<tr>'
                     + '<td class="nowrap">'+ getGlobalPredictionLabel(s.predictions) +'</td><td class="collapsing">'+ circles +'</td>'
-                    + '<td class="collapsing"><a href="'+config.PREFIX+'/prediction/'+ s.accession +'/">'+ s.accession +'</a></td>';
+                    + '<td class="collapsing"><a href="'+URL_PREFIX+'/prediction/'+ s.accession +'/">'+ s.accession +'</a></td>';
 
                 if (s.link !== null) {
                     html += '<td class="collapsing">'
@@ -137,7 +137,7 @@ function getPredictions(accession) {
                         html += '<div class="item">'
                             + '<div class="content">'
                             + '<i class="angle down icon"></i>'
-                            + '<a href="'+config.PREFIX+'/entry/'+ entryAcc +'/">'+ entryAcc +'</a>'
+                            + '<a href="'+URL_PREFIX+'/entry/'+ entryAcc +'/">'+ entryAcc +'</a>'
                             + '</div>'
                             + '</div>';
                     });
@@ -145,7 +145,7 @@ function getPredictions(accession) {
                     html += '<div class="item">'
                         + '<div class="content">'
                         + '<span class="ui circular mini label type-'+ s.entry.type_code +'">'+ s.entry.type_code +'</span>'
-                        + '<a href="'+config.PREFIX+'/entry/'+ s.entry.accession +'/">'+ s.entry.accession +' ('+ s.entry.name +')</a>'
+                        + '<a href="'+URL_PREFIX+'/entry/'+ s.entry.accession +'/">'+ s.entry.accession +' ('+ s.entry.name +')</a>'
                         + '</div>'
                         + '</div>'
                         + '</td>'
@@ -154,8 +154,9 @@ function getPredictions(accession) {
                     html += '<td></td><td></td>';
 
                 html += '</tr>';
-
             });
+            } else
+                html += '<tr><td colspan="10" class="center aligned">No predictions found for this signature</td></tr>';
 
             document.querySelector("#table-predictions tbody").innerHTML = html;
 
@@ -193,7 +194,7 @@ $(function () {
     const accession = match[1];
     document.title = accession + " predictions | Pronto";
     finaliseHeader(accession);
-    fetch(config.PREFIX+'/api/signature/'+ accession +'/')
+    fetch(URL_PREFIX+'/api/signature/'+ accession +'/')
         .then(response => {
             if (!response.ok)
                 throw Error(response.status.toString());
@@ -221,12 +222,12 @@ $(function () {
                 html += '&nbsp;&mdash;&nbsp;';
 
                 if (response.entry.parent) {
-                    html += '<a href="'+config.PREFIX+'/entry/'+response.entry.parent+'/">'+response.entry.parent+'</a>&nbsp;'
+                    html += '<a href="'+URL_PREFIX+'/entry/'+response.entry.parent+'/">'+response.entry.parent+'</a>&nbsp;'
                         + '<i class="fitted right chevron icon"></i>&nbsp;';
                 }
 
                 html += '<span class="ui small circular label type-'+ response.entry.type +'" style="margin-left: 0 !important;">'+ response.entry.type +'</span>'
-                    + '<a href="'+config.PREFIX+'/entry/'+ response.entry.accession +'/">'
+                    + '<a href="'+URL_PREFIX+'/entry/'+ response.entry.accession +'/">'
                     + response.entry.accession
                     + '</a>';
             }

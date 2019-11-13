@@ -1,8 +1,7 @@
 import {setClass, updateCountdown} from "./ui.js";
-import * as config from './config.js';
 
 function getUniProtVersion() {
-    fetch(config.PREFIX+"/api/uniprot/version/")
+    fetch(URL_PREFIX+"/api/uniprot/version/")
         .then(response => response.json())
         .then(response => {
             document.getElementById("uniprot-version").innerHTML = response.version;
@@ -10,7 +9,7 @@ function getUniProtVersion() {
 }
 
 function getCurrentUser() {
-    return fetch(config.PREFIX+"/api/user/")
+    return fetch(URL_PREFIX+"/api/user/")
         .then(response => response.json())
         .then(response => {
             return new Promise(((resolve, reject) => {
@@ -24,7 +23,7 @@ function getCurrentUser() {
                         + '<i class="dropdown icon"></i>'
                         + '<div class="menu">'
                         + '<div class="item">'
-                        + '<a class="icon" href="'+config.PREFIX+'/logout/">'
+                        + '<a class="icon" href="'+URL_PREFIX+'/logout/">'
                         + '<i class="sign out icon"></i>&nbsp;Log out'
                         + '</a>'
                         + '</div>'
@@ -34,14 +33,14 @@ function getCurrentUser() {
                 } else {
                     item = document.createElement("a");
                     item.className = "icon item";
-                    item.href = config.PREFIX + "/login/";
+                    item.href = URL_PREFIX + "/login/";
                     item.innerHTML = '<i class="sign in icon"></i>&nbsp;Log in</a>';
                     menu.appendChild(item);
 
                     const modal = document.getElementById('new-entry-modal');
                     modal.querySelector('.content').innerHTML = '<div class="ui error message">'
                         + '<div class="header">Access denied</div>'
-                        + '<p>Please <a href="'+config.PREFIX+'/login/">log in</a> to perform this operation.</p>'
+                        + '<p>Please <a href="'+URL_PREFIX+'/login/">log in</a> to perform this operation.</p>'
                         + '</div>';
 
                     resolve(false);
@@ -52,7 +51,7 @@ function getCurrentUser() {
 
 export function getTasks() {
     return new Promise((resolve, reject) => {
-        fetch(config.PREFIX+'/api/tasks/')
+        fetch(URL_PREFIX+'/api/tasks/')
             .then(response => response.json())
             .then(tasks => {
                 let menu = '';
@@ -100,7 +99,7 @@ export function getTasks() {
 function getInstance() {
     const dst = document.getElementById("instance");
     if (dst) {
-        fetch(config.PREFIX+"/api/instance/")
+        fetch(URL_PREFIX+"/api/instance/")
             .then(response => response.json())
             .then(response => {
                 dst.innerHTML = response.instance + '<div class="detail">'+ response.schema +'</div>';
@@ -109,7 +108,7 @@ function getInstance() {
 }
 
 function getStatus() {
-    return fetch(config.PREFIX+"/api/status/")
+    return fetch(URL_PREFIX+"/api/status/")
         .then(response => {
             return new Promise(((resolve, reject) => {
                 resolve(response.status === 200);
@@ -128,11 +127,11 @@ function renderSignatures(signatures) {
                 + '<td>'
                 + '<a target="_blank" href="'+ s.link +'">'+ s.database +'&nbsp;<i class="icon external"></i></a>'
                 + '</td>'
-                + '<td><a href="'+config.PREFIX+'/prediction/'+ s.accession +'/">'+ s.accession +'</a></td>'
+                + '<td><a href="'+URL_PREFIX+'/prediction/'+ s.accession +'/">'+ s.accession +'</a></td>'
                 + '<td>'+ (s.name === null ? '' : s.name) +'</td>'
                 + '<td>'+ (s.description === null ? '' : s.description) +'</td>'
                 + '<td class="right aligned">'+ s.num_proteins.toLocaleString() +'</td>'
-                + '<td class="">'+ (s.entry.accession ? '<a href="'+config.PREFIX+'/entry/'+ s.entry.accession +'/">'+ s.entry.accession +'</a>' : '') +'</td>'
+                + '<td class="">'+ (s.entry.accession ? '<a href="'+URL_PREFIX+'/entry/'+ s.entry.accession +'/">'+ s.entry.accession +'</a>' : '') +'</td>'
                 + '<td class="collapsing"><i class="remove button icon" data-remove="'+ s.accession +'"></i></td>'
                 + '</tr>';
         }
@@ -175,7 +174,7 @@ export function finaliseHeader(signatureAcc) {
                                 setClass(msg, 'hidden', false);
                             } else {
                                 fields.signatures = Array.from(signatures.keys());
-                                fetch(config.PREFIX+'/api/entry/', {
+                                fetch(URL_PREFIX+'/api/entry/', {
                                     method: 'PUT',
                                     headers: { 'Content-Type': 'application/json; charset=utf-8' },
                                     body: JSON.stringify(fields)
@@ -204,7 +203,7 @@ export function finaliseHeader(signatureAcc) {
                         fields: { accession: 'empty' },
                         onSuccess: function (event, fields) {
                             const acc = fields.accession.trim();
-                            fetch(config.PREFIX+'/api/signature/' + acc + '/')
+                            fetch(URL_PREFIX+'/api/signature/' + acc + '/')
                                 .then(response => response.json())
                                 .then(result => {
                                     if (result !== null) {

@@ -40,7 +40,7 @@
             Log in to Pronto
         </h1>
         <div class="ui raised segment">
-            <form class="ui form" method="post" action="/login/?next={{ referrer }}">
+            <form class="ui form" method="post" action="{{ config.PREFIX }}/login/?next={{ referrer }}">
                 {% if error %}
                 <div class="ui visible error message">{{ error|safe }}</div>
                 {% endif %}
@@ -71,8 +71,8 @@
     </div>
 </div>
 
-<script src="{{ config.PREFIX + url_for('static', filename='vendor/jquery.min.js') }}"></script>
-<script src="{{ config.PREFIX + url_for('static', filename='vendor/semantic.min.js') }}"></script>
+<script src="{{ config.PREFIX + url_for('static', filename='vendor/jquery.min.js') }}" type="application/javascript"></script>
+<script src="{{ config.PREFIX + url_for('static', filename='vendor/semantic.min.js') }}" type="application/javascript"></script>
 <script src="{{ config.PREFIX + url_for('static', filename='modules/login.js') }}" type="module"></script>
 </body>
 </html>
