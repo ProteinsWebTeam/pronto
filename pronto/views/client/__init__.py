@@ -75,7 +75,6 @@ def login():
         user = check_user(username, password)
 
         if user and user["active"] and user["status"]:
-            session.permanent = True
             session["user"] = user
             return redirect(request.args.get("next", app.config['PREFIX'] + url_for("index")))
         else:
@@ -91,7 +90,7 @@ def login():
 @app.route("/logout/")
 def logout():
     """Clear the cookie, which logs the user out."""
-    session.clear()
+    session.pop("user", None)
     return redirect(request.referrer)
 
 

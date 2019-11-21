@@ -78,9 +78,7 @@ def get_user():
     """
     Get the user for the current request.
     """
-    if not hasattr(g, "user"):
-        g.user = session.get("user")
-    return g.user
+    return session.get("user")
 
 
 @app.teardown_appcontext
