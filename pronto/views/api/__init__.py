@@ -57,7 +57,11 @@ def get_databases():
 
 @app.route("/api/user/")
 def _get_user():
-    return jsonify({"user": get_user()})
+    user = get_user()
+    if user:
+        user = {k: v for k, v in user.items() if k != "password"}
+
+    return jsonify({"user": user})
 
 
 @app.route("/api/instance/")
