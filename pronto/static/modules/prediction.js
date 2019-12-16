@@ -229,7 +229,8 @@ $(function () {
                 html += '<span class="ui small circular label type-'+ response.entry.type +'" style="margin-left: 0 !important;">'+ response.entry.type +'</span>'
                     + '<a href="'+URL_PREFIX+'/entry/'+ response.entry.accession +'/">'
                     + response.entry.accession
-                    + '</a>';
+                    + '</a>'
+                    + (response.entry.checked ? '<i class="checkmark icon"></i>' : '');
             }
 
             document.querySelector("h1.ui.header .sub").innerHTML = html;

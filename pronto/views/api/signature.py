@@ -12,7 +12,7 @@ def get_signature(accession):
         """
         SELECT M.METHOD_AC, M.NAME, M.DESCRIPTION, M.DBCODE, M.SIG_TYPE, 
                M.PROTEIN_COUNT, M.FULL_SEQ_COUNT, EM.ENTRY_AC, E.ENTRY_TYPE, 
-               EE.PARENT_AC
+               E.CHECKED, EE.PARENT_AC
         FROM {}.METHOD M
         LEFT OUTER JOIN INTERPRO.ENTRY2METHOD EM 
           ON M.METHOD_AC = EM.METHOD_AC
@@ -43,7 +43,8 @@ def get_signature(accession):
             "entry": {
                 "accession": row[7],
                 "type": row[8],
-                "parent": row[9]
+                "checked": row[9] == 'Y',
+                "parent": row[10]
             }
         }), 200
     else:
