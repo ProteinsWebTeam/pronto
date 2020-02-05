@@ -102,59 +102,59 @@ function getPredictions(accession) {
 
             if (signatures.length) {
                 signatures.forEach(s => {
-                const circles = '<div class="ui tiny circular labels">'
-                    + '<span data-key="proteins" class="ui '+ PREDICTIONS.get(s.predictions['proteins']).color +' label"></span>'
-                    + '<span data-key="descriptions" data-accession="'+ s.accession +'" class="ui '+ PREDICTIONS.get(s.predictions['descriptions']).color +' label"></span>'
-                    +'<span data-key="taxa" data-accession="'+ s.accession +'" class="ui '+ PREDICTIONS.get(s.predictions['taxa']).color +' label"></span>'
-                    + '<span data-key="terms" data-accession="'+ s.accession +'" class="ui '+ PREDICTIONS.get(s.predictions['terms']).color +' label"></span>'
-                    + '</div>';
+                    const circles = '<div class="ui tiny circular labels">'
+                        + '<span data-key="proteins" class="ui '+ PREDICTIONS.get(s.predictions['proteins']).color +' label"></span>'
+                        + '<span data-key="descriptions" data-accession="'+ s.accession +'" class="ui '+ PREDICTIONS.get(s.predictions['descriptions']).color +' label"></span>'
+                        +'<span data-key="taxa" data-accession="'+ s.accession +'" class="ui '+ PREDICTIONS.get(s.predictions['taxa']).color +' label"></span>'
+                        + '<span data-key="terms" data-accession="'+ s.accession +'" class="ui '+ PREDICTIONS.get(s.predictions['terms']).color +' label"></span>'
+                        + '</div>';
 
-                html += '<tr>'
-                    + '<td class="nowrap">'+ getGlobalPredictionLabel(s.predictions) +'</td><td class="collapsing">'+ circles +'</td>'
-                    + '<td class="collapsing"><a href="'+URL_PREFIX+'/prediction/'+ s.accession +'/">'+ s.accession +'</a></td>';
+                    html += '<tr>'
+                        + '<td class="nowrap">'+ getGlobalPredictionLabel(s.predictions) +'</td><td class="collapsing">'+ circles +'</td>'
+                        + '<td class="collapsing"><a href="'+URL_PREFIX+'/prediction/'+ s.accession +'/">'+ s.accession +'</a></td>';
 
-                if (s.link !== null) {
+                    if (s.link !== null) {
+                        html += '<td class="collapsing">'
+                            + '<a target="_blank" href="'+ s.link +'">'
+                            + '<i class="external icon"></i>'
+                            + '</a>'
+                            + '</td>';
+                    } else
+                        html += '<td></td>';
+
                     html += '<td class="collapsing">'
-                        + '<a target="_blank" href="'+ s.link +'">'
-                        + '<i class="external icon"></i>'
-                        + '</a>'
-                        + '</td>';
-                } else
-                    html += '<td></td>';
+                        + '<a href="#" data-add-id="'+ s.accession +'"><i class="cart plus icon"></i></a>'
+                        + '</td>'
+                        + '<td class="collapsing right aligned">' + s.proteins.toLocaleString() + '</td>'
+                        + '<td class="collapsing right aligned">'+ s.common_proteins.toLocaleString() +'</td>'
+                        + '<td class="collapsing right aligned">'+ s.overlap_proteins.toLocaleString() +'</td>';
 
-                html += '<td class="collapsing">'
-                    + '<a href="#" data-add-id="'+ s.accession +'"><i class="cart plus icon"></i></a>'
-                    + '</td>'
-                    + '<td class="collapsing right aligned">' + s.proteins.toLocaleString() + '</td>'
-                    + '<td class="collapsing right aligned">'+ s.common_proteins.toLocaleString() +'</td>'
-                    + '<td class="collapsing right aligned">'+ s.overlap_proteins.toLocaleString() +'</td>';
+                    if (s.entry.accession !== null) {
+                        html += '<td class="nowrap">'
+                            + '<div class="ui list">';
 
-                if (s.entry.accession !== null) {
-                    html += '<td class="nowrap">'
-                        + '<div class="ui list">';
+                        s.entry.hierarchy.forEach(entryAcc => {
+                            html += '<div class="item">'
+                                + '<div class="content">'
+                                + '<i class="angle down icon"></i>'
+                                + '<a href="'+URL_PREFIX+'/entry/'+ entryAcc +'/">'+ entryAcc +'</a>'
+                                + '</div>'
+                                + '</div>';
+                        });
 
-                    s.entry.hierarchy.forEach(entryAcc => {
                         html += '<div class="item">'
                             + '<div class="content">'
-                            + '<i class="angle down icon"></i>'
-                            + '<a href="'+URL_PREFIX+'/entry/'+ entryAcc +'/">'+ entryAcc +'</a>'
+                            + '<span class="ui circular mini label type-'+ s.entry.type_code +'">'+ s.entry.type_code +'</span>'
+                            + '<a href="'+URL_PREFIX+'/entry/'+ s.entry.accession +'/">'+ s.entry.accession +' ('+ s.entry.name +')</a>'
                             + '</div>'
-                            + '</div>';
-                    });
+                            + '</div>'
+                            + '</td>'
+                            + '<td class="collapsing">'+ renderCheckbox(s.entry.accession, s.entry.checked) +'</td>';
+                    } else
+                        html += '<td></td><td></td>';
 
-                    html += '<div class="item">'
-                        + '<div class="content">'
-                        + '<span class="ui circular mini label type-'+ s.entry.type_code +'">'+ s.entry.type_code +'</span>'
-                        + '<a href="'+URL_PREFIX+'/entry/'+ s.entry.accession +'/">'+ s.entry.accession +' ('+ s.entry.name +')</a>'
-                        + '</div>'
-                        + '</div>'
-                        + '</td>'
-                        + '<td class="collapsing">'+ renderCheckbox(s.entry.accession, s.entry.checked) +'</td>';
-                } else
-                    html += '<td></td><td></td>';
-
-                html += '</tr>';
-            });
+                    html += '</tr>';
+                });
             } else
                 html += '<tr><td colspan="10" class="center aligned">No predictions found for this signature</td></tr>';
 
@@ -203,8 +203,8 @@ $(function () {
         .then(response => {
             selector.init(document.getElementById('methods'), accession);
 
+            // Update page header
             let html = '';
-
             if (response.link)
                 html += '<a href="'+ response.link +'" target="_blank">';
 
@@ -234,6 +234,60 @@ $(function () {
             }
 
             document.querySelector("h1.ui.header .sub").innerHTML = html;
+
+            // Update table header (a curator requested to have the signature in the prediction table...)
+            html = '<th colspan="2"></th><th class="collapsing"><a href="'+URL_PREFIX+'/prediction/'+ accession +'/">'+ accession +'</a></a></th>';
+            if (response.link) {
+                html += '<th class="collapsing">'
+                    + '<a target="_blank" href="'+ response.link +'">'
+                    + '<i class="external icon"></i>'
+                    + '</a>'
+                    + '</th>';
+            } else
+                html += '<th></th>';
+
+            html += '<th class="collapsing"><a href="#" data-add-id="'+ accession +'"><i class="cart plus icon"></i></a></th>'
+                + '<th class="collapsing right aligned">' + response.num_sequences.toLocaleString() + '</th>'
+                + '<th></th>'
+                + '<th></th>';
+
+            if (response.entry.accession !== null) {
+                html += '<th class="nowrap">'
+                    + '<div class="ui list">';
+
+                if (response.entry.parent) {
+                    html += '<div class="item">'
+                        + '<div class="content">'
+                        + '<i class="angle down icon"></i>'
+                        + '<a href="'+URL_PREFIX+'/entry/'+ response.entry.parent +'/">'+ response.entry.parent +'</a>'
+                        + '</div>'
+                        + '</div>';
+                }
+
+                html += '<div class="item">'
+                    + '<div class="content">'
+                    + '<span class="ui circular mini label type-'+ response.entry.type +'">'+ response.entry.type +'</span>'
+                    + '<a href="'+URL_PREFIX+'/entry/'+ response.entry.accession +'/">'+ response.entry.accession +'</a>'
+                    + '</div>'
+                    + '</div>'
+                    + '</th>'
+                    + '<th class="collapsing">'+ renderCheckbox(response.entry.accession, response.entry.checked) +'</th>';
+            } else
+                html += '<th></th><th></th>';
+
+            let node = document.createElement('tr');
+            node.innerHTML = html;
+            document.querySelector("#table-predictions thead").appendChild(node);
+
+            // Events on thead
+            document.querySelector('thead a[data-add-id]').addEventListener('click', e => {
+                e.preventDefault();
+                selector.add(e.currentTarget.getAttribute('data-add-id'));
+            });
+            node = document.querySelector('thead input[type=checkbox]');
+            if (node)
+                node.addEventListener('change', e => checkEntry(e.currentTarget));
+
             document.querySelector('.ui.comments form button').addEventListener('click', e => {
                 e.preventDefault();
                 const form = e.target.closest('form');
