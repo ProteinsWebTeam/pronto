@@ -28,7 +28,7 @@ def check_user(username, password):
     cur.execute(
         """
         SELECT USERNAME, NAME, DB_USER, IS_ACTIVE
-        FROM INTERPRO.USER_PRONTO
+        FROM INTERPRO.PRONTO_USER
         WHERE LOWER(USERNAME) = LOWER(:1)
         """,
         (username,)
@@ -49,7 +49,7 @@ def check_user(username, password):
             user["status"] = True
             cur.execute(
                 """
-                UPDATE INTERPRO.USER_PRONTO
+                UPDATE INTERPRO.PRONTO_USER
                 SET LAST_ACTIVITY = SYSDATE
                 WHERE USERNAME = :1
                 """,

@@ -627,7 +627,7 @@ def get_sanitychecks():
         FROM (
             SELECT SR.ID, SR.NUM_ERRORS, SR.TIMESTAMP, NVL(UP.NAME, SR.USERNAME)
             FROM INTERPRO.SANITY_RUN SR
-              LEFT OUTER JOIN INTERPRO.USER_PRONTO UP
+              LEFT OUTER JOIN INTERPRO.PRONTO_USER UP
               ON SR.USERNAME = UP.DB_USER
             ORDER BY SR.TIMESTAMP DESC
         )
@@ -683,7 +683,7 @@ def get_sanitychecks_report(run_id):
             SELECT SE.ID, SE.ANN_ID, SE.ENTRY_AC, SE.ERRORS, 
               SE.TIMESTAMP, NVL(UP.NAME, SE.USERNAME)
             FROM INTERPRO.SANITY_ERROR SE
-            LEFT OUTER JOIN INTERPRO.USER_PRONTO UP
+            LEFT OUTER JOIN INTERPRO.PRONTO_USER UP
               ON SE.USERNAME = UP.DB_USER
             WHERE RUN_ID=:1
             ORDER BY ANN_ID, ENTRY_AC

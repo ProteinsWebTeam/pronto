@@ -81,7 +81,7 @@ def api_integrated_signatures(dbshort):
                         ORDER BY C.CREATED_ON DESC
                     ) R
                 FROM INTERPRO.METHOD_COMMENT C
-                INNER JOIN INTERPRO.USER_PRONTO P 
+                INNER JOIN INTERPRO.PRONTO_USER P 
                     ON C.USERNAME = P.USERNAME
             ) C ON (M.METHOD_AC = C.METHOD_AC AND C.R = 1)
             WHERE DBCODE = :dbcode

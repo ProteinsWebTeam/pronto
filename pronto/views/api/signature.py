@@ -263,7 +263,7 @@ def get_signature_comments(accession):
         """
         SELECT C.ID, C.VALUE, C.CREATED_ON, C.STATUS, U.NAME
         FROM INTERPRO.METHOD_COMMENT C
-        INNER JOIN INTERPRO.USER_PRONTO U 
+        INNER JOIN INTERPRO.PRONTO_USER U 
           ON C.USERNAME = U.USERNAME
         WHERE C.METHOD_AC = :1
         ORDER BY C.CREATED_ON DESC
