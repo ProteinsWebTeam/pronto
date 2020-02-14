@@ -78,7 +78,6 @@ def login():
             session["user"] = user
             return redirect(request.args.get("next", app.config['PREFIX'] + url_for("index")))
         else:
-            print(request.args.get("next", url_for("index")))
             return render_template(
                 "login.html",
                 username=username,

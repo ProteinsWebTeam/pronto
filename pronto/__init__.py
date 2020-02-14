@@ -55,7 +55,6 @@ class Executor(object):
         running = []
         finished = []
         for name, future in self.running:
-            print(name, future.done())
             if future.done():
                 if future.exception() is not None:
                     finished.append(('N', name))

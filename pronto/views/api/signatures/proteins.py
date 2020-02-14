@@ -249,7 +249,7 @@ def get_overlapping_proteins(accessions_str):
             try:
                 rows = f.result()
             except Exception as e:
-                print(e)  # TODO: return error?
+                pass
             else:
                 signature_acc = fs[f]
                 for protein_acc, md5, length in rows:
