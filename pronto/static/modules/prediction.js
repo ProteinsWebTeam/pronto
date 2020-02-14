@@ -267,7 +267,7 @@ $(function () {
                 html += '<div class="item">'
                     + '<div class="content">'
                     + '<span class="ui circular mini label type-'+ response.entry.type +'">'+ response.entry.type +'</span>'
-                    + '<a href="'+URL_PREFIX+'/entry/'+ response.entry.accession +'/">'+ response.entry.accession +'</a>'
+                    + '<a href="'+URL_PREFIX+'/entry/'+ response.entry.accession +'/">'+ response.entry.accession +' ('+ response.entry.name +')</a>'
                     + '</div>'
                     + '</div>'
                     + '</th>'

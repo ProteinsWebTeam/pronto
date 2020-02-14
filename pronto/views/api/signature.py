@@ -11,8 +11,8 @@ def get_signature(accession):
     cur.execute(
         """
         SELECT M.METHOD_AC, M.NAME, M.DESCRIPTION, M.DBCODE, M.SIG_TYPE, 
-               M.PROTEIN_COUNT, M.FULL_SEQ_COUNT, EM.ENTRY_AC, E.ENTRY_TYPE, 
-               E.CHECKED, EE.PARENT_AC
+               M.PROTEIN_COUNT, M.FULL_SEQ_COUNT, EM.ENTRY_AC, E.NAME, 
+               E.ENTRY_TYPE, E.CHECKED, EE.PARENT_AC
         FROM {}.METHOD M
         LEFT OUTER JOIN INTERPRO.ENTRY2METHOD EM 
           ON M.METHOD_AC = EM.METHOD_AC
@@ -42,9 +42,10 @@ def get_signature(accession):
             "database": database.name,
             "entry": {
                 "accession": row[7],
-                "type": row[8],
-                "checked": row[9] == 'Y',
-                "parent": row[10]
+                "name": row[8],
+                "type": row[9],
+                "checked": row[10] == 'Y',
+                "parent": row[11]
             }
         }), 200
     else:
