@@ -18,7 +18,7 @@ class Executor(object):
 
     def enqueue(self, name, fn, *args, **kwargs):
         self.update()
-        if self.has(name) and False:
+        if self.has(name):
             return False
         else:
             con = get_oracle(require_auth=True)
