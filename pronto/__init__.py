@@ -8,7 +8,7 @@ from flask import Flask, g, session
 from pronto.db import get_oracle
 
 
-__version__ = "1.6.2"
+__version__ = "1.6.3"
 
 
 class Executor(object):
@@ -18,7 +18,7 @@ class Executor(object):
 
     def enqueue(self, name, fn, *args, **kwargs):
         self.update()
-        if self.has(name):
+        if self.has(name) and False:
             return False
         else:
             con = get_oracle(require_auth=True)
@@ -55,11 +55,12 @@ class Executor(object):
         running = []
         finished = []
         for name, future in self.running:
+            print(name, future.done())
             if future.done():
                 if future.exception() is not None:
-                    finished.append((name, 'N'))
+                    finished.append(('N', name))
                 else:
-                    finished.append((name, 'Y'))
+                    finished.append(('Y', name))
             else:
                 running.append((name, future))
 
