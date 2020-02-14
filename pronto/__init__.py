@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from flask import Flask, g, session
+
+from pronto.db import get_oracle
 
 
 __version__ = "1.6.1"
@@ -12,21 +14,24 @@ __version__ = "1.6.1"
 class Executor(object):
     def __init__(self):
         self.executor = ThreadPoolExecutor()
-        self._tasks = {}
+        self.running = []
 
     def enqueue(self, name, fn, *args, **kwargs):
         self.update()
-        if name in self._tasks and self._tasks[name]["status"] is None:
-            # Running
+        if self.has(name):
             return False
         else:
-            self._tasks[name] = {
-                "name": name,
-                "future": self.submit(fn, *args, **kwargs),
-                "started": datetime.now(),
-                "completed": None,
-                "status": None
-            }
+            con = get_oracle(require_auth=True)
+            cur = con.cursor()
+            cur.execute(
+                """
+                INSERT INTO INTERPRO.PRONTO_TASK (NAME, USERNAME, STARTED) 
+                VALUES (:1, USER, SYSDATE)
+                """, (name, )
+            )
+            con.commit()
+            cur.close()
+            self.running.append((name, self.submit(fn, *args, **kwargs)))
             return True
 
     def submit(self, fn, *args, **kwargs):
@@ -34,37 +39,65 @@ class Executor(object):
 
     def has(self, name):
         self.update()
-        return name in self._tasks
+        cur = get_oracle().cursor()
+        cur.execute(
+            """
+            SELECT COUNT(*)
+            FROM INTERPRO.PRONTO_TASK
+            WHERE NAME = :1 AND STATUS IS NULL
+            """, (name,)
+        )
+        count, = cur.fetchone()
+        cur.close()
+        return count != 0
 
     def update(self):
-        names = list(self._tasks)
-        for name in names:
-            task = self._tasks[name]
-            future = task["future"]
+        running = []
+        finished = []
+        for name, future in self.running:
             if future.done():
-                now = datetime.now()
                 if future.exception() is not None:
-                    # Call raised: error
-                    print(future.exception())
-                    task["status"] = False
-                elif task["completed"] is None:
-                    # First time we see the task as completed
-                    task["completed"] = now
-                    task["status"] = True
-                elif (now - task["completed"]).total_seconds() > 3600:
-                    # Finished more than one hour ago: clean
-                    del self._tasks[name]
+                    finished.append((name, 'N'))
+                else:
+                    finished.append((name, 'Y'))
+            else:
+                running.append((name, future))
+
+        if finished:
+            con = get_oracle(require_auth=True)
+            cur = con.cursor()
+            cur.executemany(
+                """
+                UPDATE INTERPRO.PRONTO_TASK
+                SET FINISHED = SYSDATE, STATUS = :1
+                WHERE NAME = :2 AND STATUS IS NULL
+                """, finished
+            )
+            con.commit()
+            cur.close()
+
+        self.running = running
 
     @property
     def tasks(self):
         self.update()
+        cur = get_oracle().cursor()
+        cur.execute(
+            """
+            SELECT NAME, STATUS
+            FROM INTERPRO.PRONTO_TASK
+            WHERE FINISHED IS NULL 
+            OR FINISHED >= SYSDATE - (1 / 24)
+            ORDER BY STARTED
+            """
+        )
         tasks = []
-        for task in sorted(self._tasks.values(), key=lambda t: t["started"]):
-            tasks.append({
-                "name": task["name"],
-                "status": task["status"]
-            })
-
+        for name, status in cur:
+            if status is None:
+                tasks.append({"name": name, "status": None})
+            else:
+                tasks.append({"name": name, "status": status == 'Y'})
+        cur.close()
         return tasks
 
 

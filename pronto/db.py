@@ -3,14 +3,12 @@
 
 import cx_Oracle
 import MySQLdb
-from flask import g
-
-from pronto import app, get_user
+from flask import g, current_app, session
 
 
 def get_mysql_db():
     if not hasattr(g, "mysql_db"):
-        g.mysql_db = MySQLdb.connect(**app.config["MYSQL_DB"])
+        g.mysql_db = MySQLdb.connect(**current_app.config["MYSQL_DB"])
 
     return g.mysql_db
 
@@ -30,15 +28,15 @@ def get_oracle(require_auth=False):
     for the current application context.
     """
     if not hasattr(g, "oracle_db"):
-        user = get_user()
+        user = session.get("user")
         if user:
             credentials = user["dbuser"] + "/" + user["password"]
         elif not require_auth:
-            credentials = app.config["ORACLE_DB"]["credentials"]
+            credentials = current_app.config["ORACLE_DB"]["credentials"]
         else:
             raise RuntimeError()
 
-        url = credentials + "@" + app.config["ORACLE_DB"]["dsn"]
+        url = credentials + "@" + current_app.config["ORACLE_DB"]["dsn"]
         g.oracle_db = cx_Oracle.connect(url, encoding="utf-8",
                                         nencoding="utf-8")
 
