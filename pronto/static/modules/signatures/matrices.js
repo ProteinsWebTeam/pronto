@@ -39,47 +39,42 @@ function getMatrices(accessions) {
                 }
 
                 accessions.forEach(acc2 => {
-                    if (!signatures[acc1].signatures.hasOwnProperty(acc2)) {
-                        html1 += '<td class="right aligned">0</td>';
-                        html2 += '<td class="right aligned">0</td>';
-                        return;
-                    }
-
-                    const diag = acc1 === acc2;
-                    const s = signatures[acc1].signatures[acc2];
                     let v, i, color, className;
 
-                    // Overlap
-                    v = s.num_overlap;
-                    i = Math.floor(v / (maxProt + 1) * gradientPuBu.length);
-                    color = gradientPuBu[i];
-                    className = useWhiteText(color) ? 'light' : 'dark';
-                    if (diag) {
+                    if (acc1 === acc2) {
+                        v = signatures[acc1].num_proteins;
+                        color = gradientPuBu[gradientPuBu.length-1];
+                        className = useWhiteText(color) ? 'light' : 'dark';
                         html1 += '<td class="right aligned '+ className +'" style="background-color: '+ toRGB(color) +';">'
                             + v.toLocaleString()
                             + '</td>';
-                    } else {
-                        html1 += '<td class="right aligned '+ className +'" style="background-color: '+ toRGB(color) +';">'
-                            + '<a href="#" data-ac1="'+ acc1 +'" data-ac2="'+ acc2 +'">' + v.toLocaleString() + '</a>'
-                            + '</td>';
-                    }
-
-
-                    // Collocation
-                    v = s.num_coloc;
-                    i = Math.floor(v / (maxProt + 1) * gradientPuBu.length);
-                    color = gradientPuBu[i];
-                    className = useWhiteText(color) ? 'light' : 'dark';
-                    if (diag) {
                         html2 += '<td class="right aligned '+ className +'" style="background-color: '+ toRGB(color) +';">'
                             + v.toLocaleString()
                             + '</td>';
-                    } else {
+                    } else if (signatures[acc1].signatures.hasOwnProperty(acc2)) {
+                        // Overlap
+                        v = signatures[acc1].signatures[acc2].num_overlap;
+                        i = Math.floor(v / (maxProt + 1) * gradientPuBu.length);
+                        color = gradientPuBu[i];
+                        className = useWhiteText(color) ? 'light' : 'dark';
+                        html1 += '<td class="right aligned '+ className +'" style="background-color: '+ toRGB(color) +';">'
+                            + '<a href="#" data-ac1="'+ acc1 +'" data-ac2="'+ acc2 +'">' + v.toLocaleString() + '</a>'
+                            + '</td>';
+
+                        // Collocation
+                        v = signatures[acc1].signatures[acc2].num_coloc;
+                        i = Math.floor(v / (maxProt + 1) * gradientPuBu.length);
+                        color = gradientPuBu[i];
+                        className = useWhiteText(color) ? 'light' : 'dark';
                         html2 += '<td class="right aligned '+ className +'" style="background-color: '+ toRGB(color) +';">'
                             + '<a href="#" data-ac1="'+ acc1 +'" data-ac2="'+ acc2 +'">' + v.toLocaleString() + '</a>'
                             + '</td>';
+                    } else {
+                        html1 += '<td class="right aligned">0</td>';
+                        html2 += '<td class="right aligned">0</td>';
                     }
                 });
+
                 html1 += '</tr>';
                 html2 += '</tr>';
             });
