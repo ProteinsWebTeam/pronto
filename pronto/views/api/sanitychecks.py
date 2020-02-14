@@ -135,16 +135,24 @@ def check_illegal_terms(text, checks, exceptions, id):
     return errors
 
 
-def check_links(text):
-    errors = []
+def check_links(text, attempts=5):
+    links = set()
     for url in re.findall(r"https?://[\w\-@:%.+~#=/?&]+", text, re.I):
-        try:
-            res = urlopen(url)
-        except URLError:
-            errors.append(url)
+        links.add(url)
+
+    errors = []
+    for url in links:
+        for _ in range(attempts):
+            try:
+                res = urlopen(url)
+            except URLError:
+                continue
+            else:
+                if res.status < 400:
+                    break
         else:
-            if res.status != 200:
-                errors.append(url)
+            errors.append(url)
+
     return errors
 
 
