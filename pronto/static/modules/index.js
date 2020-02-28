@@ -1,4 +1,5 @@
 import {finaliseHeader, getTasks} from "../header.js"
+import {renderCheckbox} from "../ui.js";
 
 
 function waitForTask() {
@@ -90,5 +91,34 @@ $(function () {
         .then(response => response.json())
         .then(response => {
             document.getElementById('recent-integrations').innerHTML = '<strong>'+ response.results.length +'</strong> signatures integrated since <strong>'+ response.date +'</strong>.';
+        });
+
+    fetch(URL_PREFIX+'/api/entries/')
+        .then(response => response.json())
+        .then(response => {
+            const div = document.getElementById('recent-entries');
+            div.querySelector('.title').innerHTML = '<i class="dropdown icon"></i> ' + response.results.length + ' entries recently created';
+
+            let table = '<table class="ui compact table"><thead><tr><th><th>Accession</th><th>Short name</th><th>Creation date</th><th>Author</th><th>Signatures</th><th>Checked</th></tr></thead><tbody>';
+
+            for (const entry of response.results) {
+                table += '<tr>'
+                    + '<td><span class="ui circular mini label type-'+entry.type+'">'+entry.type+'</span></td>'
+                    + '<td><a href="'+ URL_PREFIX +'/entry/'+entry.accession+'/">'+ entry.accession +'</a></td>'
+                    + '<td>'+entry.short_name+'</td>' + '<td>'+ entry.date +'</td>'
+                    + '<td>'+ entry.author +'</td>'
+                    + '<td>'+ entry.num_signatures +'</td>'
+                    /*
+                    Disable checkboxes (1st arg is null) to force curators
+                    to go on the entry page to check/uncheck entries
+                     */
+                    + '<td>'+ renderCheckbox(null, entry.checked) +'</td>'
+                    + '</tr>';
+            }
+
+            table += '</tbody></table>';
+            div.querySelector('.content').innerHTML = table;
+
+            $(div).accordion();
         });
 });

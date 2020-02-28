@@ -123,12 +123,21 @@ export function initSearchBox(input, initValue, callback) {
 }
 
 export function renderCheckbox(entryId, isChecked) {
-    if (!entryId)
-        return '<div class="ui disabled fitted checkbox"><input disabled="disabled" type="checkbox"><label></label></div>';
-    else if (isChecked)
-        return '<div class="ui checked fitted checkbox"><input name="' + entryId + '" checked="" type="checkbox"><label></label></div>';
+    let input;
+    if (entryId) {
+        if (isChecked)
+            input = '<input name="' + entryId + '" checked="" type="checkbox">';
+        else
+            input = '<input name="' + entryId + '" type="checkbox">';
+    } else if (isChecked)
+        input = '<input disabled="disabled" checked="" type="checkbox">';
     else
-        return '<div class="ui fitted checkbox"><input name="' + entryId + '" type="checkbox"><label></label></div>';
+        input = '<input disabled="disabled" type="checkbox">';
+
+    if (isChecked)
+        return '<div class="ui checked fitted checkbox">' + input + '<label></label></div>';
+    else
+        return '<div class="ui fitted checkbox">' + input + '<label></label></div>';
 }
 
 export function dimmer(show) {

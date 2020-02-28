@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from flask import jsonify, request
 
 from pronto import app, db, xref
@@ -366,20 +368,20 @@ def get_best_candidates():
 @app.route("/api/signatures/integrations/")
 def get_recent_integrations():
     cur = db.get_oracle().cursor()
-    cur.execute("SELECT FILE_DATE FROM INTERPRO.DB_VERSION WHERE DBCODE = 'I'")
+    cur.execute(
+        """
+        SELECT FILE_DATE - INTERVAL '7' DAY
+        FROM INTERPRO.DB_VERSION 
+        WHERE DBCODE = 'I'
+        """
+    )
     date, = cur.fetchone()
     cur.execute(
         """
         SELECT METHOD_AC
-        FROM INTERPRO.ENTRY2METHOD_AUDIT
-        WHERE TIMESTAMP >= (
-          SELECT FILE_DATE FROM INTERPRO.DB_VERSION WHERE DBCODE = 'I'
-        )
-        GROUP BY METHOD_AC
-        HAVING SUM(CASE WHEN ACTION='I' THEN 1 
-                        WHEN ACTION='D' THEN -1 
-                        ELSE 0 END) > 0
-        """
+        FROM INTERPRO.ENTRY2METHOD
+        WHERE TIMESTAMP >= :1
+        """, (date,)
     )
     signatures = [row[0] for row in cur]
     cur.close()
