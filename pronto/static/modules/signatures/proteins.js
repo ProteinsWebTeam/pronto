@@ -3,6 +3,40 @@ import {paginate} from "../../ui.js";
 import {selector} from "../../signatures.js";
 import {dimmer} from "../../ui.js";
 
+
+function onLinkIconClick(icon, pathname) {
+    const classes = icon.className.trim().split(' ');
+
+    if (classes.includes('download')) {
+        icon.className = 'circular inverted blue notched circle loading link icon';
+        fetch(URL_PREFIX+"/api" + pathname + "all/" + location.search)
+            .then(response => response.json())
+            .then(accessions => {
+                icon.dataset.accessions = accessions.join(' ');
+                icon.className = 'circular inverted blue copy link icon';
+            });
+    } else if (classes.includes('loading'))
+        return;
+    else if (classes.includes('copy')) {
+        const input = document.createElement('input');
+        input.value = icon.dataset.accessions;
+        input.style = 'position: absolute; left: -1000px; top: -1000px';
+        document.body.appendChild(input);
+        try {
+            input.select();
+            document.execCommand('copy');
+            icon.className = 'circular inverted green smile link icon';
+        } catch (err) {
+            icon.className = 'circular inverted red frown link icon';
+        } finally {
+            document.body.removeChild(input);
+        }
+    } else {
+
+    }
+}
+
+
 function getProteins() {
     const url = new URL(location.href);
     dimmer(true);
@@ -22,18 +56,23 @@ function getProteins() {
             // Set statistic counts
             html = '<div class="ui horizontal statistic">'
                 + '<div class="value">'+ response.num_proteins.toLocaleString() +'</div>'
-                + '<div class="label">proteins</div>'
+                + '<div class="label">proteins&nbsp;<i class="circular inverted blue link download icon"></i></div>'
                 + '</div>';
 
             if (url.searchParams.get("md5") === null) {
                 // Display the number of different structures
                 html += '<div class="ui horizontal statistic">'
-                + '<div class="value">'+ response.num_structures.toLocaleString() +'</div>'
-                + '<div class="label">structures</div>'
-                + '</div>';
+                    + '<div class="value">'+ response.num_structures.toLocaleString() +'</div>'
+                    + '<div class="label">structures</div>'
+                    + '</div>';
             }
 
-            document.querySelector('.ui.statistics').innerHTML = html;
+            const statistic = document.querySelector('.ui.statistics');
+            statistic.innerHTML = html;
+
+            statistic.querySelector('.circular.icon').addEventListener('click', e => {
+                onLinkIconClick(e.currentTarget, pathname);
+            });
 
             // Find longest protein
             const maxLength = Math.max(...response.proteins.map(p => { return p.length }));

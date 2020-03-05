@@ -143,6 +143,136 @@ def _signature_key(d):
     return 0 if d["integrated"] else 1, d["accession"]
 
 
+@app.route("/api/signatures/<path:accessions_str>/proteins/all/")
+def get_all_overlapping_proteins(accessions_str):
+    signatures = set()
+    for acc in accessions_str.split("/"):
+        acc = acc.strip()
+        if acc:
+            signatures.add(acc)
+
+    kwargs = {}
+
+    try:
+        taxon_id = int(request.args["taxon"])
+    except (KeyError, ValueError):
+        pass
+    else:
+        cur = db.get_oracle().cursor()
+        cur.execute(
+            """
+            SELECT LEFT_NUMBER, RIGHT_NUMBER
+            FROM {}.ETAXI
+            WHERE TAX_ID = :1
+            """.format(app.config["DB_SCHEMA"]),
+            (taxon_id,)
+        )
+        row = cur.fetchone()
+        cur.close()
+        if row:
+            kwargs.update({
+                "left_num": row[0],
+                "right_num": row[1]
+            })
+        else:
+            return jsonify({}), 400  # TODO: return error
+
+    try:
+        kwargs["descr_id"] = int(request.args["description"])
+    except (KeyError, ValueError):
+        pass
+
+    try:
+        topic_id = int(request.args["topic"])
+        comment_id = int(request.args["comment"])
+    except (KeyError, ValueError):
+        pass
+    else:
+        kwargs.update({
+            "topic_id": topic_id,
+            "comment_id": comment_id
+        })
+
+    dbcode = request.args.get("db", "S").upper()
+    if dbcode in ("S", "T"):
+        kwargs["dbcode"] = dbcode
+
+    matched_by = set()
+    for acc in request.args.get("include", "").split(","):
+        acc = acc.strip()
+        if acc:
+            matched_by.add(acc)
+            signatures.add(acc)
+
+    not_matched_by = set()
+    for acc in request.args.get("exclude", "").split(","):
+        acc = acc.strip()
+        if acc:
+            not_matched_by.add(acc)
+            signatures.add(acc)
+
+    md5 = request.args.get("md5")  # protein match structure
+    kwargs.update({
+        "go_id": request.args.get("go"),
+        "ec_no": request.args.get("ec"),
+        "rank": request.args.get("rank"),
+        "search": request.args.get("search", "").strip(),
+        "md5": md5
+    })
+
+    user = dict(
+        zip(
+            ("dbuser", "password"),
+            app.config["ORACLE_DB"]["credentials"].split('/')
+        )
+    )
+    dsn = app.config["ORACLE_DB"]["dsn"]
+
+    proteins = {}
+    exclude = set()
+    with ThreadPoolExecutor() as executor:
+        fs = {}
+        for acc in signatures:
+            f = executor.submit(filter_proteins, user, dsn, acc, **kwargs)
+            fs[f] = acc
+
+        for f in as_completed(fs):
+            try:
+                rows = f.result()
+            except Exception as e:
+                pass
+            else:
+                signature_acc = fs[f]
+                for protein_acc, md5, length in rows:
+                    if protein_acc in exclude:
+                        continue
+                    elif signature_acc in not_matched_by:
+                        exclude.add(protein_acc)
+                    elif protein_acc in proteins:
+                        proteins[protein_acc]["signatures"].add(signature_acc)
+                    else:
+                        proteins[protein_acc] = {
+                            "accession": protein_acc,
+                            "signatures": {signature_acc}
+                        }
+
+    if matched_by:
+        proteins = {
+            k: v
+            for k, v in proteins.items()
+            if not matched_by - v["signatures"]
+        }
+
+    if exclude:
+        proteins = {
+            k: v
+            for k, v in proteins.items()
+            if k not in exclude
+        }
+
+    return jsonify(sorted(proteins.keys()))
+
+
 @app.route("/api/signatures/<path:accessions_str>/proteins/")
 def get_overlapping_proteins(accessions_str):
     signatures = set()
