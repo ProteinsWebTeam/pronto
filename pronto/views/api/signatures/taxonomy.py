@@ -8,14 +8,14 @@ def _get_proteins(cur, accession, rank, taxon_id):
         """
         SELECT MP.PROTEIN_AC
           FROM (
-            SELECT PROTEIN_AC, LEFT_NUMBER
+            SELECT PROTEIN_AC, TAX_ID
             FROM {0}.METHOD2PROTEIN
             WHERE METHOD_AC = :1
           ) MP
         INNER JOIN {0}.LINEAGE L 
-          ON MP.LEFT_NUMBER = L.LEFT_NUMBER 
+          ON MP.TAX_ID = L.TAX_ID 
           AND L.RANK = :2
-          AND L.TAX_ID = :3
+          AND L.RANK_TAX_ID = :3
         """.format(app.config["DB_SCHEMA"]),
         (accession, rank, taxon_id)
     )
@@ -233,8 +233,8 @@ def get_taxonomic_origins(accessions_str):
     if taxon_id is not None:
         query += """
             INNER JOIN {}.LINEAGE L
-            ON E.LEFT_NUMBER = L.LEFT_NUMBER 
-            AND L.TAX_ID = :taxid
+            ON E.TAX_ID = L.TAX_ID 
+            AND L.RANK_TAX_ID = :taxid
         """.format(app.config["DB_SCHEMA"])
         params["taxid"] = taxon_id
 
