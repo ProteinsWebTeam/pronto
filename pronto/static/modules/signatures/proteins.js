@@ -25,14 +25,12 @@ function onLinkIconClick(icon, pathname) {
         try {
             input.select();
             document.execCommand('copy');
-            icon.className = 'circular inverted green smile link icon';
+            icon.className = 'circular inverted green copy link icon';
         } catch (err) {
-            icon.className = 'circular inverted red frown link icon';
+            icon.className = 'circular inverted red copy link icon';
         } finally {
             document.body.removeChild(input);
         }
-    } else {
-
     }
 }
 
