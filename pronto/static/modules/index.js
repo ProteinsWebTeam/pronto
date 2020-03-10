@@ -117,7 +117,7 @@ $(function () {
             }
 
             table += '</tbody></table>';
-            div.querySelector('.content').innerHTML = table;
+            div.querySelector('.content > div:not(.message)').innerHTML = table;
 
             $(div).accordion();
         });
