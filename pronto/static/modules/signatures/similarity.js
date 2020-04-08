@@ -43,7 +43,7 @@ function getComments(accessions) {
                 html += '</tr>';
             });
 
-            document.querySelector('table').innerHTML = html + '</tbody>';
+            document.querySelector('.ui.container.vertical.segment table').innerHTML = html + '</tbody>';
             proteinViewer.observe(document.querySelectorAll('td a[data-accession]'));
             dimmer(false);
         });

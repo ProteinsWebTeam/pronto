@@ -65,7 +65,7 @@ function getGoTerms(accessions) {
                 html += '</tr>';
             });
 
-            const table = document.querySelector('table');
+            const table = document.querySelector('.ui.container.vertical.segment table');
             table.innerHTML = html + '</tbody>';
 
             // Update checkboxes

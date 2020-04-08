@@ -43,7 +43,7 @@ function getDescriptions(accessions) {
                 html += '</tr>';
             });
 
-            document.querySelector('table').innerHTML = html + '</tbody>';
+            document.querySelector('.ui.container.vertical.segment table').innerHTML = html + '</tbody>';
 
             // Update radio checkbox (reviewed/unreviewed/any)
             let value;

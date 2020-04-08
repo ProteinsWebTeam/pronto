@@ -67,7 +67,7 @@ function getTaxa(accessions) {
                 html += '</tr>';
             });
 
-            document.querySelector('table').innerHTML = html + '</tbody>';
+            document.querySelector('.ui.container.vertical.segment table').innerHTML = html + '</tbody>';
 
             (function () {
                 const icon = document.querySelector('table a.label i.delete');
