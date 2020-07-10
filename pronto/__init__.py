@@ -1,127 +1,89 @@
 # -*- coding: utf-8 -*-
 
-from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 
-from flask import Flask, g, session
+from flask import Flask, render_template
 
-from pronto.db import get_oracle
+from . import api
+from . import auth
 
-
-__version__ = "1.6.3"
-
-
-class Executor(object):
-    def __init__(self):
-        self.executor = ThreadPoolExecutor()
-        self.running = []
-
-    def enqueue(self, name, fn, *args, **kwargs):
-        self.update()
-        if self.has(name):
-            return False
-        else:
-            con = get_oracle(require_auth=True)
-            cur = con.cursor()
-            cur.execute(
-                """
-                INSERT INTO INTERPRO.PRONTO_TASK (NAME, USERNAME, STARTED) 
-                VALUES (:1, USER, SYSDATE)
-                """, (name, )
-            )
-            con.commit()
-            cur.close()
-            self.running.append((name, self.submit(fn, *args, **kwargs)))
-            return True
-
-    def submit(self, fn, *args, **kwargs):
-        return self.executor.submit(fn, *args, **kwargs)
-
-    def has(self, name):
-        self.update()
-        cur = get_oracle().cursor()
-        cur.execute(
-            """
-            SELECT COUNT(*)
-            FROM INTERPRO.PRONTO_TASK
-            WHERE NAME = :1 AND STATUS IS NULL
-            """, (name,)
-        )
-        count, = cur.fetchone()
-        cur.close()
-        return count != 0
-
-    def update(self):
-        running = []
-        finished = []
-        for name, future in self.running:
-            if future.done():
-                if future.exception() is not None:
-                    finished.append(('N', name))
-                else:
-                    finished.append(('Y', name))
-            else:
-                running.append((name, future))
-
-        if finished:
-            con = get_oracle(require_auth=True)
-            cur = con.cursor()
-            cur.executemany(
-                """
-                UPDATE INTERPRO.PRONTO_TASK
-                SET FINISHED = SYSDATE, STATUS = :1
-                WHERE NAME = :2 AND STATUS IS NULL
-                """, finished
-            )
-            con.commit()
-            cur.close()
-
-        self.running = running
-
-    @property
-    def tasks(self):
-        self.update()
-        cur = get_oracle().cursor()
-        cur.execute(
-            """
-            SELECT NAME, STATUS
-            FROM INTERPRO.PRONTO_TASK
-            WHERE FINISHED IS NULL 
-            OR FINISHED >= SYSDATE - (1 / 24)
-            ORDER BY STARTED
-            """
-        )
-        tasks = []
-        for name, status in cur:
-            if status is None:
-                tasks.append({"name": name, "status": None})
-            else:
-                tasks.append({"name": name, "status": status == 'Y'})
-        cur.close()
-        return tasks
+__version__ = "2.0.0"
 
 
 app = Flask(__name__)
 app.config.from_envvar("PRONTO_CONFIG")
 app.permanent_session_lifetime = timedelta(days=7)
-executor = Executor()
+app.url_map.strict_slashes = True
 
 
-def get_user():
-    """
-    Get the user for the current request.
-    """
-    return session.get("user")
+@app.route("/")
+def index():
+    return render_template("index.html")
 
 
-@app.teardown_appcontext
-def close_db(error):
-    """Closes the database again at the end of the request."""
-    if hasattr(g, "mysql_db"):
-        g.mysql_db.close()
-
-    if hasattr(g, "oracle_db"):
-        g.oracle_db.close()
+@app.route("/database/<identifier>/")
+def member_database(identifier):
+    return render_template("database/signatures.html")
 
 
-from . import views
+@app.route("/entry/<accession>/")
+def entry(accession):
+    return render_template("entry.html")
+
+
+@app.route("/database/<identifier>/unintegrated/")
+def member_database_unintegrated(identifier):
+    return render_template("database/unintegrated.html")
+
+
+@app.route("/protein/<accession>/")
+def protein(accession):
+    return render_template("protein.html")
+
+
+@app.route("/search/")
+def view_search():
+    return render_template("search.html")
+
+
+@app.route("/signature/<accession>/")
+def signature(accession):
+    return render_template("signature.html")
+
+
+@app.route("/signatures/<path:accessions>/comments/")
+def comments(accessions):
+    return render_template("signatures/comments.html")
+
+
+@app.route("/signatures/<path:accessions>/descriptions/")
+def descriptions(accessions):
+    return render_template("signatures/descriptions.html")
+
+
+@app.route("/signatures/<path:accessions>/go/")
+def go(accessions):
+    return render_template("signatures/go.html")
+
+
+@app.route("/signatures/<path:accessions>/taxonomy/<rank>/")
+def taxonomy(accessions, rank):
+    return render_template("signatures/taxonomy.html")
+
+
+@app.route("/signatures/<path:accessions>/proteins/")
+def proteins(accessions):
+    return render_template("signatures/proteins.html")
+
+
+app.register_blueprint(api.bp)
+app.register_blueprint(api.annotation.bp)
+app.register_blueprint(api.database.bp)
+app.register_blueprint(api.databases.bp)
+app.register_blueprint(api.entries.bp)
+app.register_blueprint(api.entry.bp)
+app.register_blueprint(api.protein.bp)
+app.register_blueprint(api.search.bp)
+app.register_blueprint(api.signature.bp)
+app.register_blueprint(api.signatures.bp)
+app.register_blueprint(auth.bp)

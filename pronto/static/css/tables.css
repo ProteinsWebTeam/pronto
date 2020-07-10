@@ -1,0 +1,15 @@
+.ui.hidden.table {
+    display: none;
+}
+
+/* Prevent line break in tables */
+td.nowrap, th.nowrap { white-space: nowrap; }
+
+/* Fix top-left cell for celled-definition tables */
+.ui.definition.celled.table > thead:not(.full-width) > tr > th:first-child {
+    box-shadow: none;
+    -moz-transform: none;
+}
+.ui.definition.celled.table > thead:not(.full-width) > tr > th:nth-child(2) {
+    border-left: 1px solid rgba(34, 36, 38, 0.1);
+}

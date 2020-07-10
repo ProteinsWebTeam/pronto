@@ -1,0 +1,29 @@
+.ui.label.type {
+    margin-right: .25rem;
+}
+
+.ui.label.type.R {
+    background-color: #f2711c;
+    border-color: #f2711c;
+    color: #fff;
+}
+.ui.label.type.H {
+    background-color: #1678c2;
+    border-color: #1678c2;
+    color: #fff;
+}
+.ui.label.type.D {
+    background-color: #21ba45;
+    border-color: #21ba45;
+    color: #fff;
+}
+.ui.label.type.F {
+    background-color: #db2828;
+    border-color: #db2828;
+    color: #fff;
+}
+.ui.label.type.C, .ui.label.type.B, .ui.label.type.A, .ui.label.type.P {
+    background-color: #a333c8;
+    border-color: #a333c8;
+    color: #fff;
+}

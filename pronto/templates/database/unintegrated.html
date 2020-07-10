@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/semantic.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <title>Pronto</title>
+    <style type="text/css">
+        .ui.form > .inline.fields {
+            margin-bottom: .5em;
+        }
+
+        .ui.form > .inline.fields > label {
+            min-width: 200px;
+        }
+    </style>
+</head>
+<body>
+
+{% include 'header.html' %}
+
+<div class="ui container">
+    <div class="ui basic segment">
+        <h1 class="ui header"></h1>
+        <div class="ui form">
+            <div class="three fields">
+                <div class="field">
+                    <div class="grouped fields">
+                        <label>Predicted relationship:</label>
+                        <div class="field">
+                            <div class="ui radio checkbox">
+                                <input id="relationship-similar" class="hidden" type="radio" name="relationship" value="similar" checked>
+                                <label for="relationship-similar">Similar</label>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <div class="ui radio checkbox">
+                                <input id="relationship-parent" class="hidden" type="radio" name="relationship" value="parent">
+                                <label for="relationship-parent">Parent</label>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <div class="ui radio checkbox">
+                                <input id="relationship-child" class="hidden" type="radio" name="relationship" value="child">
+                                <label for="relationship-child">Child</label>
+                            </div>
+                        </div>
+{#                        <div class="field">#}
+{#                            <div class="ui radio checkbox">#}
+{#                                <input id="relationship-none" class="hidden" type="radio" name="relationship" value="none">#}
+{#                                <label for="relationship-none">None</label>#}
+{#                            </div>#}
+{#                        </div>#}
+                    </div>
+                </div>
+
+                <div class="field">
+                    <div class="grouped fields">
+                        <label>Predicted signatures:</label>
+                        <div class="field">
+                            <div class="ui radio checkbox">
+                                <input id="target-integrated" class="hidden" type="radio" name="target" value="integrated" checked="checked">
+                                <label for="target-integrated">Integrated</label>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <div class="ui radio checkbox">
+                                <input id="target-unintegrated" class="hidden" type="radio" name="target" value="unintegrated">
+                                <label for="target-unintegrated">Unintegrated</label>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <div class="ui radio checkbox">
+                                <input id="target-none" class="hidden" type="radio" name="target" value="">
+                                <label for="target-none">Any</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <div class="grouped fields">
+                        <label>Ordering:</label>
+                        <div class="field">
+                            <div class="ui radio checkbox">
+                                <input id="sort-accession" class="hidden" type="radio" name="sort" value="accession" checked>
+                                <label for="sort-accession">By accession (low to high)</label>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <div class="ui radio checkbox">
+                                <input id="sort-similarity" class="hidden" type="radio" name="sort" value="similarity">
+                                <label for="sort-similarity">By similarity (high to low)</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        <div class="ui warning message">
+            <i class="close icon"></i>
+            <div class="header">Checkboxes are read-only</div>
+            <p>To check or uncheck an entry, please visit the entry page.</p>
+        </div>
+        <table id="results" class="ui very compact celled structured small table">
+            <thead>
+            <tr>
+                <th colspan="2" class="center aligned">Unintegrated signature</th>
+                <th colspan="2" class="center aligned">Predicted signature</th>
+                <th colspan="2" class="center aligned">Comparison</th>
+                <th rowspan="2" colspan="2" class="center aligned">Entry</th>
+            </tr>
+            <tr>
+                <th>Accession</th>
+                <th>Proteins</th>
+                <th>Accession</th>
+                <th>Proteins</th>
+                <th>Collocations</th>
+                <th>Overlaps</th>
+            </tr>
+            </thead>
+            <tbody></tbody>
+            <tfoot>
+            <tr>
+                <th colspan="8">
+                    <div class="ui right floated pagination menu"></div>
+                </th>
+            </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='vendor/jquery.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/semantic.js') }}"></script>
+<script src="{{ url_for('static', filename='js/database/unintegrated.js') }}" type="module"></script>
+</body>
+</html>

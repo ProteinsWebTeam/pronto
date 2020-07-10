@@ -2,69 +2,70 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <link rel="stylesheet" href="{{ config.PREFIX + url_for('static', filename='vendor/semantic.min.css') }}" />
-    <link rel="stylesheet" href="{{ config.PREFIX + url_for('static', filename='style.css') }}" />
-    <link rel="icon" href="{{ config.PREFIX + url_for('static', filename='favicon.png') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/semantic.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/go.css') }}">
+    <title>Pronto</title>
 </head>
 <body>
 
 {% include 'header.html' %}
 
-<div class="ui container basic vertical segment">
-    {% include 'signatures/signature_selector.html' %}
+<div class="ui container">
+    <div class="ui basic segment">
+        <h1 class="ui header">GO terms</h1>
 
-    <div class="ui form">
-        <div class="inline fields">
-            <label>Aspects</label>
-            <div class="field">
-                <div class="ui checkbox">
-                    <input name="aspect" value="P" type="checkbox" checked="checked">
-                    <label>Biological Process</label>
+        {% include 'signatures/selector.html' %}
+
+        <div class="ui form">
+            <div class="inline fields">
+                <label>Aspects</label>
+                <div class="field">
+                    <div class="ui checkbox">
+                        <input name="aspect" value="biological_process" type="checkbox">
+                        <label>Biological Process</label>
+                    </div>
                 </div>
-            </div>
-            <div class="field">
-                <div class="ui checkbox">
-                    <input name="aspect" value="F" type="checkbox" checked="checked">
-                    <label>Molecular Function</label>
+                <div class="field">
+                    <div class="ui checkbox">
+                        <input name="aspect" value="molecular_function" type="checkbox">
+                        <label>Molecular Function</label>
+                    </div>
                 </div>
-            </div>
-            <div class="field">
-                <div class="ui checkbox">
-                    <input name="aspect" value="C" type="checkbox" checked="checked">
-                    <label>Cellular Component</label>
+                <div class="field">
+                    <div class="ui checkbox">
+                        <input name="aspect" value="cellular_component" type="checkbox">
+                        <label>Cellular Component</label>
+                    </div>
                 </div>
             </div>
         </div>
+        <table id="results" class="ui definition celled table"></table>
     </div>
-
-    <table class="ui definition celled table"></table>
 </div>
 
-{% include 'footer.html' %}
-
-<div id="go-chart-modal" class="ui modal">
+<div id="chart-modal" class="ui modal">
     <i class="close icon"></i>
     <div class="image content">
     </div>
 </div>
 
-<div id="go-references-modal" class="ui modal">
+<div id="references-modal" class="ui modal">
     <i class="close icon"></i>
     <div class="ui header"></div>
     <div class="scrolling content">
-        <ol class="ui list"></ol>
+        <ul class="ui list"></ul>
     </div>
     <div class="actions">
-        <a target="_blank" href="" class="ui black button">
+        <a target="_blank" href="" class="ui basic button">
             <i class="external icon"></i>
             QuickGO
         </a>
     </div>
 </div>
 
-<script src="{{ config.PREFIX + url_for('static', filename='vendor/jquery.min.js') }}" type="application/javascript"></script>
-<script src="{{ config.PREFIX + url_for('static', filename='vendor/semantic.min.js') }}" type="application/javascript"></script>
-<script src="{{ config.PREFIX + url_for('static', filename='modules/signatures/go.js') }}" type="module"></script>
-
+<script src="{{ url_for('static', filename='vendor/jquery.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/semantic.js') }}"></script>
+<script src="{{ url_for('static', filename='js/signatures/go.js') }}" type="module"></script>
 </body>
 </html>

@@ -1,0 +1,63 @@
+@import "comments.css";
+@import "header.css";
+@import "tables.css";
+@import "types.css";
+
+@media screen and (min-width: 1384px){
+    .ui.ui.ui.ui.container {
+        max-width: 1344px;
+        width: 1344px;
+    }
+}
+
+#dimmer { z-index: 5000; } /* need to have a Z-index > modal's */
+
+.ui.hidden.sticky {
+    display: none;
+}
+
+.ui.basic.segment {
+    padding-left: 0;
+    padding-right: 0;
+}
+
+/* Useful for external link icons */
+a > i:last-child {
+    width: auto;
+    margin: 0 0 0 .25rem;
+}
+
+/* Overwrite Semantic */
+.ui.header i.icon:only-child {
+    margin-right: 0;
+}
+
+/*h1, h2, h3, h4, h5, h6, .ui.header {*/
+/*font-weight: 400;*/
+/*}*/
+
+#signature-selector {
+    margin-bottom: 1rem;
+}
+
+.capitalize {
+    text-transform: capitalize;
+}
+
+/* todo: find where these rules are used */
+/*.ui.form .fields .field .grouped.fields .field .ui.checkbox:only-child {*/
+/*    margin-top: 0;*/
+/*}*/
+
+/*.ui.form .fields:only-child {*/
+/*    margin-bottom: 0;*/
+/*}*/
+
+/* simple button-like icon */
+i.button.icon {
+    cursor: pointer;
+    color: rgba(0,0,0,.4);
+}
+i.button.icon:hover {
+    color: rgba(0,0,0,.8);
+}

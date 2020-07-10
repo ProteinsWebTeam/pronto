@@ -2,49 +2,30 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <link rel="stylesheet" href="{{ config.PREFIX + url_for('static', filename='vendor/semantic.min.css') }}" />
-    <link rel="stylesheet" href="{{ config.PREFIX + url_for('static', filename='style.css') }}" />
-    <link rel="icon" href="{{ config.PREFIX + url_for('static', filename='favicon.png') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/semantic.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <title>Pronto</title>
 </head>
 <body>
 
 {% include 'header.html' %}
 
-<div class="ui container basic vertical segment">
-    {% include 'signatures/signature_selector.html' %}
+<div class="ui container">
+    <div class="ui basic segment">
+        <h1 class="ui header">UniProt descriptions</h1>
 
-    <div class="ui form">
-        <div class="inline fields">
-            <label>Source</label>
-            <div class="field">
-                <div class="ui radio checkbox">
-                    <input name="dbcode" value="S" type="radio">
-                    <label>Swiss-Prot</label>
-                </div>
-            </div>
-            <div class="field">
-                <div class="ui radio checkbox">
-                    <input name="dbcode" value="T" type="radio">
-                    <label>TrEMBL</label>
-                </div>
-            </div>
-            <div class="field">
-                <div class="ui radio checkbox">
-                    <input name="dbcode" value="U" type="radio">
-                    <label>Any</label>
-                </div>
-            </div>
+        {% include 'signatures/selector.html' %}
+
+        <div class="ui checkbox">
+            <input type="checkbox" name="reviewed">
+            <label>Display Swiss-Prot/reviewed proteins only</label>
         </div>
+        <table id="results" class="ui definition celled table"></table>
     </div>
-
-    <table class="ui definition celled table"></table>
 </div>
 
-{% include 'footer.html' %}
-
-<script src="{{ config.PREFIX + url_for('static', filename='vendor/jquery.min.js') }}" type="application/javascript"></script>
-<script src="{{ config.PREFIX + url_for('static', filename='vendor/semantic.min.js') }}" type="application/javascript"></script>
-<script src="{{ config.PREFIX + url_for('static', filename='modules/signatures/descriptions.js') }}" type="module"></script>
-
+<script src="{{ url_for('static', filename='vendor/jquery.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/semantic.js') }}"></script>
+<script src="{{ url_for('static', filename='js/signatures/descriptions.js') }}" type="module"></script>
 </body>
 </html>

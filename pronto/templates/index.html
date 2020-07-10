@@ -2,83 +2,63 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <link rel="stylesheet" href="{{ config.PREFIX + url_for('static', filename='vendor/semantic.min.css') }}" />
-    <link rel="stylesheet" href="{{ config.PREFIX + url_for('static', filename='style.css') }}" />
-    <link rel="icon" href="{{ config.PREFIX + url_for('static', filename='favicon.png') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/semantic.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
     <title>Pronto</title>
 </head>
 <body>
 
 {% include 'header.html' %}
 
-<div class="ui container basic vertical segment">
-    <div class="ui divided grid">
-        <div class="row">
-            <div class="twelve wide column">
-                <div class="ui basic segment">
-                    <h3 class="ui dividing header">
-                        <i class="fitted lightning icon"></i>
-                        Annotation
-                    </h3>
-                    <p>
-                        <span id="recent-integrations"></span>
-                        Display the <a href="{{ config.PREFIX }}/signatures/">integration recommendations</a>.
-                    </p>
-
-                    <div id="recent-entries" class="ui accordion">
-                        <div class="title"></div>
-                        <div class="content">
-                            <div class="ui warning message">
-                                <div class="header">Checkboxes are read-only</div>
-                                To check or uncheck an entry, please visit the entry page.
-                            </div>
-                            <div></div>
-                        </div>
-                    </div>
-
-                    <h3 class="ui dividing header">
-                        <i class="fitted database icon"></i>
-                        Member databases
-                    </h3>
-                    <table id="databases" class="ui selectable table">
-                        <thead>
-                        <tr>
-                            <th colspan="2"></th>
-                            <th>Signatures</th>
-                            <th>Integrated</th>
-                            <th>Unintegrated</th>
-                        </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
-                </div>
-
-            </div>
-            <div class="four wide column">
-                <div id="sanity-checks" class="ui basic segment">
-                    <h3 class="ui dividing header">
-                        <i class="fitted checkmark box icon"></i>
-                        Sanity checks
-                    </h3>
-                    <button class="ui compact primary button">
-                        <i class="play icon"></i>
-                        Run
-                    </button>
-                    <a class="ui compact basic button" href="{{ config.PREFIX }}/sanitychecks/settings/">
-                        <i class="setting icon"></i>
-                        Settings
-                    </a>
-                    <div class="ui hidden message"></div>
-                    <div class="ui feed"></div>
-                </div>
-            </div>
-        </div>
+<div class="ui container">
+    <div class="ui basic segment">
+        <h3 class="ui dividing header">
+            <i class="database icon"></i>
+            Member databases
+        </h3>
+        <table id="databases" class="ui table">
+            <thead>
+            <tr>
+                <th colspan="2"></th>
+                <th>Signatures</th>
+                <th>Integrated</th>
+                <th>Unintegrated</th>
+            </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
     </div>
+
+    <div id="recent-entries" class="ui basic segment">
+        <h3 class="ui dividing header">
+            <i class="pen icon"></i>
+            Annotations
+        </h3>
+        <p></p>
+        <div class="ui warning message">
+            <i class="close icon"></i>
+            <div class="header">Checkboxes are read-only</div>
+            <p>To check or uncheck an entry, please visit the entry page.</p>
+        </div>
+        <table class="ui single line compact table">
+            <thead>
+            <tr>
+                <th>Entry</th>
+                <th>Short name</th>
+                <th>Creation date</th>
+                <th>Author</th>
+                <th>Signatures</th>
+                <th>Checked</th>
+            </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
 </div>
 
-<script src="{{ config.PREFIX + url_for('static', filename='vendor/jquery.min.js') }}" type="application/javascript"></script>
-<script src="{{ config.PREFIX + url_for('static', filename='vendor/semantic.min.js') }}" type="application/javascript"></script>
-<script src="{{ config.PREFIX + url_for('static', filename='modules/index.js') }}" type="module"></script>
-
+<script src="{{ url_for('static', filename='vendor/jquery.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/semantic.js') }}"></script>
+<script src="{{ url_for('static', filename='js/index.js') }}" type="module"></script>
 </body>
 </html>
