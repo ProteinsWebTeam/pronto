@@ -9,7 +9,7 @@ import * as searchbox from '../ui/searchbox.js'
 
 function getSignatures() {
     dimmer.on();
-    fetch(`/api${location.pathname}/signatures/${location.search}`)
+    fetch(`/api${location.pathname}signatures/${location.search}`)
         .then(response => {
             dimmer.off();
             if (response.ok)
