@@ -2,13 +2,13 @@
 
 *InterPro curation system*
 
-Pronto is a web application aiming to assist InterPro curators by displaying protein match information for member database signatures. 
+Pronto is a web application aiming to assist InterPro curators in creating/editing InterPro entries.
  
 ## Getting started
 
 ### Prerequisites
 
-- Python>=3.3 with `cx_Oracle`, `Flask`, and `mysqlclient`.
+- Python>=3.6 with `cx_Oracle`, `Flask`, `mysqlclient`, and `psycopg2`.
 - A public database link to the `LITPUB` database (literature service) must exist.
 
 ### Installation
@@ -24,11 +24,12 @@ python setup.py install
 
 Edit `config.cfg`, and set the following options:
 
-* `ORACLE_DB` - Oracle connection details (dictionary; keys: `dsn`, `credentials`).
-* `MYSQL_DB` - InterPro7 MySQL database (dictionary; keys: `host`, `user`, `passwd`, `port`, `db`).
-* `DB_SCHEMA` - Oracle database schema (i.e. owner of tables).
+* `ORACLE` - Connection string for InterPro production Oracle database.
+* `MYSQL` - Connection string for InterPro7 MySQL database.
+* `POSTGRESQL` - Connection string for Pronto PostgreSQL database.
 * `SECRET_KEY` - key used to sign cookies (prevent forgery).
-* `PREFIX` - URL prefix to use for internal links and API calls.
+
+Format for connection strings: `<user>/<password>@<host>:<port>/<schema>`.
 
 ### Generate secret key
 
