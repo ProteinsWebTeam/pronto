@@ -62,7 +62,7 @@ def get_integrated_signatures(db_name):
     sql = """
         SELECT accession, num_sequences
         FROM interpro.signature
-        WHERE database = %s
+        WHERE database_id = %s
     """
 
     if search_query:
@@ -313,7 +313,7 @@ def get_unintegrated_signatures(db_name):
         f"""
         SELECT accession
         FROM signature
-        WHERE database = %s
+        WHERE database_id = %s
         {search_stmt}
         """, params
     )
@@ -358,7 +358,7 @@ def get_unintegrated_signatures(db_name):
         FROM signature q
         INNER JOIN comparison c ON q.accession = c.signature_acc_1
         INNER JOIN signature t ON c.signature_acc_2 = t.accession
-        WHERE q.database = %s {rel_sql}
+        WHERE q.database_id = %s {rel_sql}
         """, params
     )
 
