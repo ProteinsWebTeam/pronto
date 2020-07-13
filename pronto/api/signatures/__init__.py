@@ -8,5 +8,6 @@ bp = Blueprint("api.signatures", __name__, url_prefix="/api/signatures")
 from . import comments
 from . import descriptions
 from . import go
+from . import matrices
 from . import proteins
 from . import taxonomy
