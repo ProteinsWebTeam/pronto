@@ -353,11 +353,11 @@ def get_unintegrated_signatures(db_name):
 
     cur.execute(
         f"""
-        SELECT q.accession, t.accession, c.collocation, c.overlap,
-               c.similarity, c.relationship
-        FROM signature q
-        INNER JOIN comparison c ON q.accession = c.signature_acc_1
-        INNER JOIN signature t ON c.signature_acc_2 = t.accession
+        SELECT q.accession, t.accession, p.collocation,p.overlap,
+               p.similarity, p.relationship
+        FROM interpro.signature q
+        INNER JOIN interpro.prediction p ON q.accession = p.signature_acc_1
+        INNER JOIN interpro.signature t ON p.signature_acc_2 = t.accession
         WHERE q.database_id = %s {rel_sql}
         """, params
     )
