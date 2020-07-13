@@ -342,10 +342,10 @@ def get_unintegrated_signatures(db_name):
         }
 
     if rel_filter != "none":
-        rel_sql = "AND c.relationship = %s"
+        rel_sql = "AND p.relationship = %s"
         params = (db_identifier, rel_filter)
     elif rel_filter == "none":
-        rel_sql = "AND c.relationship IS NULL"
+        rel_sql = "AND p.relationship IS NULL"
         params = (db_identifier,)
     else:
         rel_sql = ""
