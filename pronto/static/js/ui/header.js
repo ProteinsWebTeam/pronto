@@ -183,21 +183,16 @@ export function updateHeader(signatureAcc) {
                             body: JSON.stringify(fields)
                         }
                         fetch('/api/entry/', options)
-                            .then(response => {
-                                if (!response.ok)
-                                    throw Error(JSON.stringify({title: 'Unexpected error', message: `An error was raised (${response.status})`}));
-
-                                return response.json();
-                            })
+                            .then(response => response.json())
                             .then(result => {
                                 if (result.status) {
-                                    // todo
+                                    const form = document.createElement("form");
+                                    form.name = "gotoentry";
+                                    form.action = `/entry/${result.accession}/`;
+                                    document.body.appendChild(form);
+                                    document.gotoentry.submit();
                                 } else
-                                    throw Error(JSON.stringify(result.error));
-
-                            })
-                            .catch(error => {
-                                toggleErrorMessage(errMsg, JSON.parse(error.message));
+                                    toggleErrorMessage(errMsg, result.error);
                             });
                     },
                 });
