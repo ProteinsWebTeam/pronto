@@ -13,13 +13,30 @@ def get_member_databases():
     # Get number of signatures and integrated signatures
     con = utils.connect_oracle()
     cur = con.cursor()
-    cur.execute("SELECT METHOD_AC FROM INTERPRO.ENTRY2METHOD")
-    integrated = {row[0] for row in cur}
+    cur.execute(
+        """
+        SELECT LOWER(D.DBSHORT), COUNT(*)
+        FROM INTERPRO.ENTRY2METHOD EM
+        INNER JOIN INTERPRO.METHOD M ON EM.METHOD_AC = M.METHOD_AC
+        INNER JOIN INTERPRO.CV_DATABASE D ON M.DBCODE = D.DBCODE
+        GROUP BY D.DBSHORT
+        """
+    )
+    num_integrated = dict(cur.fetchall())
     cur.close()
     con.close()
 
     con = utils.connect_pg()
     cur = con.cursor()
+    cur.execute(
+        """
+        SELECT database_id, COUNT(*)
+        FROM interpro.signature
+        GROUP BY database_id
+        """
+    )
+    num_signatures = dict(cur.fetchall())
+
     cur.execute(
         """
         SELECT id, name, name_long, version, updated
@@ -38,26 +55,10 @@ def get_member_databases():
             "link": db.home,
             "color": db.color,
             "signatures": {
-                "total": 0,
-                "integrated": 0
+                "total": num_signatures.get(dbid, 0),
+                "integrated": num_integrated.get(name, 0)
             }
         }
-
-    cur.execute(
-        """
-        SELECT database_id, accession
-        FROM interpro.signature
-        """
-    )
-    for dbid, accession in cur:
-        try:
-            db = databases[dbid]
-        except KeyError:
-            continue
-
-        db["signatures"]["total"] += 1
-        if accession in integrated:
-            db["signatures"]["integrated"] += 1
 
     cur.close()
     con.close()
