@@ -21,6 +21,10 @@
     padding-right: 0;
 }
 
+.ui.tab.basic.segment {
+    margin-top: 0;
+}
+
 /* Useful for external link icons */
 a > i:last-child {
     width: auto;

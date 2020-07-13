@@ -31,24 +31,30 @@ export function updateHeader(signatureAcc) {
         fetch('/api/')
             .then(response => response.json())
             .then(object => {
-                document.getElementById("uniprot-version").innerHTML = object.uniprot;
+                document.getElementById("pronto-info").innerHTML = `
+                    <div class="item">
+                        <div class="ui violet label">
+                        Oracle<div class="detail">${object.oracle}</div>
+                        </div>
+                    </div>
+                    <div class="item">
+                        <div class="ui purple label">
+                        UniProt<div class="detail">${object.uniprot}</div>
+                        </div>
+                    </div>
+                `;
 
                 const menu = document.querySelector("header .right.menu");
                 let item;
-
                 if (object.user) {
                     item = document.createElement("div");
                     item.className = "ui simple dropdown item";
-                    item.innerHTML = '<i class="user circle icon"></i> '
-                        + object.user.name
-                        + '<i class="dropdown icon"></i>'
-                        + '<div class="menu">'
-                        + '<div class="item">'
-                        + '<a class="icon" href="/logout/">'
-                        + '<i class="sign out icon"></i>&nbsp;Log out'
-                        + '</a>'
-                        + '</div>'
-                        + '</div>';
+                    item.innerHTML = `<i class="user circle icon"></i>${object.user.name}<i class="dropdown icon"></i>
+                                      <div class="menu">
+                                      <div class="item">
+                                      <a class="icon" href="/logout/"><i cass="sign out icon"></i>&nbsp;Log out</a>
+                                      </div>
+                                      </div>`;
                     menu.appendChild(item);
                 } else {
                     item = document.createElement("a");

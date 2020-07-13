@@ -34,6 +34,7 @@ def api_index():
     con.close()
 
     return jsonify({
+        "oracle": utils.get_oracle_dsn().split('/')[-1],
         "uniprot": version,
         "user": user,
     })
