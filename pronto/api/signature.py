@@ -247,7 +247,7 @@ def get_term_citations(accession, term_id):
                 )
                 AND ref_db_code = 'PMID'
             )
-            ORDER BY published ASC
+            ORDER BY published
             """, (term_id, accession)
         )
 
@@ -320,20 +320,20 @@ def get_signature_predictions(accession):
     cur.execute(
         """
         SELECT
-          c.signature_acc_2,
+          p.signature_acc_2,
           s.num_complete_sequences,
           d.name,
           d.name_long,
-          c.collocation,
-          c.overlap,
-          c.similarity,
-          c.relationship
-        FROM comparison c
-        INNER JOIN signature s
-          ON c.signature_acc_2 = s.accession
-        INNER JOIN database d
+          p.collocation,
+          p.overlap,
+          p.similarity,
+          p.relationship
+        FROM interpro.prediction p
+        INNER JOIN interpro.signature s
+          ON p.signature_acc_2 = s.accession
+        INNER JOIN interpro.database d
           ON s.database_id = d.id
-        WHERE c.signature_acc_1 = %s
+        WHERE p.signature_acc_1 = %s
         """, (accession,)
     )
 
