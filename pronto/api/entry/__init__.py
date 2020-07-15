@@ -234,7 +234,8 @@ def update_entry(accession):
             SET ENTRY_TYPE = :1, 
                 NAME = :2, 
                 SHORT_NAME = :3, 
-                CHECKED = :4
+                CHECKED = :4,
+                TIMESTAMP = SYSDATE
             WHERE ENTRY_AC = :5
             """, (*params, accession)
         )
