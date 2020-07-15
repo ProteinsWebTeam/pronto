@@ -1,10 +1,9 @@
-import {genProtHeader} from "../protein.js";
 import * as dimmer from "../ui/dimmer.js";
 import {updateHeader} from "../ui/header.js";
 import {selector} from "../ui/signatures.js";
 import {setClass} from "../ui/utils.js";
 import * as pagination from "../ui/pagination.js";
-
+import {genProtHeader} from "../ui/proteins.js";
 
 function fetchAPI() {
     return new Promise(((resolve, reject) => {
@@ -28,28 +27,27 @@ const width = svgWidth - svgPaddingLeft - svgPaddingRight;
 
 
 function getProtein(proteinAccession, signatures) {
-    return new Promise((resolve => {
-        fetch(`/api/protein/${proteinAccession}/?matches`)
-            .then(response => response.json())
-            .then(protein => {
-                let html = '';
+    return fetch(`/api/protein/${proteinAccession}/?matches`)
+        .then(response => response.json())
+        .then(protein => {
+            let html = '';
 
-                for (const signature of protein.signatures) {
-                    if (signatures.includes(signature.accession))
-                        html += '<tr class="active">';
-                    else
-                        html += '<tr>';
+            for (const signature of protein.signatures) {
+                if (signatures.includes(signature.accession))
+                    html += '<tr class="active">';
+                else
+                    html += '<tr>';
 
-                    if (signature.entry === null)
-                        html += '<td></td>';
-                    else {
-                        html += `<td>
+                if (signature.entry === null)
+                    html += '<td></td>';
+                else {
+                    html += `<td>
                                    <span class="ui mini circular label type ${signature.entry.type}">${signature.entry.type}</span>
                                    <a href="/entry/${signature.entry.accession}/">${signature.entry.accession}</a>
                                  </td>`;
-                    }
+                }
 
-                    html += `<td><a href="/signature/${signature.accession}/">${signature.accession}</a></td>
+                html += `<td><a href="/signature/${signature.accession}/">${signature.accession}</a></td>
                              <td class="collapsing"><a href="#" data-add-id="${signature.accession}"><i class="cart plus fitted icon"></i></a></td>
                              <td><a target="_blank" href="${signature.link}">${signature.name}<i class="external icon"></i></a></td>
                              <td>
@@ -57,36 +55,34 @@ function getProtein(proteinAccession, signatures) {
                                     <line x1="${svgPaddingLeft}" y1="20" x2="${width}" y2="20" stroke="#888" stroke-width="1px"/>
                                     <text x="${svgPaddingLeft + width + 2}" y="20" class="length">${protein.length}</text>`;
 
-                    for (const fragments of signature.matches) {
-                        for (let i = 0; i < fragments.length; i++) {
-                            const frag = fragments[i];
-                            const x = Math.round(frag.start * width / protein.length) + svgPaddingLeft;
-                            const w = Math.round((frag.end - frag.start) * width / protein.length);
+                for (const fragments of signature.matches) {
+                    for (let i = 0; i < fragments.length; i++) {
+                        const frag = fragments[i];
+                        const x = Math.round(frag.start * width / protein.length) + svgPaddingLeft;
+                        const w = Math.round((frag.end - frag.start) * width / protein.length);
 
-                            html += '<g>';
-                            if (i) {
-                                // Discontinuous domain: draw arc
-                                const px = Math.round(fragments[i-1].end * width / protein.length) + svgPaddingLeft;
-                                html += `<path d="M${px} 15 Q ${(px+x)/2} 0 ${x} 15" fill="none" stroke="${signature.color}"/>`
-                            }
+                        html += '<g>';
+                        if (i) {
+                            // Discontinuous domain: draw arc
+                            const px = Math.round(fragments[i-1].end * width / protein.length) + svgPaddingLeft;
+                            html += `<path d="M${px} 15 Q ${(px+x)/2} 0 ${x} 15" fill="none" stroke="${signature.color}"/>`
+                        }
 
-                            html += `<rect x="${x}" y="15" width="${w}" height="10" rx="1" ry="1" style="fill: ${signature.color};" />
+                        html += `<rect x="${x}" y="15" width="${w}" height="10" rx="1" ry="1" style="fill: ${signature.color};" />
                                      <text x="${x}" y="10" class="position">${frag.start}</text>
                                      <text x="${x+w}" y="10" class="position">${frag.end}</text>
                                      </g>`;
-                        }
                     }
-
-                    html += '</svg></td></tr>';
                 }
 
-                const elem = document.querySelector(`#proteins [data-id="${protein.accession}"] tbody`);
-                elem.innerHTML = html;
-                resolve(protein.accession);
-            });
-    }));
-}
+                html += '</svg></td></tr>';
+            }
 
+            const elem = document.querySelector(`#proteins [data-id="${protein.accession}"] tbody`);
+            elem.innerHTML = html;
+            return protein.accession;
+        });
+}
 
 function getProteins(signatureAccessions) {
     dimmer.on();
@@ -154,7 +150,6 @@ function getProteins(signatureAccessions) {
                 if (data.filters.taxon) {
                     filterElem.querySelector('.value').innerHTML = `<em>${data.filters.taxon}</em>`;
                     setClass(filterElem, 'hidden', false);
-
                 } else
                     setClass(filterElem, 'hidden', true);
 

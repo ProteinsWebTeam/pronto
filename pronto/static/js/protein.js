@@ -1,32 +1,13 @@
-import * as checkbox from './ui/checkbox.js'
 import * as dimmer from "./ui/dimmer.js"
 import {updateHeader} from "./ui/header.js"
 import {setClass} from "./ui/utils.js";
 import {listenMenu} from "./ui/menu.js";
+import {genProtHeader} from "./ui/proteins.js";
 
 // Global variables for SVG
 const matchHeight = 10;
 let svgWidth;
 let rectWidth;
-
-function genLinkTag(accession, isReviewed) {
-    if (isReviewed)
-        return `<a target="_blank" href="//sp.isb-sib.ch/uniprot/${accession}">reviewed<i class="external icon"></i></a>`;
-    else
-        return `<a target="_blank" href="//uniprot.org/uniprot/${accession}">unreviewed<i class="external icon"></i></a>`;
-}
-
-
-export function genProtHeader(protein) {
-    return `${protein.name}
-            <div class="sub header">
-            ${protein.accession} (${genLinkTag(protein.accession, protein.is_reviewed)})
-            &mdash;
-            Organism: <em>${protein.organism}</em>
-            &mdash;
-            Length: ${protein.length} AA
-            </div>`;
-}
 
 function initSVG (proteinLength, numLines, numDiscDomains) {
     const step = Math.pow(10, Math.floor(Math.log(proteinLength) / Math.log(10))) / 2;
