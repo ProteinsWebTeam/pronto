@@ -235,7 +235,8 @@ def update_entry(accession):
                 NAME = :2, 
                 SHORT_NAME = :3, 
                 CHECKED = :4,
-                TIMESTAMP = SYSDATE
+                TIMESTAMP = SYSDATE,
+                USERSTAMP = USER
             WHERE ENTRY_AC = :5
             """, (*params, accession)
         )
