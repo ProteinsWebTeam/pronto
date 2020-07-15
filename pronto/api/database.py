@@ -211,22 +211,6 @@ def get_unintegrated_signatures(db_name):
     except (KeyError, ValueError):
         page_size = 20
 
-    search_query = request.args.get("search", "").strip().lower()
-
-    try:
-        sort_by = request.args["sort"]
-    except KeyError:
-        sort_by = "accession"
-    else:
-        if sort_by not in ("accession", "similarity"):
-            return jsonify({
-                "error": {
-                    "title": "Bad Request (invalid sort parameter)",
-                    f"message": "Accepted values are: "
-                                "accession, similarity."
-                }
-            }), 400
-
     rel_filter = request.args.get("relationship", "similar")
     if rel_filter not in ("similar", "parent", "child", "none"):
         return jsonify({
@@ -253,15 +237,20 @@ def get_unintegrated_signatures(db_name):
 
     con = utils.connect_oracle()
     cur = con.cursor()
-    # cur.execute(
-    #     """
-    #     SELECT METHOD_AC, COUNT(*)
-    #     FROM INTERPRO.METHOD_COMMENT
-    #     GROUP BY METHOD_AC
-    #     """
-    # )
-    # num_comments = dict(cur.fetchall())
-
+    cur.execute(
+        """
+        SELECT M.METHOD_AC, COUNT(*)
+        FROM INTERPRO.METHOD_COMMENT MC
+        INNER JOIN INTERPRO.METHOD M ON MC.METHOD_AC = M.METHOD_AC
+        WHERE M.DBCODE = (
+            SELECT DBCODE 
+            FROM INTERPRO.CV_DATABASE 
+            WHERE DBSHORT = :1
+        )
+        GROUP BY M.METHOD_AC
+        """, (db_name.upper(),)
+    )
+    num_comments = dict(cur.fetchall())
     cur.execute(
         """
         SELECT EM.METHOD_AC, E.ENTRY_AC, E.NAME, E.ENTRY_TYPE, E.CHECKED
@@ -269,7 +258,6 @@ def get_unintegrated_signatures(db_name):
         INNER JOIN INTERPRO.ENTRY E ON EM.ENTRY_AC = E.ENTRY_AC
         """
     )
-
     integrated = {}
     for row in cur:
         integrated[row[0]] = {
@@ -278,7 +266,6 @@ def get_unintegrated_signatures(db_name):
             "type": row[3],
             "checked": row[4] == 'Y',
         }
-
     cur.close()
     con.close()
 
@@ -302,149 +289,116 @@ def get_unintegrated_signatures(db_name):
         }), 404
     db_identifier, db_full_name, db_version = row
 
-    if search_query:
-        search_stmt = "AND (LOWER(accession) LIKE %s OR LOWER(name) LIKE %s)"
-        params = (db_identifier, search_query, search_query)
-    else:
-        search_stmt = ""
-        params = (db_identifier,)
-
     cur.execute(
-        f"""
-        SELECT accession
+        """
+        SELECT accession, type, num_complete_sequences, num_residues
         FROM signature
         WHERE database_id = %s
-        {search_stmt}
-        """, params
+        """, (db_identifier,)
     )
-    unintegrated = {acc for acc, in cur if acc not in integrated}
+    db_unintegrated = {}
+    for accession, _type, num_proteins, num_residues in cur:
+        if accession not in integrated:
+            db_unintegrated[accession] = (_type, num_proteins, num_residues)
 
     cur.execute(
         """
-        SELECT s.accession, s.name, s.type, s.num_complete_sequences,
-               d.name, d.name_long
-        FROM signature s
-        INNER JOIN database d ON s.database_id = d.id
-        """
+        SELECT s1.accession, s2.accession, s2.type, s2.num_complete_sequences, 
+               s2.num_residues, d.name, d.name_long, 
+               p.collocations, p.protein_overlaps, p.residue_overlaps
+        FROM interpro.signature s1
+        INNER JOIN interpro.prediction p ON s1.accession = p.signature_acc_1
+        INNER JOIN interpro.signature s2 ON p.signature_acc_2 = s2.accession
+        INNER JOIN interpro.database d ON s2.database_id = d.id
+        WHERE s1.database_id = %s
+        """, (db_identifier,)
     )
-    signatures = {}
-    for acc, name, _type, num_proteins, db_key, db_name in cur:
-        database = utils.get_database_obj(db_key)
-        signatures[acc] = {
-            "accession": acc,
-            "database": {
-                "name": db_name,
-                "color": database.color
-            },
-            "type": _type,
-            "proteins": num_proteins,
-            "entry": integrated.get(acc)
-        }
-
-    if rel_filter != "none":
-        rel_sql = "AND p.relationship = %s"
-        params = (db_identifier, rel_filter)
-    elif rel_filter == "none":
-        rel_sql = "AND p.relationship IS NULL"
-        params = (db_identifier,)
-    else:
-        rel_sql = ""
-        params = (db_identifier,)
-
-    cur.execute(
-        f"""
-        SELECT q.accession, t.accession, p.collocation,p.overlap,
-               p.similarity, p.relationship
-        FROM interpro.signature q
-        INNER JOIN interpro.prediction p ON q.accession = p.signature_acc_1
-        INNER JOIN interpro.signature t ON p.signature_acc_2 = t.accession
-        WHERE q.database_id = %s {rel_sql}
-        """, params
-    )
-
     queries = {}
     for row in cur:
-        query_acc = row[0]
-        target_acc = row[1]
-        collocations = row[2]
-        overlaps = row[3]
-        similarity = row[4]
-        relationship = row[5]
-
-        if query_acc not in unintegrated:
+        q_acc = row[0]
+        try:
+            q_type, q_proteins, q_residues = db_unintegrated[q_acc]
+        except KeyError:
             continue
-        elif target_acc in integrated:
+
+        t_acc = row[1]
+        t_entry = integrated.get(t_acc)
+        if t_entry:
             if integ_filter == "unintegrated":
                 continue  # we want unintegrated targets only: skip
         elif integ_filter == "integrated":
-            continue      # we want integrated targets only: skip
+            continue  # we want integrated targets only: skip
 
-        query = signatures[query_acc]
-        target = signatures[target_acc]
+        t_type = row[2]
+        t_proteins = row[3]
+        t_residues = row[4]
+        t_db_key = row[5]
+        t_db_name = row[6]
+        collocations = row[7]
+        protein_overlaps = row[8]
+        residue_overlaps = row[9]
 
-        q_is_hs = query["type"] == "Homologous_superfamily"
-        t_is_hs = target["type"] == "Homologous_superfamily"
+        q_is_hs = q_type == "Homologous_superfamily"
+        t_is_hs = t_type == "Homologous_superfamily"
         if q_is_hs != t_is_hs:
-            continue
+            continue  # Invalid type pair (HS can only be together)
+
+        p = utils.Prediction(q_proteins, t_proteins, protein_overlaps)
+        if p.relationship != rel_filter:
+            continue  # not the relationship we're after
+
+        pr = utils.Prediction(q_residues, t_residues, residue_overlaps)
 
         try:
-            q = queries[query_acc]
+            q = queries[q_acc]
         except KeyError:
-            q = queries[query_acc] = []
+            q = queries[q_acc] = []
         finally:
             q.append({
-                "accession": target_acc,
-                "relationship": relationship,
-                "similarity": similarity,
+                # Target signature
+                "accession": t_acc,
+                "database": {
+                    "name": t_db_name,
+                    "color": utils.get_database_obj(t_db_key).color
+                },
+                "entry": t_entry,
+                "proteins": t_proteins,
+
+                # Comparison query/target
                 "collocations": collocations,
-                "overlaps": overlaps
+                "overlaps": protein_overlaps,
+                "similarity": p.similarity,
+                "containment": p.containment,
+                "relationship": p.relationship,
+                "residues": {
+                    "similarity": pr.similarity,
+                    "containment": pr.containment,
+                    "relationship": pr.relationship,
+                }
             })
 
     cur.close()
     con.close()
 
-    def _sort(s):
-        return -s["similarity"], -s["overlaps"]
-
     results = []
-    for acc in unintegrated:
-        query = signatures[acc].copy()
-        query.update({
-            # "comments": num_comments.get(acc, 0),
+    for q_acc, (q_type, q_proteins, q_residues) in db_unintegrated.items():
+        query = {
+            "accession": q_acc,
+            "proteins": q_proteins,
+            "comments": num_comments.get(q_acc, 0),
             "targets": []
-        })
+        }
 
-        try:
-            targets = queries[acc]
-        except KeyError:
-            if rel_filter == "none":
-                results.append(query)
-            continue
+        if q_acc in queries:
+            query["targets"] = sorted(queries[q_acc], key=_sort_target)
+            results.append(query)
+        elif rel_filter == "none":
+            results.append(query)
 
-        for t in sorted(targets, key=_sort):
-            target = signatures[t["accession"]].copy()
-            target.update({
-                "relationship": t["relationship"],
-                "collocations": t["collocations"],
-                "overlaps": t["overlaps"],
-                "similarity": t["similarity"]
-            })
-
-            query["targets"].append(target)
-        results.append(query)
-
-    if sort_by == "accession":
-        results.sort(key=lambda x: x["accession"])
-    else:
-        results.sort(key=lambda x: -max(t["similarity"] for t in x["targets"]))
+    results.sort(key=_sort_results)
 
     num_results = len(results)
     results = results[(page-1)*page_size:page*page_size]
-
-    # Remove similarity from targets
-    for r in results:
-        for t in r["targets"]:
-            del t["similarity"]
 
     return jsonify({
         "page_info": {
@@ -459,7 +413,18 @@ def get_unintegrated_signatures(db_name):
         },
         "parameters": {
             "relationship": rel_filter,
-            "target": integ_filter,
-            "sort": sort_by
+            "target": integ_filter
         }
     })
+
+
+def _sort_target(s):
+    if s["relationship"] == "similar":
+        return -s["residues"]["similarity"]
+    return -s["residues"]["containment"]
+
+
+def _sort_results(s):
+    if s["targets"]:
+        return _sort_target(s["targets"][0])
+    return s["accession"]

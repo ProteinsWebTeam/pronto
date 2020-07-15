@@ -19,6 +19,26 @@ function getSignature() {
     });
 }
 
+
+export function renderConfidence(signature) {
+    if (signature.relationship === null)
+        return '';
+
+    let html = '<i class="star fitted icon"></i>';
+    if (signature.relationship === signature.residues.relationship) {
+        html += '<i class="star fitted icon"></i>';
+
+        const key = signature.relationship === 'similar' ? 'similarity' : 'containment';
+        if (signature.residues[key] >= 0.95)
+            html += '<i class="star fitted icon"></i>';
+        else
+            html += '<i class="star outline fitted icon"></i>';
+    } else
+        html += '<i class="star outline fitted icon"></i><i class="star outline fitted icon"></i>';
+
+    return html;
+}
+
 function getPredictions(accession) {
     fetch(`/api/signature/${accession}/predictions/`)
         .then(response => response.json())
@@ -32,7 +52,8 @@ function getPredictions(accession) {
             for (const signature of results) {
                 html += `
                     <tr>
-                        <td class="capitalize">${signature.relationship}</td>
+                        <td class="capitalize">${signature.relationship || 'None'}</td>
+                        <td class="collapsing center aligned">${renderConfidence(signature)}</td>
                         <td>
                             <span class="ui empty circular label" 
                                   style="background-color: ${signature.database.color};" 
@@ -128,7 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.querySelector("h1.ui.header .sub").innerHTML = html;
 
             // Update table header
-            html = `<th></th>
+            html = `<th colspan="2"></th>
                     <th>${accession}</th>
                     <th class="collapsing"><a target="_blank" href="${result.database.link}"><i class="external fitted icon"></i></a></th>
                     <th class="collapsing"><a href="#" data-add-id="${accession}"><i class="cart plus fitted icon"></i></a></th>

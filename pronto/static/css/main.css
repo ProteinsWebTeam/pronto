@@ -48,14 +48,13 @@ a > i:last-child {
     text-transform: capitalize;
 }
 
-/* todo: find where these rules are used */
-/*.ui.form .fields .field .grouped.fields .field .ui.checkbox:only-child {*/
-/*    margin-top: 0;*/
-/*}*/
-
-/*.ui.form .fields:only-child {*/
-/*    margin-bottom: 0;*/
-/*}*/
+/* /database/<key>/unintegrated: reduce margin between vertical radioboxes */
+.ui.form .fields .field .grouped.fields .field .ui.checkbox:only-child {
+    margin-top: 0;
+}
+.ui.form .fields:only-child {
+    margin-bottom: 0;
+}
 
 /* simple button-like icon */
 i.button.icon {

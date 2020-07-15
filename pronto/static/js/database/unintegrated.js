@@ -1,9 +1,8 @@
 import {updateHeader} from '../ui/header.js'
 import * as checkbox from '../ui/checkbox.js'
 import * as dimmer from '../ui/dimmer.js'
-import * as modals from '../ui/modals.js'
 import * as pagination from '../ui/pagination.js'
-import * as searchbox from '../ui/searchbox.js'
+import {renderConfidence} from "../signature.js";
 
 
 function renderEntry(entry) {
@@ -56,6 +55,7 @@ function getSignatures() {
                              <td class="right aligned">${target.proteins.toLocaleString()}</td>
                              <td class="right aligned">${target.collocations.toLocaleString()}</td>
                              <td class="right aligned">${target.overlaps.toLocaleString()}</td>
+                             <td class="center aligned">${renderConfidence(target)}</td>
                              ${renderEntry(target.entry)}
                              </tr>`;
                 }
@@ -93,6 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     for (const input of document.querySelectorAll('input[type="radio"]')) {
         input.addEventListener('change', (e,) => {
+            console.log(e);
             const key = e.currentTarget.name;
             const value = e.currentTarget.value;
             const url = new URL(location.href);

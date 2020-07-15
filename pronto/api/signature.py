@@ -319,15 +319,24 @@ def get_signature_predictions(accession):
     cur = con.cursor()
     cur.execute(
         """
+        SELECT num_complete_sequences, num_residues
+        FROM interpro.signature
+        WHERE accession = %s
+        """, (accession,)
+    )
+    q_proteins, q_residues = cur.fetchone()
+
+    cur.execute(
+        """
         SELECT
           p.signature_acc_2,
           s.num_complete_sequences,
+          s.num_residues,
           d.name,
           d.name_long,
-          p.collocation,
-          p.overlap,
-          p.similarity,
-          p.relationship
+          p.collocations,
+          p.protein_overlaps,
+          p.residue_overlaps
         FROM interpro.prediction p
         INNER JOIN interpro.signature s
           ON p.signature_acc_2 = s.accession
@@ -339,17 +348,20 @@ def get_signature_predictions(accession):
 
     targets = {}
     for row in cur:
-        target_acc = row[0]
-        num_proteins = row[1]
-        db_key = row[2]
-        db_name = row[3]
-        collocations = row[4]
-        overlaps = row[5]
-        similarity = row[6]
-        relationship = row[7]
+        t_acc = row[0]
+        t_proteins = row[1]
+        t_residues = row[2]
+        db_key = row[3]
+        db_name = row[4]
+        collocations = row[5]
+        protein_overlaps = row[6]
+        residue_overlaps = row[7]
+
+        p = utils.Prediction(q_proteins, t_proteins, protein_overlaps)
+        pr = utils.Prediction(q_residues, t_residues, residue_overlaps)
 
         try:
-            obj = integrated[target_acc]
+            obj = integrated[t_acc]
         except KeyError:
             entry = None
         else:
@@ -361,40 +373,36 @@ def get_signature_predictions(accession):
             }
 
         database = utils.get_database_obj(db_key)
-        targets[target_acc] = {
-            "accession": target_acc,
+        targets[t_acc] = {
+            "accession": t_acc,
             "database": {
                 "name": db_name,
                 "color": database.color,
-                "link": database.gen_link(target_acc)
+                "link": database.gen_link(t_acc)
             },
-            "proteins": num_proteins,
+            "proteins": t_proteins,
             "collocations": collocations,
-            "overlaps": overlaps,
+            "overlaps": protein_overlaps,
+            "similarity": p.similarity,
+            "containment": p.containment,
+            "relationship": p.relationship,
             "entry": entry,
-            "relationship": relationship or "dissimilar",
-            "similarity": similarity
+            "residues": {
+                "similarity": pr.similarity,
+                "containment": pr.containment,
+                "relationship": pr.relationship,
+            }
         }
     cur.close()
     con.close()
 
-    def _sort(s):
-        if s["entry"]:
-            entry_acc = s["entry"]["accession"]
-
-            if entry_acc in ancestors:
-                return 0, -s["similarity"], -s["overlaps"]
-            elif entry_acc == query_entry:
-                return 1, -s["similarity"], -s["overlaps"]
-            elif entry_acc in descendants:
-                return 2, -s["similarity"], -s["overlaps"]
-
-        return 3, -s["similarity"], -s["overlaps"]
-
+    """
+    Sort to have in first position predictions integrated in entries 
+    related to entry containing the query signature
+    """
+    sort_obj = Sorter(query_entry, ancestors, descendants)
     results = []
-    for s in sorted(targets.values(), key=_sort):
-        del s["similarity"]
-
+    for s in sorted(targets.values(), key=sort_obj.digest):
         if s["entry"]:
             entry_acc = s["entry"]["accession"]
             hierarchy = []
@@ -409,3 +417,30 @@ def get_signature_predictions(accession):
         results.append(s)
 
     return jsonify(results)
+
+
+class Sorter(object):
+    def __init__(self, query_entry: str, ancestors: set, descendants: set):
+        self.entry = query_entry
+        self.ancestors = ancestors
+        self.descendants = descendants
+
+    def digest(self, obj: dict):
+        i = 3
+        if obj["entry"]:
+            entry_acc = obj["entry"]["accession"]
+            if entry_acc in self.ancestors:
+                i = 0
+            elif entry_acc == self.entry:
+                i = 1
+            elif entry_acc in self.descendants:
+                i = 2
+
+        rel = obj["relationship"]
+        if rel in ("similar", "related"):
+            return i, 0, -obj["residues"]["similarity"]
+        elif rel == "parent":
+            return i, 1, -obj["residues"]["containment"]
+        elif rel == "child":
+            return i, 2, -obj["residues"]["containment"]
+        return i, 3, -obj["residues"]["similarity"]

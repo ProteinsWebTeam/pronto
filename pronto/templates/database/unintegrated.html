@@ -23,10 +23,10 @@
     <div class="ui basic segment">
         <h1 class="ui header"></h1>
         <div class="ui form">
-            <div class="three fields">
+            <div class="four fields">
                 <div class="field">
                     <div class="grouped fields">
-                        <label>Predicted relationship:</label>
+                        <label>Predicted relationship</label>
                         <div class="field">
                             <div class="ui radio checkbox">
                                 <input id="relationship-similar" class="hidden" type="radio" name="relationship" value="similar" checked>
@@ -45,18 +45,18 @@
                                 <label for="relationship-child">Child</label>
                             </div>
                         </div>
-{#                        <div class="field">#}
-{#                            <div class="ui radio checkbox">#}
-{#                                <input id="relationship-none" class="hidden" type="radio" name="relationship" value="none">#}
-{#                                <label for="relationship-none">None</label>#}
-{#                            </div>#}
-{#                        </div>#}
+                        <!--<div class="field">
+                            <div class="ui radio checkbox">
+                                <input id="relationship-none" class="hidden" type="radio" name="relationship" value="none">
+                                <label for="relationship-none">None</label>
+                            </div>
+                        </div>-->
                     </div>
                 </div>
 
                 <div class="field">
                     <div class="grouped fields">
-                        <label>Predicted signatures:</label>
+                        <label>Integration status</label>
                         <div class="field">
                             <div class="ui radio checkbox">
                                 <input id="target-integrated" class="hidden" type="radio" name="target" value="integrated" checked="checked">
@@ -78,25 +78,7 @@
                     </div>
                 </div>
 
-                <div class="field">
-                    <div class="grouped fields">
-                        <label>Ordering:</label>
-                        <div class="field">
-                            <div class="ui radio checkbox">
-                                <input id="sort-accession" class="hidden" type="radio" name="sort" value="accession" checked>
-                                <label for="sort-accession">By accession (low to high)</label>
-                            </div>
-                        </div>
-                        <div class="field">
-                            <div class="ui radio checkbox">
-                                <input id="sort-similarity" class="hidden" type="radio" name="sort" value="similarity">
-                                <label for="sort-similarity">By similarity (high to low)</label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </div>
-
         </div>
         <div class="ui warning message">
             <i class="close icon"></i>
@@ -107,8 +89,7 @@
             <thead>
             <tr>
                 <th colspan="2" class="center aligned">Unintegrated signature</th>
-                <th colspan="2" class="center aligned">Predicted signature</th>
-                <th colspan="2" class="center aligned">Comparison</th>
+                <th colspan="5" class="center aligned">Prediction</th>
                 <th rowspan="2" colspan="2" class="center aligned">Entry</th>
             </tr>
             <tr>
@@ -118,12 +99,13 @@
                 <th>Proteins</th>
                 <th>Collocations</th>
                 <th>Overlaps</th>
+                <th></th>
             </tr>
             </thead>
             <tbody></tbody>
             <tfoot>
             <tr>
-                <th colspan="8">
+                <th colspan="9">
                     <div class="ui right floated pagination menu"></div>
                 </th>
             </tr>

@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 
-import os
-import pickle
 import re
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass, field
 from typing import Callable, List, Optional
 
 import cx_Oracle
@@ -322,3 +321,69 @@ def get_database_obj(key):
         "tigrfams": Tigrfams,
     }
     return databases[key]()
+
+
+@dataclass
+class Prediction:
+    a: int  # sample A
+    b: int  # sample B
+    i: int  # intersection A & B
+    similarity: float = field(init=False)
+    containment_a: float = field(init=False)
+    containment_b: float = field(init=False)
+    relationship: Optional[str] = field(init=False)
+
+    def __post_init__(self):
+        try:
+            self.similarity = self.i / (self.a + self.b - self.i)
+        except ZeroDivisionError:
+            self.similarity = 1
+
+        try:
+            self.containment_a = self.i / self.a
+        except ZeroDivisionError:
+            self.containment_a = 0
+
+        try:
+            self.containment_b = self.i / self.b
+        except ZeroDivisionError:
+            self.containment_b = 0
+
+        if self.similarity >= 0.75:
+            self.relationship = "similar"
+        elif self.containment_a >= 0.75:
+            if self.containment_b >= 0.75:
+                self.relationship = "related"
+            else:
+                self.relationship = "child"  # A child of B
+        elif self.containment_b >= 0.75:
+            self.relationship = "parent"  # A parent of B
+        else:
+            self.relationship = None
+
+    @property
+    def containment(self) -> float:
+        if self.similarity == "related":
+            return min(self.containment_a, self.containment_b)
+        elif self.similarity == "child":
+            return self.containment_a
+        elif self.similarity == "parent":
+            return self.containment_b
+        return 0
+
+
+def predict_relationship(a: int, b: int, intersection: int) -> tuple:
+    similarity = intersection / (a + b - intersection)
+
+    if similarity >= 0.75:
+        return similarity, "similar"
+
+    containment_a = intersection / a
+    containment_b = intersection / b
+    if containment_a >= 0.75:
+        if containment_b >= 0.75:
+            return min(containment_a, containment_b), "related"
+        return containment_a, "child"  # A child of B
+    elif containment_b >= 0.75:
+        return containment_b, "parent"  # A parent of B
+    return 0, "none"
