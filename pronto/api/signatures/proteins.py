@@ -233,7 +233,7 @@ def get_proteins(accessions):
                          f"{p['length']}\t{src}\t{p['organism']}\n")
 
         try:
-            return send_file(filename, mimetype="text/plain",
+            return send_file(filename, mimetype="text/tab-separated-values",
                              as_attachment=True,
                              attachment_filename="proteins.tsv")
         finally:
