@@ -70,9 +70,9 @@ def search_term():
     cur.execute(
         """
         SELECT accession
-        FROM protein
-        WHERE accession = %s
-        OR identifier = %s
+        FROM signature
+        WHERE UPPER(accession) = %s
+        OR UPPER(name) = %s
         """, (query.upper(), query.upper())
     )
     row = cur.fetchone()
@@ -80,14 +80,14 @@ def search_term():
         cur.close()
         con.close()
         accession, = row
-        return jsonify({"hit": {"accession": accession, "type": "protein"}})
+        return jsonify({"hit": {"accession": accession, "type": "signature"}})
 
     cur.execute(
         """
         SELECT accession
-        FROM signature
-        WHERE UPPER(accession) = %s
-        OR UPPER(name) = %s
+        FROM protein
+        WHERE accession = %s
+        OR identifier = %s
         """, (query.upper(), query.upper())
     )
     row = cur.fetchone()
@@ -95,6 +95,6 @@ def search_term():
     con.close()
     if row:
         accession, = row
-        return jsonify({"hit": {"accession": accession, "type": "signature"}})
+        return jsonify({"hit": {"accession": accession, "type": "protein"}})
 
     return jsonify({"hit": None})
