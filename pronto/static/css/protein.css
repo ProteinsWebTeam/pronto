@@ -30,8 +30,8 @@ svg text.length {
     display: none;
 }
 
-.ui.horizontal.statistic > .label + * {
-    margin-left: 0.75rem;
+.ui.horizontal.statistic > .label + .ui.tertiary.button {
+    margin-left: 1rem !important;
 }
 
 /* Protein page */

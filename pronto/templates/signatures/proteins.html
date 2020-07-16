@@ -22,7 +22,8 @@
             <div class="label">
                 proteins
             </div>
-            <a><i class="download icon"></i> Download</a>
+            <a id="copy-btn" class="ui tertiary button" href="#!"><i class="copy icon"></i> Copy</a>
+            <a id="download-btn" class="ui tertiary button" href="#!"><i class="download icon"></i> Download</a>
         </div>
 
         <div class="ui list">
@@ -71,6 +72,17 @@
         <div id="proteins" class="ui segments"></div>
 
         <div class="ui right floated pagination menu"></div>
+    </div>
+</div>
+
+<div id="progress-modal" class="ui tiny modal">
+    <div class="content">
+        <div class="ui active progress">
+            <div class="bar">
+                <div class="progress"></div>
+            </div>
+            <div class="label"></div>
+        </div>
     </div>
 </div>
 

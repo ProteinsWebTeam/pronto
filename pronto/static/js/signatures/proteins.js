@@ -26,11 +26,12 @@ const svgPaddingRight = 30;
 const width = svgWidth - svgPaddingLeft - svgPaddingRight;
 
 
-function getProtein(proteinAccession, signatures) {
+function getMatches(proteinAccession, signatures) {
     return fetch(`/api/protein/${proteinAccession}/?matches`)
         .then(response => response.json())
         .then(protein => {
-            let html = '';
+            let html = `<h4 class="ui header">${genProtHeader(protein)}</h4>
+                        <table class="ui single line very basic compact table"><tbody>`;
 
             for (const signature of protein.signatures) {
                 if (signatures.includes(signature.accession))
@@ -78,8 +79,8 @@ function getProtein(proteinAccession, signatures) {
                 html += '</svg></td></tr>';
             }
 
-            const elem = document.querySelector(`#proteins [data-id="${protein.accession}"] tbody`);
-            elem.innerHTML = html;
+            html += '</tbody></table>';
+            document.querySelector(`#proteins [data-id="${protein.accession}"]`).innerHTML = html;
             return protein.accession;
         });
 }
@@ -90,17 +91,20 @@ function getProteins(signatureAccessions) {
     fetchAPI()
         .then(
             (data,) => {
-                document.querySelector('#count .value').innerHTML = data.count.toLocaleString();
+                let elem = document.querySelector('#count .value');
+                elem.dataset.count = data.count;
+                elem.innerHTML = data.count.toLocaleString();
 
                 let html = '';
                 for (const protein of data.results) {
-                    html += `<div data-id="${protein.accession}" class="ui segment">
-                             <h4 class="ui header">${genProtHeader(protein)}</h4>
-                             <table class="ui single line very basic compact table"><tbody></tbody></table>
-                             </div>`;
+                    // html += `<div data-id="${protein.accession}" class="ui segment">
+                    //          <h4 class="ui header">${genProtHeader(protein)}</h4>
+                    //          <table class="ui single line very basic compact table"><tbody></tbody></table>
+                    //          </div>`;
+                    html += `<div data-id="${protein}" class="ui segment"></div>`;
                 }
 
-                const elem = document.getElementById('proteins');
+                elem = document.getElementById('proteins');
                 elem.innerHTML = html;
 
                 pagination.render(
@@ -153,11 +157,10 @@ function getProteins(signatureAccessions) {
                 } else
                     setClass(filterElem, 'hidden', true);
 
-
-
                 const promises = [];
                 for (const protein of data.results) {
-                    promises.push(getProtein(protein.accession, signatureAccessions));
+                    //promises.push(getMatches(protein.accession, signatureAccessions));
+                    promises.push(getMatches(protein, signatureAccessions));
                 }
 
                 Promise.all(promises).then(() => {
@@ -192,33 +195,125 @@ document.addEventListener('DOMContentLoaded', () => {
     selector.render().tab("proteins");
 
     const url = new URL(location.href);
-    const params = new URLSearchParams(url.search);
-    params.set('page', '1');
-    params.set('page_size', '0');
-    params.set('file', '');
-
     const checkbox = document.querySelector('input[type=checkbox][name=reviewed]');
-    const dlButton = document.querySelector('#count a');
-
     checkbox.checked = url.searchParams.has('reviewed');
-    dlButton.href = new URL(`/api${location.pathname}?${params.toString()}`,location.origin).toString();
-
     checkbox.addEventListener('change', e => {
-        if (e.currentTarget.checked) {
+        if (e.currentTarget.checked)
             url.searchParams.set('reviewed', '');
-            params.set('reviewed', '');
-        } else {
+        else
             url.searchParams.delete('reviewed');
-            params.delete('reviewed');
-        }
-
-        dlButton.href = new URL(`/api${location.pathname}?${params.toString()}`,location.origin).toString();
-        console.log(dlButton.href);
 
         history.replaceState(null, document.title, url.toString());
         getProteins(accessions);
     });
 
+    document.getElementById('copy-btn').addEventListener('click', e => {
+        e.preventDefault();
+        copyProteins();
+    });
+
+    document.getElementById('download-btn').addEventListener('click', e => {
+        e.preventDefault();
+        downloadProteins();
+    });
+
     updateHeader();
     getProteins(accessions);
 });
+
+function copyProteins() {
+    const btn = document.getElementById('copy-btn');
+    const copy2clipboard = (value) => {
+        const input = document.createElement('input');
+        input.value = value;
+        document.body.appendChild(input);
+        try {
+            input.select();
+            document.execCommand('copy');
+            btn.className = 'ui green tertiary button';
+        } catch (err) {
+            console.error(err);
+            btn.className = 'ui red tertiary button';
+        } finally {
+            document.body.removeChild(input);
+        }
+    };
+
+    if (btn.dataset.value !== undefined && btn.dataset.value.length > 0) {
+        copy2clipboard(btn.dataset.value);
+        return;
+    }
+
+    const url = new URL(location.href);
+    url.searchParams.set('page_size', '0');
+    fetch(`/api${url.pathname}${url.search}`)
+        .then(response => response.json())
+        .then(object => {
+            btn.dataset.value = object.results.join(' ');
+            copy2clipboard(btn.dataset.value);
+        });
+}
+
+function downloadProteins() {
+    const modal = document.getElementById('progress-modal');
+    const progress = modal.querySelector('.progress');
+    $(progress).progress({
+        value: 0,
+        total: Number.parseInt(document.querySelector('#count .value').dataset.count, 10),
+        text : {
+            percent: '{percent}%',
+            active  : '{value} of {total} proteins downloaded',
+            success : '{total} proteins downloaded!'
+        }
+    });
+    $(modal).modal({
+        closable: false
+    }).modal('show');
+
+    const url = new URL(location.href);
+    url.searchParams.set('page_size', '0');
+    fetch(`/api${url.pathname}${url.search}`)
+        .then(response => response.json())
+        .then(object => {
+
+            const getProteinInfo = (accession) => {
+                return fetch(`/api/protein/${accession}/`).then(response => response.json());
+            };
+
+            (async function() {
+                let content = 'Accession\tIdentifier\tName\tLength\tSource\tOrganism\n';
+                for (let i = 0; i < object.results.length; i += 10) {
+                    const chunk = object.results.slice(i, i+10);
+                    const promises = Array.from(chunk, getProteinInfo);
+                    const rows = [];
+                    for await (let obj of promises) {
+                        $(progress).progress('increment');
+                        rows.push([
+                            obj.accession,
+                            obj.identifier,
+                            obj.name,
+                            obj.length,
+                            obj.is_reviewed ? 'UniProtKB/Swiss-Prot' : 'UniProtKB/TrEMBL',
+                            obj.organism
+                        ]);
+                    }
+                    // Sort protein by accession
+                    rows.sort((a, b) => a[0].localeCompare(b[0]));
+                    for (const row of rows) {
+                        content += row.join('\t') + '\n';
+                    }
+                }
+
+                const blob = new Blob([content], {type: 'text/tab-separated-values;charset=utf-8;'});
+
+                const link = document.createElement("a");
+                link.href = URL.createObjectURL(blob);
+                link.download = 'proteins.tsv';
+                link.style.display = 'none';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                $(modal).modal('hide');
+            })();
+        });
+}
