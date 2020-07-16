@@ -29,7 +29,7 @@ function initSVG (proteinLength, numLines, numDiscDomains) {
     for (let pos = step; pos < proteinLength; pos += step) {
         const x = Math.round(pos * rectWidth / proteinLength);
 
-        if (x + textLength / 2 >= rectWidth)
+        if (x + textLength >= rectWidth)
             break;
 
         content += `<line x1="${x}" y1="0" x2="${x}" y2="${rectHeight}" />`;
