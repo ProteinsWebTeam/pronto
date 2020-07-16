@@ -236,6 +236,9 @@ function copyProteins() {
             btn.className = 'ui red tertiary button';
         } finally {
             document.body.removeChild(input);
+            setTimeout(() => {
+                btn.className = 'ui tertiary button';
+            }, 3000);
         }
     };
 
