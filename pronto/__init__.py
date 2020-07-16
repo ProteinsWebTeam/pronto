@@ -66,14 +66,19 @@ def go(accessions):
     return render_template("signatures/go.html")
 
 
-@app.route("/signatures/<path:accessions>/taxonomy/<rank>/")
-def taxonomy(accessions, rank):
-    return render_template("signatures/taxonomy.html")
+@app.route("/signatures/<path:accessions>/matrices/")
+def matrices(accessions):
+    return render_template("signatures/matrices.html")
 
 
 @app.route("/signatures/<path:accessions>/proteins/")
 def proteins(accessions):
     return render_template("signatures/proteins.html")
+
+
+@app.route("/signatures/<path:accessions>/taxonomy/<rank>/")
+def taxonomy(accessions, rank):
+    return render_template("signatures/taxonomy.html")
 
 
 app.register_blueprint(api.bp)

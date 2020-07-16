@@ -24,7 +24,7 @@ def get_matrices(accessions):
 
     cur.execute(
         f"""
-        SELECT signature_acc_1, signature_acc_2, collocation, overlap
+        SELECT signature_acc_1, signature_acc_2, collocations, "overlaps"
         FROM interpro.comparison
         WHERE signature_acc_1 IN ({in_params})
         AND signature_acc_2 IN ({in_params})
@@ -34,11 +34,11 @@ def get_matrices(accessions):
     comparisons = {}
     for acc1, acc2, collocations, overlaps in cur:
         try:
-            s = signatures[acc1]
+            s = comparisons[acc1]
         except KeyError:
-            s = signatures[acc1] = {}
+            s = comparisons[acc1] = {}
         finally:
-            s[acc1][acc2] = {
+            s[acc2] = {
                 "collocations": collocations,
                 "overlaps": overlaps
             }
@@ -47,6 +47,6 @@ def get_matrices(accessions):
     con.close()
 
     return jsonify({
-        "signature": signatures,
+        "signatures": signatures,
         "comparisons": comparisons
     })
