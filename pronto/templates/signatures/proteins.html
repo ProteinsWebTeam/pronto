@@ -12,7 +12,7 @@
 {% include 'header.html' %}
 
 <div class="ui container">
-    <div class="ui basic segment">
+    <div class="ui vertical basic segment">
         <h1 class="ui header">Proteins</h1>
 
         {% include 'signatures/selector.html' %}
@@ -24,6 +24,12 @@
             </div>
             <a id="copy-btn" class="ui tertiary button" href="#!"><i class="copy icon"></i> Copy</a>
             <a id="download-btn" class="ui tertiary button" href="#!"><i class="download icon"></i> Download</a>
+        </div>
+    </div>
+    <div class="ui vertical basic segment">
+        <div class="ui checkbox">
+            <input type="checkbox" name="filter-matches">
+            <label>Only display protein matches for observed signatures</label>
         </div>
 
         <div class="ui list">
