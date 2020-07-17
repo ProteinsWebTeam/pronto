@@ -314,6 +314,7 @@ def get_unintegrated_signatures(db_name):
         """, (db_identifier,)
     )
     queries = {}
+    blacklist = set()
     for row in cur:
         q_acc = row[0]
         try:
@@ -322,13 +323,6 @@ def get_unintegrated_signatures(db_name):
             continue
 
         t_acc = row[1]
-        t_entry = integrated.get(t_acc)
-        if t_entry:
-            if integ_filter == "unintegrated":
-                continue  # we want unintegrated targets only: skip
-        elif integ_filter == "integrated":
-            continue  # we want integrated targets only: skip
-
         t_type = row[2]
         t_proteins = row[3]
         t_residues = row[4]
@@ -337,6 +331,24 @@ def get_unintegrated_signatures(db_name):
         collocations = row[7]
         protein_overlaps = row[8]
         residue_overlaps = row[9]
+
+        t_entry = integrated.get(t_acc)
+        if t_entry:
+            if integ_filter == "unintegrated":
+                continue  # we want unintegrated targets only: skip
+        elif integ_filter == "integrated":
+            continue  # we want integrated targets only: skip
+
+        if db_name == t_db_key:
+            """
+            Since two signatures from the same member DB cannot be in the same
+            entry, we ignore this target and, if it's integrated, 
+            all signatures integrated in the same entry
+            """
+            if t_entry:
+                # We'll ignore all signatures integrated in this entry
+                blacklist.add(t_entry["accession"])
+            continue
 
         q_is_hs = q_type == "Homologous_superfamily"
         t_is_hs = t_type == "Homologous_superfamily"
@@ -389,11 +401,18 @@ def get_unintegrated_signatures(db_name):
             "targets": []
         }
 
-        if q_acc in queries:
-            query["targets"] = sorted(queries[q_acc], key=_sort_target)
-            results.append(query)
-        elif rel_filter == "none":
-            results.append(query)
+        try:
+            targets = queries[q_acc]
+        except KeyError:
+            if rel_filter == "none":
+                results.append(query)
+        else:
+            for t in sorted(queries[q_acc], key=_sort_target):
+                if not t["entry"] or t["entry"]["accession"] not in blacklist:
+                    query["targets"].append(t)
+
+            if query["targets"]:
+                results.append(query)
 
     results.sort(key=_sort_results)
 
