@@ -69,3 +69,22 @@ export const selector = {
         return this;
     }
 };
+
+export function renderConfidence(signature) {
+    if (signature.relationship === null)
+        return '';
+
+    let html = '<i class="star fitted icon"></i>';
+    if (signature.relationship === signature.residues.relationship) {
+        html += '<i class="star fitted icon"></i>';
+
+        const key = signature.relationship === 'similar' ? 'similarity' : 'containment';
+        if (signature.residues[key] >= 0.90)
+            html += '<i class="star fitted icon"></i>';
+        else
+            html += '<i class="star outline fitted icon"></i>';
+    } else
+        html += '<i class="star outline fitted icon"></i><i class="star outline fitted icon"></i>';
+
+    return html;
+}

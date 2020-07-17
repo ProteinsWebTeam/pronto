@@ -2,7 +2,7 @@ import {updateHeader} from '../ui/header.js'
 import * as checkbox from '../ui/checkbox.js'
 import * as dimmer from '../ui/dimmer.js'
 import * as pagination from '../ui/pagination.js'
-import {renderConfidence} from "../signature.js";
+import {renderConfidence} from "../ui/signatures.js";
 
 
 function renderEntry(entry) {

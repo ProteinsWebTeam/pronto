@@ -3,7 +3,7 @@ import * as comments from "./ui/comments.js";
 import * as dimmer from "./ui/dimmer.js"
 import * as modals from "./ui/modals.js";
 import {updateHeader} from "./ui/header.js";
-import {selector} from "./ui/signatures.js";
+import {selector, renderConfidence} from "./ui/signatures.js";
 
 // todo: look tbody for cd08304
 
@@ -19,25 +19,6 @@ function getSignature() {
     });
 }
 
-
-export function renderConfidence(signature) {
-    if (signature.relationship === null)
-        return '';
-
-    let html = '<i class="star fitted icon"></i>';
-    if (signature.relationship === signature.residues.relationship) {
-        html += '<i class="star fitted icon"></i>';
-
-        const key = signature.relationship === 'similar' ? 'similarity' : 'containment';
-        if (signature.residues[key] >= 0.95)
-            html += '<i class="star fitted icon"></i>';
-        else
-            html += '<i class="star outline fitted icon"></i>';
-    } else
-        html += '<i class="star outline fitted icon"></i><i class="star outline fitted icon"></i>';
-
-    return html;
-}
 
 function getPredictions(accession) {
     fetch(`/api/signature/${accession}/predictions/`)
