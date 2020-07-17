@@ -26,7 +26,7 @@ def get_go_terms(accessions):
         in_stmt = ','.join("%s" for _ in accessions)
         params = accessions + accessions
 
-        if aspects:
+        if aspects != _ASPECTS:
             aspects_stmt = (f"AND t.category "
                             f"IN ({','.join('%s' for _ in aspects)})")
             params += list(aspects)
