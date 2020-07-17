@@ -140,23 +140,11 @@ def get_proteins_alt(accessions):
             filters.append("name_id = %s")
             params.append(name_id)
 
-        if comment_id is not None:
-            filters.append("protein_acc IN (SELECT protein_acc "
-                           "FROM protein_similarity "
-                           "WHERE comment_id=%s)")
-            params.append(comment_id)
-
-        if term_id is not None:
-            filters.append("protein_acc IN (SELECT protein_acc "
-                           "FROM protein2go "
-                           "WHERE term_id=%s)")
-            params.append(term_id)
-
         sql = f"""
             SELECT protein_acc
             FROM (
                 SELECT protein_acc, COUNT(*) cnt
-                FROM signature2protein
+                FROM interpro.signature2protein
                 WHERE signature_acc IN ({','.join("%s" for _ in accessions)})
                 {' AND ' + ' AND '.join(filters) if filters else ''}
                 GROUP BY protein_acc
@@ -164,6 +152,24 @@ def get_proteins_alt(accessions):
             WHERE cnt = %s    
         """
         params.append(len(accessions))
+
+        if comment_id is not None:
+            sql += """
+                INTERSECT
+                SELECT protein_acc
+                FROM interpro.protein_similarity
+                WHERE comment_id = %s
+            """
+            params.append(comment_id)
+
+        if term_id is not None:
+            sql += """
+                INTERSECT
+                SELECT protein_acc
+                FROM interpro.protein2go
+                WHERE term_id = %s
+            """
+            params.append(term_id)
 
         if exclude:
             sql += f"""
