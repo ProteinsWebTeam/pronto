@@ -84,7 +84,7 @@ function getMatrices(accessions) {
                             </tr>
                             <tr>
                                 <td>In both signatures</td>
-                                <td class="right aligned"><a href="/signatures/${key1}/${key2}/proteins/">${values.collocations.toLocaleString()}</a></td>
+                                <td class="right aligned"><a href="/signatures/${key1}/${key2}/proteins/?filtermatches">${values.collocations.toLocaleString()}</a></td>
                             </tr>
                             <tr>
                                 <td>In either signatures</td>
@@ -92,19 +92,19 @@ function getMatrices(accessions) {
                             </tr>
                             <tr>
                                 <td>In ${key1}</td>
-                                <td class="right aligned"><a href="/signatures/${key1}/proteins/">${proteins1.toLocaleString()}</a></td>
+                                <td class="right aligned"><a href="/signatures/${key1}/proteins/?filtermatches">${proteins1.toLocaleString()}</a></td>
                             </tr>
                             <tr>
                                 <td>In ${key1} only</td>
-                                <td class="right aligned"><a href="/signatures/${key1}/proteins/?exclude=${key2}">${(proteins1-values.collocations).toLocaleString()}</a></td>
+                                <td class="right aligned"><a href="/signatures/${key1}/proteins/?filtermatches&exclude=${key2}">${(proteins1-values.collocations).toLocaleString()}</a></td>
                             </tr>
                             <tr>
                                 <td>In ${key2}</td>
-                                <td class="right aligned"><a href="/signatures/${key2}/proteins/">${proteins2.toLocaleString()}</a></td>
+                                <td class="right aligned"><a href="/signatures/${key2}/proteins/?filtermatches">${proteins2.toLocaleString()}</a></td>
                             </tr>
                             <tr>
                                 <td>In ${key2} only</td>
-                                <td class="right aligned"><a href="/signatures/${key2}/proteins/?exclude=${key1}">${(proteins2-values.collocations).toLocaleString()}</a></td>
+                                <td class="right aligned"><a href="/signatures/${key2}/proteins/?filtermatches&exclude=${key1}">${(proteins2-values.collocations).toLocaleString()}</a></td>
                             </tr>
                         </tbody>
                         </table>
