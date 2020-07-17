@@ -10,7 +10,7 @@ export function genProtHeader(protein) {
             <div class="sub header">
             ${protein.accession} (${genLinkTag(protein.accession, protein.is_reviewed)})
             &mdash;
-            Organism: <em>${protein.organism}</em>
+            Organism: <em>${protein.organism.name}</em>
             &mdash;
             Length: ${protein.length} AA
             </div>`;

@@ -297,7 +297,7 @@ function downloadProteins() {
                             obj.name,
                             obj.length,
                             obj.is_reviewed ? 'UniProtKB/Swiss-Prot' : 'UniProtKB/TrEMBL',
-                            obj.organism
+                            obj.organism.name
                         ]);
                     }
                     // Sort protein by accession

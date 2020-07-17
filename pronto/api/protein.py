@@ -15,7 +15,7 @@ def get_protein(accession):
     cur.execute(
         """
         SELECT p.accession, p.identifier, p.length, p.is_fragment, 
-               p.is_reviewed, t.name, pn.text
+               p.is_reviewed, t.id, t.name, pn.text
         FROM protein p
         INNER JOIN taxon t ON p.taxon_id = t.id
         INNER JOIN protein2name p2n ON p.accession = p2n.protein_acc
@@ -35,9 +35,13 @@ def get_protein(accession):
         "length": row[2],
         "is_fragment": row[3],
         "is_reviewed": row[4],
-        "organism": row[5],
-        "name": row[6]
+        "organism": {
+            "name": row[6],
+            "lineage": []
+        },
+        "name": row[7]
     }
+    taxon_id = row[5]
 
     matches = {}
     if "matches" in request.args:
@@ -76,6 +80,26 @@ def get_protein(accession):
 
             s["matches"].append(sorted(fragments,
                                        key=lambda x: (x["start"], x["end"])))
+
+    if "lineage" in request.args:
+        cur.execute(
+            """
+            WITH RECURSIVE ancestors AS (
+                SELECT id, name, parent_id, 1 AS level
+                FROM interpro.taxon
+                WHERE id = %s
+                UNION
+                SELECT t.id, t.name, t.parent_id, a.level+1
+                FROM interpro.taxon t
+                INNER JOIN ancestors a
+                ON t.id = a.parent_id
+            )
+            SELECT name
+            FROM ancestors
+            ORDER BY level DESC            
+            """, (taxon_id,)
+        )
+        protein["organism"]["lineage"] = [name for name, in cur]
 
     cur.close()
     con.close()

@@ -205,13 +205,14 @@ document.addEventListener('DOMContentLoaded', () => {
     updateHeader();
 
     dimmer.on();
-    fetch(`/api${location.pathname}?matches`)
+    fetch(`/api${location.pathname}?matches&lineage`)
         .then(response => {
             if (!response.ok)
                 throw Error();
             return response.json();
         })
         .then(protein => {
+            document.title = `${protein.name} (${protein.accession}) | Pronto`;
             document.querySelector('h1.ui.header').innerHTML = genProtHeader(protein);
 
             if (!protein.is_fragment)
@@ -256,6 +257,18 @@ document.addEventListener('DOMContentLoaded', () => {
             // Disordered regions
             document.querySelector('#disordered-regions + div').innerHTML = renderFeatures(protein.length, extra, true, false);
 
+            // Lineage
+            html = '';
+            for (const organism of protein.organism.lineage) {
+                html += `
+                    <div class="item">
+                    <i class="angle down icon"></i>
+                    <div class="content">${organism}</div>
+                    </div>                
+                `;
+            }
+            document.querySelector('#lineage + .ui.list').innerHTML = html;
+
             for (const rect of document.querySelectorAll('rect[data-id]')) {
                 rect.addEventListener('mouseenter', e => {
                     const target = e.currentTarget;
@@ -281,9 +294,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
         })
-        // .catch(() => {
-        //     console.error("nope");
-        // })
+        .catch(() => {
+            // todo: show error
+        })
         .finally(() => {
             $(document.querySelector('.ui.sticky')).sticky({
                 context: document.querySelector('.twelve.column')
