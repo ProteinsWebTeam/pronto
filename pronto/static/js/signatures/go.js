@@ -62,15 +62,15 @@ function getGoTerms(accessions) {
                         html += `<td class="collapsing center aligned">
                                     <a target="_blank" href="/signatures/${acc}/proteins/?go=${term.id}">${signature['proteins'].toLocaleString()}</a>
                                  </td>`;
-                        if (signature['references']) {
+                        if (signature.references > 0) {
                             html += `<td class="collapsing center aligned">
-                                       <a data-signature="${acc}" data-term="${term.id}" class="ui basic label"><i class="book icon"></i>${signature['references'].toLocaleString()}</a>
+                                       <a data-signature="${acc}" data-term="${term.id}" class="ui basic label"><i class="book icon"></i>${signature.references.toLocaleString()}</a>
                                      </td>`;
                         } else
-                            html += '<td></td>';
+                            html += '<td class="collapsing"></td>';
 
                     } else
-                        html += '<td></td><td></td>';
+                        html += '<td class="collapsing"></td><td class="collapsing"></td>';
                 }
                 html += '</tr>';
             }
