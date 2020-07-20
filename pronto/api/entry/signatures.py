@@ -15,16 +15,21 @@ def get_signatures(accession):
     cur = con.cursor()
     cur.execute(
         """
-        SELECT METHOD_AC 
-        FROM INTERPRO.ENTRY2METHOD 
+        SELECT METHOD_AC, EM.TIMESTAMP, NVL(U.NAME, EM.USERSTAMP)
+        FROM INTERPRO.ENTRY2METHOD EM
+        LEFT OUTER JOIN INTERPRO.PRONTO_USER U 
+            ON EM.USERSTAMP = U.DB_USER
         WHERE ENTRY_AC = :1
         """, (accession,)
     )
-    signatures = [acc for acc, in cur]
+    integrated = {row[0]: f"{row[2]} ({row[1]:%d %b %Y})" for row in cur}
+
     cur.close()
     con.close()
 
-    if signatures:
+    signatures = []
+    if integrated:
+        accessions = list(integrated.keys())
         con = utils.connect_pg(utils.get_pg_url())
         cur = con.cursor()
         cur.execute(
@@ -35,12 +40,11 @@ def get_signatures(accession):
             FROM interpro.signature s
             INNER JOIN interpro.database d
             ON s.database_id = d.id
-            WHERE s.accession IN ({','.join('%s' for _ in signatures)})
+            WHERE s.accession IN ({','.join('%s' for _ in accessions)})
             ORDER BY accession
-            """, signatures
+            """, accessions
         )
 
-        signatures = []
         for row in cur:
             db = utils.get_database_obj(row[4])
             signatures.append({
@@ -54,7 +58,8 @@ def get_signatures(accession):
                     "color": db.color,
                     "link": db.gen_link(row[0]),
                     "name": row[5]
-                }
+                },
+                "date": integrated[row[0]]
             })
 
         cur.close()
