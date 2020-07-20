@@ -1,15 +1,15 @@
 import * as checkbox from './ui/checkbox.js'
 import * as dimmer from "./ui/dimmer.js"
 import {updateHeader} from "./ui/header.js"
+import {setClass} from "./ui/utils.js";
 
 function getDatabases() {
-    return new Promise(((resolve, reject) => {
-        fetch('/api/databases/')
-            .then(response => response.json())
-            .then(databases => {
-                let html = '';
-                for (const database of databases) {
-                    html += `
+    return fetch('/api/databases/')
+        .then(response => response.json())
+        .then(databases => {
+            let html = '';
+            for (const database of databases) {
+                html += `
                     <tr>
                     <td style="border-left: 5px solid ${database.color};" class="collapsing">
                         <a target="_blank" href="${database.link}">${database.name}<i class="external icon"></i></a>
@@ -26,21 +26,21 @@ function getDatabases() {
                     </td>
                     </tr>
                 `;
-                }
-                document.querySelector('.segment[data-tab="databases"] tbody').innerHTML = html;
-                resolve();
-            });
-    }));
+            }
+
+            const tab = document.querySelector('.segment[data-tab="databases"]');
+            tab.querySelector('tbody').innerHTML = html;
+            setClass(tab, 'loading', false);
+        });
 }
 
 function getRecentEntries() {
-    return new Promise(((resolve, reject) => {
-        fetch('/api/entries/news/')
-            .then(response => response.json())
-            .then(object => {
-                let html = '';
-                for (const entry of object.entries) {
-                    html += `
+    return fetch('/api/entries/news/')
+        .then(response => response.json())
+        .then(object => {
+            let html = '';
+            for (const entry of object.entries) {
+                html += `
                     <tr>
                     <td>
                         <span class="ui circular mini label type ${entry.type}">${entry.type}</span>
@@ -53,16 +53,14 @@ function getRecentEntries() {
                     <td>${entry.user}</td>
                     </tr>
                 `;
-                }
+            }
 
-                const tab = document.querySelector('.segment[data-tab="recent-entries"]');
-                tab.querySelector('tbody').innerHTML = html;
-                tab.querySelector(':scope > p').innerHTML = `<strong>${object.entries.length}</strong> ${object.entries.length > 1 ? 'entries' : 'entry'} created since <strong>${object.date}</strong>.`;
-
-                document.querySelector('.item[data-tab="recent-entries"] .label').innerHTML = object.entries.length.toString();
-                resolve();
-            });
-    }));
+            const tab = document.querySelector('.segment[data-tab="recent-entries"]');
+            tab.querySelector('tbody').innerHTML = html;
+            tab.querySelector(':scope > p').innerHTML = `<strong>${object.entries.length}</strong> ${object.entries.length > 1 ? 'entries' : 'entry'} created since <strong>${object.date}</strong>.`;
+            document.querySelector('.item[data-tab="recent-entries"] .label').innerHTML = object.entries.length.toString();
+            setClass(tab, 'loading', false);
+        });
 }
 
 function getUncheckedEntries() {
@@ -88,15 +86,31 @@ function getUncheckedEntries() {
 
             const tab = document.querySelector('.segment[data-tab="unchecked-entries"]');
             tab.querySelector('tbody').innerHTML = html;
-
             document.querySelector('.item[data-tab="unchecked-entries"] .label').innerHTML = entries.length.toString();
+            setClass(tab, 'loading', false);
         });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    dimmer.on();
     updateHeader();
 
-    dimmer.on();
+    // // Set loading status
+    // for (const tab of document.querySelectorAll('.ui.tab[data-tab]')) {
+    //     setClass(tab, 'loading', true);
+    // }
+
+    // Init tabs
+    $('.tabular.menu .item').tab();
+
+    // Init closable messages
+    $(document.querySelectorAll('.message .close'))
+        .on('click', function() {
+            $(this)
+                .closest('.message')
+                .transition('fade');
+        });
+
     const promises = [
         getDatabases(),
         getRecentEntries(),
@@ -105,14 +119,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     Promise.all(promises)
         .then(() => {
-            $(document.querySelectorAll('.message .close'))
-                .on('click', function() {
-                    $(this)
-                        .closest('.message')
-                        .transition('fade');
-                });
-
-            $('.tabular.menu .item').tab();
             dimmer.off();
         });
 });
