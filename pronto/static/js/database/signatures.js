@@ -9,7 +9,14 @@ import * as searchbox from '../ui/searchbox.js'
 
 function getSignatures() {
     dimmer.on();
-    fetch(`/api${location.pathname}signatures/${location.search}`)
+    const url = new URL(`/api${location.pathname}signatures/`, location.origin);
+    const searchParams = new URLSearchParams(location.search);
+    for (const [key, value] of searchParams.entries()) {
+        url.searchParams.set(key, value);
+    }
+    url.searchParams.set('details', '');
+
+    fetch(url.toString())
         .then(response => {
             dimmer.off();
             if (response.ok)
@@ -21,37 +28,52 @@ function getSignatures() {
             document.querySelector('h1.ui.header').innerHTML = title;
             document.title = title + ' | Pronto';
 
+            const renderCommentText = (text) => {
+                if (text.length < 40)
+                    return text;
+                return text.substr(0, 40) + '&hellip;';
+            };
+
             let html = '';
             if (object.count) {
                 for (const signature of object.results) {
-                    html += '<tr data-id="'+ signature.accession +'">' +
-                        '<td><a href="/signature/'+ signature.accession +'/">'+ signature.accession +'</a></td>';
+                    html += `<tr data-id="${signature.accession}">
+                             <td>
+                                <span class="ui circular mini label type ${signature.type.code}">${signature.type.code}</span>
+                                <a href="/signature/${signature.accession}/">${signature.accession}</a>
+                             </td>
+                    `;
 
                     if (signature.entry !== null) {
-                        html += '<td>'
-                            + '<span class="ui circular mini label type '+ signature.entry.type +'">'+ signature.entry.type +'</span>'
-                            + '<a href="/entry/'+ signature.entry.accession +'/">'+ signature.entry.accession +'</a>'
-                            + '</td>'
-                            + '<td class="collapsing">'
-                            + checkbox.createDisabled(signature.entry.checked)
-                            + '</td>';
+                        html += `
+                            <td>
+                                <span class="ui circular mini label type ${signature.entry.type.code}">${signature.entry.type.code}</span>
+                                <a href="/entry/${signature.entry.accession}/">${signature.entry.accession}</a>
+                            </td>
+                            <td class="collapsing">${checkbox.createDisabled(signature.entry.checked)}</td>
+                        `;
                     } else {
-                        html += '<td></td>'
-                            + '<td class="collapsing">'
-                            + checkbox.createDisabled(false)
-                            + '</td>';
+                        html += `
+                            <td></td>
+                            <td class="collapsing">${checkbox.createDisabled(false)}</td>
+                        `;
                     }
 
-                    html += '<td class="right aligned">'+ signature.proteins.then +'</td>' +
-                        '<td class="right aligned">'+ signature.proteins.now +'</td>' +
-                        '<td class="right aligned">'+ (signature.proteins.then && signature.proteins.now ? Math.floor(signature.proteins.now / signature.proteins.then * 1000) / 10 : '') +'</td>';
+                    html += `
+                        <td class="right aligned">${signature.proteins.then}</td>
+                        <td class="right aligned">${signature.proteins.now}</td>
+                        <td class="right aligned">${signature.proteins.then > 0 && signature.proteins.now > 0 ? Math.floor(signature.proteins.now/signature.proteins.then*1000) / 10 : ''}</td>
+
+                        <td class="ui comments"><div class="comment"><div class="content">
+                    `;
 
                     // Comment row
-                    html += '<td class="ui comments"><div class="comment"><div class="content">';
                     if (signature.latest_comment) {
-                        html += '<a class="author">' + signature.latest_comment.author + '&nbsp;</a>' +
-                            '<div class="metadata"><span class="date">' + signature.latest_comment.date + '</span></div>' +
-                            '<div class="text">' + (signature.latest_comment.text.length < 40 ? signature.latest_comment.text : signature.latest_comment.text.substr(0, 40) + '&hellip;')  + '</div>';
+                        html += `
+                            <a class="author">${signature.latest_comment.author}</a>
+                            <div class="metadata"><span class="date">${signature.latest_comment.date}</span></div>
+                            <div class="text">${renderCommentText(signature.latest_comment.text)}</div>
+                        `;
                     }
                     html += '<div class="actions"><a class="reply">Leave a comment</a></div></div></div></td></tr>';
                 }

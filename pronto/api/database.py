@@ -37,7 +37,13 @@ def get_integrated_signatures(db_name):
     except (KeyError, ValueError):
         commented = None
 
+    try:
+        filter_type = bool(int(request.args["sametype"]))
+    except (KeyError, ValueError):
+        filter_type = None
+
     search_query = request.args.get("search", "").strip()
+    details = "details" in request.args
 
     con = utils.connect_pg()
     cur = con.cursor()
@@ -60,7 +66,7 @@ def get_integrated_signatures(db_name):
     db_identifier, db_full_name, db_version = row
 
     sql = """
-        SELECT accession, num_sequences
+        SELECT accession, type, num_sequences
         FROM interpro.signature
         WHERE database_id = %s
     """
@@ -78,12 +84,15 @@ def get_integrated_signatures(db_name):
 
     con = utils.connect_oracle()
     cur = con.cursor()
+    cur.execute("SELECT CODE, ABBREV FROM INTERPRO.CV_ENTRY_TYPE")
+    code2type = dict(cur.fetchall())
+
     cur.execute(
         """
         SELECT 
           M.METHOD_AC, 
           E.ENTRY_AC, 
-          E.ENTRY_TYPE, 
+          E.ENTRY_TYPE,
           E.CHECKED,
           C.VALUE,
           C.NAME,
@@ -118,49 +127,69 @@ def get_integrated_signatures(db_name):
     con.close()
 
     results = []
-    for acc, cnt in pg_signatures:
+    for acc, type_name, cnt in pg_signatures:
         try:
             info = ora_signatures[acc]
         except KeyError:
             info = [None] * 5
 
-        if integrated is True and not info[0]:
+        entry_acc = info[0]
+        type_code = info[1]
+        entry_type_name = code2type[type_code] if entry_acc else None
+        is_checked = info[2] == 'Y'
+        comment_text = info[3]
+        comment_author = info[4]
+        comment_date = info[5]
+
+        if integrated is True and not entry_acc:
             continue
-        elif integrated is False and info[0]:
+        elif integrated is False and entry_acc:
             continue
 
-        if checked is True and info[2] != 'Y':
+        if checked is True and not is_checked:
             continue
-        elif checked is False and info[2] != 'N':
+        elif checked is False and is_checked:
             continue
 
-        if commented is True and not info[3]:
+        if commented is True and not comment_text:
             continue
-        elif commented is False and info[3]:
+        elif commented is False and comment_text:
+            continue
+
+        if filter_type is True and type_name != entry_type_name:
+            continue
+        elif filter_type is False and type_name == entry_type_name:
             continue
 
         results.append({
             "accession": acc,
+            "type": {
+                "code": [k for k, v in code2type.items() if v == type_name][0],
+                "name": type_name.replace('_', ' ')
+            },
             "entry": {
-                "accession": info[0],
-                "type": info[1],
-                "checked": info[2] == 'Y',
-            } if info[1] else None,
+                "accession": entry_acc,
+                "type": {
+                    "code": type_code,
+                    "name": entry_type_name.replace('_', ' ')
+                },
+                "checked": is_checked,
+            } if entry_acc else None,
             "proteins": {
                 "then": None,
                 "now": cnt
             },
             "latest_comment": {
-                "text": info[3],
-                "author": info[4],
-                "date": info[5].strftime("%d %B %Y at %H:%M")
-            } if info[5] else None
+                "text": comment_text,
+                "author": comment_author,
+                "date": comment_date.strftime("%d %B %Y at %H:%M")
+            } if comment_text else None
         })
 
     num_results = len(results)
     results = results[(page - 1) * page_size:page * page_size]
 
-    if results:
+    if results and details:
         # Get the count from the latest InterPro release (using the MySQL DW)
         accessions = [res["accession"] for res in results]
         counts = {}
