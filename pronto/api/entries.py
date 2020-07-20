@@ -112,7 +112,7 @@ def get_unchecked_entries():
             WHERE E.CHECKED = 'N'
         ) E
         WHERE E.NUM_METHODS > 0
-        ORDER BY UPDATED_TIME
+        ORDER BY UPDATED_TIME DESC
         """
     )
     entries = []
