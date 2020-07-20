@@ -37,7 +37,6 @@ function getSignatures() {
             }
 
             let html = '';
-
             for (const signature of object.results) {
                 html += `<tr>
                          <td rowspan="${signature.targets.length}"><a href="/signature/${signature.accession}/">${signature.accession}</a></td>
@@ -55,7 +54,7 @@ function getSignatures() {
                              <td class="right aligned">${target.proteins.toLocaleString()}</td>
                              <td class="right aligned">${target.collocations.toLocaleString()}</td>
                              <td class="right aligned">${target.overlaps.toLocaleString()}</td>
-                             <td class="center aligned">${renderConfidence(target)}</td>
+                             <td class="center aligned nowrap">${renderConfidence(target)}</td>
                              ${renderEntry(target.entry)}
                              </tr>`;
                 }
@@ -107,5 +106,4 @@ document.addEventListener('DOMContentLoaded', () => {
             getSignatures();
         });
     }
-
 });
