@@ -22,7 +22,7 @@ function getDatabases() {
                     </td>
                     <td>${database.signatures.integrated}</td>
                     <td>
-                        <a href="/database/${database.id}/unintegrated/">${(database.signatures.total-database.signatures.integrated).toLocaleString()}</a>
+                        <a href="/database/${database.id}/unintegrated/?target=integrated">${(database.signatures.total-database.signatures.integrated).toLocaleString()}</a>
                     </td>
                     </tr>
                 `;
