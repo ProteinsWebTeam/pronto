@@ -61,6 +61,12 @@ function getSignatures() {
             }
 
             const table = document.getElementById('results');
+            const cell = table.querySelector('thead tr:first-child th:first-child');
+            if (object.count > 1)
+                cell.innerHTML = `${object.count} unintegrated signatures`;
+            else
+                cell.innerHTML = `${object.count} unintegrated signature`;
+
             table.querySelector('tbody').innerHTML = html;
 
             pagination.render(
