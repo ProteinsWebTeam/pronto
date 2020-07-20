@@ -41,7 +41,7 @@ function getEntry(accession) {
                 const statistics = document.getElementById('statistics');
                 setClass(statistics, entry.type.code, true);
                 statistics.querySelector('[data-statistic="type"]').innerHTML = entry.type.name;
-                statistics.querySelector('[data-statistic="checked"]').innerHTML = entry.is_checked ? '<i class="check icon"></i>' : '';
+                statistics.querySelector('[data-statistic="checked"]').innerHTML = `<i class="${entry.is_checked ? 'check' : 'times'} icon"></i>`;
                 document.getElementById('public-website').href = `//www.ebi.ac.uk/interpro/entry/InterPro/${entry.accession}`;
                 document.querySelector('.ui.feed').innerHTML = `
                 <div class="event">
