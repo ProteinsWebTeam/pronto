@@ -1,5 +1,4 @@
 import * as checkbox from './ui/checkbox.js'
-import * as dimmer from "./ui/dimmer.js"
 import {updateHeader} from "./ui/header.js"
 import {setClass} from "./ui/utils.js";
 
@@ -30,7 +29,6 @@ function getDatabases() {
 
             const tab = document.querySelector('.segment[data-tab="databases"]');
             tab.querySelector('tbody').innerHTML = html;
-            setClass(tab, 'loading', false);
         });
 }
 
@@ -59,7 +57,6 @@ function getRecentEntries() {
             tab.querySelector('tbody').innerHTML = html;
             tab.querySelector(':scope > p').innerHTML = `<strong>${object.entries.length}</strong> ${object.entries.length > 1 ? 'entries' : 'entry'} created since <strong>${object.date}</strong>.`;
             document.querySelector('.item[data-tab="recent-entries"] .label').innerHTML = object.entries.length.toString();
-            setClass(tab, 'loading', false);
         });
 }
 
@@ -87,18 +84,11 @@ function getUncheckedEntries() {
             const tab = document.querySelector('.segment[data-tab="unchecked-entries"]');
             tab.querySelector('tbody').innerHTML = html;
             document.querySelector('.item[data-tab="unchecked-entries"] .label').innerHTML = entries.length.toString();
-            setClass(tab, 'loading', false);
         });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    dimmer.on();
     updateHeader();
-
-    // // Set loading status
-    // for (const tab of document.querySelectorAll('.ui.tab[data-tab]')) {
-    //     setClass(tab, 'loading', true);
-    // }
 
     // Init tabs
     $('.tabular.menu .item').tab();
@@ -119,6 +109,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     Promise.all(promises)
         .then(() => {
-            dimmer.off();
+            setClass(document.getElementById('welcome'), 'active', false);
         });
 });
