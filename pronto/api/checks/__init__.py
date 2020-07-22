@@ -158,3 +158,47 @@ def get_run(run_id):
     cur.close()
     con.close()
     return jsonify(run), 200 if run else 404
+
+
+@bp.route("/run/<run_id>/<int:err_id>/", methods=["POST"])
+def resolve_error(run_id, err_id):
+    user = auth.get_user()
+    if not user:
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Access denied",
+                "message": "Please log in to perform this action."
+            }
+        }), 401
+
+    con = utils.connect_oracle_auth(user)
+    cur = con.cursor()
+    cur.execute(
+        """
+        UPDATE INTERPRO.SANITY_ERROR
+        SET TIMESTAMP = SYSDATE,
+            USERNAME = USER
+        WHERE RUN_ID = :1 AND ID = :2 AND TIMESTAMP IS NULL
+        """, (run_id, err_id)
+    )
+    affected = cur.rowcount
+    if affected:
+        con.commit()
+
+    cur.close()
+    con.close()
+
+    return jsonify({"status": True})
+
+    # if affected:
+    #     return jsonify({
+    #         "status": True
+    #     })
+    # return jsonify({
+    #     "status": False,
+    #     "error": {
+    #         "title": "Run or error not found",
+    #         "message": f"Error #{err_id} in run #{run_id} does not exist."
+    #     }
+    # }), 404

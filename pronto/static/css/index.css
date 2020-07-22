@@ -1,0 +1,16 @@
+.light-text {
+    color: rgba(0, 0, 0, 0.4);
+}
+
+.tab[data-tab="checks"] tbody tr td span[data-resolve] {
+    cursor: pointer;
+}
+
+.tab[data-tab="checks"] tbody tr.inactive td {
+    color: rgba(40, 40, 40, 0.3) !important;
+}
+
+.tab[data-tab="checks"] tbody tr.inactive td [data-resolve] {
+    pointer-events: none;
+}
+
