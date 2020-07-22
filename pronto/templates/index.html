@@ -14,9 +14,9 @@
     <div class="ui basic segment">
         <div class="ui top attached tabular secondary pointing menu">
             <a class="item" data-tab="databases">Member databases</a>
-            <a class="item" data-tab="recent-entries"><span>Recent entries</span><div class="ui small secondary label"></div></a>
-            <a class="item" data-tab="unchecked-entries"><span>Unchecked entries</span><div class="ui small secondary label"></div></a>
-            <a class="item" data-tab="sanity-checks">Sanity checks</a>
+            <a class="item" data-tab="news"><span>Recent entries</span><div class="ui small secondary label"></div></a>
+            <a class="item" data-tab="unchecked"><span>Unchecked entries</span><div class="ui small secondary label"></div></a>
+            <a class="item" data-tab="checks"><span>Sanity checks</span><div class="ui small secondary label"></div></a>
         </div>
         <div class="ui tab basic segment" data-tab="databases">
             <table class="ui table">
@@ -31,7 +31,7 @@
                 <tbody></tbody>
             </table>
         </div>
-        <div class="ui tab basic segment" data-tab="recent-entries">
+        <div class="ui tab basic segment" data-tab="news">
             <p></p>
             <div class="ui warning message">
                 <i class="close icon"></i>
@@ -52,7 +52,7 @@
                 <tbody></tbody>
             </table>
         </div>
-        <div class="ui tab basic segment" data-tab="unchecked-entries">
+        <div class="ui tab basic segment" data-tab="unchecked">
             <div class="ui info message">
                 <i class="close icon"></i>
                 <div class="header">Unchecked entries</div>
@@ -72,10 +72,11 @@
                 <tbody></tbody>
             </table>
         </div>
-        <div class="ui tab basic segment" data-tab="sanity-checks">
+        <div class="ui tab basic segment" data-tab="checks">
             <p></p>
             <button class="ui compact primary button">Run</button>
             <a href="#" class="ui compact basic button">Settings</a>
+            <div class="ui hidden message"></div>
             <table class="ui single line compact table">
                 <thead>
                 <th>Entry/annotation</th>

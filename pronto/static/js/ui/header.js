@@ -1,9 +1,13 @@
 import {setCharsCountdown, toggleErrorMessage} from "./utils.js";
 
 
-async function fetchTasks() {
+export async function fetchTasks() {
     const response = await fetch(`/api/tasks/`);
-    const tasks = await response.json();
+    return response.json();
+}
+
+export async function renderTaskList() {
+    const tasks = await fetchTasks();
     const menu = document.querySelector('#tasks .menu');
     if (tasks.length > 0) {
         let html = '';
@@ -18,8 +22,10 @@ async function fetchTasks() {
         menu.innerHTML = html;
     } else
         menu.innerHTML = '<div class="item">No tasks</div>';
-    return tasks;
+
+    return Promise.resolve(tasks);
 }
+
 
 export function updateHeader(signatureAcc) {
     document.querySelector('header form').addEventListener('submit', e => {
@@ -214,11 +220,11 @@ export function updateHeader(signatureAcc) {
                     })
                     .modal('attach events', '#new-entry-btn', 'show');
 
-                fetchTasks()
+                renderTaskList()
                     .then(() => {
                         const monitorTasks = () => {
                             setTimeout(() => {
-                                fetchTasks()
+                                renderTaskList()
                                     .then(tasks => {
                                         monitorTasks();
                                     });

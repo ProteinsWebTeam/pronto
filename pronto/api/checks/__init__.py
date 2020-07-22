@@ -60,10 +60,9 @@ def run_checks(user: dict, dsn: str):
     con.commit()
     cur.close()
     con.close()
-    print("done")
 
 
-@bp.route("/", methods=["GET", "PUT"])
+@bp.route("/", methods=["PUT"])
 def submit_checks():
     user = auth.get_user()
     if not user:
@@ -80,7 +79,8 @@ def submit_checks():
 
     return jsonify({
         "status": True,
-        "submitted": submitted
+        "submitted": submitted,
+        "task": "checks"
     }), 202 if submitted else 409
 
 
@@ -157,5 +157,4 @@ def get_run(run_id):
 
     cur.close()
     con.close()
-
     return jsonify(run), 200 if run else 404
