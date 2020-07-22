@@ -83,6 +83,7 @@ def taxonomy(accessions, rank):
 
 app.register_blueprint(api.bp)
 app.register_blueprint(api.annotation.bp)
+app.register_blueprint(api.checks.bp)
 app.register_blueprint(api.database.bp)
 app.register_blueprint(api.databases.bp)
 app.register_blueprint(api.entries.bp)

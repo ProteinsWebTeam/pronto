@@ -5,6 +5,7 @@ from flask import jsonify
 
 from pronto import auth, utils
 from . import annotation
+from . import checks
 from . import database
 from . import databases
 from . import entries
