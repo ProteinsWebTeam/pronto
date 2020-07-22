@@ -55,3 +55,12 @@ i.button.icon {
 i.button.icon:hover {
     color: rgba(0,0,0,.8);
 }
+
+code {
+    background-color: rgba(0, 0, 0, 0.08);
+    border-radius: 3px;
+    display: inline-block;
+    font-size: 0.875em;
+    padding: 1px 6px;
+    vertical-align: baseline;
+}

@@ -87,6 +87,54 @@ function getUncheckedEntries() {
         });
 }
 
+function getSanityCheck() {
+    return fetch('/api/checks/run/last/')
+        .then(response => response.json())
+        .then(object => {
+            if (object.id === undefined)
+                return;
+
+            const escape = (data) => {
+                return data
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+            };
+            const showOccurrences = (count) => {
+                return count > 1 ? `&nbsp;&times;&nbsp;${count}` : '';
+            };
+            const makeResolveButton = (resolutionDate, acceptExceptions) => {
+                if (resolutionDate !== null)
+                    return '';
+                else if (acceptExceptions === undefined || acceptExceptions === null)  // resolve-only button
+                    return '<i class="check button icon" data-content="Resolve" data-position="top center" data-variation="small"></i>';
+                else if (acceptExceptions)
+                    return '<i class="double check button icon" data-content="Add exception & resolve" data-position="top center" data-variation="small"></i>';
+                return '';
+            };
+
+            let html = '';
+            for (const error of object.errors) {
+                const id = error.annotation !== null ? error.annotation : error.entry;
+                html += `
+                    <tr>
+                    <td class="left marked ${error.resolution.date === null ? 'red' : 'green'}"><a target="_blank" href="/search/?q=${id}">${id}</a></td>
+                    <td>${error.type}</td>
+                    <td><code>${escape(error.error)}</code>${showOccurrences(error.count)}</td>
+                    <td class="right aligned">${makeResolveButton(error.resolution.date)}</td>
+                    <td class="right aligned">${makeResolveButton(error.resolution.date, error.exceptions)}</td>
+                    </tr>
+                `;
+            }
+
+            const tab = document.querySelector('.segment[data-tab="sanity-checks"]');
+            tab.querySelector('p').innerHTML = `Last sanity checks performed on <strong>${object.date}</strong>.`;
+            tab.querySelector('tbody').innerHTML = html;
+            $(tab.querySelectorAll('[data-content]')).popup();
+            //document.querySelector('.item[data-tab="sanity-checks"] .label').innerHTML = entries.length.toString();
+        });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     updateHeader();
 
@@ -104,7 +152,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const promises = [
         getDatabases(),
         getRecentEntries(),
-        getUncheckedEntries()
+        getUncheckedEntries(),
+        getSanityCheck()
     ];
 
     Promise.all(promises)
