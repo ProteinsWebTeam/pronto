@@ -17,18 +17,6 @@ class Executor:
 
     @staticmethod
     def run_task(user, dsn, name, fn, *args, **kwargs):
-        con = cx_Oracle.connect(user["dbuser"], user["password"], dsn)
-        cur = con.cursor()
-        cur.execute(
-            """
-            INSERT INTO INTERPRO.PRONTO_TASK (NAME, USERNAME, STARTED) 
-            VALUES (:1, USER, SYSDATE)
-            """, (name,)
-        )
-        con.commit()
-        cur.close()
-        con.close()
-
         try:
             fn(*args, **kwargs)
         except Exception as exc:
@@ -52,6 +40,19 @@ class Executor:
     def submit(self, user: dict, task: str, fn: Callable, *args, **kwargs):
         if self.is_running(user, task):
             return False
+
+        # Insert task so it is immediately shown as 'in progress'
+        con = connect_oracle_auth(user)
+        cur = con.cursor()
+        cur.execute(
+            """
+            INSERT INTO INTERPRO.PRONTO_TASK (NAME, USERNAME, STARTED) 
+            VALUES (:1, USER, SYSDATE)
+            """, (task,)
+        )
+        con.commit()
+        cur.close()
+        con.close()
 
         self.executor.submit(self.run_task, user, get_oracle_dsn(), task, fn,
                              *args, **kwargs)
