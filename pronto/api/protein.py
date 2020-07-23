@@ -10,8 +10,21 @@ bp = Blueprint("api.protein", __name__, url_prefix="/api/protein")
 
 @bp.route("/<accession>/")
 def get_protein(accession):
+    inc_lineage = "lineage" in request.args
+    inc_matches = "matches" in request.args
+
     con = utils.connect_pg()
     cur = con.cursor()
+    if accession.lower() == "random":
+        cur.execute(
+            """
+            SELECT accession 
+            FROM protein 
+            TABLESAMPLE SYSTEM(0.001) LIMIT 1 
+            """
+        )
+        accession, = cur.fetchone()
+
     cur.execute(
         """
         SELECT p.accession, p.identifier, p.length, p.is_fragment, 
@@ -44,7 +57,7 @@ def get_protein(accession):
     taxon_id = row[5]
 
     matches = {}
-    if "matches" in request.args:
+    if inc_matches:
         cur.execute(
             """
             SELECT m.signature_acc, s.name, d.name, d.name_long, m.fragments
@@ -81,7 +94,7 @@ def get_protein(accession):
             s["matches"].append(sorted(fragments,
                                        key=lambda x: (x["start"], x["end"])))
 
-    if "lineage" in request.args:
+    if inc_lineage:
         cur.execute(
             """
             WITH RECURSIVE ancestors AS (
