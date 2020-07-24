@@ -81,7 +81,9 @@ def get_unchecked_entries():
               E.ENTRY_AC, E.ENTRY_TYPE, E.SHORT_NAME, 
               NVL(FAE.TIMESTAMP, E.TIMESTAMP) AS CREATED_TIME,
               NVL(LAE.TIMESTAMP, E.TIMESTAMP) AS UPDATED_TIME, 
-              NVL(U.NAME, E.USERSTAMP), NVL(EM.NUM_METHODS, 0) AS NUM_METHODS
+              NVL(U.NAME, E.USERSTAMP), 
+              NVL(EM.NUM_METHODS, 0) AS NUM_METHODS,
+              NVL(EC.NUM_COMMENTS, 0) AS NUM_COMMENTS
             FROM INTERPRO.ENTRY E
             LEFT OUTER JOIN (
               -- First audit event
@@ -109,6 +111,11 @@ def get_unchecked_entries():
               FROM INTERPRO.ENTRY2METHOD
               GROUP BY ENTRY_AC
             ) EM ON E.ENTRY_AC = EM.ENTRY_AC
+            LEFT OUTER JOIN (
+                SELECT ENTRY_AC, COUNT(*) AS NUM_COMMENTS
+                FROM INTERPRO.ENTRY_COMMENT
+                GROUP BY ENTRY_AC
+            ) EC ON E.ENTRY_AC = EC.ENTRY_AC
             WHERE E.CHECKED = 'N'
         ) E
         WHERE E.NUM_METHODS > 0
@@ -124,7 +131,8 @@ def get_unchecked_entries():
             "created_date": row[3].strftime("%d %b %Y"),
             "update_date": row[4].strftime("%d %b %Y"),
             "user": row[5],
-            "signatures": row[6]
+            "signatures": row[6],
+            "comments": row[7]
         })
     cur.close()
     con.close()
