@@ -3,7 +3,7 @@
 import uuid
 
 import cx_Oracle
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify
 
 bp = Blueprint("api.checks", __name__, url_prefix="/api/checks")
 
@@ -11,6 +11,109 @@ from .annotations import check as check_annotations
 from .entries import check as check_entries
 from .utils import CHECKS
 from pronto import auth, utils
+
+
+@bp.route("/")
+def get_checks():
+    con = utils.connect_oracle()
+    cur = con.cursor()
+    cur.execute(
+        """
+        SELECT C.CHECK_TYPE, C.TERM, E.ID, E.TERM, E.ANN_ID, E.ENTRY_AC, E.ENTRY_AC2
+        FROM INTERPRO.SANITY_CHECK C
+        LEFT OUTER JOIN INTERPRO.SANITY_EXCEPTION E
+          ON (C.CHECK_TYPE = E.CHECK_TYPE 
+            AND (C.TERM IS NULL OR C.TERM = E.TERM))
+        """
+    )
+
+    types = {}
+    for row in cur:
+        ck_type = row[0]
+        ck_term = row[1]
+        exc_id = row[2]
+        exc_term = row[3]
+        exc_ann_id = row[4]
+        exc_entry_acc = row[5]
+        exc_entry_acc2 = row[6]
+
+        check = CHECKS[ck_type]
+        if not check["use_terms"] and not check["use_exceptions"]:
+            continue
+
+        try:
+            ck_obj = types[ck_type]
+        except KeyError:
+            ck_obj = types[ck_type] = {
+                "type": ck_type,
+                "name": check["name"],
+                "label": check["label"],
+                "description": check["description"],
+                "add_terms": check["use_terms"],
+                "add_exceptions": check["use_exceptions"],
+                "use_global_exceptions": check["use_global_exceptions"],
+                "terms": {},
+                "exceptions": [],
+            }
+
+        if ck_term:
+            try:
+                t = ck_obj["terms"][ck_term]
+            except KeyError:
+                t = ck_obj["terms"][ck_term] = {
+                    "value": ck_term,
+                    "exceptions": []
+                }
+
+            if exc_id:
+                t["exceptions"].append({
+                    "id": exc_id,
+                    "annotation": exc_ann_id,
+                    "entry": exc_entry_acc
+                })
+        elif exc_id:
+            ck_obj["exceptions"].append({
+                "id": exc_id,
+                "term": exc_term,
+                "annotation": exc_ann_id,
+                "entry": exc_entry_acc,
+                "entry2": exc_entry_acc2
+            })
+
+    cur.close()
+    con.close()
+
+    for ck_obj in types.values():
+        terms = []
+        for t in sorted(ck_obj["terms"].values(), key=lambda x: x["value"]):
+            t["exceptions"].sort(key=lambda x: x["annotation"] or x["entry"])
+            terms.append(t)
+
+        ck_obj["terms"] = terms
+
+    return jsonify(sorted(types.values(), key=lambda x: x["name"]))
+
+
+@bp.route("/", methods=["PUT"])
+def submit_checks():
+    user = auth.get_user()
+    if not user:
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Access denied",
+                "message": "Please log in to perform this action."
+            }
+        }), 401
+
+    args = (user, utils.get_oracle_dsn())
+    submitted = utils.executor.submit(user, "checks", run_checks, *args)
+
+    return jsonify({
+        "status": True,
+        "submitted": submitted,
+        "task": "checks"
+    }), 202 if submitted else 409
 
 
 def run_checks(user: dict, dsn: str):
@@ -60,28 +163,6 @@ def run_checks(user: dict, dsn: str):
     con.commit()
     cur.close()
     con.close()
-
-
-@bp.route("/", methods=["PUT"])
-def submit_checks():
-    user = auth.get_user()
-    if not user:
-        return jsonify({
-            "status": False,
-            "error": {
-                "title": "Access denied",
-                "message": "Please log in to perform this action."
-            }
-        }), 401
-
-    args = (user, utils.get_oracle_dsn())
-    submitted = utils.executor.submit(user, "checks", run_checks, *args)
-
-    return jsonify({
-        "status": True,
-        "submitted": submitted,
-        "task": "checks"
-    }), 202 if submitted else 409
 
 
 @bp.route("/run/<run_id>/")
@@ -138,13 +219,13 @@ def get_run(run_id):
             """, (run_id,)
         )
         for _id, ann_id, entry_acc, check_type, error, cnt, ts, user in cur:
-            label, add_terms, add_excs, add_glob_excs = CHECKS[check_type]
+            check = CHECKS[check_type]
             run["errors"].append({
                 "id": _id,
                 "annotation": ann_id,
                 "entry": entry_acc,
-                "type": label,
-                "exceptions": add_excs,
+                "type": check["label"],
+                "exceptions": check["use_exceptions"],
                 "error": error,
                 "count": cnt,
                 "resolution": {

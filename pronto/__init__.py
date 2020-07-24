@@ -21,6 +21,11 @@ def index():
     return render_template("index.html")
 
 
+@app.route("/checks/")
+def checks_settings():
+    return render_template("checks.html")
+
+
 @app.route("/database/<identifier>/")
 def member_database(identifier):
     return render_template("database/signatures.html")

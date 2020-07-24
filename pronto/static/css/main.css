@@ -59,8 +59,19 @@ i.button.icon:hover {
 code {
     background-color: rgba(0, 0, 0, 0.08);
     border-radius: 3px;
+    border: 1px solid transparent;
     display: inline-block;
     font-size: 0.875em;
     padding: 1px 6px;
     vertical-align: baseline;
+}
+code.positive {
+    background-color: transparent;
+    border-color: #21ba45;
+    color: #21ba45;
+}
+code.negative {
+    background-color: transparent;
+    border-color: #db2828;
+    color: #db2828;
 }

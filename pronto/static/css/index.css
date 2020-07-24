@@ -1,5 +1,5 @@
 .light-text {
-    color: rgba(0, 0, 0, 0.4);
+    color: rgba(0, 0, 0, 0.6);
 }
 
 .tab[data-tab="checks"] tbody tr td span[data-resolve] {
@@ -12,5 +12,14 @@
 
 .tab[data-tab="checks"] tbody tr.inactive td [data-resolve] {
     pointer-events: none;
+    opacity: .3;
 }
 
+.tab[data-tab="checks"] tbody code:hover {
+    cursor: pointer;
+}
+
+.very.compact.button {
+    padding: .4rem .8rem;
+    font-weight: normal;
+}

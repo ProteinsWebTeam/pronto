@@ -29,3 +29,18 @@ export function toggleErrorMessage(elem, error) {
     setClass(elem, 'hidden', false);
 }
 
+export function escape(value) {
+    return value
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/ /g, '&nbsp;');
+}
+
+export function unescape(value) {
+    return value
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&nbsp;/g, ' ');
+}

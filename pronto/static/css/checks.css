@@ -1,0 +1,11 @@
+.ui.button[data-add] {
+    margin-bottom: .75rem;
+}
+
+.card > .content > .description {
+    margin-top: .5em;
+}
+
+.card > .content > .description > .ui.label {
+    margin-bottom: .15rem;
+}

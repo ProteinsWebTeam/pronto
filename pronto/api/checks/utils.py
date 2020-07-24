@@ -6,38 +6,165 @@ DoS = Dict[str, Set[str]]
 
 """
 Checks to perform
-Key: check type
-Value: (
-    label,
-    accepts specific terms, 
-    accepts exceptions, 
-    accepts global exceptions
-)
 
 Rule of thumb: if a check takes specific terms, it should not accept 
     global exceptions (otherwise there is not point in adding 
     a global exceptions, just delete the term to search)
 """
 CHECKS = {
-    "abbreviation": ("Invalid abbreviation", True, True, False),
-    "acc_in_name": ("Accession in name", False, True, False),
-    "cab_length": ("Too short", False, False, False),
-    "citation": ("Invalid citation", True, True, False),
-    "double_quote": ("Double quotes", False, False, False),
-    "encoding": ("Invalid character", False, True, True),
-    "gene_symbol": ("Gene symbol", False, True, True),
-    "forbidden": ("Forbidden term", True, True, False),
-    "integration": ("No signatures", False, False, False),
-    "link": ("Broken link", False, False, False),
-    "lower_case_name": ("Invalid name", False, True, True),
-    "punctuation": ("Invalid punctuation", True, True, False),
-    "same_name": ("Same names", False, False, False),
-    "similar_name": ("Similar names", False, True, False),
-    "spelling": ("Misspelling", True, True, False),
-    "substitution": ("Bad substitution", True, True, False),
-    "type_conflict": ("Type conflict", False, False, False),
-    "unchecked_node": ("Unchecked entry", False, False, False),
-    "underscore": ("Underscore in name", False, True, False),
+    "abbreviation": {
+        "name": "Abbreviations",
+        "label": "Invalid abbreviation",
+        "description": "Some abbreviations are forbidden in entry names, "
+                       "short names, and annotations.",
+        "use_terms": True,
+        "use_exceptions": True,
+        "use_global_exceptions": False
+    },
+    "acc_in_name": {
+        "name": "Accessions in names",
+        "label": "Entry names should not contain accessions.",
+        "description": "InterPro accessions",
+        "use_terms": False,
+        "use_exceptions": True,
+        "use_global_exceptions": False
+    },
+    "cab_length": {
+        "name": "Annotations too short",
+        "label": "Annotation too short",
+        "description": "Entry annotations must have a minimal length.",
+        "use_terms": False,
+        "use_exceptions": False,
+        "use_global_exceptions": False
+    },
+    "citation": {
+        "name": "Citations",
+        "label": "Invalid citation",
+        "description": "",
+        "use_terms": True,
+        "use_exceptions": True,
+        "use_global_exceptions": False
+    },
+    "double_quote": {
+        "name": "Double quotes",
+        "label": "Double quotes in name",
+        "description": "",
+        "use_terms": False,
+        "use_exceptions": False,
+        "use_global_exceptions": False
+    },
+    "encoding": {
+        "name": "Encoding",
+        "label": "Invalid character",
+        "description": "",
+        "use_terms": False,
+        "use_exceptions": True,
+        "use_global_exceptions": True
+    },
+    "gene_symbol": {
+        "name": "Gene symbols",
+        "label": "Gene symbol in name",
+        "description": "",
+        "use_terms": False,
+        "use_exceptions": True,
+        "use_global_exceptions": True
+    },
+    "forbidden": {
+        "name": "Banned words",
+        "label": "Banned word",
+        "description": "",
+        "use_terms": True,
+        "use_exceptions": True,
+        "use_global_exceptions": False
+    },
+    "integration": {
+        "name": "Empty entries",
+        "label": "Empty entry",
+        "description": "",
+        "use_terms": False,
+        "use_exceptions": False,
+        "use_global_exceptions": False
+    },
+    "link": {
+        "name": "Broken links",
+        "label": "Broken link",
+        "description": "",
+        "use_terms": False,
+        "use_exceptions": False,
+        "use_global_exceptions": False
+    },
+    "lower_case_name": {
+        "name": "Invalid names",
+        "label": "Invalid name",
+        "description": "",
+        "use_terms": True,
+        "use_exceptions": True,
+        "use_global_exceptions": True
+    },
+    "punctuation": {
+        "name": "Punctuation errors",
+        "label": "Punctuation error",
+        "description": "",
+        "use_terms": True,
+        "use_exceptions": True,
+        "use_global_exceptions": False
+    },
+    "same_name": {
+        "name": "Same names",
+        "label": "Same names",
+        "description": "",
+        "use_terms": False,
+        "use_exceptions": False,
+        "use_global_exceptions": False
+    },
+    "similar_name": {
+        "name": "Similar names",
+        "label": "Similar names",
+        "description": "",
+        "use_terms": False,
+        "use_exceptions": True,
+        "use_global_exceptions": False
+    },
+    "spelling": {
+        "name": "Misspellings",
+        "label": "Misspelling",
+        "description": "",
+        "use_terms": True,
+        "use_exceptions": True,
+        "use_global_exceptions": False
+    },
+    "substitution": {
+        "name": "Bad substitutions",
+        "label": "Bad substitution",
+        "description": "",
+        "use_terms": True,
+        "use_exceptions": True,
+        "use_global_exceptions": False
+    },
+    "type_conflict": {
+        "name": "Types conflicts",
+        "label": "Types conflict",
+        "description": "",
+        "use_terms": False,
+        "use_exceptions": False,
+        "use_global_exceptions": False
+    },
+    "unchecked_node": {
+        "name": "Unchecked entries",
+        "label": "Unchecked entry",
+        "description": "",
+        "use_terms": False,
+        "use_exceptions": False,
+        "use_global_exceptions": False
+    },
+    "underscore": {
+        "name": "Underscores in names",
+        "label": "Underscore in name",
+        "description": "",
+        "use_terms": False,
+        "use_exceptions": True,
+        "use_global_exceptions": False
+    },
 }
 
 

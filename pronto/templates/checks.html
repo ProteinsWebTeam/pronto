@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/semantic.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/checks.css') }}">
+    <title>Sanity checks settings | Pronto</title>
+</head>
+<body>
+
+{% include 'header.html' %}
+
+<div class="ui container">
+    <div class="ui basic segment">
+        <h1 class="ui dividing header">Sanity check settings</h1>
+        <div class="ui grid">
+            <div class="three wide column">
+                <div class="ui sticky">
+                    <div class="ui fluid secondary vertical pointing menu">
+                    </div>
+                </div>
+            </div>
+            <div class="thirteen wide column">
+
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='vendor/jquery.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/semantic.js') }}"></script>
+<script src="{{ url_for('static', filename='js/checks.js') }}" type="module"></script>
+</body>
+</html>

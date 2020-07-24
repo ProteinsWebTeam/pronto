@@ -1,6 +1,6 @@
 import * as checkbox from './ui/checkbox.js'
 import {fetchTasks, renderTaskList, updateHeader} from "./ui/header.js"
-import {setClass} from "./ui/utils.js";
+import {setClass, escape, unescape} from "./ui/utils.js";
 
 function getDatabases() {
     return fetch('/api/databases/')
@@ -77,8 +77,13 @@ function getUncheckedEntries() {
                     <td>${entry.created_date}</td>
                     <td>${entry.update_date}</td>
                     <td>${entry.user}</td>
-                    </tr>
+                    <td class="right aligned">
                 `;
+
+                if (entry.comments > 0)
+                    html += `<a href="/entry/${entry.accession}/" class="ui small basic label"><i class="comments icon"></i> ${entry.comments}</a>`;
+
+                html += '</td></tr>';
             }
 
             const tab = document.querySelector('.segment[data-tab="unchecked"]');
@@ -117,12 +122,25 @@ function getSanityCheck() {
                 return;
             }
 
-            const escape = (data) => {
-                return data
-                    .replace(/&/g, '&amp;')
-                    .replace(/</g, '&lt;')
-                    .replace(/>/g, '&gt;')
+            const copy2clipboard = (elem) => {
+                const input = document.createElement('input');
+                input.value = unescape(elem.innerHTML);
+                document.body.appendChild(input);
+                try {
+                    input.select();
+                    document.execCommand('copy');
+                    elem.className = 'positive';
+                } catch (err) {
+                    console.error(err);
+                    elem.className = 'negative';
+                } finally {
+                    document.body.removeChild(input);
+                    setTimeout(() => {
+                        elem.className = '';
+                    }, 300);
+                }
             };
+
             const showOccurrences = (count) => {
                 return count > 1 ? `&nbsp;&times;&nbsp;${count}` : '';
             };
@@ -142,12 +160,12 @@ function getSanityCheck() {
                     html += `<td class="light-text right aligned"><i class="check icon"></i>Resolved by ${error.resolution.user}</td>`;
                 else {
                     numUnresolved += 1;
-                    html += `<td class="light-text right aligned"><span data-resolve="${error.id}">Resolve</span>`;
+                    html += '<td class="right aligned">';
 
                     if (error.exceptions)
-                        html += `&nbsp;|&nbsp;<span data-resolve="${error.id}" data-except>Add exception &amp; resolve</span></td>`;
-                    else
-                        html += '</td>';
+                        html += `<button data-resolve="${error.id}" data-except class="ui very compact basic button">Add exception</button>`;
+
+                    html += `<button data-resolve="${error.id}" class="ui very compact basic button">Resolve</button>`;
                 }
 
                 html += '</tr>';
@@ -162,6 +180,9 @@ function getSanityCheck() {
             const rows = [...tbody.querySelectorAll('tr')];
             for (const elem of rows) {
                 elem.addEventListener('click', e => {
+                    if (e.target.tagName === 'CODE')
+                        return;
+
                     const row = e.currentTarget;
                     if (raised === row) {
                         rows.map(r => setClass(r, 'inactive', false));
@@ -188,6 +209,10 @@ function getSanityCheck() {
                             }
                         });
                 });
+            }
+
+            for (const elem of tbody.querySelectorAll('code')) {
+                elem.addEventListener('click', e => copy2clipboard(e.currentTarget));
             }
 
             $(tab.querySelectorAll('[data-content]')).popup();
