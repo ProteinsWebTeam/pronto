@@ -100,124 +100,124 @@ async function resolveError(runID, errID) {
 }
 
 
-function getSanityCheck() {
-    // const tab = document.querySelector('.segment[data-tab="checks"]');
-    // tab.innerHTML = `
-    //     <div class="ui error message">
-    //         <div class="header">Sanity checks not available</div>
-    //         <p>Sanity checks cannot be run on this instance of Pronto at the moment.</p>
-    //     </div>
-    // `;
-    // const label = document.querySelector('.item[data-tab="checks"] .label');
-    // label.parentNode.removeChild(label);
-    // return Promise.resolve();
+async function getSanityCheck() {
+    const response = await fetch('/api/checks/run/last/');
+    if (!response.ok) {
+        const tab = document.querySelector('.segment[data-tab="checks"]');
+        tab.innerHTML = `
+        <div class="ui error message">
+            <div class="header">Sanity checks not available</div>
+            <p>Sanity checks have not been migrated, and cannot be used at this time.</p>
+        </div>
+    `;
+        const label = document.querySelector('.item[data-tab="checks"] .label');
+        label.parentNode.removeChild(label);
+        return Promise.resolve();
+    }
 
-    return fetch('/api/checks/run/last/')
-        .then(response => response.json())
-        .then(object => {
-            const tab = document.querySelector('.segment[data-tab="checks"]');
-            if (object.id === undefined) {
-                tab.querySelector('tbody').innerHTML = '<tr><td colspan="4" class="center aligned">No sanity check report available</td></tr>';
-                document.querySelector('.item[data-tab="checks"] .label').innerHTML = '0';
-                return;
-            }
+    const object = await response.json();
+    const tab = document.querySelector('.segment[data-tab="checks"]');
+    if (object.id === undefined) {
+        tab.querySelector('tbody').innerHTML = '<tr><td colspan="4" class="center aligned">No sanity check report available</td></tr>';
+        document.querySelector('.item[data-tab="checks"] .label').innerHTML = '0';
+        return;
+    }
 
-            const copy2clipboard = (elem) => {
-                const input = document.createElement('input');
-                input.value = unescape(elem.innerHTML);
-                document.body.appendChild(input);
-                try {
-                    input.select();
-                    document.execCommand('copy');
-                    elem.className = 'positive';
-                } catch (err) {
-                    console.error(err);
-                    elem.className = 'negative';
-                } finally {
-                    document.body.removeChild(input);
-                    setTimeout(() => {
-                        elem.className = '';
-                    }, 300);
-                }
-            };
+    const copy2clipboard = (elem) => {
+        const input = document.createElement('input');
+        input.value = unescape(elem.innerHTML);
+        document.body.appendChild(input);
+        try {
+            input.select();
+            document.execCommand('copy');
+            elem.className = 'positive';
+        } catch (err) {
+            console.error(err);
+            elem.className = 'negative';
+        } finally {
+            document.body.removeChild(input);
+            setTimeout(() => {
+                elem.className = '';
+            }, 300);
+        }
+    };
 
-            const showOccurrences = (count) => {
-                return count > 1 ? `&nbsp;&times;&nbsp;${count}` : '';
-            };
+    const showOccurrences = (count) => {
+        return count > 1 ? `&nbsp;&times;&nbsp;${count}` : '';
+    };
 
-            let html = '';
-            let numUnresolved = 0;
-            for (const error of object.errors) {
-                const acc = error.annotation !== null ? error.annotation : error.entry;
-                html += `
+    let html = '';
+    let numUnresolved = 0;
+    for (const error of object.errors) {
+        const acc = error.annotation !== null ? error.annotation : error.entry;
+        html += `
                     <tr>
                     <td class="left marked ${error.resolution.date === null ? 'red' : 'green'}"><a target="_blank" href="/search/?q=${acc}">${acc}</a></td>
                     <td>${error.type}</td>
                     <td><code>${escape(error.error)}</code>${showOccurrences(error.count)}</td>
                 `;
 
-                if (error.resolution.user !== null)
-                    html += `<td class="light-text right aligned"><i class="check icon"></i>Resolved by ${error.resolution.user}</td>`;
-                else {
-                    numUnresolved += 1;
-                    html += '<td class="right aligned">';
+        if (error.resolution.user !== null)
+            html += `<td class="light-text right aligned"><i class="check icon"></i>Resolved by ${error.resolution.user}</td>`;
+        else {
+            numUnresolved += 1;
+            html += '<td class="right aligned">';
 
-                    if (error.exceptions)
-                        html += `<button data-resolve="${error.id}" data-except class="ui very compact basic button">Add exception</button>`;
+            if (error.exceptions)
+                html += `<button data-resolve="${error.id}" data-except class="ui very compact basic button">Add exception</button>`;
 
-                    html += `<button data-resolve="${error.id}" class="ui very compact basic button">Resolve</button>`;
-                }
+            html += `<button data-resolve="${error.id}" class="ui very compact basic button">Resolve</button>`;
+        }
 
-                html += '</tr>';
+        html += '</tr>';
+    }
+
+    tab.querySelector('p').innerHTML = `Last sanity checks performed on <strong>${object.date}</strong>.`;
+
+    const tbody = tab.querySelector('tbody');
+    tbody.innerHTML = html;
+
+    let raised = null;
+    const rows = [...tbody.querySelectorAll('tr')];
+    for (const elem of rows) {
+        elem.addEventListener('click', e => {
+            if (e.target.tagName === 'CODE')
+                return;
+
+            const row = e.currentTarget;
+            if (raised === row) {
+                rows.map(r => setClass(r, 'inactive', false));
+                raised = null;
+            } else {
+                rows.map(r => setClass(r, 'inactive', r !== row));
+                raised = row;
             }
+        });
+    }
 
-            tab.querySelector('p').innerHTML = `Last sanity checks performed on <strong>${object.date}</strong>.`;
-
-            const tbody = tab.querySelector('tbody');
-            tbody.innerHTML = html;
-
-            let raised = null;
-            const rows = [...tbody.querySelectorAll('tr')];
-            for (const elem of rows) {
-                elem.addEventListener('click', e => {
-                    if (e.target.tagName === 'CODE')
+    const runID = object.id;
+    for (const elem of tbody.querySelectorAll('[data-resolve]')) {
+        elem.addEventListener('click', e => {
+            const errID = e.currentTarget.dataset.resolve;
+            const addException = e.currentTarget.dataset.except !== undefined;
+            if (addException)
+                return;
+            resolveError(runID, errID)
+                .then(result => {
+                    if (result.status) {
+                        getSanityCheck();
                         return;
-
-                    const row = e.currentTarget;
-                    if (raised === row) {
-                        rows.map(r => setClass(r, 'inactive', false));
-                        raised = null;
-                    } else {
-                        rows.map(r => setClass(r, 'inactive', r !== row));
-                        raised = row;
                     }
                 });
-            }
-
-            const runID = object.id;
-            for (const elem of tbody.querySelectorAll('[data-resolve]')) {
-                elem.addEventListener('click', e => {
-                    const errID = e.currentTarget.dataset.resolve;
-                    const addException = e.currentTarget.dataset.except !== undefined;
-                    if (addException)
-                        return;
-                    resolveError(runID, errID)
-                        .then(result => {
-                            if (result.status) {
-                                getSanityCheck();
-                                return;
-                            }
-                        });
-                });
-            }
-
-            for (const elem of tbody.querySelectorAll('code')) {
-                elem.addEventListener('click', e => copy2clipboard(e.currentTarget));
-            }
-
-            $(tab.querySelectorAll('[data-content]')).popup();
-            document.querySelector('.item[data-tab="checks"] .label').innerHTML = numUnresolved.toString();
         });
+    }
+
+    for (const elem of tbody.querySelectorAll('code')) {
+        elem.addEventListener('click', e => copy2clipboard(e.currentTarget));
+    }
+
+    $(tab.querySelectorAll('[data-content]')).popup();
+    document.querySelector('.item[data-tab="checks"] .label').innerHTML = numUnresolved.toString();
 }
 
 function runSanityChecks() {
