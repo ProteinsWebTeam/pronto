@@ -26,6 +26,7 @@ def get_proteins_alt(accessions):
     name_id = request.args.get("name")
     taxon_id = request.args.get("taxon")
     reviewed_only = "reviewed" in request.args
+
     # dl_file = "file" in request.args
 
     try:
@@ -45,6 +46,18 @@ def get_proteins_alt(accessions):
         page_size = int(request.args["page_size"])
     except (KeyError, ValueError):
         page_size = 10
+
+    try:
+        min_sign_per_prot = int(request.args["matching"])
+    except KeyError:
+        min_sign_per_prot = len(accessions)
+    except ValueError:
+        return jsonify({
+            "error": {
+                "title": "Bad Request (invalid 'matching')",
+                "message": f"{request.args['matching']} is not a number."
+            }
+        }), 400
 
     con = utils.connect_pg()
     with con.cursor() as cur:
@@ -149,9 +162,9 @@ def get_proteins_alt(accessions):
                 {' AND ' + ' AND '.join(filters) if filters else ''}
                 GROUP BY protein_acc
             ) t
-            WHERE cnt = %s    
+            WHERE cnt >= %s    
         """
-        params.append(len(accessions))
+        params.append(min_sign_per_prot)
 
         if comment_id is not None:
             sql += """

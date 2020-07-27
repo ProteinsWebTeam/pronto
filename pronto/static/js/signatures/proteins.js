@@ -141,16 +141,26 @@ async function getProteins(signatureAccessions) {
                         sessionStorage.removeItem(key);
                 }
 
-                const maxLength = Math.max(...Array.from(proteins, p => p.length));
-                const filterMatches = document.querySelector('input[name="filter-matches"]').checked;
-                let html = '';
-                for (const protein of proteins) {
-                    sessionStorage.setItem(protein.accession, JSON.stringify(protein));
-                    html += renderProtein(protein, signatureAccessions, filterMatches, maxLength);
-                }
+                if (proteins.length > 0) {
+                    const maxLength = Math.max(...Array.from(proteins, p => p.length));
+                    const filterMatches = document.querySelector('input[name="filter-matches"]').checked;
 
-                elem.innerHTML = html;
-                postRendering();
+                    let html = '';
+                    for (const protein of proteins) {
+                        sessionStorage.setItem(protein.accession, JSON.stringify(protein));
+                        html += renderProtein(protein, signatureAccessions, filterMatches, maxLength);
+                    }
+
+                    elem.innerHTML = html;
+                    postRendering();
+                } else
+                    elem.innerHTML = `
+                        <div class="ui warning message">
+                        <div class="header">No results found</div>
+                        <p>Your query returned to proteins.</p>
+                        </div>
+                    `;
+
                 dimmer.off()
             });
         });
@@ -295,7 +305,6 @@ document.addEventListener('DOMContentLoaded', () => {
     checkbox.addEventListener('change', e => {
         e.preventDefault();
 
-
         const proteins = [];
         for (let i = 0; i < sessionStorage.length; i++) {
             const key = sessionStorage.key(i);
@@ -314,6 +323,19 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('proteins').innerHTML = html;
         postRendering();
     });
+
+    const matching = Number.parseInt(url.searchParams.get('matching'), 10);
+    $('.ui.slider')
+        .slider({
+            min: 1,
+            max: accessions.length,
+            start: Number.isInteger(matching) ? matching : accessions.length,
+            onChange: function (value) {
+                url.searchParams.set('matching', value);
+                history.replaceState(null, document.title, url.toString());
+                getProteins(accessions);
+            }
+        });
 
     updateHeader();
     getProteins(accessions);
