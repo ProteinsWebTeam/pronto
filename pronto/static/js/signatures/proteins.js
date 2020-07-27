@@ -179,55 +179,6 @@ async function getProteins(signatureAccessions) {
         });
 }
 
-
-document.addEventListener('DOMContentLoaded', () => {
-    const match = location.pathname.match(/\/signatures\/(.+)\/proteins\/$/i);
-    const accessions = match[1].split("/");
-    document.title = "Proteins (" + accessions.join(", ") + ") | Pronto";
-
-    selector.init(document.getElementById('signature-selector'));
-    for (const accession of accessions) {
-        selector.add(accession);
-    }
-    selector.render().tab("proteins");
-
-    const url = new URL(location.href);
-    let checkbox = document.querySelector('input[type=checkbox][name=reviewed]');
-    checkbox.checked = url.searchParams.has('reviewed');
-    checkbox.addEventListener('change', e => {
-        if (e.currentTarget.checked)
-            url.searchParams.set('reviewed', '');
-        else
-            url.searchParams.delete('reviewed');
-
-        history.replaceState(null, document.title, url.toString());
-        getProteins(accessions);
-    });
-
-    document.getElementById('copy-btn').addEventListener('click', e => {
-        e.preventDefault();
-        copyProteins();
-    });
-
-    document.getElementById('download-btn').addEventListener('click', e => {
-        e.preventDefault();
-        downloadProteins();
-    });
-
-    checkbox = document.querySelector('input[type=checkbox][name=filter-matches]');
-    checkbox.checked = url.searchParams.has('filtermatches')
-    checkbox.addEventListener('change', e => {
-        e.preventDefault();
-        const filterMatches = e.currentTarget.checked;
-        for (const elem of document.querySelectorAll('#proteins [data-id]')) {
-            renderMatches(elem.dataset.id, accessions, filterMatches);
-        }
-    });
-
-    updateHeader();
-    getProteins(accessions);
-});
-
 function copyProteins() {
     const btn = document.getElementById('copy-btn');
     const copy2clipboard = (value) => {
@@ -330,3 +281,51 @@ function downloadProteins() {
             })();
         });
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    const match = location.pathname.match(/\/signatures\/(.+)\/proteins\/$/i);
+    const accessions = match[1].split("/");
+    document.title = "Proteins (" + accessions.join(", ") + ") | Pronto";
+
+    selector.init(document.getElementById('signature-selector'));
+    for (const accession of accessions) {
+        selector.add(accession);
+    }
+    selector.render().tab("proteins");
+
+    const url = new URL(location.href);
+    let checkbox = document.querySelector('input[type=checkbox][name=reviewed]');
+    checkbox.checked = url.searchParams.has('reviewed');
+    checkbox.addEventListener('change', e => {
+        if (e.currentTarget.checked)
+            url.searchParams.set('reviewed', '');
+        else
+            url.searchParams.delete('reviewed');
+
+        history.replaceState(null, document.title, url.toString());
+        getProteins(accessions);
+    });
+
+    document.getElementById('copy-btn').addEventListener('click', e => {
+        e.preventDefault();
+        copyProteins();
+    });
+
+    document.getElementById('download-btn').addEventListener('click', e => {
+        e.preventDefault();
+        downloadProteins();
+    });
+
+    checkbox = document.querySelector('input[type=checkbox][name=filter-matches]');
+    checkbox.checked = url.searchParams.has('filtermatches')
+    checkbox.addEventListener('change', e => {
+        e.preventDefault();
+        const filterMatches = e.currentTarget.checked;
+        for (const elem of document.querySelectorAll('#proteins [data-id]')) {
+            renderMatches(elem.dataset.id, accessions, filterMatches);
+        }
+    });
+
+    updateHeader();
+    getProteins(accessions);
+});
