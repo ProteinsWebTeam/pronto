@@ -13,15 +13,17 @@ def get_version():
                 return line.split('=', 1)[1].strip().replace('"', '')
 
 
+def get_requires():
+    path = os.path.join(os.path.dirname(__file__), "requirements.txt")
+    with open(path, "rt") as fh:
+        return list(map(str.strip, fh.readlines()))
+
+
 setup(
     name="pronto",
     version=get_version(),
     packages=find_packages(),
     include_package_data=True,
     zip_safe=False,
-    install_requires=[
-        "cx_Oracle>=7.0",
-        "Flask>=1.0.2",
-        "mysqlclient>=1.3.10"
-    ],
+    install_requires=get_requires(),
 )
