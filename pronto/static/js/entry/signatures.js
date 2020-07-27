@@ -88,7 +88,7 @@ export function refresh(accession) {
 
                 const accessions = Array.from(signatures, (s,) => s.accession).join('/');
                 for (const elem of document.querySelectorAll('a[data-link]')) {
-                    elem.href = `/signatures/${accessions}/${elem.dataset.link}/`;
+                    elem.href = `/signatures/${accessions}/${elem.dataset.link}`;
                 }
             } else {
                 html = '<tr><td colspan="7" class="center aligned">No integrated signatures</td></tr>';

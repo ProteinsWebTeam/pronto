@@ -51,14 +51,15 @@ export const selector = {
             });
         }
 
-        const params = [];
-        for (let [key, value] of new URL(location.href).searchParams.entries()) {
-            if (key !== 'page' && key !== 'page_size')
-                params.push(`${key}=${value}`);
-        }
+        // const params = [];
+        // for (let [key, value] of new URL(location.href).searchParams.entries()) {
+        //     if (key !== 'page' && key !== 'page_size')
+        //         params.push(`${key}=${value}`);
+        // }
 
         for (const elem of this.elem.querySelectorAll('.links a')) {
-            elem.setAttribute('href', `/signatures/${this.signatures.join('/')}/${elem.dataset.link}/?${params.join('&')}`);
+            // elem.setAttribute('href', `/signatures/${this.signatures.join('/')}/${elem.dataset.link}/?${params.join('&')}`);
+            elem.setAttribute('href', `/signatures/${this.signatures.join('/')}/${elem.dataset.link}`);
         }
         return this;
     },
