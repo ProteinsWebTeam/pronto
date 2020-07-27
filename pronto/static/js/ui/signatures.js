@@ -1,4 +1,7 @@
 import {setClass} from "./utils.js";
+import {fetchProtein, genLink, renderMatches} from "./proteins.js";
+import * as pagination from "./pagination.js";
+import * as dimmer from "./dimmer.js";
 
 export const selector = {
     elem: null,
@@ -88,4 +91,84 @@ export function renderConfidence(signature) {
         html += '<i class="star outline fitted icon"></i><i class="star outline fitted icon"></i>';
 
     return html;
+}
+
+export function showProteinsModal(accession, params, getMatches) {
+    const modal = document.getElementById('proteins-modal');
+    modal.querySelector('thead .right.menu a').href = `/signatures/${accession}/proteins/?filtermatches&${params.join('&')}`;
+
+    params.push('page_size=20');
+    params.push('page=1');
+
+    let url = `/api/signatures/${accession}/proteins/?${params.join('&')}`;
+    getProteins(accession, url, getMatches).then(() => {
+        $(modal).modal('show');
+    })
+}
+
+async function getProteins(accession, url, getMatches) {
+    dimmer.on();
+    const response = await fetch(url);
+    const object = await response.json();
+
+    const promises = [];
+    for (const accession of object.results) {
+        promises.push(fetchProtein(accession, getMatches));
+    }
+
+    const proteins = await Promise.all(promises);
+
+    const svgWidth = 400;
+    const svgPaddingLeft = 5;
+    const svgPaddingRight = 20;
+    const width = svgWidth - svgPaddingLeft - svgPaddingRight;
+
+    const maxLength = Math.max(...Array.from(proteins, p => p.length));
+
+    let html = '';
+    for (const protein of proteins) {
+        const _width = Math.floor(protein.length * width / maxLength);
+        const signature = protein.signatures.filter(s => s.accession === accession)[0];
+        html += `
+            <tr>
+            <td class="nowrap">
+                <a target="_blank" href="${genLink(protein.accession, protein.is_reviewed)}"><i class="${!protein.is_reviewed ? 'outline' : ''} star icon"></i>${protein.accession}<i class="external icon"></i></a>
+            </td>
+            <td>${protein.identifier}</td>
+            <td>${protein.name}</td>
+            
+        `;
+
+        if (getMatches) {
+            html += `
+                <td><em>${protein.organism.name}</em></td>
+                <td>
+                    <svg width="${svgWidth}" height="30">
+                    <line x1="${svgPaddingLeft}" y1="20" x2="${_width}" y2="20" stroke="#888" stroke-width="1px"/>
+                    <text x="${svgPaddingLeft + _width + 2}" y="20" class="length">${protein.length}</text>
+                    ${renderMatches(protein.length, signature, _width, svgPaddingLeft)}
+                    </svg>
+                </td>
+                </tr>
+            `;
+        } else
+            html += `<td colspan="2"><em>${protein.organism.name}</em></td></tr>`;
+    }
+
+    const modal = document.getElementById('proteins-modal');
+    const tbody = modal.querySelector('tbody');
+    tbody.innerHTML = html;
+
+    pagination.render(
+        tbody.parentNode,
+        object.page_info.page,
+        object.page_info.page_size,
+        object.count,
+        (url) => {
+            getProteins(accession, url, getMatches);
+        },
+        new URL(url, location.origin)
+    );
+    dimmer.off();
+    return Promise.resolve();
 }

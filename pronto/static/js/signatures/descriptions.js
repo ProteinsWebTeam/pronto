@@ -1,56 +1,59 @@
 import * as dimmer from "../ui/dimmer.js";
 import {updateHeader} from "../ui/header.js";
-import {selector} from "../ui/signatures.js";
+import {selector, showProteinsModal} from "../ui/signatures.js";
 
 
-function fetchAPI() {
-    return new Promise(((resolve, reject) => {
-        fetch('/api' + location.pathname + location.search)
-            .then(response => {
-                response.json()
-                    .then(object => {
-                        if (response.ok)
-                            resolve(object);
-                        else
-                            reject(object.error);
-                    });
-            })
-    }));
-}
 
-function getDescriptions(accessions, reviewOnly) {
-    const params = reviewOnly ? '?reviewed&filtermatches' : '?filtermatches';
-
+function getDescriptions(accessions) {
     dimmer.on();
-    fetchAPI().then(
-        (data,) => {
-            let html = `<thead>
+
+    fetch(`/api${location.pathname}${location.search}`)
+        .then(response => response.json())
+        .then((data,) => {
+                let html = `<thead>
                         <tr>
                         <th>${data.results.length.toLocaleString()} descriptions</th>
-                        ${accessions.map(acc => `<th><a target="_blank" href="/signatures/${acc}/proteins/${params}">${acc}</a></th>`).join('')}
+                        ${accessions.map(acc => `<th><a href="#!" data-signature="${acc}">${acc}</a></th>`).join('')}
                         </tr>
                         </thead>`;
 
-            html += '<tbody>';
-            for (const name of data.results) {
-                html += `<tr><td>${name.value}</td>`;
-                for (const acc of accessions) {
-                    if (name.signatures.hasOwnProperty(acc))
-                        html += `<td><a target="_blank" href="/signatures/${acc}/proteins/${params}&name=${name.id}">${name.signatures[acc].toLocaleString()}</a></td>`;
-                    else
-                        html += `<td></td>`;
+                html += '<tbody>';
+                for (const name of data.results) {
+                    html += `<tr><td>${name.value}</td>`;
+                    for (const acc of accessions) {
+                        if (name.signatures.hasOwnProperty(acc))
+                            html += `<td><a href="#!" data-signature="${acc}" data-name="${name.id}">${name.signatures[acc].toLocaleString()}</a></td>`;
+                        else
+                            html += `<td></td>`;
+                    }
+                    html += '</tr>';
                 }
-                html += '</tr>';
-            }
 
-            document.getElementById('results').innerHTML = html + '</tbody></table>';
-            dimmer.off();
-        },
-        (error, ) => {
-            // todo
-            dimmer.off();
-        }
-    )
+                const table = document.getElementById('results');
+                table.innerHTML = html + '</tbody>';
+
+                for (const elem of table.querySelectorAll('[data-signature]')) {
+                    elem.addEventListener('click', e => {
+                        const acc = e.currentTarget.dataset.signature;
+                        const name = e.currentTarget.dataset.name;
+
+                        const params = [];
+                        if ((new URLSearchParams(location.search).has('reviewed')))
+                            params.push('reviewed');
+
+                        let showMatches = false;
+                        if (name !== undefined && name.length > 0) {
+                            params.push(`name=${name}`);
+                            showMatches = true;
+                        }
+
+                        showProteinsModal(acc, params, showMatches);
+                    });
+                }
+
+                dimmer.off();
+            }
+        )
 }
 
 
@@ -75,9 +78,9 @@ document.addEventListener('DOMContentLoaded', () => {
             url.searchParams.delete('reviewed');
 
         history.replaceState(null, document.title, url.toString());
-        getDescriptions(accessions, e.currentTarget.checked);
+        getDescriptions(accessions);
     });
 
     updateHeader();
-    getDescriptions(accessions, checkbox.checked);
+    getDescriptions(accessions);
 });

@@ -1,22 +1,6 @@
 import * as dimmer from "../ui/dimmer.js";
 import {updateHeader} from "../ui/header.js";
-import {selector} from "../ui/signatures.js";
-
-
-function fetchAPI() {
-    return new Promise(((resolve, reject) => {
-        fetch('/api' + location.pathname + location.search)
-            .then(response => {
-                response.json()
-                    .then(object => {
-                        if (response.ok)
-                            resolve(object);
-                        else
-                            reject(object.error);
-                    });
-            })
-    }));
-}
+import {selector, showProteinsModal} from "../ui/signatures.js";
 
 
 function getAspectCode(aspect) {
@@ -33,8 +17,9 @@ function getAspectCode(aspect) {
 
 function getGoTerms(accessions) {
     dimmer.on();
-    fetchAPI().then(
-        (data,) => {
+    fetch('/api' + location.pathname + location.search)
+        .then(response => response.json())
+        .then((data,) => {
             let html = `<thead>
                         <tr>
                         <th>${data.results.length.toLocaleString()} terms</th>
@@ -60,8 +45,9 @@ function getGoTerms(accessions) {
                     if (term.signatures.hasOwnProperty(acc)) {
                         const signature = term.signatures[acc];
                         html += `<td class="collapsing center aligned">
-                                    <a target="_blank" href="/signatures/${acc}/proteins/?go=${term.id}&filtermatches">${signature['proteins'].toLocaleString()}</a>
+                                    <a href="#!" data-signature="${acc}" data-term="${term.id}">${signature['proteins'].toLocaleString()}</a>
                                  </td>`;
+
                         if (signature.references > 0) {
                             html += `<td class="collapsing center aligned">
                                        <a data-signature="${acc}" data-term="${term.id}" class="ui basic label"><i class="book icon"></i>${signature.references.toLocaleString()}</a>
@@ -75,14 +61,23 @@ function getGoTerms(accessions) {
                 html += '</tr>';
             }
 
-            document.getElementById('results').innerHTML = html + '</tbody></table>';
+            const table = document.getElementById('results');
+            table.innerHTML = html + '</tbody>';
 
             for (const input of document.querySelectorAll(`input[name="aspect"]`)) {
                 input.checked = data.aspects.includes(input.value);
             }
 
+            for (const elem of table.querySelectorAll('[data-signature]:not(.label)')) {
+                elem.addEventListener('click', e => {
+                    const acc = e.currentTarget.dataset.signature;
+                    const termID = e.currentTarget.dataset.term;
+                    showProteinsModal(acc, [`go=${termID}`], true);
+                });
+            }
+
             // Display GO chart
-            document.querySelector('#results thead button').addEventListener('click', e => {
+            table.querySelector('thead button').addEventListener('click', e => {
                 const terms = [];
                 for (const input of document.querySelectorAll('input[name="term"]:checked')) {
                     terms.push(input.value);
@@ -99,7 +94,7 @@ function getGoTerms(accessions) {
             });
 
             // Get Pubmed references
-            for (const elem of document.querySelectorAll('#results [data-signature]')) {
+            for (const elem of table.querySelectorAll('.label[data-signature]')) {
                 elem.addEventListener('click', (e,) => {
                     const acc = e.currentTarget.dataset.signature;
                     const term = e.currentTarget.dataset.term;
@@ -131,12 +126,7 @@ function getGoTerms(accessions) {
             }
 
             dimmer.off();
-        },
-        (error, ) => {
-            // todo
-            dimmer.off();
-        }
-    )
+        });
 }
 
 

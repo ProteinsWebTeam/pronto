@@ -1,27 +1,12 @@
 import * as dimmer from "../ui/dimmer.js";
 import {updateHeader} from "../ui/header.js";
-import {selector} from "../ui/signatures.js";
-
-
-function fetchAPI() {
-    return new Promise(((resolve, reject) => {
-        fetch('/api' + location.pathname + location.search)
-            .then(response => {
-                response.json()
-                    .then(object => {
-                        if (response.ok)
-                            resolve(object);
-                        else
-                            reject(object.error);
-                    });
-            })
-    }));
-}
+import {selector, showProteinsModal} from "../ui/signatures.js";
 
 function getComments(accessions) {
     dimmer.on();
-    fetchAPI().then(
-        (data,) => {
+    fetch('/api' + location.pathname + location.search)
+        .then(response => response.json())
+        .then((data,) => {
             let html = `<thead>
                         <tr>
                         <th>${data.results.length.toLocaleString()} comments</th>
@@ -34,21 +19,26 @@ function getComments(accessions) {
                 html += `<tr><td>${comment.value}</td>`;
                 for (const acc of accessions) {
                     if (comment.signatures.hasOwnProperty(acc))
-                        html += `<td><a target="_blank" href="/signatures/${acc}/proteins/?comment=${comment.id}&filtermatches">${comment.signatures[acc].toLocaleString()}</a></td>`;
+                        html += `<td><a href="#!" data-signature="${acc}" data-comment="${comment.id}">${comment.signatures[acc].toLocaleString()}</a></td>`;
                     else
                         html += `<td></td>`;
                 }
                 html += '</tr>';
             }
 
-            document.getElementById('results').innerHTML = html + '</tbody></table>';
+            const table = document.getElementById('results');
+            table.innerHTML = html + '</tbody>';
+
+            for (const elem of table.querySelectorAll('[data-signature]')) {
+                elem.addEventListener('click', e => {
+                    const acc = e.currentTarget.dataset.signature;
+                    const comment = e.currentTarget.dataset.comment;
+                    showProteinsModal(acc, [`comment=${comment}`], true);
+                });
+            }
+
             dimmer.off();
-        },
-        (error, ) => {
-            // todo
-            dimmer.off();
-        }
-    )
+        });
 }
 
 
