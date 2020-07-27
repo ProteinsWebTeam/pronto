@@ -212,7 +212,7 @@ class Annotation(object):
         for block in text.split("\n\n"):
             block = block.strip()
 
-            if re.search(r"<(?:li|ol|p|pre|ul)>", block, re.I) is None:
+            if re.match(r"<(?:li|ol|p|pre|ul)>", block, re.I) is None:
                 # Does not start with a tag that cannot be included in <p></p>
                 blocks.append(f"<p>\n{block}\n</p>")
             else:
