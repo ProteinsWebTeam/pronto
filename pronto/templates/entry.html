@@ -347,6 +347,65 @@
     </div>
 </div>
 
+<div id="format-help" class="ui small modal">
+    <i class="close icon"></i>
+    <div class="header">Formatting help</div>
+    <div class="scrolling content justified">
+        <div class="ui header">General rules</div>
+        <ol class="ui list">
+            <li>
+                Open HTML tags (e.g. <code>&lt;p&gt;</code>, <code>&lt;pre&gt;</code>) must have a matched closing tag (e.g. <code>&lt;/p&gt;</code>, <code>&lt;/pre&gt;</code>).
+            </li>
+            <li>
+                Paragraphs (<code>&lt;p&gt;&hellip;&lt;/p&gt;</code>) should not contain lists (<code>&lt;ul&gt;&hellip;&lt;/ul&gt;</code>, <code>&lt;ol&gt;&hellip;&lt;/ol&gt;</code>), list items (<code>&lt;li&gt;&hellip;&lt;/li&gt;</code>), or other paragraphs.
+            </li>
+            <li>
+                List items (<code>&lt;li&gt;&hellip;&lt;/li&gt;</code>) should always be inside ordered (<code>&lt;ol&gt;&hellip;&lt;/ol&gt;</code>) or unordered (<code>&lt;ul&gt;&hellip;&lt;/ul&gt;</code>) lists.
+            </li>
+            <li>
+                The paragraph tags (<code>&lt;p&gt;</code> and <code>&lt;/p&gt;</code>) are optional, and will be automatically added.
+                For instance, the following annotation:
+                <pre><code>The first paragraph.
+
+A second paragraph after an empty line.</code></pre>
+
+                will be saved as:
+                <pre><code>&lt;p&gt;
+The first paragraph.
+&lt;/p&gt;
+
+&lt;p&gt;
+A second paragraph after an empty line.
+&lt;/p&gt;</code></pre>
+            </li>
+        </ol>
+        <div class="ui header">Cross-references</div>
+        <p>
+            Create a link to an external resource by writing the identifier of the resource, followed by a colon and the entry's accession, between square brackets, e.g. <code>[pfam:PF00069]</code>.<br>
+            The following resources are supported:
+        </p>
+        <ul class="ui list">
+            <li>CATH / Gene3D: <code>[cathgene3d:&hellip;]</code></li>
+            <li>CAZy: <code>[cazy:&hellip;]</code></li>
+            <li>COG: <code>[cog:&hellip;]</code></li>
+            <li>EC/INTENZ: <code>[intenz:&hellip;]</code></li>
+            <li>Genome Properties: <code>[genprop:&hellip;]</code></li>
+            <li>InterPro: <code>[interpro:&hellip;]</code></li>
+            <li>PDBe: <code>[pdbe:&hellip;]</code></li>
+            <li>Pfam: <code>[pfam:&hellip;]</code></li>
+            <li>PIRSF: <code>[pirsf:&hellip;]</code></li>
+            <li>PROSITE: <code>[prosite:&hellip;]</code></li>
+            <li>SUPERFAMILY: <code>[superfamily:&hellip;]</code></li>
+            <li>Swiss-Prot: <code>[swissprot:&hellip;]</code></li>
+            <li>TIGRFAMs: <code>[tigrfams:&hellip;]</code></li>
+        </ul>
+        <div class="ui header">Literature references</div>
+        <p>
+            Add a literature reference (citation) by writing <code>cite:</code>, followed by one or several PubMed IDs, in square brackets, e.g. <code>[cite:11298287]</code>. When adding several references, PubMed IDs should be separated by commas. When saving the annotation, PubMed IDs will be replaced by Publication IDs.
+        </p>
+    </div>
+</div>
+
 <script src="{{ url_for('static', filename='vendor/jquery.min.js') }}"></script>
 <script src="{{ url_for('static', filename='vendor/semantic.js') }}"></script>
 <script src="{{ url_for('static', filename='js/entry/entry.js') }}" type="module"></script>
