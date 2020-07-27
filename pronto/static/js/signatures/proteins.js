@@ -6,7 +6,7 @@ import * as pagination from "../ui/pagination.js";
 import {genProtHeader} from "../ui/proteins.js";
 
 
-const svgWidth = 700;
+const svgWidth = 600;
 const svgPaddingLeft = 5;
 const svgPaddingRight = 30;
 const width = svgWidth - svgPaddingLeft - svgPaddingRight;
