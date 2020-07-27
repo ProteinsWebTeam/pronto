@@ -47,7 +47,7 @@ function getTaxonomyCounts(accessions, rank) {
 
                     for (const acc of accessions) {
                         if (node.signatures.hasOwnProperty(acc))
-                            html += `<td><a target="_blank" href="/signatures/${acc}/proteins/?taxon=${node.id}">${node.signatures[acc].toLocaleString()}</a></td>`;
+                            html += `<td><a target="_blank" href="/signatures/${acc}/proteins/?taxon=${node.id}&filtermatches">${node.signatures[acc].toLocaleString()}</a></td>`;
                         else
                             html += '<td></td>';
                     }

@@ -34,7 +34,7 @@ function getComments(accessions) {
                 html += `<tr><td>${comment.value}</td>`;
                 for (const acc of accessions) {
                     if (comment.signatures.hasOwnProperty(acc))
-                        html += `<td><a target="_blank" href="/signatures/${acc}/proteins/?comment=${comment.id}">${comment.signatures[acc].toLocaleString()}</a></td>`;
+                        html += `<td><a target="_blank" href="/signatures/${acc}/proteins/?comment=${comment.id}&filtermatches">${comment.signatures[acc].toLocaleString()}</a></td>`;
                     else
                         html += `<td></td>`;
                 }

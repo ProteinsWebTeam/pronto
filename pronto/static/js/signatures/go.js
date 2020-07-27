@@ -60,7 +60,7 @@ function getGoTerms(accessions) {
                     if (term.signatures.hasOwnProperty(acc)) {
                         const signature = term.signatures[acc];
                         html += `<td class="collapsing center aligned">
-                                    <a target="_blank" href="/signatures/${acc}/proteins/?go=${term.id}">${signature['proteins'].toLocaleString()}</a>
+                                    <a target="_blank" href="/signatures/${acc}/proteins/?go=${term.id}&filtermatches">${signature['proteins'].toLocaleString()}</a>
                                  </td>`;
                         if (signature.references > 0) {
                             html += `<td class="collapsing center aligned">

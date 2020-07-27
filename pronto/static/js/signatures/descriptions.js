@@ -19,7 +19,7 @@ function fetchAPI() {
 }
 
 function getDescriptions(accessions, reviewOnly) {
-    const reviewParam = reviewOnly ? '&reviewed' : '';
+    const params = reviewOnly ? '?reviewed&filtermatches' : '?filtermatches';
 
     dimmer.on();
     fetchAPI().then(
@@ -27,7 +27,7 @@ function getDescriptions(accessions, reviewOnly) {
             let html = `<thead>
                         <tr>
                         <th>${data.results.length.toLocaleString()} descriptions</th>
-                        ${accessions.map(acc => `<th><a target="_blank" href="/signatures/${acc}/proteins/?${reviewParam}">${acc}</a></th>`).join('')}
+                        ${accessions.map(acc => `<th><a target="_blank" href="/signatures/${acc}/proteins/${params}">${acc}</a></th>`).join('')}
                         </tr>
                         </thead>`;
 
@@ -36,7 +36,7 @@ function getDescriptions(accessions, reviewOnly) {
                 html += `<tr><td>${name.value}</td>`;
                 for (const acc of accessions) {
                     if (name.signatures.hasOwnProperty(acc))
-                        html += `<td><a target="_blank" href="/signatures/${acc}/proteins/?name=${name.id}${reviewParam}">${name.signatures[acc].toLocaleString()}</a></td>`;
+                        html += `<td><a target="_blank" href="/signatures/${acc}/proteins/${params}&name=${name.id}">${name.signatures[acc].toLocaleString()}</a></td>`;
                     else
                         html += `<td></td>`;
                 }
