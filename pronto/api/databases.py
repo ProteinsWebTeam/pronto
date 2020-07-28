@@ -41,7 +41,7 @@ def get_member_databases():
         """
         SELECT id, name, name_long, version, updated
         FROM interpro.database
-        WHERE name NOT IN ('interpro', 'mobidblt', 'uniprot')
+        WHERE name NOT IN ('interpro', 'uniprot')
         """
     )
     databases = {}

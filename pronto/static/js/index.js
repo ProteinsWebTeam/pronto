@@ -8,6 +8,16 @@ function getDatabases() {
         .then(databases => {
             let html = '';
             for (const database of databases) {
+                let total;
+                let unint;
+                if (database.id === 'mobidblt') {
+                    total = database.signatures.total.toLocaleString();
+                    unint = (database.signatures.total-database.signatures.integrated).toLocaleString();
+                } else {
+                    total = `<a href="/database/${database.id}/">${database.signatures.total.toLocaleString()}</a>`;
+                    unint = `<a href="/database/${database.id}/unintegrated/?target=integrated">${(database.signatures.total-database.signatures.integrated).toLocaleString()}</a>`;
+                }
+
                 html += `
                     <tr>
                     <td style="border-left: 5px solid ${database.color};" class="collapsing">
@@ -16,13 +26,9 @@ function getDatabases() {
                     <td>
                         <div class="ui basic label">${database.version}<span class="detail">${database.date}</span></div>
                     </td>
-                    <td>
-                        <a href="/database/${database.id}/">${database.signatures.total.toLocaleString()}</a>
-                    </td>
+                    <td>${total}</td>
                     <td>${database.signatures.integrated}</td>
-                    <td>
-                        <a href="/database/${database.id}/unintegrated/?target=integrated">${(database.signatures.total-database.signatures.integrated).toLocaleString()}</a>
-                    </td>
+                    <td>${unint}</td>
                     </tr>
                 `;
             }
