@@ -108,7 +108,7 @@ async function resolveError(runID, errID) {
 
 async function getSanityCheck() {
     const response = await fetch('/api/checks/run/last/');
-    if (!response.ok) {
+    if (response.status !== 200 && response.status !== 404) {
         const tab = document.querySelector('.segment[data-tab="checks"]');
         tab.innerHTML = `
         <div class="ui error message">
