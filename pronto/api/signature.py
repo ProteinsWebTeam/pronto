@@ -464,9 +464,16 @@ class Sorter(object):
 
         rel = obj["relationship"]
         if rel in ("similar", "related"):
-            return i, 0, -obj["similarity"]
+            j = 0
+            key = "similarity"
         elif rel == "parent":
-            return i, 1, -obj["containment"]
+            j = 1
+            key = "containment"
         elif rel == "child":
-            return i, 2, -obj["containment"]
-        return i, 3, -obj["similarity"]
+            j = 2
+            key = "containment"
+        else:
+            j = 3
+            key = "similarity"
+
+        return i, j, -obj["residues"][key], -obj[key]
