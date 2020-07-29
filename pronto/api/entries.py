@@ -11,12 +11,21 @@ bp = Blueprint("api.entries", __name__, url_prefix="/api/entries")
 def _get_unfreeze_date(cur, days=7):
     cur.execute(
         f"""
-        SELECT FILE_DATE - INTERVAL '{days}' DAY
-        FROM INTERPRO.DB_VERSION
-        WHERE DBCODE = 'I'
+        SELECT FILE_DATE
+        FROM (
+          SELECT FILE_DATE
+          FROM (
+            SELECT FILE_DATE - INTERVAL '{days}' DAY AS FILE_DATE
+            FROM DB_VERSION_AUDIT
+            WHERE DBCODE = 'I'
+            ORDER BY FILE_DATE DESC
+          )
+          WHERE ROWNUM <= 2
+        )
+        WHERE FILE_DATE < SYSDATE
         """
     )
-    date, = cur.fetchone()
+    date, = cur.fetchall()[0]
     return date
 
 
