@@ -19,9 +19,8 @@ function getSignature() {
     });
 }
 
-
 function getPredictions(accession) {
-    fetch(`/api/signature/${accession}/predictions/`)
+    fetch(`/api/signature/${accession}/predictions/${location.search}`)
         .then(response => response.json())
         .then(results => {
             dimmer.off();
@@ -33,7 +32,7 @@ function getPredictions(accession) {
             for (const signature of results) {
                 html += `
                     <tr>
-                        <td class="capitalize">${signature.relationship || 'None'}</td>
+                        <td class="capitalize">${signature.relationship || ''}</td>
                         <td class="collapsing center aligned">${renderConfidence(signature)}</td>
                         <td>
                             <span class="ui empty circular label" 
@@ -94,6 +93,21 @@ function getPredictions(accession) {
 document.addEventListener('DOMContentLoaded', () => {
     const accession = location.pathname.match(/\/signature\/(.+)\//)[1];
     updateHeader(accession);
+
+    const input = document.querySelector('input[name="all"]');
+    input.checked = (new URLSearchParams(location.search)).has('all');
+    input.addEventListener('change', e => {
+        const url = new URL(location.href);
+        if (e.currentTarget.checked)
+            url.searchParams.set('all', '');
+        else
+            url.searchParams.delete('all');
+
+        history.replaceState(null, document.title, url.toString());
+        dimmer.on();
+        getPredictions(accession);
+    });
+
     dimmer.on();
     getSignature().then(
         (result,) => {

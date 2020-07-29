@@ -20,7 +20,7 @@
 
         <div class="ui comments">
             <h3 class="ui dividing header">
-                <i class="comments icon"></i>Comments
+                <i class="comments fitted icon"></i>Comments
             </h3>
 
             <div class="ui grid">
@@ -69,6 +69,14 @@
             <p>To check or uncheck an entry, please visit the entry page.</p>
         </div>
 
+        <div class="ui checkbox">
+            <input type="checkbox" name="all">
+            <label>
+                Display partial overlaps
+                <i class="help circle icon" data-content="By default, a pair of signatures is displayed only if at least 50% of the proteins matched by one signature are also matched by the other" data-position="right center" data-variation="small"></i>
+            </label>
+        </div>
+
         <table id="predictions" class="ui very compact celled structured small table">
             <thead>
             <tr>
@@ -81,16 +89,16 @@
                 <th colspan="3">Accession</th>
                 <th class="nowrap right aligned">
                     Proteins&nbsp;
-                    <i class="help circle icon" data-content="Number of matched proteins" data-position="top center" data-variation="small"></i>
+                    <i class="help circle fitted icon" data-content="Number of matched proteins" data-position="top center" data-variation="small"></i>
                 </th>
 
                 <th class="nowrap right aligned">
                     Proteins&nbsp;
-                    <i class="help circle icon" data-content="Number of proteins mached by both signatures" data-position="top center" data-variation="small"></i>
+                    <i class="help circle fitted icon" data-content="Number of proteins mached by both signatures" data-position="top center" data-variation="small"></i>
                 </th>
                 <th class="nowrap right aligned">
                     Overlaps&nbsp;
-                    <i class="help circle icon" data-content="Number of proteins where signatures significantly overlap" data-position="top center" data-variation="small"></i>
+                    <i class="help circle fitted icon" data-content="Number of proteins where signatures significantly overlap" data-position="top center" data-variation="small"></i>
                 </th>
 
                 <th>Entry</th>
@@ -101,8 +109,9 @@
             </tbody>
             <tfoot>
             <tr>
-                <th colspan="10">
-                    <div class="ui tiny list">
+                <th colspan="3" class="top aligned">
+                    Relationship
+                    <div class="ui small list">
                         <div class="item">
                             <div class="content">
                                 <div class="header">Similar</div>
@@ -135,6 +144,42 @@
                         </div>
                     </div>
                 </th>
+                <th colspan="3" class="top aligned">
+                    Score
+                    <div class="ui small list">
+                        <div class="item">
+                            <div class="content">
+                                <div class="header">
+                                    <i class="star fitted icon"></i><i class="star outline fitted icon"></i><i class="star outline fitted icon"></i>
+                                </div>
+                                <div class="description">
+                                    Relationship predicted using protein overlaps
+                                </div>
+                            </div>
+                        </div>
+                        <div class="item">
+                            <div class="content">
+                                <div class="header">
+                                    <i class="star fitted icon"></i><i class="star fitted icon"></i><i class="star outline fitted icon"></i>
+                                </div>
+                                <div class="description">
+                                    Relationship predicted using protein and residue overlaps
+                                </div>
+                            </div>
+                        </div>
+                        <div class="item">
+                            <div class="content">
+                                <div class="header">
+                                    <i class="star fitted icon"></i><i class="star fitted icon"></i><i class="star fitted icon"></i>
+                                </div>
+                                <div class="description">
+                                    Relationship predicted using protein and residue overlaps, with the residue score (similarity or containment) being greater or equal to 0.9
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </th>
+                <th colspan="4"></th>
             </tr>
             </tfoot>
         </table>

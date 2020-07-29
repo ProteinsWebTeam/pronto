@@ -269,6 +269,8 @@ def get_term_citations(accession, term_id):
 
 @bp.route("/<accession>/predictions/")
 def get_signature_predictions(accession):
+    all_collocations = "all" in request.args
+
     con = utils.connect_oracle()
     cur = con.cursor()
     cur.execute(
@@ -326,25 +328,49 @@ def get_signature_predictions(accession):
     )
     q_proteins, q_residues = cur.fetchone()
 
-    cur.execute(
-        """
-        SELECT
-          p.signature_acc_2,
-          s.num_complete_sequences,
-          s.num_residues,
-          d.name,
-          d.name_long,
-          p.collocations,
-          p.protein_overlaps,
-          p.residue_overlaps
-        FROM interpro.prediction p
-        INNER JOIN interpro.signature s
-          ON p.signature_acc_2 = s.accession
-        INNER JOIN interpro.database d
-          ON s.database_id = d.id
-        WHERE p.signature_acc_1 = %s
-        """, (accession,)
-    )
+    if all_collocations:
+        cur.execute(
+            """
+            SELECT
+              c.signature_acc_2,
+              s.num_complete_sequences,
+              s.num_residues,
+              d.name,
+              d.name_long,
+              c.collocations,
+              c.overlaps,
+              COALESCE(p.residue_overlaps, 0)
+            FROM interpro.comparison c
+            INNER JOIN interpro.signature s
+              ON c.signature_acc_2 = s.accession
+            INNER JOIN interpro.database d
+              ON s.database_id = d.id
+            LEFT OUTER JOIN interpro.prediction p
+              ON (c.signature_acc_1 = p.signature_acc_1 
+                  AND c.signature_acc_2 = p.signature_acc_2) 
+            WHERE c.signature_acc_1 = %s
+            """, (accession,)
+        )
+    else:
+        cur.execute(
+            """
+            SELECT
+              p.signature_acc_2,
+              s.num_complete_sequences,
+              s.num_residues,
+              d.name,
+              d.name_long,
+              p.collocations,
+              p.protein_overlaps,
+              p.residue_overlaps
+            FROM interpro.prediction p
+            INNER JOIN interpro.signature s
+              ON p.signature_acc_2 = s.accession
+            INNER JOIN interpro.database d
+              ON s.database_id = d.id
+            WHERE p.signature_acc_1 = %s
+            """, (accession,)
+        )
 
     targets = {}
     for row in cur:
@@ -438,9 +464,9 @@ class Sorter(object):
 
         rel = obj["relationship"]
         if rel in ("similar", "related"):
-            return i, 0, -obj["residues"]["similarity"]
+            return i, 0, -obj["similarity"]
         elif rel == "parent":
-            return i, 1, -obj["residues"]["containment"]
+            return i, 1, -obj["containment"]
         elif rel == "child":
-            return i, 2, -obj["residues"]["containment"]
-        return i, 3, -obj["residues"]["similarity"]
+            return i, 2, -obj["containment"]
+        return i, 3, -obj["similarity"]
