@@ -26,7 +26,6 @@ export async function renderTaskList() {
     return Promise.resolve(tasks);
 }
 
-
 export function updateHeader(signatureAcc) {
     document.querySelector('header form').addEventListener('submit', e => {
         if (!e.currentTarget.querySelector('input').value.trim().length)
@@ -106,9 +105,9 @@ export function updateHeader(signatureAcc) {
                                 // Use signature's info
                                 const values = $(infoForm).form('get values');
                                 if (values.name.length === 0)
-                                    $(infoForm).form('set value', 'name', signature.name);
+                                    $(infoForm).form('set value', 'name', signature.description);
                                 if (values.short_name.length === 0)
-                                    $(infoForm).form('set value', 'short_name', signature.description);
+                                    $(infoForm).form('set value', 'short_name', signature.name);
                                 if (values.type.length === 0) {
                                     /*
                                         API returns signature full type (e.g. Domain, Family, etc.)
@@ -210,7 +209,11 @@ export function updateHeader(signatureAcc) {
                             if (signatureAcc !== undefined && signatureAcc !== null) {
                                 $(signaturesForm)
                                     .form('set value', 'accession', signatureAcc)
-                                    .form('validate form');
+                                    .form('validate form');  // to make API call
+                            } else {
+                                $(infoForm).form('clear');
+                                signatures.clear();
+                                modal.querySelector('tbody').innerHTML = '<tr><td colspan="8" class="center aligned">No signatures</td></tr>';
                             }
                         },
                         onApprove: function ($element) {
