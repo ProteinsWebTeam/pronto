@@ -345,7 +345,16 @@ def create_entry():
         }), 400
 
     entry_signatures = set(request.json.get("signatures", []))
-    if entry_type == 'U':
+    if not signatures:
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Bad request",
+                "message": "Creating an InterPro entry requires at least "
+                           "one signature."
+            }
+        }), 400
+    elif entry_type == 'U':
         # Unknown type is not allowed
         return jsonify({
             "status": False,
@@ -503,7 +512,7 @@ def create_entry():
             }
         }), 400
 
-    accession = cur.var(cx_Oracle.STRING)
+    entry_var = cur.var(cx_Oracle.STRING)
     try:
         cur.execute(
             """
@@ -511,7 +520,15 @@ def create_entry():
             VALUES (INTERPRO.NEW_ENTRY_AC(), :1, :2, :3)
             RETURNING ENTRY_AC INTO :4
             """,
-            (entry_type, entry_name, entry_short_name, accession)
+            (entry_type, entry_name, entry_short_name, entry_var)
+        )
+
+        entry_acc = entry_var.getvalue()[0]
+        cur.executemany(
+            """
+            INSERT INTO INTERPRO.ENTRY2METHOD (ENTRY_AC, METHOD_AC, EVIDENCE) 
+            VALUES (:1, :2, 'MAN')
+            """, [(entry_acc, s_acc) for s_acc in entry_signatures]
         )
     except cx_Oracle.DatabaseError as exc:
         return jsonify({
@@ -525,8 +542,8 @@ def create_entry():
         con.commit()
         return jsonify({
             "status": True,
-            "accession": accession.getvalue()[0]}
-        )
+            "accession": entry_acc
+        })
     finally:
         cur.close()
         con.close()

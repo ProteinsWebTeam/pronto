@@ -136,7 +136,7 @@ export function updateHeader(signatureAcc) {
                                     html += `
                                         <tr>
                                         <td class="collapsing"><i class="fitted database icon" style="color: ${s.database.color};"></i></td>
-                                        <td><a target="_blank" href="${s.database.link}">${s.database.name}<i class="external icon"></i></a></td>
+                                        <td class="nowrap"><a target="_blank" href="${s.database.link}">${s.database.name}<i class="external icon"></i></a></td>
                                         <td><a href="/signature/${s.accession}">${s.accession}</a></td>
                                         <td>${s.name !== null ? s.name : ''}</td>
                                         <td>${s.description !== null ? s.description : ''}</td>
