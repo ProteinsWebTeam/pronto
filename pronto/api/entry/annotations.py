@@ -384,7 +384,7 @@ def update_references(cur: Cursor, accession: str):
     if now_references:
         # References to be inserted into ENTRY2PUB
         if pre_references:
-            start = max(pre_references.values())
+            start = max(pre_references.values()) + 1
         else:
             start = 1
 

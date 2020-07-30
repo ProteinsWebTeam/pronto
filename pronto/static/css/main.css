@@ -75,3 +75,8 @@ code.negative {
     border-color: #db2828;
     color: #db2828;
 }
+
+/* Messages in modals (e.g. #list-annotations) */
+.ui.modal > .content > .ui.message {
+    margin: 0 0 1rem;
+}

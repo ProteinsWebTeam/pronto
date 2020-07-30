@@ -1,7 +1,8 @@
 import * as references from "./references.js"
 import * as dimmer from "../ui/dimmer.js";
 import * as modals from "../ui/modals.js"
-import {setClass} from "../ui/utils.js";
+import {setClass, toggleErrorMessage} from "../ui/utils.js";
+import {error} from "../ui/modals.js";
 
 export function create(accession, text) {
     const modal = document.getElementById('new-annotation');
@@ -99,7 +100,7 @@ export function getSignaturesAnnotations(accession) {
 
             const modal = document.getElementById('list-annotations');
             modal.querySelector('.header').innerHTML = 'Signatures annotations';
-            modal.querySelector('.content').innerHTML = html;
+            modal.querySelector('.content > .content').innerHTML = html;
 
             for (const btn of modal.querySelectorAll('.content button[data-id]')) {
                 btn.addEventListener('click', (e,) => {
@@ -112,6 +113,7 @@ export function getSignaturesAnnotations(accession) {
                 });
             }
 
+            toggleErrorMessage(modal.querySelector('.ui.message'), null);
             $(modal).modal('show');
         });
 }
@@ -317,12 +319,13 @@ export function search(accession, query) {
 
             const modal = document.getElementById('list-annotations');
             modal.querySelector('.header').innerHTML = `${result.hits.length.toLocaleString()} results`;
-            modal.querySelector('.content').innerHTML = html;
+            modal.querySelector('.content > .content').innerHTML = html;
 
             for (const elem of modal.querySelectorAll('.content .ui.bottom.menu a[data-action]:not(.disabled)')) {
                 elem.addEventListener('click', (e,) => {
-                    const action = e.currentTarget.dataset.action;
-                    const menu = e.currentTarget.closest('[data-annid]');
+                    const actionButton = e.currentTarget;
+                    const action = actionButton.dataset.action;
+                    const menu = actionButton.closest('[data-annid]');
                     const annID = menu.dataset.annid;
                     if (!annotations.has(annID))
                         return;
@@ -332,7 +335,7 @@ export function search(accession, query) {
                     else if (action === 'copy')
                         create(accession, annotations.get(annID));
                     else if (action === 'link') {
-                        setClass(e.currentTarget, 'disabled', true);
+                        setClass(actionButton, 'disabled', true);
                         link(accession, annID)
                             .then((result,) => {
                                 if (result.status) {
@@ -346,8 +349,8 @@ export function search(accession, query) {
                                     setClass(elem, 'disabled', true);
                                     refresh(accession).then(() => {$('.ui.sticky').sticky();});
                                 } else {
-                                    setClass(e.currentTarget, 'disabled', false);
-                                    modals.error(result.error.title, result.error.message);
+                                    setClass(actionButton, 'disabled', false);
+                                    toggleErrorMessage(modal.querySelector('.ui.message'), result.error);
                                 }
 
                             });
@@ -356,13 +359,11 @@ export function search(accession, query) {
                             if (status)
                                 search(accession, query);
                             else
-                                setClass(e.currentTarget, 'disabled', false);
+                                setClass(actionButton, 'disabled', false);
                         });
                     }
                 });
             }
-
-
 
             // Delete annotation
             for (const elem of modal.querySelectorAll('.content .ui.bottom.menu .red')) {
@@ -376,6 +377,7 @@ export function search(accession, query) {
             }
 
             dimmer.off();
+            toggleErrorMessage(modal.querySelector('.ui.message'), null);
             $(modal).modal('show');
         });
 }
