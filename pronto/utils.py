@@ -209,11 +209,11 @@ class Hamap:
 
 
 class MobiDbLite:
-    home = 'http://mobidb.bio.unipd.it'
+    home = '//mobidb.bio.unipd.it'
     color = '#cca14a'
 
     def gen_link(self, acc: str):
-        return f"{self.home}/entries/{acc}"
+        return f"{self.home}/{acc}"
 
 
 class Panther:

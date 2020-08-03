@@ -73,12 +73,17 @@ def get_protein(accession):
                 s = matches[row[0]]
             except KeyError:
                 db = utils.get_database_obj(row[2])
+                if isinstance(db, utils.MobiDbLite):
+                    link = db.gen_link(accession)
+                else:
+                    link = db.gen_link(row[0])
+
                 s = matches[row[0]] = {
                     "accession": row[0],
                     "name": row[1],
                     "database": row[3],
                     "color": db.color,
-                    "link": db.gen_link(row[0]),
+                    "link": link,
                     "matches": [],
                     "entry": None
                 }
