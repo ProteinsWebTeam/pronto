@@ -2,12 +2,13 @@
 
 import re
 from datetime import datetime
-from typing import Optional, Sequence, Union
+from typing import Optional, Sequence, Set, Union
 
 from cx_Oracle import Cursor, DatabaseError, STRING
 from flask import Blueprint, jsonify, request
 
 from pronto import auth, utils
+from pronto.api.checks.utils import load_global_exceptions
 
 bp = Blueprint("api.annotation", __name__, url_prefix="/api/annotation")
 
@@ -125,6 +126,20 @@ class Annotation(object):
                 return False
 
         return True
+
+    def validate_encoding(self, exceptions: Set[str]) -> bool:
+        errors = set()
+        for char in self.text:
+            try:
+                char.encode("ascii")
+            except UnicodeEncodeError:
+                if str(ord(char)) not in exceptions:
+                    errors.add(char)
+
+        if errors:
+            self.error = f"Invalid character(s): {', '.join(errors)}"
+
+        return len(errors) == 0
 
     def update_references(self, cur: Cursor) -> bool:
         matches = []
@@ -271,6 +286,18 @@ def create_annotation():
 
     con = utils.connect_oracle_auth(user)
     cur = con.cursor()
+
+    if not ann.validate_encoding(load_global_exceptions(cur, "encoding")):
+        cur.close()
+        con.close()
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Text error",
+                "message": ann.error
+            }
+        }), 400
+
     if not ann.update_references(cur):
         cur.close()
         con.close()
@@ -505,6 +532,17 @@ def update_annotation(ann_id):
 
     con = utils.connect_oracle_auth(user)
     cur = con.cursor()
+    if not ann.validate_encoding(load_global_exceptions(cur, "encoding")):
+        cur.close()
+        con.close()
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Text error",
+                "message": ann.error
+            }
+        }), 400
+
     if not ann.update_references(cur):
         cur.close()
         con.close()
