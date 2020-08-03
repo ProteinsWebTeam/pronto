@@ -56,6 +56,17 @@ def signature(accession):
     return render_template("signature.html")
 
 
+@app.route("/signatures/compare/")
+def compare_signatures():
+    return render_template("signatures/boilerplate.html", page="compare")
+
+
+@app.route("/signatures/recommendations/")
+def closest_signatures():
+    return render_template("signatures/boilerplate.html",
+                           page="recommendations")
+
+
 @app.route("/signatures/<path:accessions>/comments/")
 def comments(accessions):
     return render_template("signatures/comments.html")
