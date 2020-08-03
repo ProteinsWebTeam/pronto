@@ -28,7 +28,7 @@ function getDatabases() {
                         <div class="ui basic label">${database.version}<span class="detail">${database.date}</span></div>
                     </td>
                     <td>${total}</td>
-                    <td>${database.signatures.integrated}</td>
+                    <td>${database.signatures.integrated.toLocaleString()}</td>
                     <td>${unint}</td>
                     </tr>
                 `;
