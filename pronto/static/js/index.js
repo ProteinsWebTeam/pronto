@@ -1,6 +1,7 @@
 import * as checkbox from './ui/checkbox.js'
 import {fetchTasks, renderTaskList, updateHeader} from "./ui/header.js"
 import {setClass, escape, unescape} from "./ui/utils.js";
+import {renderConfidence} from "./ui/signatures.js";
 
 function getDatabases() {
     return fetch('/api/databases/')
@@ -38,31 +39,43 @@ function getDatabases() {
         });
 }
 
+function renderRecentEntries(data, hideChecked) {
+    let html = '';
+    for (const entry of data.entries) {
+        if (entry.checked && hideChecked)
+            continue;
+
+        html += `
+            <tr>
+            <td>
+                <span class="ui circular mini label type ${entry.type}">${entry.type}</span>
+                <a href="/entry/${entry.accession}/">${entry.accession}</a>
+            </td>
+            <td>${entry.short_name}</td>
+            <td>${entry.signatures}</td>
+            <td>${checkbox.createDisabled(entry.checked)}</td>
+            <td>${entry.date}</td>
+            <td>${entry.user}</td>
+            </tr>
+        `;
+    }
+
+    if (html.length === 0)
+        html = '<tr><td colspan="6" class="center aligned">No entries found</td></tr>';
+
+    const tab = document.querySelector('.segment[data-tab="news"]');
+    tab.querySelector('tbody').innerHTML = html;
+    tab.querySelector(':scope > p').innerHTML = `<strong>${data.entries.length}</strong> ${data.entries.length > 1 ? 'entries' : 'entry'} created since <strong>${data.date}</strong>.`;
+    document.querySelector('.item[data-tab="news"] .label').innerHTML = data.entries.length.toString();
+}
+
 function getRecentEntries() {
     return fetch('/api/entries/news/')
         .then(response => response.json())
         .then(object => {
-            let html = '';
-            for (const entry of object.entries) {
-                html += `
-                    <tr>
-                    <td>
-                        <span class="ui circular mini label type ${entry.type}">${entry.type}</span>
-                        <a href="/entry/${entry.accession}/">${entry.accession}</a>
-                    </td>
-                    <td>${entry.short_name}</td>
-                    <td>${entry.signatures}</td>
-                    <td>${checkbox.createDisabled(entry.checked)}</td>
-                    <td>${entry.date}</td>
-                    <td>${entry.user}</td>
-                    </tr>
-                `;
-            }
-
-            const tab = document.querySelector('.segment[data-tab="news"]');
-            tab.querySelector('tbody').innerHTML = html;
-            tab.querySelector(':scope > p').innerHTML = `<strong>${object.entries.length}</strong> ${object.entries.length > 1 ? 'entries' : 'entry'} created since <strong>${object.date}</strong>.`;
-            document.querySelector('.item[data-tab="news"] .label').innerHTML = object.entries.length.toString();
+            sessionStorage.setItem('newEntries', JSON.stringify(object));
+            const hideChecked = document.querySelector('[data-tab="news"] input[name="unchecked"]').checked;
+            renderRecentEntries(object, hideChecked);
         });
 }
 
@@ -98,13 +111,11 @@ function getUncheckedEntries() {
         });
 }
 
-
 async function resolveError(runID, errID) {
     const response = await fetch(`/api/checks/run/${runID}/${errID}/`, {method: 'POST'});
     const result = await response.json();
     return Promise.resolve({status: response.status, result: result});
 }
-
 
 async function getSanityCheck() {
     const response = await fetch('/api/checks/run/last/');
@@ -315,6 +326,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 .closest('.message')
                 .transition('fade');
         });
+
+    // Event on toggle
+    document.querySelector('[data-tab="news"] input[name="unchecked"]').addEventListener('change', e => {
+        const data = sessionStorage.getItem('newEntries');
+        if (data === null)
+            return;
+
+        const hideChecked = e.currentTarget.checked;
+        renderRecentEntries(JSON.parse(data), hideChecked);
+    });
 
     // Run sanity checks
     document.querySelector('.tab[data-tab="checks"] .primary.button').addEventListener('click', e => runSanityChecks());
