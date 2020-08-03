@@ -39,8 +39,8 @@ function getMatrices(accessions) {
                         val = comparisons.get(key2).get(key1);
 
                     if (val === null) {
-                        tbody1 += '<td></td>';
-                        tbody2 += '<td></td>';
+                        tbody1 += '<td class="right aligned">0</td>';
+                        tbody2 += '<td class="right aligned">0</td>';
                     } else {
                         tbody1 += `<td class="right aligned">
                                    <a data-key1="${key1}" data-key2="${key2}">${val.overlaps.toLocaleString()}</a>
