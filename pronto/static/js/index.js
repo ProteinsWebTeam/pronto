@@ -167,12 +167,13 @@ async function getSanityCheck() {
     let numUnresolved = 0;
     for (const error of object.errors) {
         const acc = error.annotation !== null ? error.annotation : error.entry;
+        const errHTML = error.error !== null ? `<code>${escape(error.error)}</code>`: '';
         html += `
-                    <tr>
-                    <td class="left marked ${error.resolution.date === null ? 'red' : 'green'}"><a target="_blank" href="/search/?q=${acc}">${acc}</a></td>
-                    <td>${error.type}</td>
-                    <td><code>${escape(error.error)}</code>${showOccurrences(error.count)}</td>
-                `;
+            <tr>
+            <td class="left marked ${error.resolution.date === null ? 'red' : 'green'}"><a target="_blank" href="/search/?q=${acc}">${acc}</a></td>
+            <td>${error.type}</td>
+            <td>${errHTML}${showOccurrences(error.count)}</td>
+        `;
 
         if (error.resolution.user !== null)
             html += `<td class="light-text right aligned"><i class="check icon"></i>Resolved by ${error.resolution.user}</td>`;
@@ -282,7 +283,7 @@ function runSanityChecks() {
                                         message.className = 'ui success message';
                                         message.innerHTML = `
                                             <div class="header">Sanity checks complete!</div>
-                                            <p>Sanity checks completed successfully. Results will be displayed in three seconds.</p>
+                                            <p>Sanity checks completed successfully. Results will be displayed in a few seconds.</p>
                                         `;
                                         setTimeout(getSanityCheck, 3000);
                                     } else {
