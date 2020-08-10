@@ -42,8 +42,8 @@
     margin-top: 1rem;
 }
 
-.ui.form + .content {
-    margin-top: 1rem;
+#relationships .ui.form {
+    margin-bottom: 1rem;
 }
 
 .annotation .ui.top.attached.menu {
