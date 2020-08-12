@@ -15,7 +15,7 @@ Types of exceptions:
                 (i.e. the entry is allowed to fail the check)
   - g (global): the exception is for a string that could be found in names, 
                 annotations, etc.
-  - empty:      no exception allowed 
+  - None:       no exception allowed 
 """
 CHECKS = {
     "abbreviation": {
@@ -38,7 +38,7 @@ CHECKS = {
         "label": "Annotation too short",
         "description": "Entry annotations must have a minimal length.",
         "terms": False,
-        "exceptions": ''
+        "exceptions": None
     },
     "citation": {
         "name": "Citations",
@@ -52,7 +52,7 @@ CHECKS = {
         "label": "Double quotes in name",
         "description": "",
         "terms": False,
-        "exceptions": ''
+        "exceptions": None
     },
     "encoding": {
         "name": "Encoding",
@@ -73,21 +73,21 @@ CHECKS = {
         "label": "Banned word",
         "description": "",
         "terms": True,
-        "exceptions": 'p'
+        "exceptions": 't'
     },
     "integration": {
         "name": "Empty entries",
         "label": "Empty entry",
         "description": "",
         "terms": False,
-        "exceptions": ''
+        "exceptions": None
     },
     "link": {
         "name": "Broken links",
         "label": "Broken link",
         "description": "",
         "terms": False,
-        "exceptions": ''
+        "exceptions": None
     },
     "lower_case_name": {
         "name": "Invalid names",
@@ -108,7 +108,7 @@ CHECKS = {
         "label": "Same names",
         "description": "",
         "terms": False,
-        "exceptions": ''
+        "exceptions": None
     },
     "similar_name": {
         "name": "Similar names",
@@ -136,14 +136,14 @@ CHECKS = {
         "label": "Types conflict",
         "description": "",
         "terms": False,
-        "exceptions": ''
+        "exceptions": None
     },
     "unchecked_node": {
         "name": "Unchecked entries",
         "label": "Unchecked entry",
         "description": "",
         "terms": False,
-        "exceptions": ''
+        "exceptions": None
     },
     "underscore": {
         "name": "Underscores in names",

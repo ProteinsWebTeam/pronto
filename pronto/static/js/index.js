@@ -1,7 +1,7 @@
 import * as checkbox from './ui/checkbox.js'
 import {fetchTasks, renderTaskList, updateHeader} from "./ui/header.js"
-import {setClass, escape, unescape} from "./ui/utils.js";
-import {renderConfidence} from "./ui/signatures.js";
+import {setClass, escape, copy2clipboard} from "./ui/utils.js";
+import * as modal from "./ui/modals.js";
 
 function getDatabases() {
     return fetch('/api/databases/')
@@ -111,10 +111,13 @@ function getUncheckedEntries() {
         });
 }
 
-async function resolveError(runID, errID) {
-    const response = await fetch(`/api/checks/run/${runID}/${errID}/`, {method: 'POST'});
-    const result = await response.json();
-    return Promise.resolve({status: response.status, result: result});
+async function resolveError(runID, errID, addException) {
+    let url = `/api/checks/run/${runID}/${errID}/`;
+    if (addException)
+        url += '?exception';
+
+    const response = await fetch(url, {method: 'POST'});
+    return await response.json();
 }
 
 async function getSanityCheck() {
@@ -134,30 +137,11 @@ async function getSanityCheck() {
 
     const object = await response.json();
     const tab = document.querySelector('.segment[data-tab="checks"]');
-    if (object.id === undefined) {
+    if (response.status === 404) {
         tab.querySelector('tbody').innerHTML = '<tr><td colspan="4" class="center aligned">No sanity check report available</td></tr>';
         document.querySelector('.item[data-tab="checks"] .label').innerHTML = '0';
         return;
     }
-
-    const copy2clipboard = (elem) => {
-        const input = document.createElement('input');
-        input.value = unescape(elem.innerHTML);
-        document.body.appendChild(input);
-        try {
-            input.select();
-            document.execCommand('copy');
-            elem.className = 'positive';
-        } catch (err) {
-            console.error(err);
-            elem.className = 'negative';
-        } finally {
-            document.body.removeChild(input);
-            setTimeout(() => {
-                elem.className = '';
-            }, 300);
-        }
-    };
 
     const showOccurrences = (count) => {
         return count > 1 ? `&nbsp;&times;&nbsp;${count}` : '';
@@ -165,33 +149,35 @@ async function getSanityCheck() {
 
     let html = '';
     let numUnresolved = 0;
-    for (const error of object.errors) {
-        const acc = error.annotation !== null ? error.annotation : error.entry;
-        const errHTML = error.error !== null ? `<code>${escape(error.error)}</code>`: '';
-        html += `
+    if (object.errors.length > 0) {
+        for (const error of object.errors) {
+            const acc = error.annotation !== null ? error.annotation : error.entry;
+            const errHTML = error.error !== null ? `<code>${escape(error.error)}</code>`: '';
+            html += `
             <tr>
             <td class="left marked ${error.resolution.date === null ? 'red' : 'green'}"><a target="_blank" href="/search/?q=${acc}">${acc}</a></td>
             <td>${error.type}</td>
             <td>${errHTML}${showOccurrences(error.count)}</td>
         `;
 
-        if (error.resolution.user !== null)
-            html += `<td class="light-text right aligned"><i class="check icon"></i>Resolved by ${error.resolution.user}</td>`;
-        else {
-            numUnresolved += 1;
-            html += '<td class="right aligned">';
+            if (error.resolution.user !== null)
+                html += `<td class="light-text right aligned"><i class="check icon"></i>Resolved by ${error.resolution.user}</td>`;
+            else {
+                numUnresolved += 1;
+                html += '<td class="right aligned">';
 
-            if (error.exceptions)
-                html += `<button data-resolve="${error.id}" data-except class="ui very compact basic button">Add exception</button>`;
+                if (error.exceptions)
+                    html += `<button data-resolve="${error.id}" data-except class="ui very compact basic button">Add exception</button>`;
 
-            html += `<button data-resolve="${error.id}" class="ui very compact basic button">Resolve</button>`;
+                html += `<button data-resolve="${error.id}" class="ui very compact basic button">Resolve</button>`;
+            }
+
+            html += '</tr>';
         }
+    } else
+        html += '<tr><td colspan="4" class="center aligned">No error found. Good job! <i class="thumbs up outline fitted icon"></i></td></tr>';
 
-        html += '</tr>';
-    }
-
-    tab.querySelector('p').innerHTML = `Last sanity checks performed on <strong>${object.date}</strong>.`;
-
+    tab.querySelector('thead > tr:first-child > th').innerHTML = `Report from ${object.date}`;
     const tbody = tab.querySelector('tbody');
     tbody.innerHTML = html;
 
@@ -218,14 +204,12 @@ async function getSanityCheck() {
         elem.addEventListener('click', e => {
             const errID = e.currentTarget.dataset.resolve;
             const addException = e.currentTarget.dataset.except !== undefined;
-            if (addException)
-                return;
-            resolveError(runID, errID)
+            resolveError(runID, errID, addException)
                 .then(result => {
                     if (result.status) {
                         getSanityCheck();
-                        return;
-                    }
+                    } else
+                        modal.error(result.error.title, result.error.message);
                 });
         });
     }

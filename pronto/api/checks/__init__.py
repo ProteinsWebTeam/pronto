@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import uuid
+from typing import Tuple
 
 import cx_Oracle
 from flask import Blueprint, jsonify, request
@@ -50,7 +51,7 @@ def get_checks():
                 "label": check["label"],
                 "description": check["description"],
                 "add_terms": check["terms"],
-                "add_exceptions": check["exceptions"],
+                "exception_type": check["exceptions"],
                 "terms": {},
                 "exceptions": [],
             }
@@ -228,7 +229,7 @@ def get_run(run_id):
                 "annotation": ann_id,
                 "entry": entry_acc,
                 "type": check["label"],
-                "exceptions": len(check["exceptions"]) > 0,
+                "exceptions": check["exceptions"] is not None,
                 "error": error,
                 "count": cnt,
                 "resolution": {
@@ -246,6 +247,7 @@ def get_run(run_id):
 
 @bp.route("/run/<run_id>/<int:err_id>/", methods=["POST"])
 def resolve_error(run_id, err_id):
+    _add_exception = "exception" in request.args
     user = auth.get_user()
     if not user:
         return jsonify({
@@ -258,6 +260,66 @@ def resolve_error(run_id, err_id):
 
     con = utils.connect_oracle_auth(user)
     cur = con.cursor()
+    if _add_exception:
+        cur.execute(
+            """
+            SELECT CHECK_TYPE, TERM, ANN_ID, ENTRY_AC
+            FROM INTERPRO.SANITY_ERROR
+            WHERE RUN_ID = :1 AND ID = :2 AND TIMESTAMP IS NULL
+            """, (run_id, err_id)
+        )
+        row = cur.fetchone()
+        if not row:
+            cur.close()
+            con.close()
+            return jsonify({
+                "status": False,
+                "error": {
+                    "title": "Run or error not found",
+                    "message": f"Error #{err_id} in run #{run_id} "
+                               f"does not exist."
+                }
+            }), 404
+
+        ck_type, term, ann_id, entry_acc = row
+        if ck_type not in CHECKS:
+            cur.close()
+            con.close()
+            return jsonify({
+                "status": False,
+                "error": {
+                    "title": "Bad request",
+                    "message": f"'{ck_type}' does not support terms."
+                }
+            }), 400
+
+        exc_type = CHECKS[ck_type]["exceptions"]
+        if exc_type == 't':
+            args = (cur, ck_type, term, ann_id or entry_acc)
+        elif exc_type == 'p':
+            args = (cur, ck_type, entry_acc, term)
+        elif exc_type == 's':
+            args = (cur, ck_type, entry_acc, None)
+        elif exc_type == 'g':
+            args = (cur, ck_type, term, None)
+        else:
+            cur.close()
+            con.close()
+            return jsonify({
+                "status": False,
+                "error": {
+                    "title": "Forbidden",
+                    "message": f"Check '{ck_type}' does not "
+                               f"support exceptions."
+                }
+            }), 403
+
+        result, code = insert_exception(*args)
+        if not result["status"]:
+            cur.close()
+            con.close()
+            return jsonify(result), code
+
     cur.execute(
         """
         UPDATE INTERPRO.SANITY_ERROR
@@ -415,102 +477,6 @@ def delete_term():
         con.close()
 
 
-@bp.route("/term/exception/", methods=["PUT"])
-def add_term_exception():
-    user = auth.get_user()
-    if not user:
-        return jsonify({
-            "status": False,
-            "error": {
-                "title": "Access denied",
-                "message": "Please log in to perform this action."
-            }
-        }), 401
-
-    try:
-        ck_type = request.form["type"]
-        ck_term = request.form["term"]
-        ck_exc = request.form["exception"]
-    except KeyError:
-        return jsonify({
-            "status": False,
-            "error": {
-                "title": "Bad request",
-                "message": "Invalid or missing parameters."
-            }
-        }), 400
-
-    if ck_type not in CHECKS:
-        return jsonify({
-            "status": False,
-            "error": {
-                "title": "Bad request",
-                "message": f"'{ck_type}' is not a valid check type."
-            }
-        }), 400
-
-    ck_dict = CHECKS[ck_type]
-    if ck_dict["exceptions"] != 't':
-        return jsonify({
-            "status": False,
-            "error": {
-                "title": "Forbidden",
-                "message": f"Check '{ck_type}' does not support exceptions."
-            }
-        }), 403
-
-    con = utils.connect_oracle_auth(user)
-    cur = con.cursor()
-    if is_entry(cur, ck_exc):
-        params = (ck_type, ck_term, None, ck_exc)
-    elif is_annotation(cur, ck_exc):
-        params = (ck_type, ck_term, ck_exc, None)
-    else:
-        cur.close()
-        con.close()
-        return jsonify({
-            "status": False,
-            "error": {
-                "title": "Bad request",
-                "message": f"'{ck_exc}' is not an entry accession "
-                           f"or an annotation ID."
-            }
-        }), 400
-
-    try:
-        cur.execute(
-            """
-            INSERT INTO INTERPRO.SANITY_EXCEPTION 
-                (ID, CHECK_TYPE, TERM, ANN_ID, ENTRY_AC)
-            VALUES (
-                (SELECT NVL(MAX(ID),0)+1 FROM INTERPRO.SANITY_EXCEPTION),
-                :1, :2, :3, :4
-            )
-            """, params
-        )
-    except cx_Oracle.IntegrityError:
-        # Silencing error (term already in table)
-        return jsonify({
-            "status": True
-        }), 200
-    except cx_Oracle.DatabaseError as exc:
-        return jsonify({
-            "status": False,
-            "error": {
-                "title": "Database error",
-                "message": str(exc)
-            }
-        }), 500
-    else:
-        con.commit()
-        return jsonify({
-            "status": True
-        }), 200
-    finally:
-        cur.close()
-        con.close()
-
-
 @bp.route("/exception/", methods=["PUT"])
 def add_exception():
     user = auth.get_user()
@@ -526,7 +492,6 @@ def add_exception():
     try:
         ck_type = request.form["type"]
         value1 = request.form["value1"]
-        value2 = request.form["value2"]
     except KeyError:
         return jsonify({
             "status": False,
@@ -535,6 +500,8 @@ def add_exception():
                 "message": "Invalid or missing parameters."
             }
         }), 400
+
+    value2 = request.form.get("value2")
 
     if ck_type not in CHECKS:
         return jsonify({
@@ -545,105 +512,14 @@ def add_exception():
             }
         }), 400
 
-    exc_type = CHECKS[ck_type]["exceptions"]
-    if exc_type not in ('g', 'p', 's'):
-        return jsonify({
-            "status": False,
-            "error": {
-                "title": "Forbidden",
-                "message": f"Check '{ck_type}' does not support exceptions."
-            }
-        }), 403
-    elif not value1 or (exc_type != 'g' and not value2):
-        return jsonify({
-            "status": False,
-            "error": {
-                "title": "Bad request",
-                "message": f"Empty strings are not accepted."
-            }
-        }), 400
-
     con = utils.connect_oracle_auth(user)
     cur = con.cursor()
-    if exc_type == 'g':
-        params = (
-            ck_type,
-            ord(value1) if ck_type == "encoding" else value1,
-            None,
-            None
-        )
-    elif not is_entry(cur, value1):
-        cur.close()
-        con.close()
-        return jsonify({
-            "status": False,
-            "error": {
-                "title": "Bad request",
-                "message": f"'{value1}' is not an entry accession."
-            }
-        }), 400
-    elif exc_type == 's':
-        params = (ck_type, None, value1, None)
-    elif ck_type == "acc_in_name":
-        params = (ck_type, value2, value1, None)
-    elif is_entry(cur, value2):
-        if value1 == value2:
-            cur.close()
-            con.close()
-            return jsonify({
-                "status": False,
-                "error": {
-                    "title": "Bad request",
-                    "message": "Two different entry accessions are required."
-                }
-            }), 400
-        elif value1 > value2:
-            value1, value2 = value2, value1
-
-        params = (ck_type, None, value1, value2)
-    else:
-        cur.close()
-        con.close()
-        return jsonify({
-            "status": False,
-            "error": {
-                "title": "Bad request",
-                "message": f"'{value2}' is not an entry accession."
-            }
-        }), 400
-
-    try:
-        cur.execute(
-            """
-            INSERT INTO INTERPRO.SANITY_EXCEPTION 
-                (ID, CHECK_TYPE, TERM, ENTRY_AC, ENTRY_AC2)
-            VALUES (
-                (SELECT NVL(MAX(ID),0)+1 FROM INTERPRO.SANITY_EXCEPTION),
-                :1, :2, :3, :4
-            )
-            """, params
-        )
-    except cx_Oracle.IntegrityError:
-        # Silencing error (term already in table)
-        return jsonify({
-            "status": True
-        }), 200
-    except cx_Oracle.DatabaseError as exc:
-        return jsonify({
-            "status": False,
-            "error": {
-                "title": "Database error",
-                "message": str(exc)
-            }
-        }), 500
-    else:
+    result, code = insert_exception(cur, ck_type, value1, value2)
+    if result["status"]:
         con.commit()
-        return jsonify({
-            "status": True
-        }), 200
-    finally:
-        cur.close()
-        con.close()
+    cur.close()
+    con.close()
+    return jsonify(result), code
 
 
 @bp.route("/exception/", methods=["DELETE"])
@@ -718,3 +594,125 @@ def is_entry(cur: cx_Oracle.Cursor, s: str) -> bool:
     )
     cnt, = cur.fetchone()
     return cnt != 0
+
+
+def insert_exception(cur, ck_type, value1, value2) -> Tuple[dict, int]:
+    if ck_type not in CHECKS:
+        return {
+                   "status": False,
+                   "error": {
+                       "title": "Bad request",
+                       "message": f"'{ck_type}' is not a valid check type."
+                   }
+               }, 400
+
+    exc_type = CHECKS[ck_type]["exceptions"]
+    if not value1 or (exc_type not in ('g', 's') and not value2):
+        return {
+                   "status": False,
+                   "error": {
+                       "title": "Bad request",
+                       "message": f"Empty strings are not accepted."
+                   }
+               }, 400
+
+    if exc_type == 't':
+        if is_annotation(cur, value2):
+            params = (ck_type, value1, value2, None, None)
+        elif is_entry(cur, value2):
+            params = (ck_type, value1, None, value2, None)
+        else:
+            return {
+                       "status": False,
+                       "error": {
+                           "title": "Bad request",
+                           "message": f"'{value2}' is not an entry accession "
+                                      f"or an annotation ID."
+                       }
+                   }, 400
+    elif exc_type == 'g':
+        params = (
+            ck_type,
+            ord(value1) if ck_type == "encoding" else value1,
+            None,
+            None,
+            None
+        )
+    elif exc_type == 'p':
+        if not is_entry(cur, value1):
+            return {
+                       "status": False,
+                       "error": {
+                           "title": "Bad request",
+                           "message": f"'{value1}' is not an entry accession."
+                       }
+                   }, 400
+        elif value1 == value2:
+            return {
+                       "status": False,
+                       "error": {
+                           "title": "Bad request",
+                           "message": "Two different entry accessions "
+                                      "are required."
+                       }
+                   }, 400
+        elif ck_type == "acc_in_name":
+            # Second accession is signature, not entry: in TERM column
+            params = (ck_type, value2, None, value1, None)
+        elif not is_entry(cur, value2):
+            return {
+                       "status": False,
+                       "error": {
+                           "title": "Bad request",
+                           "message": f"'{value2}' is not an entry accession."
+                       }
+                   }, 400
+        elif value1 < value2:
+            params = (ck_type, None, None, value1, value2)
+
+        else:
+            params = (ck_type, None, None, value2, value1)
+    elif exc_type == 's':
+        if not is_entry(cur, value1):
+            return {
+                       "status": False,
+                       "error": {
+                           "title": "Bad request",
+                           "message": f"'{value1}' is not an entry accession."
+                       }
+                   }, 400
+        params = (ck_type, None, None, value1, None)
+    else:
+        return {
+                   "status": False,
+                   "error": {
+                       "title": "Forbidden",
+                       "message": f"Check '{ck_type}' does not "
+                                  f"support exceptions."
+                   }
+               }, 403
+
+    try:
+        cur.execute(
+            """
+            INSERT INTO INTERPRO.SANITY_EXCEPTION 
+                (ID, CHECK_TYPE, TERM, ANN_ID, ENTRY_AC, ENTRY_AC2)
+            VALUES (
+                (SELECT NVL(MAX(ID),0)+1 FROM INTERPRO.SANITY_EXCEPTION),
+                :1, :2, :3, :4, :5
+            )
+            """, params
+        )
+    except cx_Oracle.IntegrityError:
+        # Silencing error (term already in table)
+        return {"status": True}, 200
+    except cx_Oracle.DatabaseError as exc:
+        return {
+                   "status": False,
+                   "error": {
+                       "title": "Database error",
+                       "message": str(exc)
+                   }
+               }, 500
+    else:
+        return {"status": True}, 200

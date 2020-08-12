@@ -2,7 +2,7 @@ import {updateHeader} from "./ui/header.js";
 import * as modals from "./ui/modals.js"
 import {setClass, escape, unescape, copy2clipboard} from "./ui/utils.js";
 
-function createCard(type, term, addExceptions) {
+function createCard(type, term, exceptionType) {
     let card = `
         <div class="card" data-type="${type}">
         <div class="content">
@@ -17,8 +17,8 @@ function createCard(type, term, addExceptions) {
 
     card += '</div></div>';
 
-    if (addExceptions)
-        card += `<div class="ui bottom attached button"><i class="add icon"></i>Add exception</div>`;
+    if (exceptionType !== null)
+        card += `<div class="ui bottom attached button" data-new-exception="${exceptionType}"><i class="add icon"></i>Add exception</div>`;
 
     return card + '</div>'
 }
@@ -43,52 +43,6 @@ function addTerm(ckType) {
                 ]
 
                 fetch('/api/checks/term/', {
-                    method: 'PUT',
-                    headers: {
-                        'Content-type': 'application/x-www-form-urlencoded;charset=UTF-8'
-                    },
-                    body: body.join('&')
-                })
-                    .then(response => response.json())
-                    .then(result => {
-                        if (result.status) {
-                            $(modal).modal('hide');
-                            getChecks();
-                        } else {
-                            message.innerHTML = `<div class="header">${result.error.title}</div><p>${result.error.message}</p>`;
-                            setClass(field, 'error', true);
-                        }
-                    });
-
-                return false;
-            }
-        })
-        .modal('show');
-}
-
-function addTermException(ckType, ckTerm) {
-    const modal = document.getElementById('new-term-exception-modal');
-    const field = modal.querySelector('.field');
-    const input = field.querySelector('input');
-    const message = modal.querySelector('.message');
-
-    modal.querySelector('.header').innerHTML = `Add exception to &ldquo;${escape(ckTerm)}&rdquo;`
-
-    $(modal)
-        .modal({
-            onShow: () => {
-                setClass(field, 'error', false);
-                message.innerHTML = null;
-                input.value = null;
-            },
-            onApprove: () => {
-                const body = [
-                    `type=${encodeURIComponent(ckType)}`,
-                    `term=${encodeURIComponent(ckTerm)}`,
-                    `exception=${encodeURIComponent(input.value)}`
-                ]
-
-                fetch('/api/checks/term/exception/', {
                     method: 'PUT',
                     headers: {
                         'Content-type': 'application/x-www-form-urlencoded;charset=UTF-8'
@@ -160,36 +114,49 @@ function deleteException(exceptionID) {
     )
 }
 
-function addException(ckType, excType) {
+function addException(ckType, excType, ckTerm) {
     const modal = document.getElementById('new-exception-modal');
     const fields = [...modal.querySelectorAll('.field')];
     const field1 = fields[0];
     const field2 = fields[1];
 
-    setClass(field1, 'error', false);
-    setClass(field2, 'error', false);
+    // Reset fields
+    for (const field of fields) {
+        field.querySelector('input').value = null;
+        setClass(field, 'error', false);
+    }
 
-    if (excType === 'g') {
+    let header = 'New exception';
+    if (excType === 't') {
+        header = `New exception to &ldquo;${escape(ckTerm)}&rdquo;`
+        field1.querySelector('input').value = ckTerm;
+        setClass(field1, 'hidden', true);
+        field2.querySelector('label').innerHTML = 'Entry or annotation';
+        field2.querySelector('input').placeholder = 'Entry accession or annotation ID';
+        setClass(field2, 'hidden', false);
+    } else if (excType === 'g') {
         field1.querySelector('label').innerHTML = 'Term';
         field1.querySelector('input').placeholder = 'Term to authorize';
+        setClass(field1, 'hidden', false);
         setClass(field2, 'hidden', true);
     } else if (excType === 'p') {
         field1.querySelector('label').innerHTML = 'Entry #1';
         field1.querySelector('input').placeholder = 'Entry accession #1';
+        setClass(field1, 'hidden', false);
         field2.querySelector('label').innerHTML = 'Entry #2';
         field2.querySelector('input').placeholder = 'Entry accession #2';
         setClass(field2, 'hidden', false);
     } else if (excType === 's') {
         field1.querySelector('label').innerHTML = 'Entry';
         field1.querySelector('input').placeholder = 'Entry accession';
+        setClass(field1, 'hidden', false);
         setClass(field2, 'hidden', true);
     }
 
+    modal.querySelector('.header').innerHTML = header;
+
     const message = modal.querySelector('.message');
     message.innerHTML = null;
-    for (const field of fields) {
-        field.querySelector('input').value = null;
-    }
 
     $(modal)
         .modal({
@@ -250,18 +217,18 @@ function getChecks() {
                     if (ck.terms.length > 0) {
                         mainHTML += '<div class="ui four cards">';
                         for (const term of ck.terms)
-                            mainHTML += createCard(ck.type, term, ck.add_exceptions.length > 0);
+                            mainHTML += createCard(ck.type, term, ck.exception_type);
                         mainHTML += '</div>';
                     }
-                } else if (ck.add_exceptions.length > 0) {
-                    mainHTML += `<button data-type="${ck.type}" data-new-exception="${ck.add_exceptions}" class="ui basic compact secondary button"><i class="add icon"></i>Add exception</button>`;
+                } else if (ck.exception_type !== null) {
+                    mainHTML += `<button class="ui basic compact secondary button" data-type="${ck.type}" data-new-exception="${ck.exception_type}"><i class="add icon"></i>Add exception</button>`;
 
                     if (ck.exceptions.length > 0) {
                         mainHTML += '<div>';
                         for (const exc of ck.exceptions) {
-                            if (ck.add_exceptions === 'g')
+                            if (ck.exception_type === 'g')
                                 mainHTML += `<div class="ui basic small label" data-exception="${exc.id}"><code>${escape(exc.term)}</code><i class="delete icon"></i></div>`;
-                            else if (ck.add_exceptions === 'p') {
+                            else if (ck.exception_type === 'p') {
                                 mainHTML += `
                                     <div class="ui basic small label" data-exception="${exc.id}">
                                         <code>${escape(exc.entry)}</code>
@@ -269,7 +236,7 @@ function getChecks() {
                                         <i class="delete icon"></i>
                                     </div>
                                `;
-                            } else if (ck.add_exceptions === 's')
+                            } else if (ck.exception_type === 's')
                                 mainHTML += `<div class="ui basic small label" data-exception="${exc.id}"><code>${escape(exc.entry)}</code><i class="delete icon"></i></div>`;
                         }
                         mainHTML += '</div>';
@@ -298,13 +265,14 @@ function getChecks() {
             }
 
             // Add an exception to a term
-            for (const elem of main.querySelectorAll('.card > .bottom.button')) {
+            for (const elem of main.querySelectorAll('.card .bottom.button[data-new-exception]')) {
                 elem.addEventListener('click', e => {
+                    const excType = e.currentTarget.dataset.newException;
                     const card = e.currentTarget.closest('.card');
                     const ckType = card.dataset.type;
                     const code = card.querySelector('code');
                     const ckTerm = unescape(code.innerHTML);
-                    addTermException(ckType, ckTerm);
+                    addException(ckType, excType, ckTerm);
                 });
             }
 
@@ -320,11 +288,11 @@ function getChecks() {
             }
 
             // Adding an exception (not to a term)
-            for (const elem of main.querySelectorAll('[data-new-exception]')) {
+            for (const elem of main.querySelectorAll('.compact.button[data-new-exception]')) {
                 elem.addEventListener('click', e => {
                     const ckType = e.currentTarget.dataset.type;
                     const excType = e.currentTarget.dataset.newException;
-                    addException(ckType, excType);
+                    addException(ckType, excType, null);
                 });
             }
 

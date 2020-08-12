@@ -120,8 +120,11 @@ def ck_punctuations(cabs: LoT, terms: LoS, exceptions: DoS) -> Err:
                 errors.append((ann_id, term))
 
         for match in prog_global.finditer(text):
-            i, j = match.span()
+            term = match.group(0)
+            if term in ann_exceptions:
+                continue
 
+            i, j = match.span()
             if text[i-3:i] == "e.g":
                 continue  # e.g. [
             elif text[i-2:i] == "sp":
@@ -137,7 +140,7 @@ def ck_punctuations(cabs: LoT, terms: LoS, exceptions: DoS) -> Err:
                 """
                 continue
             else:
-                errors.append((ann_id, match.group(0)))
+                errors.append((ann_id, term))
 
     return errors
 
