@@ -7,9 +7,15 @@ DoS = Dict[str, Set[str]]
 """
 Checks to perform
 
-Rule of thumb: if a check takes specific terms, it should not accept 
-    global exceptions (otherwise there is not point in adding 
-    a global exceptions, just delete the term to search)
+Types of exceptions:
+  - t (term):   the exception is for an entry/annotation 
+                associated to a searched term (`terms` must be True)
+  - p (pair):   the exception is for a pair entry->entry or entry->signature
+  - s (single): the exception is for a single entry 
+                (i.e. the entry is allowed to fail the check)
+  - g (global): the exception is for a string that could be found in names, 
+                annotations, etc.
+  - empty:      no exception allowed 
 """
 CHECKS = {
     "abbreviation": {
@@ -17,153 +23,134 @@ CHECKS = {
         "label": "Invalid abbreviation",
         "description": "Some abbreviations are forbidden in entry names, "
                        "short names, and annotations.",
-        "use_terms": True,
-        "use_exceptions": True,
-        "use_global_exceptions": False
+        "terms": True,
+        "exceptions": 't'
     },
     "acc_in_name": {
         "name": "Accessions in names",
         "label": "Entry names should not contain accessions.",
         "description": "InterPro accessions",
-        "use_terms": False,
-        "use_exceptions": True,
-        "use_global_exceptions": False
+        "terms": False,
+        "exceptions": 'p'
     },
     "cab_length": {
         "name": "Annotations too short",
         "label": "Annotation too short",
         "description": "Entry annotations must have a minimal length.",
-        "use_terms": False,
-        "use_exceptions": False,
-        "use_global_exceptions": False
+        "terms": False,
+        "exceptions": ''
     },
     "citation": {
         "name": "Citations",
         "label": "Invalid citation",
         "description": "",
-        "use_terms": True,
-        "use_exceptions": True,
-        "use_global_exceptions": False
+        "terms": True,
+        "exceptions": 't'
     },
     "double_quote": {
         "name": "Double quotes",
         "label": "Double quotes in name",
         "description": "",
-        "use_terms": False,
-        "use_exceptions": False,
-        "use_global_exceptions": False
+        "terms": False,
+        "exceptions": ''
     },
     "encoding": {
         "name": "Encoding",
         "label": "Invalid character",
         "description": "",
-        "use_terms": False,
-        "use_exceptions": True,
-        "use_global_exceptions": True
+        "terms": False,
+        "exceptions": 'g'
     },
     "gene_symbol": {
         "name": "Gene symbols",
         "label": "Gene symbol in name",
         "description": "",
-        "use_terms": False,
-        "use_exceptions": True,
-        "use_global_exceptions": True
+        "terms": False,
+        "exceptions": 'g'
     },
     "forbidden": {
         "name": "Banned words",
         "label": "Banned word",
         "description": "",
-        "use_terms": True,
-        "use_exceptions": True,
-        "use_global_exceptions": False
+        "terms": True,
+        "exceptions": 'p'
     },
     "integration": {
         "name": "Empty entries",
         "label": "Empty entry",
         "description": "",
-        "use_terms": False,
-        "use_exceptions": False,
-        "use_global_exceptions": False
+        "terms": False,
+        "exceptions": ''
     },
     "link": {
         "name": "Broken links",
         "label": "Broken link",
         "description": "",
-        "use_terms": False,
-        "use_exceptions": False,
-        "use_global_exceptions": False
+        "terms": False,
+        "exceptions": ''
     },
     "lower_case_name": {
         "name": "Invalid names",
         "label": "Invalid name",
         "description": "",
-        "use_terms": True,
-        "use_exceptions": True,
-        "use_global_exceptions": True
+        "terms": False,
+        "exceptions": 'g'
     },
     "punctuation": {
         "name": "Punctuation errors",
         "label": "Punctuation error",
         "description": "",
-        "use_terms": True,
-        "use_exceptions": True,
-        "use_global_exceptions": False
+        "terms": True,
+        "exceptions": 't'
     },
     "same_name": {
         "name": "Same names",
         "label": "Same names",
         "description": "",
-        "use_terms": False,
-        "use_exceptions": False,
-        "use_global_exceptions": False
+        "terms": False,
+        "exceptions": ''
     },
     "similar_name": {
         "name": "Similar names",
         "label": "Similar names",
         "description": "",
-        "use_terms": False,
-        "use_exceptions": True,
-        "use_global_exceptions": False
+        "terms": False,
+        "exceptions": 'p'
     },
     "spelling": {
         "name": "Misspellings",
         "label": "Misspelling",
         "description": "",
-        "use_terms": True,
-        "use_exceptions": True,
-        "use_global_exceptions": False
+        "terms": True,
+        "exceptions": 't'
     },
     "substitution": {
         "name": "Bad substitutions",
         "label": "Bad substitution",
         "description": "",
-        "use_terms": True,
-        "use_exceptions": True,
-        "use_global_exceptions": False
+        "terms": True,
+        "exceptions": 't'
     },
     "type_conflict": {
         "name": "Types conflicts",
         "label": "Types conflict",
         "description": "",
-        "use_terms": False,
-        "use_exceptions": False,
-        "use_global_exceptions": False
+        "terms": False,
+        "exceptions": ''
     },
     "unchecked_node": {
         "name": "Unchecked entries",
         "label": "Unchecked entry",
         "description": "",
-        "use_terms": False,
-        "use_exceptions": False,
-        "use_global_exceptions": False
+        "terms": False,
+        "exceptions": ''
     },
     "underscore": {
         "name": "Underscores in names",
         "label": "Underscore in name",
         "description": "",
-        "use_terms": False,
-        "use_exceptions": True,
-        "use_global_exceptions": False
+        "terms": False,
+        "exceptions": 's'
     },
 }
 

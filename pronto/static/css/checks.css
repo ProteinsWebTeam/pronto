@@ -1,11 +1,34 @@
-.ui.button[data-add] {
+.ui.button[data-type] {
     margin-bottom: .75rem;
 }
 
 .card > .content > .description {
     margin-top: .5em;
 }
+.card > .content > .meta > .icon:hover {
+    color: rgba(0, 0, 0, 0.87);
+}
 
-.card > .content > .description > .ui.label {
+code:hover {
+    cursor: pointer;
+}
+
+.ui.basic.small.label {
     margin-bottom: .15rem;
+    font-weight: normal;
+}
+.ui.label > .detail {
+    vertical-align: inherit;
+}
+
+/*
+Fomantic uses '.ui.form.error .error.message:not(:empty)'
+and I am too lazy to add the error class to the form as well
+*/
+.ui.form .error.message:not(:empty) {
+    display: block;
+}
+
+.ui.form .hidden.field {
+    display: none;
 }

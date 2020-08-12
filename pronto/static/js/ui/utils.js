@@ -44,3 +44,22 @@ export function unescape(value) {
         .replace(/&gt;/g, '>')
         .replace(/&nbsp;/g, ' ');
 }
+
+export function copy2clipboard(elem) {
+    const input = document.createElement('input');
+    input.value = unescape(elem.innerHTML);
+    document.body.appendChild(input);
+    try {
+        input.select();
+        document.execCommand('copy');
+        elem.className = 'positive';
+    } catch (err) {
+        console.error(err);
+        elem.className = 'negative';
+    } finally {
+        document.body.removeChild(input);
+        setTimeout(() => {
+            elem.className = '';
+        }, 300);
+    }
+}
