@@ -67,6 +67,7 @@ async function getTaxonomy(acc1, acc2, domain) {
 
 
 document.addEventListener('DOMContentLoaded', () => {
+    // todo
     const acc1 = 'PF06792';
     const acc2 = 'cd15488';
 

@@ -23,7 +23,7 @@ async function refresh() {
     let html = `
         <table class="ui small celled very compact table">
         <thead>
-            <tr><th colspan="5"><span></span></th></tr>
+            <tr><th colspan="5"><div class="ui secondary menu"><span class="item"></span></div></th></tr>
             <tr>
             <th class="center aligned">Signature #1</th>
             <th colspan="2" class="center aligned">Entry</th>
@@ -86,10 +86,15 @@ async function refresh() {
 
 document.addEventListener('DOMContentLoaded', () => {
     updateHeader();
+    document.title = 'Highly similar signatures | Pronto';
     document.querySelector('h1.ui.header').innerHTML = 'Highly similar signatures';
 
     const params = document.getElementById('params');
     params.innerHTML = `
+        <p class="justified aligned">
+            This page presents pairs of similar signatures, that is signatures whose matches significantly overlap. The similarity between two signatures is determined by evaluating how many residues in UniProtKB are matched by both signatures.<br>Pairs of signatures where both signatures are integrated are not shown.
+            
+        </p>
         <div class="ui warning message">
             <i class="close icon"></i>
             <div class="header">Checkboxes are read-only</div>
