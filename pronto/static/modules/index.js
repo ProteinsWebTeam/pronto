@@ -64,7 +64,7 @@ $(function () {
             document.querySelector("#databases > tbody").innerHTML = html;
         });
 
-    getReports();
+    //getReports();
 
     document.querySelector('#sanity-checks button.primary').addEventListener('click', evt => {
         fetch(URL_PREFIX+'/api/sanitychecks/runs/', {method: 'PUT'})
