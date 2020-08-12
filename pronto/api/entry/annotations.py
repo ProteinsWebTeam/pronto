@@ -30,9 +30,20 @@ def get_annotations(accession):
 
     annotations = []
     prog_ref = re.compile(r"\[([a-z0-9]+):([a-z0-9\-.]+)]", re.I)
+    prog_com = re.compile(r"\s\d\d:\d\d:\d\d$")
 
     for ann_id, text, comment, n_entries in cur:
         ext_refs = {}
+
+        """
+        The accuracy (seconds) of comments triggers some curators:
+        try to reduce the accuracy to minutes.
+        """
+        match = prog_com.search(comment)
+        if match:
+            start = match.start()
+            hour = comment[start+1:]  # first character is a space
+            comment = f"{comment[:start]} {hour[:5]}"
 
         for match in prog_ref.finditer(text):
             ref_db, ref_id = match.groups()
