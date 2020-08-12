@@ -95,7 +95,7 @@ export function renderConfidence(signature) {
 
 export function showProteinsModal(accession, params, getMatches) {
     const modal = document.getElementById('proteins-modal');
-    modal.querySelector('thead .right.menu a').href = `/signatures/${accession}/proteins/?filtermatches&${params.join('&')}`;
+    modal.querySelector('thead .right.menu a').href = `/signatures/${accession}/proteins/?${params.join('&')}`;
 
     params.push('page_size=20');
     params.push('page=1');

@@ -304,6 +304,13 @@ document.addEventListener('DOMContentLoaded', () => {
     checkbox.checked = url.searchParams.has('filtermatches')
     checkbox.addEventListener('change', e => {
         e.preventDefault();
+        const filterMatches = e.currentTarget.checked;
+        const newURL = new URL(location.href);
+        if (filterMatches)
+            newURL.searchParams.set('filtermatches', '');
+        else
+            newURL.searchParams.delete('filtermatches');
+        history.replaceState(null, document.title, newURL.toString());
 
         const proteins = [];
         for (let i = 0; i < sessionStorage.length; i++) {
@@ -314,7 +321,6 @@ document.addEventListener('DOMContentLoaded', () => {
         proteins.sort((a, b) => a.accession.localeCompare(b.accession));
 
         const maxLength = Math.max(...Array.from(proteins, p => p.length));
-        const filterMatches = e.currentTarget.checked;
         let html = '';
         for (const protein of proteins) {
             html += renderProtein(protein, accessions, filterMatches, maxLength);
@@ -331,8 +337,9 @@ document.addEventListener('DOMContentLoaded', () => {
             max: accessions.length,
             start: Number.isInteger(matching) ? matching : accessions.length,
             onChange: function (value) {
-                url.searchParams.set('matching', value);
-                history.replaceState(null, document.title, url.toString());
+                const newURL = new URL(location.href);
+                newURL.searchParams.set('matching', value);
+                history.replaceState(null, document.title, newURL.toString());
                 getProteins(accessions);
             }
         });
