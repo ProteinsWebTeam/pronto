@@ -230,7 +230,7 @@ def ck_unchecked_nodes(cur: Cursor) -> Err:
 
 def ck_underscore(entries: LoT, exceptions: Set[str]) -> Err:
     prog1 = re.compile(r"\w*_\w*")
-    prog2 = re.compile(r"_(?:binding|bd|related|rel|like)\b")
+    prog2 = re.compile(r"_(?:binding|bd|related|rel|like)")
 
     errors = []
     for acc, name, short_name in entries:

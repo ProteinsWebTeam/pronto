@@ -7,6 +7,10 @@ DoS = Dict[str, Set[str]]
 """
 Checks to perform
 
+Name: title of section on the settings page
+Description: sub-title of section
+Label: description of the error in the errors report 
+
 Types of exceptions:
   - t (term):   the exception is for an entry/annotation 
                 associated to a searched term (`terms` must be True)
@@ -20,135 +24,144 @@ Types of exceptions:
 CHECKS = {
     "abbreviation": {
         "name": "Abbreviations",
+        "description": "Abbreviations forbidden in entry names, short names, "
+                       "and annotations",
         "label": "Invalid abbreviation",
-        "description": "Some abbreviations are forbidden in entry names, "
-                       "short names, and annotations.",
         "terms": True,
         "exceptions": 't'
     },
     "acc_in_name": {
         "name": "Accessions in names",
-        "label": "Entry names should not contain accessions.",
-        "description": "InterPro accessions",
+        "description": "Entry names cannot contain accessions",
+        "label": "Accession in entry name",
         "terms": False,
         "exceptions": 'p'
     },
     "cab_length": {
         "name": "Annotations too short",
+        "description": "Entry annotations must have a minimal length",
         "label": "Annotation too short",
-        "description": "Entry annotations must have a minimal length.",
         "terms": False,
         "exceptions": None
     },
     "citation": {
-        "name": "Citations",
-        "label": "Invalid citation",
-        "description": "",
+        "name": "References",
+        "description": "Annotations cannot contain unformatted references "
+                       "or unpublished/personal observations",
+        "label": "Invalid reference",
         "terms": True,
         "exceptions": 't'
     },
     "double_quote": {
         "name": "Double quotes",
+        "description": "Entry names cannot contain double quotes",
         "label": "Double quotes in name",
-        "description": "",
         "terms": False,
         "exceptions": None
     },
     "encoding": {
         "name": "Encoding",
+        "description": "Special characters should be avoided",
         "label": "Invalid character",
-        "description": "",
         "terms": False,
         "exceptions": 'g'
     },
     "gene_symbol": {
         "name": "Gene symbols",
+        "description": "Entry names may contain protein symbols (NnnY), "
+                       "but not gene symbols (nnnY)",
         "label": "Gene symbol in name",
-        "description": "",
         "terms": False,
         "exceptions": 'g'
     },
     "forbidden": {
         "name": "Banned words",
+        "description": "Words that are blacklisted from entry names",
         "label": "Banned word",
-        "description": "",
         "terms": True,
         "exceptions": 't'
     },
     "integration": {
         "name": "Empty entries",
-        "label": "Empty entry",
-        "description": "",
+        "description": "Checked entries without member database signatures",
+        "label": "Entry without signatures",
         "terms": False,
         "exceptions": None
     },
     "link": {
         "name": "Broken links",
+        "description": "Dead external links",
         "label": "Broken link",
-        "description": "",
         "terms": False,
         "exceptions": None
     },
     "lower_case_name": {
-        "name": "Invalid names",
-        "label": "Invalid name",
-        "description": "",
+        "name": "Uncapitalized names",
+        "description": "Entry names should start with a capital",
+        "label": "Uncapitalized name",
         "terms": False,
         "exceptions": 'g'
     },
     "punctuation": {
         "name": "Punctuation errors",
+        "description": "Common punctuation errors "
+                       "(e.g. whitespace before punctuation characters)",
         "label": "Punctuation error",
-        "description": "",
         "terms": True,
         "exceptions": 't'
     },
     "same_name": {
         "name": "Same names",
+        "description": "Clash between name and short name "
+                       "in different entries",
         "label": "Same names",
-        "description": "",
         "terms": False,
         "exceptions": None
     },
     "similar_name": {
         "name": "Similar names",
+        "description": "Name and short names differing only "
+                       "in non-word characters",
         "label": "Similar names",
-        "description": "",
         "terms": False,
         "exceptions": 'p'
     },
     "spelling": {
         "name": "Misspellings",
+        "description": "Common spelling and grammatical errors",
         "label": "Misspelling",
-        "description": "",
         "terms": True,
         "exceptions": 't'
     },
     "substitution": {
         "name": "Bad substitutions",
+        "description": "Substitutions caused by invalid characters",
         "label": "Bad substitution",
-        "description": "",
         "terms": True,
         "exceptions": 't'
     },
     "type_conflict": {
         "name": "Types conflicts",
+        "description": "Homologous superfamilies containing non-CATH-Gene3D "
+                       "or SUPERFAMILY signatures",
         "label": "Types conflict",
-        "description": "",
         "terms": False,
         "exceptions": None
     },
     "unchecked_node": {
         "name": "Unchecked entries",
+        "description": "Unchecked entries whose parent/children are checked",
         "label": "Unchecked entry",
-        "description": "",
         "terms": False,
         "exceptions": None
     },
     "underscore": {
         "name": "Underscores in names",
+        "description": "Names cannot contain underscores and , in short names,"
+                       " 'binding', 'bd', 'related', 'rel', and 'like' should "
+                       "be hyphenated (preceeded by an hyphen rather than "
+                       "an underscore, e.g. DNA-bd)",
         "label": "Underscore in name",
-        "description": "",
         "terms": False,
         "exceptions": 's'
     },
