@@ -110,7 +110,7 @@ def submit_checks():
             }
         }), 401
 
-    args = (user, utils.get_oracle_dsn())
+    args = (user, utils.get_oracle_dsn(), utils.get_pg_url())
     submitted = utils.executor.submit(user, "checks", run_checks, *args)
 
     return jsonify({
@@ -120,14 +120,14 @@ def submit_checks():
     }), 202 if submitted else 409
 
 
-def run_checks(user: dict, dsn: str):
+def run_checks(user: dict, dsn: str, pg_url: str):
     run_id = uuid.uuid1().hex
 
     con = cx_Oracle.connect(user["dbuser"], user["password"], dsn)
     cur = con.cursor()
 
     counts = {}
-    for check_type, (entry_acc, error) in check_entries(cur):
+    for check_type, (entry_acc, error) in check_entries(cur, pg_url):
         key = (None, entry_acc, check_type, error)
         try:
             counts[key] += 1

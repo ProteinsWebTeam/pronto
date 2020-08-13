@@ -5,6 +5,7 @@ from typing import Dict, List, Optional, Set, Tuple
 
 from cx_Oracle import Cursor
 
+from pronto.utils import connect_pg
 from .utils import load_exceptions, load_global_exceptions, load_terms
 
 
@@ -116,6 +117,31 @@ def ck_integration(cur: Cursor) -> Err:
         """
     )
     return [(acc, None) for acc, in cur]
+
+
+def ck_match_counts(ora_cur: Cursor, pg_url: str) -> Err:
+    pg_con = connect_pg(pg_url)
+    pg_cur = pg_con.cursor()
+    pg_cur.execute(
+        """
+        SELECT accession
+        FROM interpro.signature
+        WHERE num_sequences = 0
+        """
+    )
+    no_hits = {acc for acc, in pg_cur}
+    pg_cur.close()
+    pg_con.close()
+
+    ora_cur.execute(
+        """
+        SELECT E.ENTRY_AC, EM.METHOD_AC
+        FROM INTERPRO.ENTRY E
+        INNER JOIN INTERPRO.ENTRY2METHOD EM ON E.ENTRY_AC = EM.ENTRY_AC
+        WHERE E.CHECKED = 'Y'
+        """
+    )
+    return [(e_acc, s_acc) for e_acc, s_acc in ora_cur if s_acc in no_hits]
 
 
 def ck_letter_case(entries: LoT, exceptions: Tuple[str]) -> Err:
@@ -230,7 +256,7 @@ def ck_unchecked_nodes(cur: Cursor) -> Err:
 
 def ck_underscore(entries: LoT, exceptions: Set[str]) -> Err:
     prog1 = re.compile(r"\w*_\w*")
-    prog2 = re.compile(r"_(?:binding|bd|related|rel|like)")
+    prog2 = re.compile(r"_(?:binding|bd|related|rel|like)[^a-zA-Z]?")
 
     errors = []
     for acc, name, short_name in entries:
@@ -245,56 +271,60 @@ def ck_underscore(entries: LoT, exceptions: Set[str]) -> Err:
     return errors
 
 
-def check(cur: Cursor):
-    cur.execute("SELECT ENTRY_AC, NAME, SHORT_NAME FROM INTERPRO.ENTRY")
-    entries = cur.fetchall()
+def check(ora_cur: Cursor, pg_url: str):
+    ora_cur.execute("SELECT ENTRY_AC, NAME, SHORT_NAME FROM INTERPRO.ENTRY")
+    entries = ora_cur.fetchall()
 
-    terms = load_terms(cur, "abbreviation")
-    exceptions = load_exceptions(cur, "abbreviation", "ENTRY_AC", "TERM")
+    terms = load_terms(ora_cur, "abbreviation")
+    exceptions = load_exceptions(ora_cur, "abbreviation", "ENTRY_AC", "TERM")
     for item in ck_abbreviations(entries, terms, exceptions):
         yield "abbreviation", item
 
-    exceptions = load_exceptions(cur, "acc_in_name", "ENTRY_AC", "TERM")
+    exceptions = load_exceptions(ora_cur, "acc_in_name", "ENTRY_AC", "TERM")
     for item in ck_acc_in_name(entries, exceptions):
         yield "acc_in_name", item
 
     for item in ck_double_quote(entries):
         yield "double_quote", item
 
-    exceptions = load_global_exceptions(cur, "gene_symbol")
+    exceptions = load_global_exceptions(ora_cur, "gene_symbol")
     for item in ck_gene_symbol(entries, exceptions):
         yield "gene_symbol", item
 
-    terms = load_terms(cur, "forbidden")
-    exceptions = load_exceptions(cur, "forbidden", "ENTRY_AC", "TERM")
+    terms = load_terms(ora_cur, "forbidden")
+    exceptions = load_exceptions(ora_cur, "forbidden", "ENTRY_AC", "TERM")
     for item in ck_forbidden_terms(entries, terms, exceptions):
         yield "forbidden", item
 
-    exceptions = load_global_exceptions(cur, "lower_case_name")
+    exceptions = load_global_exceptions(ora_cur, "lower_case_name")
     for item in ck_letter_case(entries, tuple(exceptions)):
         yield "lower_case_name", item
 
-    for item in ck_integration(cur):
+    for item in ck_integration(ora_cur):
         yield "integration", item
 
-    for item in ck_same_names(cur):
+    for item in ck_match_counts(ora_cur, pg_url):
+        yield "matches", item
+
+    for item in ck_same_names(ora_cur):
         yield "same_name", item
 
-    exceptions = load_exceptions(cur, "similar_name", "ENTRY_AC", "ENTRY_AC2")
-    for item in ck_similar_names(cur, exceptions):
+    exceptions = load_exceptions(ora_cur, "similar_name", "ENTRY_AC",
+                                 "ENTRY_AC2")
+    for item in ck_similar_names(ora_cur, exceptions):
         yield "similar_name", item
 
-    terms = load_terms(cur, "spelling")
-    exceptions = load_exceptions(cur, "spelling", "ENTRY_AC", "TERM")
+    terms = load_terms(ora_cur, "spelling")
+    exceptions = load_exceptions(ora_cur, "spelling", "ENTRY_AC", "TERM")
     for item in ck_spelling(entries, terms, exceptions):
         yield "spelling", item
 
-    for item in ck_type_conflicts(cur):
+    for item in ck_type_conflicts(ora_cur):
         yield "type_conflict", item
 
-    for item in ck_unchecked_nodes(cur):
+    for item in ck_unchecked_nodes(ora_cur):
         yield "unchecked_node", item
 
-    exceptions = load_exceptions(cur, "underscore", "ENTRY_AC", "TERM")
+    exceptions = load_exceptions(ora_cur, "underscore", "ENTRY_AC", "TERM")
     for item in ck_underscore(entries, set(exceptions)):
         yield "underscore", item

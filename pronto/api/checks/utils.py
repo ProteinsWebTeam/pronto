@@ -102,6 +102,14 @@ CHECKS = {
         "terms": False,
         "exceptions": 'g'
     },
+    "matches": {
+        "name": "Integrated signatures without matches",
+        "description": "Checked entries cannot integrates signatures "
+                       "without protein matches",
+        "label": "Signature without matches",
+        "terms": False,
+        "exceptions": None
+    },
     "punctuation": {
         "name": "Punctuation errors",
         "description": "Common punctuation errors "
