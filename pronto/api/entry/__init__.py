@@ -209,12 +209,13 @@ def update_entry(accession):
     elif entry_checked:
         cur.execute(
             """
-            SELECT COUNT(*)
-            FROM INTERPRO.ENTRY2COMMON
+            SELECT METHOD_AC
+            FROM INTERPRO.ENTRY2METHOD
             WHERE ENTRY_AC = :1
             """, (accession,)
         )
-        if not cur.fetchone()[0]:
+        integrated = [acc for acc, in cur]
+        if not integrated:
             cur.close()
             con.close()
             return jsonify({
@@ -224,6 +225,32 @@ def update_entry(accession):
                     "message": f"{accession} does not have annotations. "
                                f"Entries without annotations "
                                f"cannot be checked."
+                }
+            }), 409
+
+        con2 = utils.connect_pg(utils.get_pg_url())
+        cur2 = con2.cursor()
+        cur2.execute(
+            f"""
+            SELECT COUNT(*)
+            FROM interpro.signature
+            WHERE accession IN ({','.join('%s' for _ in integrated)})
+            AND num_sequences = 0
+            """, integrated
+        )
+        cnt, = cur2.fetchone()
+        cur2.close()
+        con2.close()
+
+        if cnt:
+            cur.close()
+            con.close()
+            return jsonify({
+                "status": False,
+                "error": {
+                    "title": "Integrated signatures with no matches",
+                    "message": f"{accession} integrates one or more signatures"
+                               f" not matching any protein."
                 }
             }), 409
 

@@ -81,6 +81,37 @@ def integrate_signature(e_acc, s_acc):
             }
         }), 401
 
+    con = utils.connect_pg(utils.get_pg_url())
+    cur = con.cursor()
+    cur.execute(
+        """
+        SELECT num_sequences
+        FROM interpro.signature
+        WHERE accession = %s
+        """, (s_acc,)
+    )
+    row = cur.fetchone()
+    cur.close()
+    con.close()
+
+    if not row:
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Invalid signature",
+                "message": f"{s_acc} is not a valid member database signature."
+            }
+        }), 400
+    elif not row[0]:
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Signature without matches",
+                "message": f"{s_acc} cannot be integrated because it does "
+                           f"not match any protein."
+            }
+        }), 400
+
     con = utils.connect_oracle_auth(user)
     cur = con.cursor()
     cur.execute(
@@ -96,13 +127,18 @@ def integrate_signature(e_acc, s_acc):
     )
     row = cur.fetchone()
     if not row:
+        """
+        Exists in PostgreSQL but not in Oracle
+        -> probably member database update ongoing and PostgreSQL is not yet
+           updated
+        """
         cur.close()
         con.close()
         return jsonify({
             "status": False,
             "error": {
-                "title": "Invalid signature",
-                "message": f"{s_acc} is not a valid member database signature."
+                "title": "Deleted signature",
+                "message": f"{s_acc} does not exist any more."
             }
         }), 400
 
