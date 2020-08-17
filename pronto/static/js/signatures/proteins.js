@@ -134,11 +134,17 @@ async function getProteins(signatureAccessions) {
             }
 
             Promise.all(promises).then((proteins) => {
+                proteins.sort((a, b) => a.accession.localeCompare(b.accession));
+
                 // Remove all stored data (except accessions for the 'copy' button)
+                const oldKeys = []
                 for (let i = 0; i < sessionStorage.length; i++) {
                     const key = sessionStorage.key(i);
                     if (key !== copyKey)
-                        sessionStorage.removeItem(key);
+                        oldKeys.push(key);
+                }
+                for (const key of oldKeys) {
+                    sessionStorage.removeItem(key);
                 }
 
                 if (proteins.length > 0) {
@@ -271,6 +277,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const accessions = match[1].split("/");
     document.title = "Proteins (" + accessions.join(", ") + ") | Pronto";
 
+    sessionStorage.clear();
+
     selector.init(document.getElementById('signature-selector'));
     for (const accession of accessions) {
         selector.add(accession);
@@ -281,12 +289,13 @@ document.addEventListener('DOMContentLoaded', () => {
     let checkbox = document.querySelector('input[type=checkbox][name=reviewed]');
     checkbox.checked = url.searchParams.has('reviewed');
     checkbox.addEventListener('change', e => {
+        const newURL = new URL(location.href);
         if (e.currentTarget.checked)
-            url.searchParams.set('reviewed', '');
+            newURL.searchParams.set('reviewed', '');
         else
-            url.searchParams.delete('reviewed');
+            newURL.searchParams.delete('reviewed');
 
-        history.replaceState(null, document.title, url.toString());
+        history.replaceState(null, document.title, newURL.toString());
         getProteins(accessions);
     });
 
