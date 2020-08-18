@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from flask import Blueprint
-from flask import jsonify
+from flask import Blueprint, jsonify
 
 from pronto import auth, utils
 from . import annotation
@@ -44,3 +43,14 @@ def api_index():
 @bp.route("/tasks/")
 def get_task():
     return jsonify(utils.executor.tasks)
+
+
+# def add_cors(response):
+#     response.headers["Access-Control-Allow-Origin"] = '*'
+#     return response
+#
+#
+# for _bp in [bp, annotation.bp, checks.bp, database.bp, databases.bp,
+#             entries.bp, entry.bp, protein.bp, search.bp, signature.bp,
+#             signatures.bp]:
+#     _bp.after_request(add_cors)
