@@ -37,7 +37,7 @@ function getComments(type, accession, max, div, callback) {
                                 <a class="author">${comment.author}</a>
                                 <div class="metadata">
                                     <span class="date">${comment.date}</span>
-                                    <a><i class="trash icon"></i></a>
+                                    <a><i class="delete icon"></i></a>
                                 </div>
                                 <div class="text">${comment.text}</div>
                             </div>
