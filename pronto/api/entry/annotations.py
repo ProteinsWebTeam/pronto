@@ -35,15 +35,16 @@ def get_annotations(accession):
     for ann_id, text, comment, n_entries in cur:
         ext_refs = {}
 
-        """
-        The accuracy (seconds) of comments triggers some curators:
-        try to reduce the accuracy to minutes.
-        """
-        match = prog_com.search(comment)
-        if match:
-            start = match.start()
-            hour = comment[start+1:]  # first character is a space
-            comment = f"{comment[:start]} {hour[:5]}"
+        if comment is not None:
+            """
+            The accuracy (seconds) of comments bothers some curators:
+            try to reduce the accuracy to minutes.
+            """
+            match = prog_com.search(comment)
+            if match:
+                start = match.start()
+                hour = comment[start+1:]  # first character is a space
+                comment = f"{comment[:start]} {hour[:5]}"
 
         for match in prog_ref.finditer(text):
             ref_db, ref_id = match.groups()
@@ -70,7 +71,7 @@ def get_annotations(accession):
 
     cur.execute(
         """
-        SELECT 
+        SELECT
           E.PUB_ID, C.TITLE, C.YEAR, C.VOLUME, C.RAWPAGES, C.DOI_URL,
           C.PUBMED_ID, C.ISO_JOURNAL, C.MEDLINE_JOURNAL, C.AUTHORS
         FROM INTERPRO.ENTRY2PUB E
@@ -134,7 +135,7 @@ def link_annotation(accession, ann_id):
         cur.execute(
             """
             INSERT INTO INTERPRO.ENTRY2COMMON (ENTRY_AC, ANN_ID, ORDER_IN)
-            VALUES (:1, :2, :3) 
+            VALUES (:1, :2, :3)
             """,
             (accession, ann_id, order_in)
         )
@@ -207,7 +208,7 @@ def unlink_annotation(accession, ann_id):
         cur.execute(
             """
             DELETE FROM INTERPRO.ENTRY2COMMON
-            WHERE ENTRY_AC = :1 AND ANN_ID = :2 
+            WHERE ENTRY_AC = :1 AND ANN_ID = :2
             """, (accession, ann_id)
         )
         update_references(cur, accession)
@@ -405,7 +406,7 @@ def update_references(cur: Cursor, accession: str):
 
         cur.executemany(
             """
-            INSERT INTO INTERPRO.ENTRY2PUB (ENTRY_AC, ORDER_IN, PUB_ID) 
+            INSERT INTO INTERPRO.ENTRY2PUB (ENTRY_AC, ORDER_IN, PUB_ID)
             VALUES (:1, :2, :3)
             """,
             params
