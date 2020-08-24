@@ -15,25 +15,23 @@
         <h1 class="ui header">Collocations & overlaps</h1>
 
         {% include 'signatures/selector.html' %}
-    </div>
 
-    <div class="ui grid">
-        <div class="six wide column">
-            <h4 class="ui header">
-                Overlap
-                <div class="sub header">Number of proteins where two signatures overlap (&ge; 50%)</div>
-            </h4>
+        <div class="ui grid">
+            <div class="twelve wide column">
+                <h4 class="ui header">
+                    Collocation
+                    <div class="sub header">Number of proteins having both signatures occurring</div>
+                </h4>
+                <table id="collocations" class="ui small definition celled table"></table>
 
-            <table id="overlaps" class="ui small definition celled table"></table>
+                <h4 class="ui header">
+                    Overlap
+                    <div class="sub header">Number of proteins where two signatures overlap (&ge; 50%)</div>
+                </h4>
+                <table id="overlaps" class="ui small definition celled table"></table>
+            </div>
+            <div id="details" class="four wide column"></div>
         </div>
-        <div class="six wide column">
-            <h4 class="ui header">
-                Collocation
-                <div class="sub header">Number of proteins having both signatures occurring</div>
-            </h4>
-            <table id="collocations" class="ui small definition celled table"></table>
-        </div>
-        <div id="details" class="four wide column"></div>
     </div>
 </div>
 
