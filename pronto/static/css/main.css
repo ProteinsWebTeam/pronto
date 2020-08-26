@@ -89,11 +89,3 @@ code.negative {
 .ui.table > thead > tr > th.basic, .ui.table > thead > tr.basic > th {
     font-weight: normal;
 }
-
-.ui.grid > .column > .ui.basic.segment {
-    padding: 0;
-}
-
-.ui.segment + .ui.grid {
-    margin-top: -1rem;
-}
