@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import json
+import re
 
 from flask import Blueprint, jsonify, request
 
@@ -264,6 +265,9 @@ def get_unintegrated_signatures(db_name):
                 }
             }), 400
 
+    no_same_db = "nosamedb" in request.args
+    no_panther_sf = "nopanthersf" in request.args
+
     con = utils.connect_oracle()
     cur = con.cursor()
     cur.execute(
@@ -344,6 +348,7 @@ def get_unintegrated_signatures(db_name):
     )
     queries = {}
     blacklist = set()
+    pthr_sf = re.compile(r"PTHR\d+:SF\d+")
     for row in cur:
         q_acc = row[0]
         try:
@@ -368,11 +373,11 @@ def get_unintegrated_signatures(db_name):
         elif integ_filter == "integrated":
             continue  # we want integrated targets only: skip
 
-        if db_name == t_db_key:
+        if no_same_db and db_name == t_db_key:
             """
-            Since two signatures from the same member DB cannot be in the same
-            entry, we ignore this target and, if it's integrated, 
-            all signatures integrated in the same entry
+            We don't want two signatures from the same member DB 
+            to be in the same entry: ignore this target and, 
+            if it's integrated, all signatures integrated in the same entry
             """
             if t_entry:
                 # We'll ignore all signatures integrated in this entry
@@ -423,6 +428,10 @@ def get_unintegrated_signatures(db_name):
 
     results = []
     for q_acc, (q_type, q_proteins, q_residues) in db_unintegrated.items():
+        if no_panther_sf and pthr_sf.match(q_acc):
+            # We are not interested in PANTHER sub-families
+            continue
+
         query = {
             "accession": q_acc,
             "proteins": q_proteins,
