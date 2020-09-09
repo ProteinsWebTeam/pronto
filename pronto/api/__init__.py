@@ -34,7 +34,8 @@ def api_index():
     con.close()
 
     return jsonify({
-        "oracle": utils.get_oracle_dsn().split('/')[-1],
+        "oracle": utils.get_oracle_dsn().rsplit('/')[-1],
+        "postgresql": utils.get_pg_url().rsplit('/')[-1],
         "uniprot": version,
         "user": user,
     })
