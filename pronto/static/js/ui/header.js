@@ -36,18 +36,7 @@ export function updateHeader(signatureAcc) {
         fetch('/api/')
             .then(response => response.json())
             .then(object => {
-                document.getElementById("pronto-info").innerHTML = `
-                    <div class="item">
-                        <div class="ui violet label">
-                        Oracle<div class="detail">${object.oracle}</div>
-                        </div>
-                    </div>
-                    <div class="item">
-                        <div class="ui purple label">
-                        UniProt<div class="detail">${object.uniprot}</div>
-                        </div>
-                    </div>
-                `;
+                document.getElementById("pronto-info").innerHTML = `<div class="item">UniProt ${object.uniprot}</div>`;
 
                 const menu = document.querySelector("header .right.menu");
                 let item;
