@@ -268,16 +268,16 @@ class PrositeProfiles:
 
 
 class Sfld:
-    home = 'http://sfld.rbvi.ucsf.edu/django'
+    home = 'http://sfld.rbvi.ucsf.edu/archive/django'
     color = '#9958cb'
 
     def gen_link(self, acc: str):
         if acc.startswith('SFLDF'):
-            return f"{self.home}/family/{acc[5:]}"
+            return f"{self.home}/family/{int(acc[5:])}"
         elif acc.startswith('SFLDS'):
-            return f"{self.home}/superfamily/{acc[5:]}"
+            return f"{self.home}/superfamily/{int(acc[5:])}"
         else:
-            return f"{self.home}/subgroup/{acc[5:]}"
+            return f"{self.home}/subgroup/{int(acc[5:])}"
 
 
 class Smart:
