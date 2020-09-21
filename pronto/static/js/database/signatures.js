@@ -60,8 +60,8 @@ function getSignatures() {
                     }
 
                     html += `
-                        <td class="right aligned">${signature.proteins.then}</td>
-                        <td class="right aligned">${signature.proteins.now}</td>
+                        <td class="right aligned">${signature.proteins.then.toLocaleString()}</td>
+                        <td class="right aligned">${signature.proteins.now.toLocaleString()}</td>
                         <td class="right aligned">${signature.proteins.then > 0 && signature.proteins.now > 0 ? Math.floor(signature.proteins.now/signature.proteins.then*1000) / 10 : ''}</td>
 
                         <td class="ui comments"><div class="comment"><div class="content">
