@@ -177,7 +177,7 @@ def get_integrated_signatures(db_name):
                 "checked": is_checked,
             } if entry_acc else None,
             "proteins": {
-                "then": None,
+                "then": 0,
                 "now": cnt
             },
             "latest_comment": {
