@@ -1,4 +1,5 @@
 import * as checkbox from './ui/checkbox.js'
+import * as dimmer from './ui/dimmer.js'
 import {fetchTasks, renderTaskList, updateHeader} from "./ui/header.js"
 import {setClass, escape, copy2clipboard} from "./ui/utils.js";
 import * as modal from "./ui/modals.js";
@@ -36,6 +37,7 @@ function getDatabases() {
 
             const tab = document.querySelector('.segment[data-tab="databases"]');
             tab.querySelector('tbody').innerHTML = html;
+            return databases;
         });
 }
 
@@ -79,8 +81,59 @@ function getRecentEntries() {
         });
 }
 
-function getUncheckedEntries() {
-    return fetch('/api/entries/unchecked/')
+function initUncheckedEntries(databases) {
+    const sigDatabases = databases.filter(db => db.id !== 'mobidblt');
+    sigDatabases.splice(0, 0, true, false);
+    const fieldsPerCol = Math.ceil(sigDatabases.length / 3);
+    const columns = [[], [], []];
+    for (let i = 0; i < sigDatabases.length; i++) {
+        const x = Math.floor(i / fieldsPerCol);
+        const database = sigDatabases[i];
+        if (database === true)
+            columns[x].push(['any', 'Any', null]);
+        else if (database === false)
+            columns[x].push(['none', 'None', null]);
+        else
+            columns[x].push([database.id, database.name, database.color]);
+    }
+
+    const form = document.querySelector('#unchecked-databases > .fields');
+    form.innerHTML = columns
+        .map((fields, index) => {
+            const formatField = ([dbID, dbName, color]) => {
+                const style = color !== null ? `border-bottom: 3px solid ${color}` : '';
+                const status = dbID === 'any' ? 'checked' : '';
+                return `<div class="field">
+                        <div class="ui radio checkbox">
+                        <input type="radio" name="database" value="${dbID}" ${status}>
+                        <label><span style="${style}">${dbName}</span></label>
+                        </div>
+                        </div>`;
+            };
+            return `
+                <div class="field">
+                    <div class="grouped fields">
+                        ${index === 0 ? '<label>Member database</label>' : '<label>&nbsp;</label>'}
+                        ${fields.map(formatField).join('')}
+                    </div>
+                </div>
+            `;
+        })
+        .join('');
+
+    for (const elem of form.querySelectorAll('input[type="radio"][name="database"]')) {
+        elem.addEventListener('change', (e,) => {
+            const input = e.currentTarget;
+            dimmer.on();
+            getUncheckedEntries(input.value).then(() => {dimmer.off()});
+        });
+    }
+
+    return getUncheckedEntries('any');
+}
+
+function getUncheckedEntries(database) {
+    return fetch(`/api/entries/unchecked/?db=${database}`)
         .then(response => response.json())
         .then(entries => {
             let html = '';
@@ -95,7 +148,6 @@ function getUncheckedEntries() {
                     <td>${entry.signatures}</td>
                     <td>${entry.created_date}</td>
                     <td>${entry.update_date}</td>
-                    <td>${entry.user}</td>
                     <td class="right aligned">
                 `;
 
@@ -106,6 +158,10 @@ function getUncheckedEntries() {
             }
 
             const tab = document.querySelector('.segment[data-tab="unchecked"]');
+
+            if (html.length === 0)
+                html = '<tr><td colspan="6" class="center aligned">No results found</td></tr>';
+
             tab.querySelector('tbody').innerHTML = html;
             document.querySelector('.item[data-tab="unchecked"] .label').innerHTML = entries.length.toString();
         });
@@ -326,9 +382,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelector('.tab[data-tab="checks"] .primary.button').addEventListener('click', e => runSanityChecks());
 
     const promises = [
-        getDatabases(),
+        getDatabases().then(databases => initUncheckedEntries(databases)),
         getRecentEntries(),
-        getUncheckedEntries(),
         getSanityCheck()
     ];
 

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 
 from pronto import utils
 
@@ -81,10 +81,52 @@ def get_recent_entries():
 
 @bp.route("/unchecked/")
 def get_unchecked_entries():
+    mem_db = request.args.get("db", "any")
+
     con = utils.connect_oracle()
     cur = con.cursor()
-    cur.execute(
+
+    if mem_db == "any":
+        filter_sql = "E.NUM_METHODS > 0"
+        params = ()
+    elif mem_db == "none":
+        filter_sql = "E.NUM_METHODS = 0"
+        params = ()
+    else:
+        cur.execute(
+            """
+            SELECT DBCODE
+            FROM INTERPRO.CV_DATABASE
+            WHERE LOWER(DBSHORT) = :1
+            """, (mem_db.lower(),)
+        )
+        row = cur.fetchone()
+        if not row:
+            cur.close()
+            con.close()
+            return jsonify({
+                "status": False,
+                "error": {
+                    "title": "Bad request",
+                    "message": "Invalid or missing parameters."
+                }
+            }), 400
+
+        dbcode, = row
+
+        filter_sql = """
+            E.ENTRY_AC IN (
+                SELECT DISTINCT EM.ENTRY_AC
+                FROM INTERPRO.ENTRY2METHOD EM
+                INNER JOIN INTERPRO.METHOD M
+                  ON EM.METHOD_AC = M.METHOD_AC
+                  AND M.DBCODE = :1
+            )
         """
+        params = (dbcode,)
+
+    cur.execute(
+        f"""
         SELECT * FROM (
             SELECT
               E.ENTRY_AC, E.ENTRY_TYPE, E.SHORT_NAME, 
@@ -127,9 +169,9 @@ def get_unchecked_entries():
             ) EC ON E.ENTRY_AC = EC.ENTRY_AC
             WHERE E.CHECKED = 'N'
         ) E
-        WHERE E.NUM_METHODS > 0
+        WHERE {filter_sql}
         ORDER BY UPDATED_TIME DESC
-        """
+        """, params
     )
     entries = []
     for row in cur:
