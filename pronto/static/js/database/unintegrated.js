@@ -98,7 +98,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     for (const input of document.querySelectorAll('input[type="radio"]')) {
         input.addEventListener('change', (e,) => {
-            console.log(e);
             const key = e.currentTarget.name;
             const value = e.currentTarget.value;
             const url = new URL(location.href);
