@@ -156,10 +156,17 @@ CHECKS = {
         "terms": False,
         "exceptions": None
     },
-    "unchecked_node": {
-        "name": "Unchecked entries",
-        "description": "Unchecked entries whose parent/children are checked",
-        "label": "Unchecked entry",
+    "unchecked_parent": {
+        "name": "Unchecked parent entries",
+        "description": "Unchecked entries with at least one checked child",
+        "label": "Unchecked parent",
+        "terms": False,
+        "exceptions": None
+    },
+    "unchecked_child": {
+        "name": "Unchecked child entries",
+        "description": "Unchecked entries whose parent are checked",
+        "label": "Unchecked child",
         "terms": False,
         "exceptions": None
     },

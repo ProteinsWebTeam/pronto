@@ -230,25 +230,37 @@ def ck_type_conflicts(cur: Cursor) -> Err:
     return cur.fetchall()
 
 
-def ck_unchecked_nodes(cur: Cursor) -> Err:
-    """Find unchecked entries whose parent/children are checked
+def ck_unchecked_parents(cur: Cursor) -> Err:
+    """Find unchecked entries with one or more checked children
 
     :param cur: Cursor object
     :return: a list of accessions
     """
     cur.execute(
         """
-        SELECT E.ENTRY_AC
-        FROM INTERPRO.ENTRY E
-        INNER JOIN INTERPRO.ENTRY2ENTRY EE ON E.ENTRY_AC = EE.ENTRY_AC
-        INNER JOIN INTERPRO.ENTRY P ON EE.PARENT_AC = P.ENTRY_AC
-        WHERE E.CHECKED = 'N' AND P.CHECKED = 'Y'
-        UNION 
-        SELECT E.ENTRY_AC
-        FROM INTERPRO.ENTRY E
-        INNER JOIN INTERPRO.ENTRY2ENTRY EE ON E.ENTRY_AC = EE.PARENT_AC
+        SELECT DISTINCT P.ENTRY_AC
+        FROM INTERPRO.ENTRY P
+        INNER JOIN INTERPRO.ENTRY2ENTRY EE ON P.ENTRY_AC = EE.PARENT_AC
         INNER JOIN INTERPRO.ENTRY C ON EE.ENTRY_AC = C.ENTRY_AC
-        WHERE E.CHECKED = 'N' AND C.CHECKED = 'Y'
+        WHERE P.CHECKED = 'N' AND C.CHECKED = 'Y'
+        """
+    )
+    return [(acc, None) for acc, in cur]
+
+
+def ck_unchecked_children(cur: Cursor) -> Err:
+    """Find unchecked entries whose parent is checked
+
+    :param cur: Cursor object
+    :return: a list of accessions
+    """
+    cur.execute(
+        """
+        SELECT DISTINCT P.ENTRY_AC
+        FROM INTERPRO.ENTRY P
+        INNER JOIN INTERPRO.ENTRY2ENTRY EE ON P.ENTRY_AC = EE.PARENT_AC
+        INNER JOIN INTERPRO.ENTRY C ON EE.ENTRY_AC = C.ENTRY_AC
+        WHERE P.CHECKED = 'Y' AND C.CHECKED = 'N'
         """
     )
     return [(acc, None) for acc, in cur]
@@ -322,8 +334,11 @@ def check(ora_cur: Cursor, pg_url: str):
     for item in ck_type_conflicts(ora_cur):
         yield "type_conflict", item
 
-    for item in ck_unchecked_nodes(ora_cur):
-        yield "unchecked_node", item
+    for item in ck_unchecked_parents(ora_cur):
+        yield "unchecked_parent", item
+
+    for item in ck_unchecked_children(ora_cur):
+        yield "unchecked_child", item
 
     exceptions = load_exceptions(ora_cur, "underscore", "ENTRY_AC", "TERM")
     for item in ck_underscore(entries, set(exceptions)):
