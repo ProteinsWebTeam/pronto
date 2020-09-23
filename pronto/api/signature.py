@@ -64,28 +64,43 @@ def get_signature(accession):
     cur = con.cursor()
     cur.execute(
         """
-        SELECT E.ENTRY_AC, E.NAME, 
-               E.ENTRY_TYPE, E.CHECKED, EE.PARENT_AC
+        SELECT E.ENTRY_AC, E.NAME, E.ENTRY_TYPE, E.CHECKED
         FROM INTERPRO.ENTRY2METHOD EM 
         LEFT OUTER JOIN INTERPRO.ENTRY E 
           ON EM.ENTRY_AC = E.ENTRY_AC
-        LEFT OUTER JOIN INTERPRO.ENTRY2ENTRY EE
-          ON E.ENTRY_AC = EE.ENTRY_AC
         WHERE EM.METHOD_AC = :1
         """, (result["accession"],)
     )
     row = cur.fetchone()
-    cur.close()
-    con.close()
 
     if row:
+        entry_acc = row[0]
+
         result["entry"] = {
-            "accession": row[0],
+            "accession": entry_acc,
             "name": row[1],
             "type": row[2],
-            "checked": row[3] == 'Y',
-            "parent": row[4]
+            "checked": row[3] == 'Y'
         }
+
+        cur.execute(
+            """
+            SELECT E.ENTRY_AC, E.NAME
+            FROM (
+                SELECT PARENT_AC, ROWNUM RN
+                FROM INTERPRO.ENTRY2ENTRY
+                START WITH ENTRY_AC = :1
+                CONNECT BY PRIOR PARENT_AC = ENTRY_AC
+            ) H
+            INNER JOIN INTERPRO.ENTRY E ON H.PARENT_AC = E.ENTRY_AC
+            ORDER BY H.RN DESC
+            """, (entry_acc,)
+        )
+        ancestors = [dict(zip(("accession", "name"), row)) for row in cur]
+        result["entry"]["hierarchy"] = ancestors
+
+    cur.close()
+    con.close()
 
     return jsonify(result)
 
@@ -311,9 +326,16 @@ def get_signature_predictions(accession):
         ancestors = set()
         descendants = set()
 
-    # Get (child -> parent) relationships
+    # Get (child -> parent) and (parent -> children) relationships
     cur.execute("SELECT ENTRY_AC, PARENT_AC FROM INTERPRO.ENTRY2ENTRY")
-    parent_of = dict(cur.fetchall())
+    parent_of = {}
+    children_of = {}
+    for child_acc, parent_acc in cur:
+        parent_of[child_acc] = parent_acc
+        try:
+            children_of[parent_acc].append(child_acc)
+        except KeyError:
+            children_of[parent_acc] = [child_acc]
     cur.close()
     con.close()
 

@@ -5,8 +5,6 @@ import * as modals from "./ui/modals.js";
 import {updateHeader} from "./ui/header.js";
 import {selector, renderConfidence} from "./ui/signatures.js";
 
-// todo: look tbody for cd08304
-
 function getSignature() {
     return new Promise((resolve, reject) => {
         fetch('/api' + location.pathname)
@@ -26,11 +24,8 @@ function getPredictions(accession) {
             dimmer.off();
             let html = '';
             if (results.length > 0) {
-
-            } else
-                html += '<tr><td colspan="9" class="center aligned">No results for this signature</td></tr>';
-            for (const signature of results) {
-                html += `
+                for (const signature of results) {
+                    html += `
                     <tr>
                         <td class="capitalize">${signature.relationship || ''}</td>
                         <td class="collapsing center aligned">${renderConfidence(signature)}</td>
@@ -49,19 +44,19 @@ function getPredictions(accession) {
                         <td class="right aligned">${signature.overlaps.toLocaleString()}</td>
                     `;
 
-                if (signature.entry) {
-                    html += '<td class="nowrap"><div class="ui list">';
+                    if (signature.entry) {
+                        html += '<td class="nowrap"><div class="ui list">';
 
-                    for (const parent of signature.entry.hierarchy) {
-                        html += `<div class="item">
+                        for (const parent of signature.entry.hierarchy) {
+                            html += `<div class="item">
                                 <div class="content">
                                 <i class="angle down icon"></i>
                                 <a href="/entry/${parent}">${parent}</a>
                                 </div>
                              </div>`;
-                    }
+                        }
 
-                    html += `<div class="item">
+                        html += `<div class="item">
                             <div class="content">
                             <span class="ui circular mini label type ${signature.entry.type}">${signature.entry.type}</span>
                             <a href="/entry/${signature.entry.accession}">${signature.entry.accession} (${signature.entry.name})</a>
@@ -70,9 +65,11 @@ function getPredictions(accession) {
                          </div>
                          </td>
                          <td>${checkbox.createDisabled(signature.entry.checked)}</td></tr>`;
-                } else
-                    html += '<td></td><td></td></tr>';
-            }
+                    } else
+                        html += '<td></td><td></td></tr>';
+                }
+            } else
+                html += '<tr><td colspan="10" class="center aligned">No results for this signature</td></tr>';
 
             document.querySelector("#predictions tbody").innerHTML = html;
 
@@ -131,9 +128,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (result.entry) {
                 html += '&nbsp;&mdash;&nbsp;';
-
-                if (result.entry.parent) {
-                    html += `<a href="/entry/${result.entry.parent}">${result.entry.parent}</a>
+                if (result.entry.hierarchy.length > 0) {
+                    const parent = result.entry.hierarchy[result.entry.hierarchy.length-1];
+                    html += `<a href="/entry/${parent.accession}">${parent.accession}</a>
                              <i class="fitted right chevron icon"></i>`;
                 }
 
@@ -155,11 +152,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (result.entry) {
                 html += '<th class="nowrap"><div class="ui list">';
 
-                if (result.entry.parent) {
+                for (let i = 0; i < result.entry.hierarchy.length; i++) {
+                    const node = result.entry.hierarchy[i];
                     html += `<div class="item">
                                 <div class="content">
                                 <i class="angle right icon"></i>
-                                <a href="/entry/${result.entry.parent}">${result.entry.parent}</a>
+                                <a href="/entry/${node.accession}">${node.accession}</a>
                                 </div>
                              </div>`;
                 }
