@@ -183,7 +183,7 @@ async function getSanityCheck() {
         tab.innerHTML = `
         <div class="ui error message">
             <div class="header">Sanity checks not available</div>
-            <p>Sanity checks have not been migrated, and cannot be used at this time.</p>
+            <p>An internal error occurred: sanity checks cannot be used at this time.</p>
         </div>
     `;
         const label = document.querySelector('.item[data-tab="checks"] .label');
