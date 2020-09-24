@@ -17,15 +17,26 @@ def get_relationships(accession):
           R.PARENT_AC, E1.NAME, E1.ENTRY_TYPE, 
           R.ENTRY_AC, E2.NAME, E2.ENTRY_TYPE
         FROM (
+            -- ancestors
             SELECT PARENT_AC, ENTRY_AC
             FROM INTERPRO.ENTRY2ENTRY
             START WITH ENTRY_AC = :accession
             CONNECT BY PRIOR PARENT_AC = ENTRY_AC
             UNION ALL
+            -- siblings
+            SELECT PARENT_AC, ENTRY_AC
+            FROM INTERPRO.ENTRY2ENTRY
+            WHERE PARENT_AC = (
+                SELECT PARENT_AC 
+                FROM INTERPRO.ENTRY2ENTRY 
+                WHERE ENTRY_AC = :accession
+            ) AND ENTRY_AC != :accession
+            UNION ALL
+            -- descendants
             SELECT PARENT_AC, ENTRY_AC
             FROM INTERPRO.ENTRY2ENTRY
             START WITH PARENT_AC = :accession
-            CONNECT BY PRIOR ENTRY_AC = PARENT_AC        
+            CONNECT BY PRIOR ENTRY_AC = PARENT_AC
         ) R
         INNER JOIN INTERPRO.ENTRY E1 
           ON R.PARENT_AC = E1.ENTRY_AC
@@ -35,17 +46,17 @@ def get_relationships(accession):
         dict(accession=accession)
     )
 
-    parents = {}
+    child2parent = {}
     hierarchy = {}
     for row in cur:
-        entry_acc = row[0]
-        entry_name = row[1]
-        entry_type = row[2]
+        parent_acc = row[0]
+        parent_name = row[1]
+        parent_type = row[2]
         child_acc = row[3]
         child_name = row[4]
         child_type = row[5]
 
-        parents[child_acc] = entry_acc
+        child2parent[child_acc] = parent_acc
 
         if child_acc in hierarchy:
             child = hierarchy.pop(child_acc)
@@ -56,18 +67,18 @@ def get_relationships(accession):
                 "type": child_type,
                 "children": {},
                 # can delete if query's child
-                "deletable": entry_acc == accession
+                "deletable": parent_acc == accession
             }
 
-        if entry_acc in parents:
+        if parent_acc in child2parent:
             """
-            entry_acc is itself a child of another entry: 
+            parent is itself a child of another entry: 
                 find the root (oldest parent)
             """
-            node_acc = entry_acc
+            node_acc = parent_acc
             lineage = [node_acc]
-            while node_acc in parents:
-                node_acc = parents[node_acc]
+            while node_acc in child2parent:
+                node_acc = child2parent[node_acc]
                 lineage.append(node_acc)
 
             node = None
@@ -76,14 +87,14 @@ def get_relationships(accession):
                     node = hierarchy[node_acc]
                 else:
                     node = node["children"][node_acc]
-        elif entry_acc in hierarchy:
-            # entry_acc is root
-            node = hierarchy[entry_acc]
+        elif parent_acc in hierarchy:
+            # parent is root
+            node = hierarchy[parent_acc]
         else:
-            node = hierarchy[entry_acc] = {
-                "accession": entry_acc,
-                "name": entry_name,
-                "type": entry_type,
+            node = hierarchy[parent_acc] = {
+                "accession": parent_acc,
+                "name": parent_name,
+                "type": parent_type,
                 "children": {},
                 # can delete if query's parent
                 "deletable": child_acc == accession
