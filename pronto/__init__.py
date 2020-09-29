@@ -7,7 +7,7 @@ from flask import Flask, render_template
 from . import api
 from . import auth
 
-__version__ = "2.0.0"
+__version__ = "2.1.0"
 
 
 app = Flask(__name__)
