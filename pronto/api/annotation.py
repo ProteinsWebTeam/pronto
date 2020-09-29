@@ -3,6 +3,8 @@
 import re
 from datetime import datetime
 from typing import Optional, Sequence, Set, Union
+from xml.dom.minidom import parseString
+from xml.parsers.expat import ExpatError
 
 from cx_Oracle import Cursor, DatabaseError, STRING
 from flask import Blueprint, jsonify, request
@@ -110,7 +112,14 @@ class Annotation(object):
                 self.error = "Mismatched <li> element."
                 return False
 
-        return True
+        # Final check: ensure the abstract is XML-compliant (i.e. parsable)
+        try:
+            parseString(f"<abstract>{self.text}</abstract>")
+        except ExpatError as exc:
+            self.error = "Abstract is not a well-formed XML element."
+            return False
+        else:
+            return True
 
     def validate_xref_tags(self) -> bool:
         pattern = r"\[(\s*[a-z0-9]+\s*):([^\]]+)]"
