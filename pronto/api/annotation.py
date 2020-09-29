@@ -23,7 +23,7 @@ class Annotation(object):
         # Find missing opening/closing tags
         for el in ("b", "i", "li", "ol", "p", "pre", "sub", "sup", "ul"):
             is_open = False
-            for tag in re.findall(f"</?{el}>", self.text, re.I):
+            for tag in re.findall(f"</?{el}>", self.text):
                 if tag[1] != '/':
                     # is an opening tag
                     if is_open:
