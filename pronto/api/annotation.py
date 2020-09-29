@@ -220,20 +220,51 @@ class Annotation(object):
 
         return True
 
+    @staticmethod
+    def _wrap_bef(match: re.Match) -> str:
+        text, tag = match.groups()
+        text = text.strip()
+        if text:
+            return f"<p>{text}</p>\n\n{tag}"
+        else:
+            return tag
+
+    @staticmethod
+    def _wrap_mid(match: re.Match) -> str:
+        closing_tag, text, opening_tag = match.groups()
+        text = text.strip()
+        if text:
+            return f"{closing_tag}\n\n<p>{text}</p>\n\n{opening_tag}"
+        else:
+            return f"{closing_tag}\n\n{opening_tag}"
+
+    @staticmethod
+    def _wrap_aft(match: re.Match) -> str:
+        tag, text = match.groups()
+        text = text.strip()
+        if text:
+            return f"{tag}\n\n<p>{text}</p>"
+        else:
+            return tag
+
     def wrap(self) -> str:
-        pattern = r"(</(?:p|pre|ul|ol)>)\s*(<(?:p|pre|ul|ol)>)"
-        text = re.sub(pattern, r"\1\n\n\2", self.text, flags=re.I)
-        blocks = []
-        for block in text.split("\n\n"):
-            block = block.strip()
+        # Wrap text before first block (re.S: dot '.' also matches new lines)
+        pattern = r"^(.*?)(<(?:p|pre|ul|ol)>)"
+        text = re.sub(pattern, self._wrap_bef, self.text, flags=re.S)
 
-            if re.match(r"<(?:li|ol|p|pre|ul)>", block, re.I) is None:
-                # Does not start with a tag that cannot be included in <p></p>
-                blocks.append(f"<p>\n{block}\n</p>")
-            else:
-                blocks.append(block)
+        # Wrap text between two blocks
+        pattern = r"(</(?:p|pre|ul|ol)>)(.*?)(<(?:p|pre|ul|ol)>)"
+        text = re.sub(pattern, self._wrap_mid, text, flags=re.S)
 
-        return "\n\n".join(blocks)
+        """
+        Wrap trailing text, i.e. after last block
+        Use a negative-lookahead to ensure the closing tag is the last one,
+        i.e. not followed by an opening tag  
+        """
+        pattern = r"(</(?:p|pre|ul|ol)>)(?!.*<(?:p|pre|ul|ol)>)(.*?)$"
+        text = re.sub(pattern, self._wrap_aft, text, flags=re.S)
+
+        return text
 
     def get_references(self, text: Optional[str] = None) -> set:
         return {
