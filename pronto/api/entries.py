@@ -30,7 +30,7 @@ def get_recent_entries():
           WHERE ROWNUM = 1
         """
     )
-    date, = cur.fetchall()[0]
+    date, = cur.fetchone()
 
     cur.execute(
         """
