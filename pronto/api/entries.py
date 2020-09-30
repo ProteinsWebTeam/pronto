@@ -8,32 +8,30 @@ from pronto import utils
 bp = Blueprint("api.entries", __name__, url_prefix="/api/entries")
 
 
-def _get_unfreeze_date(cur, days=7):
+@bp.route("/news/")
+def get_recent_entries():
+    """
+    Get recent entries, i.e. entries created after the last production freeze
+    (for release N), and meant to be part of the next InterPro release (N+1).
+    """
+    con = utils.connect_oracle()
+    cur = con.cursor()
+
+    # Get the last date on which production was frozen before a release.
     cur.execute(
-        f"""
-        SELECT FILE_DATE
-        FROM (
-          SELECT FILE_DATE
+        """
+        SELECT TIMESTAMP
           FROM (
-            SELECT FILE_DATE - INTERVAL '{days}' DAY AS FILE_DATE
+            SELECT TIMESTAMP
             FROM DB_VERSION_AUDIT
             WHERE DBCODE = 'I'
-            ORDER BY FILE_DATE DESC
+            ORDER BY TIMESTAMP DESC
           )
-          WHERE ROWNUM <= 2
-        )
-        WHERE FILE_DATE < SYSDATE
+          WHERE ROWNUM = 1
         """
     )
     date, = cur.fetchall()[0]
-    return date
 
-
-@bp.route("/news/")
-def get_recent_entries():
-    con = utils.connect_oracle()
-    cur = con.cursor()
-    date = _get_unfreeze_date(cur)
     cur.execute(
         """
         SELECT
