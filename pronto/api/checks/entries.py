@@ -256,11 +256,11 @@ def ck_unchecked_children(cur: Cursor) -> Err:
     """
     cur.execute(
         """
-        SELECT DISTINCT P.ENTRY_AC
-        FROM INTERPRO.ENTRY P
-        INNER JOIN INTERPRO.ENTRY2ENTRY EE ON P.ENTRY_AC = EE.PARENT_AC
-        INNER JOIN INTERPRO.ENTRY C ON EE.ENTRY_AC = C.ENTRY_AC
-        WHERE P.CHECKED = 'Y' AND C.CHECKED = 'N'
+        SELECT DISTINCT C.ENTRY_AC
+        FROM INTERPRO.ENTRY C
+        INNER JOIN INTERPRO.ENTRY2ENTRY EE ON C.ENTRY_AC = EE.ENTRY_AC
+        INNER JOIN INTERPRO.ENTRY P ON EE.PARENT_AC = P.ENTRY_AC
+        WHERE C.CHECKED = 'N' AND P.CHECKED = 'Y'
         """
     )
     return [(acc, None) for acc, in cur]
