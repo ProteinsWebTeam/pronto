@@ -167,7 +167,7 @@ def integrate_signature(e_acc, s_acc):
                 "status": False,
                 "error": {
                     "title": "Cannot unintegrate signature",
-                    "message": f"{s_acc} is integrated in {e_acc}, "
+                    "message": f"{s_acc} is integrated in {from_entry}, "
                                f"and cannot be unintegrated because "
                                f"it would leave a checked entry "
                                f"without signatures."
