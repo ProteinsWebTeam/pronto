@@ -37,7 +37,6 @@ def get_recent_integrations(cur, date):
     return dict(cur.fetchall())
 
 
-
 @bp.route("/recommendations/")
 def get_recommendations():
     min_sim = float(request.args.get("minsim", 0.9))
