@@ -17,7 +17,6 @@ function renderEntry(entry) {
         <td class="collapsing">${checkbox.createDisabled(entry.checked)}</td>`;
 }
 
-
 function getSignatures() {
     dimmer.on();
     fetch(`/api${location.pathname}${location.search}`)
@@ -37,17 +36,18 @@ function getSignatures() {
             }
 
             let html = '';
-            for (const signature of object.results) {
-                html += `<tr>
+            if (object.count > 0) {
+                for (const signature of object.results) {
+                    html += `<tr>
                          <td rowspan="${signature.targets.length}"><a href="/signature/${signature.accession}/">${signature.accession}</a></td>
                          <td rowspan="${signature.targets.length}" class="right aligned">${signature.proteins.toLocaleString()}</td>`;
 
-                for (let i = 0; i < signature.targets.length; ++i) {
-                    const target = signature.targets[i];
+                    for (let i = 0; i < signature.targets.length; ++i) {
+                        const target = signature.targets[i];
 
-                    if (i) html += '<tr>';
+                        if (i) html += '<tr>';
 
-                    html += `<td class="nowrap">
+                        html += `<td class="nowrap">
                                 <span class="ui empty circular label" style="background-color: ${target.database.color};" data-content="${target.database.name}" data-position="left center" data-variation="tiny"></span>
                                 <a href="/signature/${target.accession}/">${target.accession}</a>
                              </td>
@@ -57,7 +57,10 @@ function getSignatures() {
                              <td class="center aligned nowrap">${renderConfidence(target)}</td>
                              ${renderEntry(target.entry)}
                              </tr>`;
+                    }
                 }
+            } else {
+                html = '<tr><td class="center aligned" colspan="9">No matching signatures found</td></tr>'
             }
 
             const table = document.getElementById('results');
