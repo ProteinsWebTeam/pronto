@@ -35,7 +35,7 @@ function getDatabases() {
                 `;
             }
 
-            const tab = document.querySelector('.segment[data-tab="databases"]');
+            const tab = document.querySelector('.tab[data-tab="databases"]');
             tab.querySelector('tbody').innerHTML = html;
             return databases;
         });
@@ -62,7 +62,7 @@ function renderRecentActions(entries, hideChecked) {
     }
 
     if (html.length === 0)
-        html = '<tr><td colspan="6" class="center aligned">No entries found</td></tr>';
+        html = '<tr><td colspan="5" class="center aligned">No entries found</td></tr>';
 
     document.querySelector('.tab[data-tab="news"] tbody').innerHTML = html;
 }
@@ -88,10 +88,8 @@ function getRecentActions() {
                     type: 'column',
                     height: 300
                 },
-                title: {
-                    text: 'Signature integrations'
-                },
-                subtitle: { text: 'Grouped by member database' },
+                title: { text: 'Signature integrations' },
+                subtitle: { text: 'By member database' },
                 credits: { enabled: false },
                 legend: { enabled: false },
                 xAxis: { type: 'category' },
@@ -104,9 +102,7 @@ function getRecentActions() {
                     data: series,
                     color: '#2c3e50'
                 }],
-                tooltip: {
-                    pointFormat: '<b>{point.y}</b> signatures integrated'
-                }
+                tooltip: { pointFormat: '<b>{point.y}</b> signatures integrated' }
             });
 
             let text = `Since ${data.date}, <strong>${data.entries.length} `;
@@ -177,7 +173,15 @@ function getUncheckedEntries(database) {
         .then(response => response.json())
         .then(entries => {
             let html = '';
+            const entriesPerYear = new Map();
+
             for (const entry of entries) {
+                const year = Number.parseInt(entry.created_date.split(' ')[2], 10);
+                if (entriesPerYear.has(year))
+                    entriesPerYear.set(year, entriesPerYear.get(year) + 1);
+                else
+                    entriesPerYear.set(year, 1);
+
                 html += `
                     <tr>
                     <td>
@@ -185,7 +189,6 @@ function getUncheckedEntries(database) {
                         <a href="/entry/${entry.accession}/">${entry.accession}</a>
                     </td>
                     <td>${entry.short_name}</td>
-                    <td>${entry.signatures}</td>
                     <td>${entry.created_date}</td>
                     <td>${entry.update_date}</td>
                     <td class="right aligned">
@@ -197,13 +200,35 @@ function getUncheckedEntries(database) {
                 html += '</td></tr>';
             }
 
-            const tab = document.querySelector('.segment[data-tab="unchecked"]');
+            const tab = document.querySelector('.tab[data-tab="unchecked"]');
 
             if (html.length === 0)
-                html = '<tr><td colspan="6" class="center aligned">No results found</td></tr>';
+                html = '<tr><td colspan="5" class="center aligned">No results found</td></tr>';
 
             tab.querySelector('tbody').innerHTML = html;
             document.querySelector('.item[data-tab="unchecked"] .label').innerHTML = entries.length.toString();
+
+            const years = [...entriesPerYear.entries()].sort((a, b) => a[0] - b[0]);
+            Highcharts.chart(tab.querySelector('.chart'), {
+                chart: {
+                    type: 'bar',
+                    height: 500
+                },
+                title: { text: 'Unchecked entries' },
+                subtitle: { text: 'By year of creation' },
+                credits: { enabled: false },
+                legend: { enabled: false },
+                xAxis: {
+                    categories: years.map(e => e[0])
+                },
+                yAxis: { title: { text: null }, },
+                series: [{
+                    name: 'Entries',
+                    data: years.map(e => e[1]),
+                    color: '#2c3e50'
+                }],
+                tooltip: { pointFormat: '<b>{point.y}</b> entries' }
+            });
         });
 }
 
@@ -219,7 +244,7 @@ async function resolveError(runID, errID, addException) {
 async function getSanityCheck() {
     const response = await fetch('/api/checks/run/last/');
     if (response.status !== 200 && response.status !== 404) {
-        const tab = document.querySelector('.segment[data-tab="checks"]');
+        const tab = document.querySelector('.tab[data-tab="checks"]');
         tab.innerHTML = `
         <div class="ui error message">
             <div class="header">Sanity checks not available</div>
@@ -232,7 +257,7 @@ async function getSanityCheck() {
     }
 
     const object = await response.json();
-    const tab = document.querySelector('.segment[data-tab="checks"]');
+    const tab = document.querySelector('.tab[data-tab="checks"]');
     if (response.status === 404) {
         tab.querySelector('tbody').innerHTML = '<tr><td colspan="4" class="center aligned">No sanity check report available</td></tr>';
         document.querySelector('.item[data-tab="checks"] .label').innerHTML = '0';
@@ -322,7 +347,7 @@ function runSanityChecks() {
     fetch('/api/checks/', {method: 'PUT'})
         .then(response => response.json())
         .then(object => {
-            const tab = document.querySelector('.segment[data-tab="checks"]');
+            const tab = document.querySelector('.tab[data-tab="checks"]');
             const message = tab.querySelector('.message');
             if (!object.status) {
                 message.className = 'ui error message';

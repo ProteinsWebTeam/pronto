@@ -65,27 +65,34 @@
 
         </div>
         <div class="ui tab basic segment" data-tab="unchecked">
-            {#            <div class="ui info message">#}
-            {#                <i class="close icon"></i>#}
-            {#                <div class="header">Unchecked entries</div>#}
-            {#                <p>The table below shows all unchecked InterPro entries containing at least one member database signature.</p>#}
-            {#            </div>#}
-            <div id="unchecked-databases" class="ui equal width form">
-                <div class="fields"></div>
+            <div class="ui grid">
+                <div class="ten wide column">
+                    {#            <div class="ui info message">#}
+                    {#                <i class="close icon"></i>#}
+                    {#                <div class="header">Unchecked entries</div>#}
+                    {#                <p>The table below shows all unchecked InterPro entries containing at least one member database signature.</p>#}
+                    {#            </div>#}
+                    <div id="unchecked-databases" class="ui equal width form">
+                        <div class="fields"></div>
+                    </div>
+                    <table class="ui single line compact table">
+                        <thead>
+                        <tr>
+                            <th>Entry</th>
+                            <th>Short name</th>
+                            <th>Created</th>
+                            <th>Last edit</th>
+                            <th class="collapsing"></th>
+                        </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div class="six wide column">
+                    <div class="chart"></div>
+                </div>
             </div>
-            <table class="ui single line compact table">
-                <thead>
-                <tr>
-                    <th>Entry</th>
-                    <th>Short name</th>
-                    <th>Signatures</th>
-                    <th>Created</th>
-                    <th>Last edit</th>
-                    <th class="collapsing"></th>
-                </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
+
         </div>
         <div class="ui tab basic segment" data-tab="checks">
             <button class="ui compact primary button">Run</button>
