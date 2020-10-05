@@ -41,6 +41,49 @@ def api_index():
     })
 
 
+@bp.route("/news/")
+def get_recent_actions():
+    """
+    Returns recently created InterPro entries and integrated signatures.
+    :return:
+    """
+    con = utils.connect_oracle()
+    cur = con.cursor()
+
+    """
+    Get the date of the last time a record for InterPro was inserted into the
+    DB_VERSION_AUDIT table (triggered by an action for InterPro in DB_VERSION).
+    This roughly corresponds to the date of the last production freeze.
+    """
+    cur.execute(
+        """
+        SELECT TIMESTAMP
+        FROM (
+            SELECT TIMESTAMP, ROWNUM AS RN
+            FROM (
+                SELECT TIMESTAMP
+                FROM DB_VERSION_AUDIT
+                WHERE DBCODE = 'I'
+                ORDER BY TIMESTAMP DESC
+            )
+        )
+        WHERE RN = 1
+        """
+    )
+    date, = cur.fetchone()
+
+    result = {
+        "date": date.strftime("%d %B"),
+        "entries": entries.get_recent_entries(cur, date),
+        "signatures": signatures.get_recent_integrations(cur, date)
+    }
+
+    cur.close()
+    con.close()
+
+    return jsonify(result)
+
+
 @bp.route("/tasks/")
 def get_task():
     return jsonify(utils.executor.tasks)

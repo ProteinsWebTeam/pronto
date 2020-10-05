@@ -34,35 +34,42 @@
         </div>
         <div class="ui tab basic segment" data-tab="news">
             <p></p>
-            <div class="ui warning message">
-                <i class="close icon"></i>
-                <div class="header">Checkboxes are read-only</div>
-                <p>To check or uncheck an entry, please visit the entry page.</p>
+            <div class="ui grid">
+                <div class="ten wide column">
+                    <div class="ui warning message">
+                        <i class="close icon"></i>
+                        <div class="header">Checkboxes are read-only</div>
+                        <p>To check or uncheck an entry, please visit the entry page.</p>
+                    </div>
+                    <div class="ui toggle checkbox">
+                        <input type="checkbox" name="unchecked">
+                        <label>Display unchecked entries only</label>
+                    </div>
+                    <table class="ui single line compact table">
+                        <thead>
+                        <tr>
+                            <th>Entry</th>
+                            <th>Short name</th>
+                            <th>Checked</th>
+                            <th>Created</th>
+                            <th>Author</th>
+                        </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div class="six wide column">
+                    <div class="chart"></div>
+                </div>
             </div>
-            <div class="ui toggle checkbox">
-                <input type="checkbox" name="unchecked">
-                <label>Display unchecked entries only</label>
-            </div>
-            <table class="ui single line compact table">
-                <thead>
-                <tr>
-                    <th>Entry</th>
-                    <th>Short name</th>
-                    <th>Signatures</th>
-                    <th>Checked</th>
-                    <th>Created</th>
-                    <th>Author</th>
-                </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
+
         </div>
         <div class="ui tab basic segment" data-tab="unchecked">
-{#            <div class="ui info message">#}
-{#                <i class="close icon"></i>#}
-{#                <div class="header">Unchecked entries</div>#}
-{#                <p>The table below shows all unchecked InterPro entries containing at least one member database signature.</p>#}
-{#            </div>#}
+            {#            <div class="ui info message">#}
+            {#                <i class="close icon"></i>#}
+            {#                <div class="header">Unchecked entries</div>#}
+            {#                <p>The table below shows all unchecked InterPro entries containing at least one member database signature.</p>#}
+            {#            </div>#}
             <div id="unchecked-databases" class="ui equal width form">
                 <div class="fields"></div>
             </div>
@@ -113,6 +120,7 @@
 
 <script src="{{ url_for('static', filename='vendor/jquery.min.js') }}"></script>
 <script src="{{ url_for('static', filename='vendor/semantic.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/highcharts.js') }}"></script>
 <script src="{{ url_for('static', filename='js/index.js') }}" type="module"></script>
 </body>
 </html>

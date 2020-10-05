@@ -16,6 +16,28 @@ from . import proteins
 from . import taxonomy
 
 
+def get_recent_integrations(cur, date):
+    """
+    Get signatures recently integrated.
+
+    :param cur: Oracle cursor
+    :param date: date of the last production freeze
+    :return: dictionary of member databases (name -> number of integrations)
+    """
+    cur.execute(
+        """
+        SELECT D.DBNAME, COUNT(*)
+        FROM INTERPRO.ENTRY2METHOD EM
+        INNER JOIN INTERPRO.METHOD M ON EM.METHOD_AC = M.METHOD_AC
+        INNER JOIN INTERPRO.CV_DATABASE D ON M.DBCODE = D.DBCODE
+        WHERE EM.TIMESTAMP >= :1
+        GROUP BY D.DBNAME
+        """, (date,)
+    )
+    return dict(cur.fetchall())
+
+
+
 @bp.route("/recommendations/")
 def get_recommendations():
     min_sim = float(request.args.get("minsim", 0.9))

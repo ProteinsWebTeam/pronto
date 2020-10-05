@@ -41,9 +41,9 @@ function getDatabases() {
         });
 }
 
-function renderRecentEntries(data, hideChecked) {
+function renderRecentActions(entries, hideChecked) {
     let html = '';
-    for (const entry of data.entries) {
+    for (const entry of entries) {
         if (entry.checked && hideChecked)
             continue;
 
@@ -54,7 +54,6 @@ function renderRecentEntries(data, hideChecked) {
                 <a href="/entry/${entry.accession}/">${entry.accession}</a>
             </td>
             <td>${entry.short_name}</td>
-            <td>${entry.signatures}</td>
             <td>${checkbox.createDisabled(entry.checked)}</td>
             <td>${entry.date}</td>
             <td>${entry.user}</td>
@@ -65,19 +64,60 @@ function renderRecentEntries(data, hideChecked) {
     if (html.length === 0)
         html = '<tr><td colspan="6" class="center aligned">No entries found</td></tr>';
 
-    const tab = document.querySelector('.segment[data-tab="news"]');
-    tab.querySelector('tbody').innerHTML = html;
-    tab.querySelector(':scope > p').innerHTML = `<strong>${data.entries.length}</strong> ${data.entries.length > 1 ? 'entries' : 'entry'} created since <strong>${data.date}</strong>.`;
-    document.querySelector('.item[data-tab="news"] .label').innerHTML = data.entries.length.toString();
+    document.querySelector('.tab[data-tab="news"] tbody').innerHTML = html;
 }
 
-function getRecentEntries() {
-    return fetch('/api/entries/news/')
+function getRecentActions() {
+    return fetch('/api/news/')
         .then(response => response.json())
-        .then(object => {
-            sessionStorage.setItem('newEntries', JSON.stringify(object));
-            const hideChecked = document.querySelector('[data-tab="news"] input[name="unchecked"]').checked;
-            renderRecentEntries(object, hideChecked);
+        .then(data => {
+            sessionStorage.setItem('newEntries', JSON.stringify(data.entries));
+            const tab = document.querySelector('.tab[data-tab="news"]');
+            const hideChecked = tab.querySelector('input[name="unchecked"]').checked;
+
+            // Recent entries
+            renderRecentActions(data.entries, hideChecked);
+
+            // Recent integrated signatures (chart)
+            const series = Object.entries(data.signatures)
+                .sort((a, b) => a[0].localeCompare(b[0]))
+                .map(e => ({name: e[0], y: e[1]}));
+
+            Highcharts.chart(tab.querySelector('.chart'), {
+                chart: {
+                    type: 'column',
+                    height: 300
+                },
+                title: {
+                    text: 'Signature integrations'
+                },
+                subtitle: { text: 'Grouped by member database' },
+                credits: { enabled: false },
+                legend: { enabled: false },
+                xAxis: { type: 'category' },
+                yAxis: {
+                    title: { text: null },
+                    type: Math.max(...Object.values(data.signatures)) >= Math.min(...Object.values(data.signatures)) * 100 ? 'logarithmic' : 'linear',
+                },
+                series: [{
+                    name: 'Member databases',
+                    data: series,
+                    color: '#2c3e50'
+                }],
+                tooltip: {
+                    pointFormat: '<b>{point.y}</b> signatures integrated'
+                }
+            });
+
+            let text = `Since ${data.date}, <strong>${data.entries.length} `;
+            text += data.entries.length > 1 ? 'entries' : 'entry';
+            text += '</strong> have been created, ';
+
+            const nIntegrated = series.reduce((acc, cur) => acc + cur.y, 0);
+            text += `and <strong>${nIntegrated} ${nIntegrated > 1 ? 'signatures' : 'signature'}</strong> have been integrated.`;
+
+            tab.querySelector(':scope > p').innerHTML = text;
+    document.querySelector('.item[data-tab="news"] .label').innerHTML = data.entries.length.toString();
         });
 }
 
@@ -375,7 +415,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
 
         const hideChecked = e.currentTarget.checked;
-        renderRecentEntries(JSON.parse(data), hideChecked);
+        renderRecentActions(JSON.parse(data), hideChecked);
     });
 
     // Run sanity checks
@@ -383,7 +423,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const promises = [
         getDatabases().then(databases => initUncheckedEntries(databases)),
-        getRecentEntries(),
+        getRecentActions(),
         getSanityCheck()
     ];
 

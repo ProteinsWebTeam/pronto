@@ -8,35 +8,20 @@ from pronto import utils
 bp = Blueprint("api.entries", __name__, url_prefix="/api/entries")
 
 
-@bp.route("/news/")
-def get_recent_entries():
+def get_recent_entries(cur, date):
     """
     Get recent entries, i.e. entries created after the last production freeze
     (for release N), and meant to be part of the next InterPro release (N+1).
+
+    :param cur: Oracle cursor
+    :param date: date of last production freeze
+    :return: list of entries
     """
-    con = utils.connect_oracle()
-    cur = con.cursor()
-
-    # Get the last date on which production was frozen before a release.
-    cur.execute(
-        """
-        SELECT TIMESTAMP
-          FROM (
-            SELECT TIMESTAMP
-            FROM DB_VERSION_AUDIT
-            WHERE DBCODE = 'I'
-            ORDER BY TIMESTAMP DESC
-          )
-          WHERE ROWNUM = 1
-        """
-    )
-    date, = cur.fetchone()
-
     cur.execute(
         """
         SELECT
           E.ENTRY_AC, E.ENTRY_TYPE, E.SHORT_NAME, A.TIMESTAMP,
-          NVL(U.NAME, A.DBUSER), E.CHECKED, NVL(EM.NUM_METHODS, 0)
+          NVL(U.NAME, A.DBUSER), E.CHECKED
         FROM INTERPRO.ENTRY E
         INNER JOIN (
           -- First audit event
@@ -49,11 +34,6 @@ def get_recent_entries():
           FROM INTERPRO.ENTRY_AUDIT
         ) A ON E.ENTRY_AC = A.ENTRY_AC AND A.RN = 1
         LEFT OUTER JOIN INTERPRO.PRONTO_USER U ON A.DBUSER = U.DB_USER
-        LEFT OUTER JOIN (
-          SELECT ENTRY_AC, COUNT(*) AS NUM_METHODS
-          FROM INTERPRO.ENTRY2METHOD
-          GROUP BY ENTRY_AC
-        ) EM ON E.ENTRY_AC = EM.ENTRY_AC
         WHERE A.TIMESTAMP >= :1
         ORDER BY A.TIMESTAMP DESC
         """, (date,)
@@ -66,15 +46,10 @@ def get_recent_entries():
             "short_name": row[2],
             "date": row[3].strftime("%d %b %Y"),
             "user": row[4],
-            "checked": row[5] == 'Y',
-            "signatures": row[6]
+            "checked": row[5] == 'Y'
         })
-    cur.close()
-    con.close()
-    return jsonify({
-        "date": date.strftime("%d %b %Y"),
-        "entries": entries,
-    })
+
+    return entries
 
 
 @bp.route("/unchecked/")
