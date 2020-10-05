@@ -41,6 +41,7 @@ def get_recent_integrations(cur, date):
 def get_recommendations():
     min_sim = float(request.args.get("minsim", 0.9))
     no_panther_sf = "nopanthersf" in request.args
+    no_commented = "nocommented" in request.args
 
     try:
         page = int(request.args["page"])
@@ -69,6 +70,19 @@ def get_recommendations():
             "name": row[3],
             "checked": row[4] == 'Y'
         }
+
+    if no_commented:
+        cur.execute(
+            """
+            SELECT DISTINCT METHOD_AC
+            FROM INTERPRO.METHOD_COMMENT
+            WHERE STATUS = 'Y'
+            """
+        )
+        commented = {acc for acc, in cur}
+    else:
+        commented = set()
+
     cur.close()
     con.close()
 
@@ -109,11 +123,14 @@ def get_recommendations():
             if entry1 and entry2:
                 continue
             elif entry2:
+                # We want entry1 (query) to be the integrated one
                 _acc, _dbkey, _dbname, _entry = acc1, dbkey1, dbname1, entry1
                 acc1, dbkey1, dbname1, entry1 = acc2, dbkey2, dbname2, entry2
                 acc2, dbkey2, dbname2, entry2 = _acc, _dbkey, _dbname, _entry
 
-            if no_panther_sf and (pthr_sf.match(acc1) or pthr_sf.match(acc2)):
+            if acc2 in commented:
+                continue  # ignore commented (assume no_commented == True)
+            elif no_panther_sf and (pthr_sf.match(acc1) or pthr_sf.match(acc2)):
                 continue
 
             results.append({

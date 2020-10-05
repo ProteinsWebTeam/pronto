@@ -102,7 +102,11 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
         <div class="ui toggle checkbox">
           <input type="checkbox" name="nopanthersf">
-          <label>Hide PANTHER subfamilies</label>
+          <label>Ignore PANTHER subfamilies</label>
+        </div>    
+        <div class="ui toggle checkbox">
+          <input type="checkbox" name="nocommented">
+          <label>Ignore commented candidates</label>
         </div>    
     `;
 
@@ -113,18 +117,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 .transition('fade');
         });
 
-    params.querySelector('input[name="nopanthersf"]').addEventListener('change', e => {
-        const url = new URL(location.href, location.origin);
-        url.searchParams.delete('page');
-        url.searchParams.delete('page_size');
-        if (e.currentTarget.checked)
-            url.searchParams.set('nopanthersf', '');
-        else
-            url.searchParams.delete('nopanthersf');
+    for (let input of params.querySelectorAll('input')) {
+        input.addEventListener('change', e => {
+            const key = e.currentTarget.name;
+            const checked = e.currentTarget.checked;
+            const url = new URL(location.href, location.origin);
 
-        history.pushState(null, document.title, url.toString());
-        refresh();
-    });
+            if (checked)
+                url.searchParams.set(key, '');
+            else if (url.searchParams.has(key))
+                url.searchParams.delete(key);
+
+            history.pushState(null, document.title, url.toString());
+            refresh();
+        });
+    }
 
     refresh();
 });
