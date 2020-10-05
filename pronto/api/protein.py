@@ -12,6 +12,7 @@ bp = Blueprint("api.protein", __name__, url_prefix="/api/protein")
 def get_protein(accession):
     inc_lineage = "lineage" in request.args
     inc_matches = "matches" in request.args
+    sig_accession = request.args.get("signature")
 
     con = utils.connect_pg()
     cur = con.cursor()
@@ -58,14 +59,21 @@ def get_protein(accession):
 
     matches = {}
     if inc_matches:
+        if sig_accession:
+            sql = "m.protein_acc = %s AND m.signature_acc = %s"
+            params = (accession, sig_accession)
+        else:
+            sql = "m.protein_acc = %s"
+            params = (accession,)
+
         cur.execute(
-            """
+            f"""
             SELECT m.signature_acc, s.name, d.name, d.name_long, m.fragments
             FROM match m 
             INNER JOIN database d ON m.database_id = d.id
             INNER JOIN signature s ON m.signature_acc = s.accession
-            WHERE m.protein_acc = %s
-            """, (accession,)
+            WHERE {sql}
+            """, params
         )
 
         for row in cur:
