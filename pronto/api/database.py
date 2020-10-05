@@ -265,6 +265,18 @@ def get_unintegrated_signatures(db_name):
                 }
             }), 400
 
+    try:
+        comment_filter = int(request.args["commented"]) != 0
+    except KeyError:
+        comment_filter = None
+    except ValueError:
+        return jsonify({
+            "error": {
+                "title": "Bad Request (invalid commented parameter)",
+                f"message": "An integer is expected"
+            }
+        }), 400
+
     no_same_db = "nosamedb" in request.args
     no_panther_sf = "nopanthersf" in request.args
 
@@ -276,10 +288,11 @@ def get_unintegrated_signatures(db_name):
         FROM INTERPRO.METHOD_COMMENT MC
         INNER JOIN INTERPRO.METHOD M ON MC.METHOD_AC = M.METHOD_AC
         WHERE M.DBCODE = (
-            SELECT DBCODE 
-            FROM INTERPRO.CV_DATABASE 
+            SELECT DBCODE
+            FROM INTERPRO.CV_DATABASE
             WHERE DBSHORT = :1
         )
+        AND MC.STATUS = 'Y'
         GROUP BY M.METHOD_AC
         """, (db_name.upper(),)
     )
@@ -432,10 +445,19 @@ def get_unintegrated_signatures(db_name):
             # We are not interested in PANTHER sub-families
             continue
 
+        q_comments = num_comments.get(q_acc, 0)
+        if comment_filter is None:
+            pass
+        elif comment_filter:
+            if not q_comments:
+                continue
+        elif q_comments:
+            continue
+
         query = {
             "accession": q_acc,
             "proteins": q_proteins,
-            "comments": num_comments.get(q_acc, 0),
+            "comments": q_comments,
             "targets": []
         }
 
@@ -445,7 +467,7 @@ def get_unintegrated_signatures(db_name):
             if rel_filter == "none":
                 results.append(query)
         else:
-            for t in sorted(queries[q_acc], key=_sort_target):
+            for t in sorted(targets, key=_sort_target):
                 if not t["entry"] or t["entry"]["accession"] not in blacklist:
                     query["targets"].append(t)
 
@@ -456,6 +478,9 @@ def get_unintegrated_signatures(db_name):
 
     num_results = len(results)
     results = results[(page-1)*page_size:page*page_size]
+
+    if comment_filter is not None:
+        comment_filter = '1' if comment_filter else '0'
 
     return jsonify({
         "page_info": {
@@ -470,7 +495,8 @@ def get_unintegrated_signatures(db_name):
         },
         "parameters": {
             "relationship": rel_filter,
-            "target": integ_filter
+            "target": integ_filter,
+            "commented": comment_filter
         }
     })
 

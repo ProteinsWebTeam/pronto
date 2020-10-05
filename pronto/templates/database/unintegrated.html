@@ -23,61 +23,74 @@
     <div class="ui basic segment">
         <h1 class="ui header"></h1>
         <div class="ui form">
-            <div class="four fields">
+            <div class="inline fields">
+                <label>Predicted relationship</label>
                 <div class="field">
-                    <div class="grouped fields">
-                        <label>Predicted relationship</label>
-                        <div class="field">
-                            <div class="ui radio checkbox">
-                                <input id="relationship-similar" class="hidden" type="radio" name="relationship" value="similar" checked>
-                                <label for="relationship-similar">Similar</label>
-                            </div>
-                        </div>
-                        <div class="field">
-                            <div class="ui radio checkbox">
-                                <input id="relationship-parent" class="hidden" type="radio" name="relationship" value="parent">
-                                <label for="relationship-parent">Parent</label>
-                            </div>
-                        </div>
-                        <div class="field">
-                            <div class="ui radio checkbox">
-                                <input id="relationship-child" class="hidden" type="radio" name="relationship" value="child">
-                                <label for="relationship-child">Child</label>
-                            </div>
-                        </div>
-                        <!--<div class="field">
-                            <div class="ui radio checkbox">
-                                <input id="relationship-none" class="hidden" type="radio" name="relationship" value="none">
-                                <label for="relationship-none">None</label>
-                            </div>
-                        </div>-->
+                    <div class="ui radio checkbox">
+                        <input id="relationship-similar" class="hidden" type="radio" name="relationship" value="similar" checked>
+                        <label for="relationship-similar">Similar</label>
                     </div>
                 </div>
-
                 <div class="field">
-                    <div class="grouped fields">
-                        <label>Integration status</label>
-                        <div class="field">
-                            <div class="ui radio checkbox">
-                                <input id="target-integrated" class="hidden" type="radio" name="target" value="integrated" checked="checked">
-                                <label for="target-integrated">Integrated</label>
-                            </div>
-                        </div>
-                        <div class="field">
-                            <div class="ui radio checkbox">
-                                <input id="target-unintegrated" class="hidden" type="radio" name="target" value="unintegrated">
-                                <label for="target-unintegrated">Unintegrated</label>
-                            </div>
-                        </div>
-                        <div class="field">
-                            <div class="ui radio checkbox">
-                                <input id="target-none" class="hidden" type="radio" name="target" value="">
-                                <label for="target-none">Any</label>
-                            </div>
-                        </div>
+                    <div class="ui radio checkbox">
+                        <input id="relationship-parent" class="hidden" type="radio" name="relationship" value="parent">
+                        <label for="relationship-parent">Parent</label>
                     </div>
                 </div>
-
+                <div class="field">
+                    <div class="ui radio checkbox">
+                        <input id="relationship-child" class="hidden" type="radio" name="relationship" value="child">
+                        <label for="relationship-child">Child</label>
+                    </div>
+                </div>
+                <!--<div class="field">
+                    <div class="ui radio checkbox">
+                        <input id="relationship-none" class="hidden" type="radio" name="relationship" value="none">
+                        <label for="relationship-none">None</label>
+                    </div>
+                </div>-->
+            </div>
+            <div class="inline fields">
+                <label>Integration status</label>
+                <div class="field">
+                    <div class="ui radio checkbox">
+                        <input id="target-none" class="hidden" type="radio" name="target" value="">
+                        <label for="target-none">Any</label>
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="ui radio checkbox">
+                        <input id="target-integrated" class="hidden" type="radio" name="target" value="integrated" checked="checked">
+                        <label for="target-integrated">Integrated</label>
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="ui radio checkbox">
+                        <input id="target-unintegrated" class="hidden" type="radio" name="target" value="unintegrated">
+                        <label for="target-unintegrated">Unintegrated</label>
+                    </div>
+                </div>
+            </div>
+            <div class="inline fields">
+                <label>Commented</label>
+                <div class="field">
+                    <div class="ui radio checkbox">
+                        <input id="commented-any" class="hidden" type="radio" name="commented" value="" checked="checked">
+                        <label for="commented-any">Any</label>
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="ui radio checkbox">
+                        <input id="commented-yes" class="hidden" type="radio" name="commented" value="1">
+                        <label for="commented-yes">Yes</label>
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="ui radio checkbox">
+                        <input id="commented-no" class="hidden" type="radio" name="commented" value="0">
+                        <label for="commented-no">No</label>
+                    </div>
+                </div>
             </div>
         </div>
         <div class="ui warning message">
