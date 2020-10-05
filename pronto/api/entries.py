@@ -138,6 +138,7 @@ def get_unchecked_entries():
             LEFT OUTER JOIN (
                 SELECT ENTRY_AC, COUNT(*) AS NUM_COMMENTS
                 FROM INTERPRO.ENTRY_COMMENT
+                WHERE STATUS = 'Y'
                 GROUP BY ENTRY_AC
             ) EC ON E.ENTRY_AC = EC.ENTRY_AC
             WHERE E.CHECKED = 'N'
