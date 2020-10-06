@@ -1,0 +1,62 @@
+<div id="signature-selector">
+    <div class="ui segment">
+        <h4>Signatures</h4>
+        <div class="ui grid">
+            <div class="four wide column">
+                <div class="ui fluid input">
+                    <input placeholder="Add signatures&hellip;" type="text">
+                </div>
+            </div>
+
+            <div class="twelve wide column"></div>
+        </div>
+    </div>
+
+    <div class="ui secondary pointing menu links">
+        <a target="_blank" data-name="proteins" data-link="proteins" class="item">Proteins</a>
+        <a target="_blank" data-name="taxonomy" data-link="taxonomy/superkingdom" class="item">Taxonomic origins</a>
+        <a target="_blank" data-name="descriptions" data-link="descriptions?reviewed" class="item">UniProt descriptions</a>
+        <a target="_blank" data-name="comments" data-link="comments" class="item">Similarity comments</a>
+        <a target="_blank" data-name="go" data-link="go" class="item">GO terms</a>
+        <a target="_blank" data-name="matrices" data-link="matrices" class="item">Matrices</a>
+    </div>
+</div>
+
+<div id="proteins-modal" class="ui large modal">
+    <i class="close icon"></i>
+    <div class="scrolling content">
+        <table class="ui very compact small celled table">
+            <thead>
+            <tr>
+                <th colspan="5">
+                    <div class="ui secondary menu">
+                        <span class="item"></span>
+                        <div class="right menu">
+                            <a target="_blank" class="item">Open in new tab</a>
+                        </div>
+                    </div>
+                </th>
+            </tr>
+            </thead>
+            <tbody></tbody>
+            <tfoot>
+            <tr>
+                <th colspan="5">
+                    <div class="ui right floated pagination menu"></div>
+                </th>
+            </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+
+<div id="progress-modal" class="ui tiny modal">
+    <div class="content">
+        <div class="ui active progress">
+            <div class="bar">
+                <div class="progress"></div>
+            </div>
+            <div class="label"></div>
+        </div>
+    </div>
+</div>

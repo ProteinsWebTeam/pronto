@@ -1,84 +1,77 @@
-<header class="ui noradius menu">
+<header class="ui menu">
     <div class="ui container">
-        <a href="{{ config.PREFIX }}/" class="header item">
-            Pronto!
-        </a>
+        <a href="/" class="header item">Pronto!</a>
         <div class="item">
-            <div id="new-entry-btn" class="ui primary compact button">Create</div>
+            <div id="new-entry-btn" class="ui primary compact button">New entry</div>
         </div>
-{#        <div class="item">#}
-{#            <div id="instance" class="ui purple label">#}
-{#            </div>#}
-{#        </div>#}
-        <div class="item">
-            <div class="ui violet blue label">
-                UniProt
-                <div id="uniprot-version" class="detail"></div>
-            </div>
-        </div>
+        <div id="pronto-info" class="left menu"></div>
 
         <div class="right menu">
             <div class="item">
-                <form class="ui action input" action="{{ config.PREFIX }}/search/" method="get" role="search" autocomplete="off">
+                <form class="ui action input" action="/search/" method="get" role="search" autocomplete="off">
                     <input name="q" placeholder="Search&hellip;" type="text" value="">
                     <button class="ui basic icon button">
                         <i class="search icon"></i>
                     </button>
                 </form>
             </div>
-            <div id="tasks" class="ui icon simple dropdown item"></div>
+            <div id="tasks" class="ui icon simple dropdown item">
+                <i class="tasks icon"></i>
+                <div class="ui menu"></div>
+            </div>
         </div>
     </div>
 </header>
 
-<noscript class="ui container" style="margin-top: 1rem;">
-    <div class="ui icon error message">
-        <i class="exclamation circle icon"></i>
-        <div class="content">
-            <div class="header">
-                JavaScript is disabled
-            </div>
-            <p>
-                Pronto relies on JavaScript to dynamically render pages. Please enable JavaScript.
-            </p>
-        </div>
+<div id="dimmer" class="ui page dimmer">
+    <div class="ui text loader">Loading</div>
+</div>
+
+<div id="confirm-modal" class="ui tiny modal">
+    <div class="header"></div>
+    <div class="content"></div>
+    <div class="actions">
+        <div class="ui deny button">Cancel</div>
+        <div class="ui red approve button"></div>
     </div>
-</noscript>
+</div>
+
+<div id="error-modal" class="ui tiny modal">
+    <i class="close icon"></i>
+    <div class="ui header"></div>
+    <div class="content"></div>
+</div>
 
 <div id="new-entry-modal" class="ui modal">
-    <div class="header">
-        Create entry
-    </div>
+    <div class="header">New entry</div>
     <div class="content">
         <div class="ui hidden error message"></div>
-        <table class="ui selectable table">
+        <table class="ui small table">
             <thead>
             <tr>
                 <th></th>
-                <th>Member database</th>
+                <th>Database</th>
                 <th>Accession</th>
                 <th>Name</th>
                 <th>Description</th>
-                <th class="right aligned">Protein count</th>
-                <th>Integrated</th>
+                <th class="right aligned">Proteins</th>
+                <th>Entry</th>
                 <th></th>
             </tr>
             </thead>
             <tbody>
-            <tr><td colspan="8" class="center aligned">No signature</td></tr>
+            <tr><td colspan="8" class="center aligned">No signatures</td></tr>
             </tbody>
             <tfoot>
             <tr>
                 <th colspan="8">
                     <div class="ui secondary menu">
                         <div class="item">
-                            <i class="circle exclamation icon"></i>
-                            Integrated signatures will be moved.<br>
-                            Entries without signatures will be unchecked.
+                            <i class="circle exclamation icon"></i>Already integrated signatures will be moved
                         </div>
 
                         <div class="right fitted item">
-                            <div class="ui form">
+                            <div id="new-entry-signatures" class="ui form">
                                 <div class="field">
                                     <div class="ui action input">
                                         <input placeholder="Signature accession" type="text" name="accession">
@@ -92,17 +85,17 @@
             </tr>
             </tfoot>
         </table>
-        <div class="ui form">
+        <div id="new-entry-info" class="ui form">
             <div class="field">
                 <div class="fields">
                     <div class="twelve wide required field">
                         <label>Name</label>
-                        <input name="description" placeholder="Entry name" type="text" maxlength="100" data-countdown="countdown2">
+                        <input name="name" placeholder="Entry name" type="text" maxlength="100" data-countdown="countdown2">
                         <p class="help-text"></p>
                     </div>
                     <div class="four wide required field">
                         <label>Short name</label>
-                        <input name="name" placeholder="Entry short name" type="text" maxlength="30" data-countdown>
+                        <input name="short_name" placeholder="Entry short name" type="text" maxlength="30" data-countdown>
                         <p class="help-text"></p>
                     </div>
                 </div>
@@ -129,7 +122,3 @@
         <div class="ui ok primary button">Create</div>
     </div>
 </div>
-
-<script type="application/javascript">
-    const URL_PREFIX = '{{ config.PREFIX }}';
-</script>

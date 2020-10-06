@@ -2,43 +2,41 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <link rel="stylesheet" href="{{ config.PREFIX + url_for('static', filename='vendor/semantic.min.css') }}" />
-    <link rel="stylesheet" href="{{ config.PREFIX + url_for('static', filename='style.css') }}" />
-    <link rel="icon" href="{{ config.PREFIX + url_for('static', filename='favicon.png') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/semantic.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <title>Pronto</title>
 </head>
 <body>
 
 {% include 'header.html' %}
 
-<div class="ui container basic vertical segment">
-    {% include 'signatures/signature_selector.html' %}
+<div class="ui container">
+    <div class="ui basic segment">
+        <h1 class="ui header">Collocations & overlaps</h1>
 
-    <div class="ui grid">
-        <div class="six wide column">
-            <h4 class="ui header">
-                Overlap
-                <div class="sub header">Number of proteins where two signatures overlap (&ge; 50%)</div>
-            </h4>
+        {% include 'signatures/selector.html' %}
 
-            <table id="overlap" class="ui small definition celled table"></table>
-        </div>
-        <div class="six wide column">
-            <h4 class="ui header">
-                Collocation
-                <div class="sub header">Number of proteins having both signatures occurring</div>
-            </h4>
-            <table id="collocation" class="ui small definition celled table"></table>
-        </div>
-        <div id="details" class="four wide column">
+        <div class="ui grid">
+            <div class="twelve wide column">
+                <h4 class="ui header">
+                    Collocation
+                    <div class="sub header">Number of proteins having both signatures occurring</div>
+                </h4>
+                <table id="collocations" class="ui small definition celled table"></table>
+
+                <h4 class="ui header">
+                    Overlap
+                    <div class="sub header">Number of proteins where two signatures overlap (&ge; 50%)</div>
+                </h4>
+                <table id="overlaps" class="ui small definition celled table"></table>
+            </div>
+            <div id="details" class="four wide column"></div>
         </div>
     </div>
 </div>
 
-{% include 'footer.html' %}
-
-<script src="{{ config.PREFIX + url_for('static', filename='vendor/jquery.min.js') }}" type="application/javascript"></script>
-<script src="{{ config.PREFIX + url_for('static', filename='vendor/semantic.min.js') }}" type="application/javascript"></script>
-<script src="{{ config.PREFIX + url_for('static', filename='modules/signatures/matrices.js') }}" type="module"></script>
-
+<script src="{{ url_for('static', filename='vendor/jquery.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/semantic.js') }}"></script>
+<script src="{{ url_for('static', filename='js/signatures/matrices.js') }}" type="module"></script>
 </body>
 </html>

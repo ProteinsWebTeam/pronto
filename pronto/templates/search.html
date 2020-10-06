@@ -2,44 +2,42 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <link rel="stylesheet" href="{{ config.PREFIX + url_for('static', filename='vendor/semantic.min.css') }}" />
-    <link rel="stylesheet" href="{{ config.PREFIX + url_for('static', filename='style.css') }}" />
-    <link rel="icon" href="{{ config.PREFIX + url_for('static', filename='favicon.png') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/semantic.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
     <title>Pronto</title>
 </head>
 <body>
 
 {% include 'header.html' %}
 
-<div class="ui container basic vertical segment">
-    <table id="search-results" class="ui compact selectable table hidden">
-        <thead>
-        <tr>
-            <th colspan="3">
-                 <span></span>
-            </th>
-        </tr>
-        <tr>
-            <th>Accession</th>
-            <th>Source</th>
-            <th>Name</th>
-        </tr>
-        </thead>
-        <tbody></tbody>
-        <tfoot>
-        <tr>
-            <th colspan="3">
-                <div class="ui right floated pagination menu"></div>
-            </th>
-        </tr>
-        </tfoot>
-    </table>
+<div class="ui container">
+    <div class="ui basic segment">
+        <table id="results" class="ui compact selectable table">
+            <thead>
+            <tr>
+                <th colspan="3"><span></span></th>
+            </tr>
+            <tr>
+                <th>Accession</th>
+                <th>Source</th>
+                <th>Name</th>
+            </tr>
+            </thead>
+            <tbody></tbody>
+            <tfoot>
+            <tr>
+                <th colspan="3">
+                    <div class="ui right floated pagination menu"></div>
+                </th>
+            </tr>
+            </tfoot>
+        </table>
+    </div>
+
 </div>
 
-{% include 'footer.html' %}
-
-<script src="{{ config.PREFIX + url_for('static', filename='vendor/jquery.min.js') }}" type="application/javascript"></script>
-<script src="{{ config.PREFIX + url_for('static', filename='vendor/semantic.min.js') }}" type="application/javascript"></script>
-<script src="{{ config.PREFIX + url_for('static', filename='modules/search.js') }}" type="module"></script>
+<script src="{{ url_for('static', filename='vendor/jquery.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/semantic.js') }}"></script>
+<script src="{{ url_for('static', filename='js/search.js') }}" type="module"></script>
 </body>
 </html>

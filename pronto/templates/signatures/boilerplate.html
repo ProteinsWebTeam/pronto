@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/semantic.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <style type="text/css">
+        #results {
+            margin-top: 1rem;
+        }
+    </style>
+    <title>Pronto</title>
+</head>
+<body>
+
+{% include 'header.html' %}
+
+<div class="ui container">
+    <div class="ui basic segment">
+        <h1 class="ui header"></h1>
+        <div id="params"></div>
+        <div id="results"></div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='vendor/jquery.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/semantic.js') }}"></script>
+{% if page == "compare" %}
+    <script src="{{ url_for('static', filename='js/signatures/compare.js') }}" type="module"></script>
+{% else %}
+    <script src="{{ url_for('static', filename='js/signatures/recommendations.js') }}" type="module"></script>
+{% endif %}
+</body>
+</html>

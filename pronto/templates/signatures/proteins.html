@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/semantic.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/protein.css') }}">
+    <title>Pronto</title>
+</head>
+<body>
+
+{% include 'header.html' %}
+
+<div class="ui container">
+    <div class="ui vertical basic segment">
+        <h1 class="ui header">Proteins</h1>
+
+        {% include 'signatures/selector.html' %}
+
+        <div id="count" class="ui small horizontal statistic">
+            <div class="value"></div>
+            <div class="label">
+                proteins
+            </div>
+            <a id="copy-btn" class="ui tertiary button" href="#!"><i class="copy icon"></i> Copy</a>
+            <a id="download-btn" class="ui tertiary button" href="#!"><i class="download icon"></i> Download</a>
+        </div>
+    </div>
+    <div class="ui vertical basic segment">
+        <div class="ui checkbox">
+            <input type="checkbox" name="filter-matches">
+            <label>Only display protein matches for observed signatures</label>
+        </div>
+
+        <label class="slider label">Minimum number of signatures</label>
+        <div class="ui labeled slider"></div>
+
+        <div class="ui list">
+            <div class="item">
+                <div class="content">
+                    <div class="header">Protein annotation</div>
+                    <div class="ui checkbox">
+                        <input type="checkbox" name="reviewed">
+                        <label>Display Swiss-Prot/reviewed proteins only</label>
+                    </div>
+                </div>
+            </div>
+            <div data-filter="comment" class="hidden item">
+                <div class="content">
+                    <div class="header">Similarity comment</div>
+                    <div class="value"></div>
+                </div>
+            </div>
+            <div data-filter="description" class="hidden item">
+                <div class="content">
+                    <div class="header">Description</div>
+                    <div class="value"></div>
+                </div>
+            </div>
+            <div data-filter="go" class="hidden item">
+                <div class="content">
+                    <div class="header">Go term</div>
+                    <div class="value"></div>
+                </div>
+            </div>
+            <div data-filter="taxon" class="hidden item">
+                <div class="content">
+                    <div class="header">Taxon</div>
+                    <div class="value"></div>
+                </div>
+            </div>
+            <div data-filter="exclude" class="hidden item">
+                <div class="content">
+                    <div class="header">Not found in any protein</div>
+                    <div class="value"></div>
+                </div>
+            </div>
+        </div>
+
+
+        <div id="proteins" class="ui segments"></div>
+
+        <div class="ui right floated pagination menu"></div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='vendor/jquery.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/semantic.js') }}"></script>
+<script src="{{ url_for('static', filename='js/signatures/proteins.js') }}" type="module"></script>
+</body>
+</html>
