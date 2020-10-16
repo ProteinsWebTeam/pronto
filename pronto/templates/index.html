@@ -20,22 +20,30 @@
             <a class="item" data-tab="checks"><span>Sanity checks</span><div class="ui small secondary label"></div></a>
         </div>
         <div class="ui tab basic segment" data-tab="databases">
-            <table class="ui table">
-                <thead>
-                <tr>
-                    <th colspan="2"></th>
-                    <th>Signatures</th>
-                    <th>Integrated</th>
-                    <th><a href="/signatures/recommendations/">Unintegrated</a></th>
-                </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
+            <div class="ui grid">
+                <div class="eleven wide column">
+                    <table class="ui table">
+                        <thead>
+                        <tr>
+                            <th colspan="2"></th>
+                            <th>Signatures</th>
+                            <th>Integrated</th>
+                            <th><a href="/signatures/recommendations/">Unintegrated</a></th>
+                        </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div class="five wide column">
+                    <div class="chart"></div>
+                </div>
+            </div>
+
         </div>
         <div class="ui tab basic segment" data-tab="news">
             <p></p>
             <div class="ui grid">
-                <div class="ten wide column">
+                <div class="eleven wide column">
                     <div class="ui warning message">
                         <i class="close icon"></i>
                         <div class="header">Checkboxes are read-only</div>
@@ -58,7 +66,7 @@
                         <tbody></tbody>
                     </table>
                 </div>
-                <div class="six wide column">
+                <div class="five wide column">
                     <div class="chart"></div>
                 </div>
             </div>
@@ -66,7 +74,7 @@
         </div>
         <div class="ui tab basic segment" data-tab="unchecked">
             <div class="ui grid">
-                <div class="ten wide column">
+                <div class="eleven wide column">
                     {#            <div class="ui info message">#}
                     {#                <i class="close icon"></i>#}
                     {#                <div class="header">Unchecked entries</div>#}
@@ -88,7 +96,7 @@
                         <tbody></tbody>
                     </table>
                 </div>
-                <div class="six wide column">
+                <div class="five wide column">
                     <div class="chart"></div>
                 </div>
             </div>

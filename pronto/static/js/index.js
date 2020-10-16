@@ -9,6 +9,7 @@ function getDatabases() {
         .then(response => response.json())
         .then(databases => {
             let html = '';
+            const series = [];
             for (const database of databases) {
                 let total;
                 let unint;
@@ -18,6 +19,12 @@ function getDatabases() {
                 } else {
                     total = `<a href="/database/${database.id}/">${database.signatures.total.toLocaleString()}</a>`;
                     unint = `<a href="/database/${database.id}/unintegrated/?target=integrated">${(database.signatures.total-database.signatures.integrated).toLocaleString()}</a>`;
+
+                    series.push({
+                        name: database.name,
+                        int: database.signatures.integrated,
+                        unint: database.signatures.total - database.signatures.integrated
+                    });
                 }
 
                 html += `
@@ -37,6 +44,46 @@ function getDatabases() {
 
             const tab = document.querySelector('.tab[data-tab="databases"]');
             tab.querySelector('tbody').innerHTML = html;
+
+            series.sort((a, b) => a.name.localeCompare(b.name));
+
+            console.log(series.map(x => ({ name: x.name, y: x.int })));
+
+            Highcharts.chart(tab.querySelector('.chart'), {
+                chart: {
+                    type: 'bar',
+                    height: 500
+                },
+                title: { text: 'Integration progress' },
+                subtitle: { text: null },
+                credits: { enabled: false },
+                legend: { enabled: false },
+                xAxis: { type: 'category' },
+                yAxis: {
+                    title: { text: null },
+                    labels: {
+                        format: '{value}%'
+                    }
+                },
+                plotOptions: {
+                    series: {
+                        stacking: 'percent'
+                    }
+                },
+                series: [{
+                    name: 'integrated',
+                    data: series.map(x => ({ name: x.name, y: x.int })),
+                    color: '#4CAF50',
+                    index: 1
+                }, {
+                    name: 'unintegrated',
+                    data: series.map(x => ({ name: x.name, y: x.unint })),
+                    color: '#f44336',
+                    index: 0
+                }],
+                tooltip: { pointFormat: '<b>{point.percentage:.1f}%</b> signatures {series.name}' }
+            });
+
             return databases;
         });
 }
@@ -88,8 +135,8 @@ function getRecentActions() {
                     type: 'column',
                     height: 300
                 },
-                title: { text: 'Signature integrations' },
-                subtitle: { text: 'By member database' },
+                title: { text: 'Recent integrations' },
+                subtitle: { text: null },
                 credits: { enabled: false },
                 legend: { enabled: false },
                 xAxis: { type: 'category' },
@@ -113,7 +160,7 @@ function getRecentActions() {
             text += `and <strong>${nIntegrated} ${nIntegrated > 1 ? 'signatures' : 'signature'}</strong> have been integrated.`;
 
             tab.querySelector(':scope > p').innerHTML = text;
-    document.querySelector('.item[data-tab="news"] .label').innerHTML = data.entries.length.toString();
+            document.querySelector('.item[data-tab="news"] .label').innerHTML = data.entries.length.toString();
         });
 }
 
