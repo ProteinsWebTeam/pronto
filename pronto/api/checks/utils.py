@@ -76,7 +76,7 @@ CHECKS = {
     },
     "forbidden": {
         "name": "Banned words",
-        "description": "Words that are blacklisted from entry names",
+        "description": "Words that must not be part of entry names",
         "label": "Banned word",
         "terms": True,
         "exceptions": 't'
@@ -97,7 +97,7 @@ CHECKS = {
     },
     "lower_case_name": {
         "name": "Uncapitalized names",
-        "description": "Entry names should start with a capital",
+        "description": "Entry names must start with a capital",
         "label": "Uncapitalized name",
         "terms": False,
         "exceptions": 'g'
