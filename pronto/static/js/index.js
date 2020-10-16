@@ -50,10 +50,7 @@ function getDatabases() {
             console.log(series.map(x => ({ name: x.name, y: x.int })));
 
             Highcharts.chart(tab.querySelector('.chart'), {
-                chart: {
-                    type: 'bar',
-                    height: 500
-                },
+                chart: { type: 'bar', height: 600 },
                 title: { text: 'Integration progress' },
                 subtitle: { text: null },
                 credits: { enabled: false },
@@ -131,10 +128,7 @@ function getRecentActions() {
                 .map(e => ({name: e[0], y: e[1]}));
 
             Highcharts.chart(tab.querySelector('.chart'), {
-                chart: {
-                    type: 'column',
-                    height: 300
-                },
+                chart: { type: 'column' },
                 title: { text: 'Recent integrations' },
                 subtitle: { text: null },
                 credits: { enabled: false },
@@ -159,7 +153,7 @@ function getRecentActions() {
             const nIntegrated = series.reduce((acc, cur) => acc + cur.y, 0);
             text += `and <strong>${nIntegrated} ${nIntegrated > 1 ? 'signatures' : 'signature'}</strong> have been integrated.`;
 
-            tab.querySelector(':scope > p').innerHTML = text;
+            document.getElementById('news-summary').innerHTML = text;
             document.querySelector('.item[data-tab="news"] .label').innerHTML = data.entries.length.toString();
         });
 }
@@ -257,10 +251,7 @@ function getUncheckedEntries(database) {
 
             const years = [...entriesPerYear.entries()].sort((a, b) => a[0] - b[0]);
             Highcharts.chart(tab.querySelector('.chart'), {
-                chart: {
-                    type: 'bar',
-                    height: 500
-                },
+                chart: { type: 'bar', height: 600 },
                 title: { text: 'Unchecked entries' },
                 subtitle: { text: 'By year of creation' },
                 credits: { enabled: false },
