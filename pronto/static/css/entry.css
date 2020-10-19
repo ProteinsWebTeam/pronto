@@ -1,0 +1,109 @@
+.ui.seven.statistics > .statistic {
+    max-width: 14.28571429%;
+}
+
+.ui.statistics > .statistic > .label {
+    font-size: .8rem;
+    font-weight: 400;
+}
+
+.ui.statistics > .statistic > .value {
+    text-transform: none;
+    font-weight: 300;
+    overflow-wrap: break-word;
+}
+
+.ui.segment.R:not(.inverted) {
+    border-top: 2px solid #f2711c;
+}
+.ui.segment.H:not(.inverted) {
+    border-top: 2px solid #1678c2;
+}
+.ui.segment.D:not(.inverted) {
+    border-top: 2px solid #21ba45;
+}
+.ui.segment.F:not(.inverted) {
+    border-top: 2px solid #db2828;
+}
+.ui.segment.C:not(.inverted), .ui.segment.B:not(.inverted), .ui.segment.A:not(.inverted), .ui.segment.P:not(.inverted) {
+    border-top: 2px solid #a333c8;
+}
+
+.ui.segment > .ui.left.corner.label {
+    border-color: inherit;
+    color: #fff;
+}
+
+.ui.feed > .event > .content > .date {
+    font-size: .85714286em;
+    line-height: normal;
+}
+.ui.feed > .event:nth-child(n+2) {
+    margin-top: 1rem;
+}
+
+#relationships .ui.form {
+    margin-bottom: 1rem;
+}
+
+.annotation .ui.top.attached.menu {
+    margin-top: 1rem;
+}
+
+/*
+Preview mode: no horizontal line between annotations, but a simple padding (like between paragraphs)
+*/
+.ui.vertical.segment.annotation { border-bottom: none; }
+.ui.vertical.segment.annotation:not(:last-child) { padding-bottom: 0; }
+
+.ui.hidden.menu, .ui.hidden.segment, .hidden.header {
+    display: none;
+}
+
+.ui.menu .selectable.item {
+    -webkit-user-select: auto;
+    -moz-user-select: auto;
+    -ms-user-select: auto;
+    user-select: auto;
+}
+
+.content li > div {
+    display: block;
+}
+/* Error message when there are not annotations */
+.content > .ui.message:first-child {
+    margin-top: 1rem;
+}
+
+#references li.active {
+    background-color: #e8f5e9;
+}
+
+.menu .item > abbr[title] {
+    border-bottom: none;
+    text-decoration: none;
+    -webkit-text-decoration: none;
+    text-decoration: none;
+}
+
+#new-annotation textarea {
+    width: 100%;
+    resize: vertical;
+    min-height: 150px;
+    max-height: none;
+    padding: .5rem;
+}
+
+.hl-search {
+    background-color: #C5E1B9;
+}
+
+#unirule {
+    display: none;
+}
+
+/* Relationships: increment nodes */
+.ui.list .list > .item > .content > .list, .ui.list > .item > .content > .list {
+    margin-left: 0;
+    padding-left: 1.5rem;
+}

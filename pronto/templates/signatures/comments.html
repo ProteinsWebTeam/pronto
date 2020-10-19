@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/semantic.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/protein.css') }}">
+    <title>Pronto</title>
+</head>
+<body>
+
+{% include 'header.html' %}
+
+<div class="ui container">
+    <div class="ui basic segment">
+        <h1 class="ui header">Similarity comments</h1>
+
+        {% include 'signatures/selector.html' %}
+
+        <table id="results" class="ui definition celled table"></table>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='vendor/jquery.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/semantic.js') }}"></script>
+<script src="{{ url_for('static', filename='js/signatures/comments.js') }}" type="module"></script>
+</body>
+</html>

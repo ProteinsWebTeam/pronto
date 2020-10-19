@@ -1,0 +1,6 @@
+header.ui.menu {
+    border-radius: 0;
+}
+.ui.menu .item > .ui.label:only-child {
+    margin-left: 0;
+}

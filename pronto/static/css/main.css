@@ -1,0 +1,96 @@
+@import "comments.css";
+@import "header.css";
+@import "tables.css";
+@import "types.css";
+
+@media screen and (min-width: 1384px){
+    .ui.ui.ui.ui.container {
+        max-width: 1344px;
+        width: 1344px;
+    }
+}
+
+#dimmer { z-index: 5000; } /* need to have a Z-index > modal's */
+
+#error-modal > .header {
+    background-color: #e25241;
+    color: #ffffff;
+}
+
+.ui.hidden.sticky {
+    display: none;
+}
+
+/* Useful for external link icons */
+a > i:last-child {
+    width: auto;
+    margin: 0 0 0 .25rem;
+}
+
+/* Overwrite Semantic */
+.ui.header i.icon:only-child {
+    margin-right: 0;
+}
+
+/*h1, h2, h3, h4, h5, h6, .ui.header {*/
+/*font-weight: 400;*/
+/*}*/
+
+#signature-selector {
+    margin-bottom: 1rem;
+}
+
+.capitalize {
+    text-transform: capitalize;
+}
+
+/* /database/<key>/unintegrated: reduce margin between vertical radioboxes */
+.ui.form .fields .field .grouped.fields .field .ui.checkbox:only-child {
+    margin-top: 0;
+}
+.ui.form .fields:only-child {
+    margin-bottom: 0;
+}
+
+/* simple button-like icon */
+i.button.icon {
+    cursor: pointer;
+    color: rgba(0,0,0,.4);
+}
+i.button.icon:hover {
+    color: rgba(0,0,0,.8);
+}
+
+code {
+    background-color: rgba(0, 0, 0, 0.08);
+    border-radius: 3px;
+    border: 1px solid transparent;
+    display: inline-block;
+    font-size: 0.875rem;
+    padding: 1px 6px;
+    vertical-align: baseline;
+}
+code.positive {
+    background-color: transparent;
+    border-color: #21ba45;
+    color: #21ba45;
+}
+code.negative {
+    background-color: transparent;
+    border-color: #db2828;
+    color: #db2828;
+}
+
+/* Messages in modals (e.g. #list-annotations) */
+.ui.modal > .content > .ui.message {
+    margin: 0 0 1rem;
+}
+
+.ui.table > thead > tr > th.basic, .ui.table > thead > tr.basic > th {
+    font-weight: normal;
+}
+
+/* Toggle checkbox */
+.ui.toggle.checkbox + .ui.toggle.checkbox {
+    margin-left: 2em;
+}

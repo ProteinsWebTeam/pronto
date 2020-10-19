@@ -2,92 +2,74 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <link rel="stylesheet" href="{{ config.PREFIX + url_for('static', filename='vendor/semantic.min.css') }}" />
-    <link rel="stylesheet" href="{{ config.PREFIX + url_for('static', filename='style.css') }}" />
-    <link rel="icon" href="{{ config.PREFIX + url_for('static', filename='favicon.png') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/semantic.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/protein.css') }}">
     <title>Pronto</title>
 </head>
 <body>
 
 {% include 'header.html' %}
 
-<div class="ui container basic vertical segment">
-    <h1 class="ui header">
+<div class="ui container">
+    <div class="ui basic segment">
+        <h1 class="ui header"></h1>
 
-        <div class="sub header">
-            <a target="_blank" href="">
-
-                    <i class="star icon"></i>
-
-                <i class="external icon"></i>
-            </a>
-        </div>
-    </h1>
-    <div class="ui segment">
-        <div class="ui four tiny statistics">
-            <div class="light statistic">
-                <div class="label">Organism</div>
-                <div class="value" id="organism" style="font-style: italic;"></div>
-            </div>
-            <div class="light statistic">
-                <div class="label">Length</div>
-                <div class="value" id="length"></div>
-            </div>
-            <div class="light statistic">
-                <div class="label">Entries</div>
-                <div class="value" id="entries"></div>
-            </div>
-            <div class="light statistic">
-                <div class="label">Signatures</div>
-                <div class="value" id="signatures"></div>
-            </div>
-        </div>
-
-    </div>
-
-    <div class="ui grid">
-        <div class="four wide column">
-            <div class="ui sticky">
-                <div class="ui vertical basic segment">
-                    <div class="ui fluid vertical menu">
-                        <a href="#integrated" class="active item">
-                            Integrated signatures
-                        </a>
-                        <a href="#unintegrated" class="item">
-                            Unintegrated signatures
-                        </a>
-                        <a href="#disordered-regions" class="item">
-                            Disordered regions
-                        </a>
+        <div class="ui grid">
+            <div class="four wide column">
+                <div class="ui sticky">
+                    <div class="ui vertical basic segment">
+                        <div class="ui fluid vertical menu">
+                            <a href="#integrated" class="active item">
+                                Integrated signatures
+                            </a>
+                            <a href="#unintegrated" class="item">
+                                Unintegrated signatures
+                            </a>
+                            <a href="#disordered-regions" class="item">
+                                Disordered regions
+                            </a>
+                            <a href="#lineage" class="item">
+                                Lineage
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-        <div class="twelve wide column">
-            <div class="ui warning message">
-                <div class="header">Sequence fragment</div>
-                The canonical sequence for this protein is a fragment. The protein is not considered when comparing signatures.
-            </div>
-            <div class="ui basic vertical segment">
-                <h2 id="integrated" class="ui dividing header">Integrated signatures</h2>
-                <div></div>
-            </div>
-            <div class="ui basic vertical segment">
-                <h2 id="unintegrated" class="ui dividing header">Unintegrated signatures</h2>
-                <div></div>
-            </div>
-            <div class="ui basic vertical segment">
-                <h2 id="disordered-regions" class="ui dividing header">Intrinsically disordered regions</h2>
-                <div></div>
+            <div class="twelve wide column">
+                <div class="ui warning message">
+                    <div class="header">Sequence fragment</div>
+                    The canonical sequence for this protein is a fragment. The protein is not considered when comparing signatures.
+                </div>
+                <div class="ui basic vertical segment">
+                    <h2 id="integrated" class="ui dividing header">Integrated signatures</h2>
+                    <div></div>
+                </div>
+                <div class="ui basic vertical segment">
+                    <h2 id="unintegrated" class="ui dividing header">Unintegrated signatures</h2>
+                    <div></div>
+                </div>
+                <div class="ui basic vertical segment">
+                    <h2 id="disordered-regions" class="ui dividing header">Intrinsically disordered regions</h2>
+                    <div></div>
+                </div>
+                <div class="ui basic vertical segment">
+                    <h2 id="lineage" class="ui dividing header">Lineage</h2>
+                    <div class="ui list"></div>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-{% include 'footer.html' %}
+<div id="tooltip" class="ui tooltip">
+    <i class="close icon"></i>
+    <div class="content">
+    </div>
+</div>
 
-<script src="{{ config.PREFIX + url_for('static', filename='vendor/jquery.min.js') }}" type="application/javascript"></script>
-<script src="{{ config.PREFIX + url_for('static', filename='vendor/semantic.min.js') }}" type="application/javascript"></script>
-<script src="{{ config.PREFIX + url_for('static', filename='modules/protein.js') }}" type="module"></script>
+<script src="{{ url_for('static', filename='vendor/jquery.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/semantic.js') }}"></script>
+<script src="{{ url_for('static', filename='js/protein.js') }}" type="module"></script>
 </body>
 </html>

@@ -1,0 +1,50 @@
+/* Override Semantic UI behaviour */
+.ui.comments {
+    max-width: none;
+}
+
+/* Keep icon and title on the same line */
+.ui.comments .ui.header > .icon {
+    display: inline-block;
+    padding: 0;
+    margin-right: .75rem;
+}
+
+/* Comments and comment actions */
+.ui.comments .comment .metadata a {
+    cursor: pointer;
+    display: inline-block;
+    color: rgba(0,0,0,.4);
+    position: absolute;
+    top: 0;
+    right: 0;
+    opacity: 0;
+}
+.ui.comments .comment .metadata a i {
+    margin: 0;
+}
+.ui.comments .comment .metadata a:active, .ui.comments .comment .metadata a:hover {
+    color: rgba(0,0,0,.8);
+}
+.ui.comments .comment > .content:hover > .metadata a {
+    opacity: 1;
+}
+.ui.comments .negative.comment .content {
+    background: #ffe1e1;
+}
+.ui.comments .negative.comment .content .actions {
+    background-color: #fff;
+}
+.ui.comments .actions a {
+    font-size: .875em;
+    cursor: pointer;
+    color: rgba(0,0,0,.4);
+}
+.ui.comments .actions a:active, .ui.comments .actions a:hover {
+    color: rgba(0,0,0,.8);
+}
+
+/* Comment textarea */
+.ui.comments .reply.form textarea[rows] {
+    height: inherit;
+}

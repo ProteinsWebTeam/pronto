@@ -1,0 +1,15 @@
+.ui.label.biological_process {
+    background-color: #B388FF;
+    border-color: #B388FF;
+    color: #fff;
+}
+.ui.label.molecular_function {
+    background-color: #CDDC39;
+    border-color: #CDDC39;
+    color: #fff;
+}
+.ui.label.cellular_component {
+    background-color: #FF9E80;
+    border-color: #FF9E80;
+    color: #fff;
+}

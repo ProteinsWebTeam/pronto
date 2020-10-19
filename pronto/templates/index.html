@@ -2,83 +2,140 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <link rel="stylesheet" href="{{ config.PREFIX + url_for('static', filename='vendor/semantic.min.css') }}" />
-    <link rel="stylesheet" href="{{ config.PREFIX + url_for('static', filename='style.css') }}" />
-    <link rel="icon" href="{{ config.PREFIX + url_for('static', filename='favicon.png') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/semantic.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
     <title>Pronto</title>
 </head>
 <body>
 
 {% include 'header.html' %}
 
-<div class="ui container basic vertical segment">
-    <div class="ui divided grid">
-        <div class="row">
-            <div class="twelve wide column">
-                <div class="ui basic segment">
-                    <h3 class="ui dividing header">
-                        <i class="fitted lightning icon"></i>
-                        Annotation
-                    </h3>
-                    <p>
-                        <span id="recent-integrations"></span>
-                        Display the <a href="{{ config.PREFIX }}/signatures/">integration recommendations</a>.
-                    </p>
-
-                    <div id="recent-entries" class="ui accordion">
-                        <div class="title"></div>
-                        <div class="content">
-                            <div class="ui warning message">
-                                <div class="header">Checkboxes are read-only</div>
-                                To check or uncheck an entry, please visit the entry page.
-                            </div>
-                            <div></div>
-                        </div>
-                    </div>
-
-                    <h3 class="ui dividing header">
-                        <i class="fitted database icon"></i>
-                        Member databases
-                    </h3>
-                    <table id="databases" class="ui selectable table">
+<div class="ui container">
+    <div class="ui basic segment">
+        <div class="ui top attached tabular secondary pointing menu">
+            <a class="item" data-tab="databases">Member databases</a>
+            <a class="item" data-tab="news"><span>Recent entries</span><div class="ui small secondary label"></div></a>
+            <a class="item" data-tab="unchecked"><span>Unchecked entries</span><div class="ui small secondary label"></div></a>
+            <a class="item" data-tab="checks"><span>Sanity checks</span><div class="ui small secondary label"></div></a>
+        </div>
+        <div class="ui tab basic segment" data-tab="databases">
+            <div class="ui grid">
+                <div class="eleven wide column">
+                    <table class="ui table">
                         <thead>
                         <tr>
                             <th colspan="2"></th>
                             <th>Signatures</th>
                             <th>Integrated</th>
-                            <th>Unintegrated</th>
+                            <th><a href="/signatures/recommendations/">Unintegrated</a></th>
                         </tr>
                         </thead>
                         <tbody></tbody>
                     </table>
                 </div>
-
-            </div>
-            <div class="four wide column">
-                <div id="sanity-checks" class="ui basic segment">
-                    <h3 class="ui dividing header">
-                        <i class="fitted checkmark box icon"></i>
-                        Sanity checks
-                    </h3>
-                    <button class="ui compact primary disabled button">
-                        <i class="play icon"></i>
-                        Run
-                    </button>
-                    <a class="ui compact basic disabled button" href="{{ config.PREFIX }}/sanitychecks/settings/">
-                        <i class="setting icon"></i>
-                        Settings
-                    </a>
-                    <div class="ui hidden message"></div>
-                    <div class="ui feed"></div>
+                <div class="five wide column">
+                    <div class="chart"></div>
                 </div>
             </div>
+
+        </div>
+        <div class="ui tab basic segment" data-tab="news">
+            <div class="ui grid">
+                <div class="eleven wide column">
+                    <p id="news-summary"></p>
+                    <div class="ui warning message">
+                        <i class="close icon"></i>
+                        <div class="header">Checkboxes are read-only</div>
+                        <p>To check or uncheck an entry, please visit the entry page.</p>
+                    </div>
+                    <div class="ui toggle checkbox">
+                        <input type="checkbox" name="unchecked">
+                        <label>Display unchecked entries only</label>
+                    </div>
+                    <table class="ui single line compact table">
+                        <thead>
+                        <tr>
+                            <th>Entry</th>
+                            <th>Short name</th>
+                            <th>Checked</th>
+                            <th>Created</th>
+                            <th>Author</th>
+                        </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div class="five wide column">
+                    <div class="chart"></div>
+                </div>
+            </div>
+
+        </div>
+        <div class="ui tab basic segment" data-tab="unchecked">
+            <div class="ui grid">
+                <div class="eleven wide column">
+                    {#            <div class="ui info message">#}
+                    {#                <i class="close icon"></i>#}
+                    {#                <div class="header">Unchecked entries</div>#}
+                    {#                <p>The table below shows all unchecked InterPro entries containing at least one member database signature.</p>#}
+                    {#            </div>#}
+                    <div id="unchecked-databases" class="ui equal width form">
+                        <div class="fields"></div>
+                    </div>
+                    <table class="ui single line compact table">
+                        <thead>
+                        <tr>
+                            <th>Entry</th>
+                            <th>Short name</th>
+                            <th>Created</th>
+                            <th>Last edit</th>
+                            <th class="collapsing"></th>
+                        </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div class="five wide column">
+                    <div class="chart"></div>
+                </div>
+            </div>
+
+        </div>
+        <div class="ui tab basic segment" data-tab="checks">
+            <button class="ui compact primary button">Run</button>
+            <a href="/checks/" class="ui compact basic button">Settings</a>
+            <div class="ui hidden message"></div>
+            <table class="ui single line compact table">
+                <thead>
+                <tr>
+                    <th class="basic" colspan="4"></th>
+                </tr>
+                <tr>
+                    <th>Entry/annotation</th>
+                    <th>Error type</th>
+                    <th>Error</th>
+                    <th></th>
+                </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
         </div>
     </div>
 </div>
 
-<script src="{{ config.PREFIX + url_for('static', filename='vendor/jquery.min.js') }}" type="application/javascript"></script>
-<script src="{{ config.PREFIX + url_for('static', filename='vendor/semantic.min.js') }}" type="application/javascript"></script>
-<script src="{{ config.PREFIX + url_for('static', filename='modules/index.js') }}" type="module"></script>
+<div id="welcome" class="ui active page dimmer">
+    <div class="content">
+        <h2 class="ui inverted icon header">
+            <i class="smile outline icon"></i>
+            Welcome!
+        </h2>
+    </div>
+</div>
 
+<script src="{{ url_for('static', filename='vendor/jquery.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/semantic.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/highcharts.js') }}"></script>
+<script src="{{ url_for('static', filename='js/index.js') }}" type="module"></script>
 </body>
 </html>
