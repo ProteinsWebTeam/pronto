@@ -15,14 +15,16 @@ def get_signature(accession):
     cur = con.cursor()
     cur.execute(
         """
-        SELECT 
+        SELECT
           s.accession,
-          s.name, 
-          s.description, 
-          s.type, 
-          s.abstract, 
-          s.num_sequences, 
+          s.name,
+          s.description,
+          s.type,
+          s.abstract,
+          s.num_sequences,
           s.num_complete_sequences,
+          s.num_reviewed_sequences,
+          s.num_reviewed_matches,
           d.name,
           d.name_long,
           d.version
@@ -39,7 +41,7 @@ def get_signature(accession):
     if not row:
         return jsonify(), 404
 
-    db = utils.get_database_obj(row[7])
+    db = utils.get_database_obj(row[9])
     result = {
         "accession": row[0],
         "name": row[1],
@@ -49,13 +51,15 @@ def get_signature(accession):
         "proteins": {
             "total": row[5],
             "complete": row[6],
+            "reviewed": row[7]
         },
+        "matches": row[8],
         "database": {
-            "name": row[8],
+            "name": row[10],
             "home": db.home,
             "link": db.gen_link(accession),
             "color": db.color,
-            "version": row[9]
+            "version": row[11]
         },
         "entry": None
     }
@@ -65,8 +69,8 @@ def get_signature(accession):
     cur.execute(
         """
         SELECT E.ENTRY_AC, E.NAME, E.ENTRY_TYPE, E.CHECKED
-        FROM INTERPRO.ENTRY2METHOD EM 
-        LEFT OUTER JOIN INTERPRO.ENTRY E 
+        FROM INTERPRO.ENTRY2METHOD EM
+        LEFT OUTER JOIN INTERPRO.ENTRY E
           ON EM.ENTRY_AC = E.ENTRY_AC
         WHERE EM.METHOD_AC = :1
         """, (result["accession"],)
@@ -368,8 +372,8 @@ def get_signature_predictions(accession):
             INNER JOIN interpro.database d
               ON s.database_id = d.id
             LEFT OUTER JOIN interpro.prediction p
-              ON (c.signature_acc_1 = p.signature_acc_1 
-                  AND c.signature_acc_2 = p.signature_acc_2) 
+              ON (c.signature_acc_1 = p.signature_acc_1
+                  AND c.signature_acc_2 = p.signature_acc_2)
             WHERE c.signature_acc_1 = %s
             """, (accession,)
         )
@@ -445,7 +449,7 @@ def get_signature_predictions(accession):
     con.close()
 
     """
-    Sort to have in first position predictions integrated in entries 
+    Sort to have in first position predictions integrated in entries
     related to entry containing the query signature
     """
     sort_obj = Sorter(query_entry, ancestors, descendants)

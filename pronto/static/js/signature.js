@@ -124,7 +124,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 html += accession;
             html += '<i class="external icon"></i></a>';
 
-            html += ' &mdash; ' + result.proteins.complete.toLocaleString() +' proteins';
+            // html += ' &mdash; ' + result.proteins.complete.toLocaleString() +' proteins';
 
             if (result.entry) {
                 html += '&nbsp;&mdash;&nbsp;';
@@ -202,6 +202,27 @@ document.addEventListener('DOMContentLoaded', () => {
                             modals.error(object.error.title, object.error.message);
                     });
             });
+
+            document.getElementById('counters').innerHTML = `
+                <tbody>
+                    <tr>
+                        <td>Proteins</td>
+                        <td class="right aligned">${result.proteins.total.toLocaleString()}</td>
+                    </tr>
+                    <tr>
+                        <td>Complete proteins</td>
+                        <td class="right aligned">${result.proteins.complete.toLocaleString()}</td>
+                    </tr>               
+                    <tr>
+                        <td>Swiss-Prot proteins</td>
+                        <td class="right aligned">${result.proteins.reviewed.toLocaleString()}</td>
+                    </tr>
+                    <tr>
+                        <td>Swiss-Prot matches</td>
+                        <td class="right aligned">${result.matches.toLocaleString()}</td>
+                    </tr>
+                </tbody>
+            `;
 
             getPredictions(accession);
         },
