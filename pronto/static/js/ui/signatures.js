@@ -99,6 +99,7 @@ export function showProteinsModal(accession, params, getMatches) {
 
     params.push('page_size=20');
     params.push('page=1');
+    params.push('reviewedfirst');
 
     let url = `/api/signatures/${accession}/proteins/?${params.join('&')}`;
     getProteins(accession, url, getMatches).then(() => {

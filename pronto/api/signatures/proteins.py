@@ -26,6 +26,7 @@ def get_proteins_alt(accessions):
     name_id = request.args.get("name")
     taxon_id = request.args.get("taxon")
     reviewed_only = "reviewed" in request.args
+    reviewed_first = "reviewedfirst" in request.args
 
     # dl_file = "file" in request.args
 
@@ -156,45 +157,70 @@ def get_proteins_alt(accessions):
         sql = f"""
             SELECT protein_acc
             FROM (
-                SELECT protein_acc, COUNT(*) cnt
-                FROM interpro.signature2protein
-                WHERE signature_acc IN ({','.join("%s" for _ in accessions)})
-                {' AND ' + ' AND '.join(filters) if filters else ''}
-                GROUP BY protein_acc
-            ) t
-            WHERE cnt >= %s    
+                SELECT DISTINCT protein_acc, is_reviewed
+                FROM (
+                    SELECT protein_acc, is_reviewed, COUNT(*) OVER (PARTITION BY protein_acc) cnt
+                    FROM interpro.signature2protein
+                    WHERE signature_acc IN ({','.join("%s" for _ in accessions)})
+                    {' AND ' + ' AND '.join(filters) if filters else ''}
+                ) a
+                WHERE cnt >= %s   
+            ) sp
         """
         params.append(min_sign_per_prot)
 
+        filters = []
         if comment_id is not None:
-            sql += """
-                INTERSECT
-                SELECT protein_acc
-                FROM interpro.protein_similarity
-                WHERE comment_id = %s
-            """
+            filters.append(
+                """
+                EXISTS (
+                    SELECT 1 
+                    FROM interpro.protein_similarity ps 
+                    WHERE ps.comment_id = %s 
+                    AND sp.protein_acc = ps.protein_acc
+                )
+                """
+            )
             params.append(comment_id)
 
         if term_id is not None:
-            sql += """
-                INTERSECT
-                SELECT protein_acc
-                FROM interpro.protein2go
-                WHERE term_id = %s
-            """
+            filters.append(
+                """
+                EXISTS (
+                    SELECT 1 
+                    FROM interpro.protein2go pg
+                    WHERE pg.term_id = %s 
+                    AND sp.protein_acc = pg.protein_acc
+                )                
+                """
+            )
             params.append(term_id)
 
         if exclude:
-            sql += f"""
-                EXCEPT
-                SELECT DISTINCT protein_acc
-                FROM signature2protein
-                WHERE signature_acc IN ({','.join("%s" for _ in exclude)})
-            """
+            filters.append(
+                f"""
+                NOT EXISTS (
+                    SELECT 1
+                    FROM signature2protein spx
+                    WHERE spx.signature_acc IN (
+                        {','.join("%s" for _ in exclude)}
+                    )
+                    AND sp.protein_acc = spx.protein_acc
+                )
+                """
+            )
             params += list(exclude)
 
+        if filters:
+            sql += f"WHERE {' AND '.join(filters)} "
+
+        if reviewed_first:
+            sql += "ORDER BY CASE WHEN is_reviewed THEN 1 ELSE 2 END, protein_acc"
+        else:
+            sql += "ORDER BY protein_acc"
+
         cur.execute(sql, params)
-        proteins = sorted([acc for acc, in cur])
+        proteins = [acc for acc, in cur]
         cnt_proteins = len(proteins)
 
         if page_size > 0 and page > 0:
