@@ -29,6 +29,18 @@ def get_checks():
     )
 
     types = {}
+    for ck_type, check in CHECKS.items():
+        types[ck_type] = {
+            "type": ck_type,
+            "name": check["name"],
+            "label": check["label"],
+            "description": check["description"],
+            "add_terms": check["terms"],
+            "exception_type": check["exceptions"],
+            "terms": {},
+            "exceptions": [],
+        }
+
     for row in cur:
         ck_type = row[0]
         ck_term = row[1]
@@ -38,29 +50,12 @@ def get_checks():
         exc_entry_acc = row[5]
         exc_entry_acc2 = row[6]
 
-        check = CHECKS[ck_type]
-        if not check["terms"] and not check["exceptions"]:
-            continue
-
-        try:
-            ck_obj = types[ck_type]
-        except KeyError:
-            ck_obj = types[ck_type] = {
-                "type": ck_type,
-                "name": check["name"],
-                "label": check["label"],
-                "description": check["description"],
-                "add_terms": check["terms"],
-                "exception_type": check["exceptions"],
-                "terms": {},
-                "exceptions": [],
-            }
-
+        check = types[ck_type]
         if ck_term:
             try:
-                t = ck_obj["terms"][ck_term]
+                t = check["terms"][ck_term]
             except KeyError:
-                t = ck_obj["terms"][ck_term] = {
+                t = check["terms"][ck_term] = {
                     "value": ck_term,
                     "exceptions": []
                 }
@@ -75,7 +70,7 @@ def get_checks():
             if ck_type == "encoding":
                 exc_term = chr(int(exc_term))
 
-            ck_obj["exceptions"].append({
+            check["exceptions"].append({
                 "id": exc_id,
                 "term": exc_term,
                 "annotation": exc_ann_id,
@@ -229,6 +224,7 @@ def get_run(run_id):
                 "annotation": ann_id,
                 "entry": entry_acc,
                 "type": check["label"],
+                "details": check.get("details"),
                 "exceptions": check["exceptions"] is not None,
                 "error": error,
                 "count": cnt,
