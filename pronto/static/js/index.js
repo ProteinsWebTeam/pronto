@@ -47,8 +47,6 @@ function getDatabases() {
 
             series.sort((a, b) => a.name.localeCompare(b.name));
 
-            console.log(series.map(x => ({ name: x.name, y: x.int })));
-
             Highcharts.chart(tab.querySelector('.chart'), {
                 chart: { type: 'bar', height: 600 },
                 title: { text: 'Integration progress' },
@@ -311,13 +309,22 @@ async function getSanityCheck() {
     if (object.errors.length > 0) {
         for (const error of object.errors) {
             const acc = error.annotation !== null ? error.annotation : error.entry;
-            const errHTML = error.error !== null ? `<code>${escape(error.error)}</code>`: '';
             html += `
-            <tr>
-            <td class="left marked ${error.resolution.date === null ? 'red' : 'green'}"><a target="_blank" href="/search/?q=${acc}">${acc}</a></td>
-            <td>${error.type}</td>
-            <td>${errHTML}${showOccurrences(error.count)}</td>
-        `;
+                <tr>
+                <td class="left marked ${error.resolution.date === null ? 'red' : 'green'}">
+                    <a target="_blank" href="/search/?q=${acc}">${acc}</a>
+                </td>
+            `;
+
+            if (error.details !== null) {
+                html += `<td>${error.type} <span data-tooltip="${error.details}" data-inverted=""><i class="question circle icon"></i></span></td>`;
+            } else
+                html += `<td>${error.type}</td>`;
+
+            if (error.error !== null)
+                html += `<td><code>${escape(error.error)}</code>${showOccurrences(error.count)}</td>`;
+            else
+                html += `<td>${showOccurrences(error.count)}</td>`;
 
             if (error.resolution.user !== null)
                 html += `<td class="light-text right aligned"><i class="check icon"></i>Resolved by ${error.resolution.user}</td>`;
@@ -395,10 +402,13 @@ function runSanityChecks() {
                 `;
                 return;
             }
-            message.className = 'ui info message';
+            message.className = 'ui icon info message';
             message.innerHTML = `
-                <div class="header">Sanity checks in progress</div>
-                <p>Sanity checks are running. When complete, results will be displayed below.</p>
+                <i class="notched circle loading icon"></i>
+                <div class="content">
+                    <div class="header">Sanity checks in progress</div>
+                    <p>Sanity checks are running. When complete, results will be displayed below.</p>
+                </div>
             `;
 
             const taskId = object.task;
