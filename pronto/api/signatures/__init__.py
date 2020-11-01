@@ -95,7 +95,7 @@ def get_recommendations():
               SELECT
                 s1.accession, d1.name, d1.name_long,
                 s2.accession, d2.name, d2.name_long,
-                CAST(p.residue_overlaps as decimal) / (s1.num_residues + s2.num_residues - p.residue_overlaps) AS sim_res
+                CAST(p.num_residue_overlaps as decimal) / (s1.num_residues + s2.num_residues - p.num_residue_overlaps) AS sim_res
               FROM interpro.signature s1
               INNER JOIN interpro.prediction p ON s1.accession = p.signature_acc_1
               INNER JOIN interpro.signature s2 ON p.signature_acc_2 = s2.accession
@@ -110,8 +110,8 @@ def get_recommendations():
                 OR
                 (s1.type != 'Homologous_superfamily' AND s2.type != 'Homologous_superfamily')
               )
-            ) p
-            WHERE p.sim_res >= %s
+            ) x
+            WHERE x.sim_res >= %s
             """, (min_sim,)
         )
 

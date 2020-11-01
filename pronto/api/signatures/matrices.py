@@ -24,7 +24,7 @@ def get_matrices(accessions):
 
     cur.execute(
         f"""
-        SELECT signature_acc_1, signature_acc_2, collocations, "overlaps"
+        SELECT signature_acc_1, signature_acc_2, num_collocations, num_overlaps
         FROM interpro.comparison
         WHERE signature_acc_1 IN ({in_params})
         AND signature_acc_2 IN ({in_params})

@@ -363,9 +363,9 @@ def get_signature_predictions(accession):
               s.num_residues,
               d.name,
               d.name_long,
-              c.collocations,
-              c.overlaps,
-              COALESCE(p.residue_overlaps, 0)
+              c.num_collocations,
+              c.num_overlaps,
+              COALESCE(p.num_residue_overlaps, 0)
             FROM interpro.comparison c
             INNER JOIN interpro.signature s
               ON c.signature_acc_2 = s.accession
@@ -386,9 +386,9 @@ def get_signature_predictions(accession):
               s.num_residues,
               d.name,
               d.name_long,
-              p.collocations,
-              p.protein_overlaps,
-              p.residue_overlaps
+              p.num_collocations,
+              p.num_protein_overlaps,
+              p.num_residue_overlaps
             FROM interpro.prediction p
             INNER JOIN interpro.signature s
               ON p.signature_acc_2 = s.accession
