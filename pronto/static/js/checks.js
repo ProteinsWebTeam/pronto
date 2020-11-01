@@ -1,3 +1,4 @@
+import * as dimmer from "./ui/dimmer.js"
 import {updateHeader} from "./ui/header.js";
 import * as modals from "./ui/modals.js"
 import {setClass, escape, unescape, copy2clipboard} from "./ui/utils.js";
@@ -193,6 +194,7 @@ function addException(ckType, excType, ckTerm) {
 }
 
 function getChecks() {
+    dimmer.on();
     fetch('/api/checks/')
         .then(response => response.json())
         .then(checks => {
@@ -241,6 +243,8 @@ function getChecks() {
                         }
                         mainHTML += '</div>';
                     }
+                } else {
+                    mainHTML += '<div class="ui info message"><div class="header">This check is static</div><p>This check does not accept user-submitted terms, or exceptions.</p></div>';
                 }
 
                 mainHTML += '</div>';
@@ -330,6 +334,8 @@ function getChecks() {
                         }
                     }
                 });
+
+            dimmer.off();
         });
 }
 

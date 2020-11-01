@@ -351,7 +351,8 @@ def get_unintegrated_signatures(db_name):
         """
         SELECT s1.accession, s2.accession, s2.type, s2.num_complete_sequences, 
                s2.num_residues, d.name, d.name_long, 
-               p.collocations, p.protein_overlaps, p.residue_overlaps
+               p.num_collocations, p.num_protein_overlaps, 
+               p.num_residue_overlaps
         FROM interpro.signature s1
         INNER JOIN interpro.prediction p ON s1.accession = p.signature_acc_1
         INNER JOIN interpro.signature s2 ON p.signature_acc_2 = s2.accession

@@ -27,6 +27,7 @@ CHECKS = {
         "description": "Abbreviations forbidden in entry names, short names, "
                        "and annotations",
         "label": "Invalid abbreviation",
+        "details": "This term is in the list of forbidden abbreviations",
         "terms": True,
         "exceptions": 't'
     },
@@ -46,7 +47,7 @@ CHECKS = {
     },
     "citation": {
         "name": "References",
-        "description": "Annotations cannot contain unformatted references "
+        "description": "Annotations cannot contain ill-formed references "
                        "or unpublished/personal observations",
         "label": "Invalid reference",
         "terms": True,
@@ -61,7 +62,8 @@ CHECKS = {
     },
     "encoding": {
         "name": "Encoding",
-        "description": "Special characters should be avoided",
+        "description": "Special characters (e.g. greek letters) "
+                       "should be avoided",
         "label": "Invalid character",
         "terms": False,
         "exceptions": 'g'
@@ -71,6 +73,7 @@ CHECKS = {
         "description": "Entry names may contain protein symbols (NnnY), "
                        "but not gene symbols (nnnY)",
         "label": "Gene symbol in name",
+        "details": "Use the protein symbol (NnnY) instead",
         "terms": False,
         "exceptions": 'g'
     },
@@ -83,7 +86,8 @@ CHECKS = {
     },
     "integration": {
         "name": "Empty entries",
-        "description": "Checked entries without member database signatures",
+        "description": "Checked entries must integrate at least "
+                       "one member database signature",
         "label": "Entry without signatures",
         "terms": False,
         "exceptions": None
@@ -103,8 +107,8 @@ CHECKS = {
         "exceptions": 'g'
     },
     "matches": {
-        "name": "Integrated signatures without matches",
-        "description": "Checked entries cannot integrates signatures "
+        "name": "No matches",
+        "description": "Checked entries cannot integrate signatures "
                        "without protein matches",
         "label": "Signature without matches",
         "terms": False,
@@ -115,6 +119,8 @@ CHECKS = {
         "description": "Common punctuation errors "
                        "(e.g. whitespace before punctuation characters)",
         "label": "Punctuation error",
+        "details": "This annotation contains a common punctuation error "
+                   "(e.g. a whitespace before a punctuation mark)",
         "terms": True,
         "exceptions": 't'
     },
@@ -129,7 +135,7 @@ CHECKS = {
     "similar_name": {
         "name": "Similar names",
         "description": "Name and short names differing only "
-                       "in non-word characters",
+                       "by non-alphanumeric characters",
         "label": "Similar names",
         "terms": False,
         "exceptions": 'p'
@@ -138,6 +144,8 @@ CHECKS = {
         "name": "Misspellings",
         "description": "Common spelling and grammatical errors",
         "label": "Misspelling",
+        "details": "This word is in the list "
+                   "of common spelling/grammatical errors",
         "terms": True,
         "exceptions": 't'
     },
@@ -165,16 +173,16 @@ CHECKS = {
     },
     "unchecked_child": {
         "name": "Unchecked child entries",
-        "description": "Unchecked entries whose parent are checked",
+        "description": "Unchecked entries whose parents are checked",
         "label": "Unchecked child",
         "terms": False,
         "exceptions": None
     },
     "underscore": {
         "name": "Underscores in names",
-        "description": "Names cannot contain underscores and , in short names,"
+        "description": "Names cannot contain underscores and, in short names,"
                        " 'binding', 'bd', 'related', 'rel', and 'like' should "
-                       "be hyphenated (preceeded by an hyphen rather than "
+                       "be hyphenated (preceded by an hyphen rather than "
                        "an underscore, e.g. DNA-bd)",
         "label": "Underscore in name",
         "terms": False,
