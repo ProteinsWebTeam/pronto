@@ -59,10 +59,21 @@ function getSignatures() {
                         `;
                     }
 
+                    let change = '';
+                    if (signature.proteins.then > 0 && signature.proteins.now > 0) {
+                        change = (signature.proteins.now-signature.proteins.then) / signature.proteins.then * 100;
+                        if (change >= 1)
+                            change = `+${Math.ceil(change)}%`;
+                        else if (change <= -1)
+                            change = `${Math.floor(change)}%`;
+                        else
+                            change = '';
+                    }
+
                     html += `
                         <td class="right aligned">${signature.proteins.then.toLocaleString()}</td>
                         <td class="right aligned">${signature.proteins.now.toLocaleString()}</td>
-                        <td class="right aligned">${signature.proteins.then > 0 && signature.proteins.now > 0 ? Math.floor(signature.proteins.now/signature.proteins.then*1000) / 10 : ''}</td>
+                        <td class="right aligned">${change}</td>
 
                         <td class="ui comments"><div class="comment"><div class="content">
                     `;
