@@ -74,6 +74,19 @@ def ck_double_quote(entries: LoT) -> Err:
     return [(acc, None) for acc, name, short_name in entries if '"' in name]
 
 
+def ck_encoding(entries: LoT, exceptions: Set[str]) -> Err:
+    errors = []
+    for acc, name, short_name in entries:
+        for char in name:
+            try:
+                char.encode("ascii")
+            except UnicodeEncodeError:
+                if str(ord(char)) not in exceptions:
+                    errors.append((acc, char))
+
+    return errors
+
+
 def ck_gene_symbol(entries: LoT, exceptions: Set[str]) -> Err:
     prog1 = re.compile(r"\b[a-z]{3}[A-Z]\b")
     prog2 = re.compile(r"(?:^|_)([a-z]{3}[A-Z])\b")
@@ -298,6 +311,10 @@ def check(ora_cur: Cursor, pg_url: str):
 
     for item in ck_double_quote(entries):
         yield "double_quote", item
+
+    exceptions = load_global_exceptions(ora_cur, "encoding")
+    for item in ck_encoding(entries, exceptions):
+        yield "encoding", item
 
     exceptions = load_global_exceptions(ora_cur, "gene_symbol")
     for item in ck_gene_symbol(entries, exceptions):
