@@ -44,14 +44,9 @@ function getTaxonomyCounts(accessions, rank) {
             for (const node of data.results) {
                 url.searchParams.set('taxon', node.id);
 
-                /*
-                The commented link filters results by "selecting" a taxonomic branch,
-                e.g. when filtering by a Superkingdom, only descendants of this Superkingdom will be shown
-                when opening the Kingdom, Phylum, etc. tabs.
-                 */
                 html += `<tr><td>
                             <a href="#!" data-id="${node.id}"><i class="caret right icon"></i>${node.name}</a>
-                            <!--<a class="right floated" href="${url.toString()}"><i class="filter fitted icon"></i></a>-->
+                            <a class="right floated" href="${url.toString()}"><i class="filter fitted icon"></i></a>
                          </td>`;
 
                 for (const acc of accessions) {
