@@ -15,14 +15,21 @@ def get_signatures(accession):
     cur = con.cursor()
     cur.execute(
         """
-        SELECT METHOD_AC, EM.TIMESTAMP, NVL(U.NAME, EM.USERSTAMP)
+        SELECT EM.METHOD_AC, EM.TIMESTAMP, NVL(U.NAME, EM.USERSTAMP), 
+               NVL(MC.CNT, 0)
         FROM INTERPRO.ENTRY2METHOD EM
         LEFT OUTER JOIN INTERPRO.PRONTO_USER U 
             ON EM.USERSTAMP = U.DB_USER
-        WHERE ENTRY_AC = :1
+        LEFT OUTER JOIN (
+            SELECT METHOD_AC, COUNT(*) CNT
+            FROM INTERPRO.METHOD_COMMENT
+            WHERE STATUS = 'Y'
+            GROUP BY METHOD_AC
+        ) MC ON EM.METHOD_AC = MC.METHOD_AC
+        WHERE EM.ENTRY_AC = :1
         """, (accession,)
     )
-    integrated = {row[0]: f"{row[2]} ({row[1]:%d %b %Y})" for row in cur}
+    integrated = {row[0]: row[1:] for row in cur}
 
     cur.close()
     con.close()
@@ -46,6 +53,7 @@ def get_signatures(accession):
         )
 
         for row in cur:
+            timestamp, userstamp, num_comments = integrated[row[0]]
             db = utils.get_database_obj(row[4])
             signatures.append({
                 "accession": row[0],
@@ -59,7 +67,8 @@ def get_signatures(accession):
                     "link": db.gen_link(row[0]),
                     "name": row[5]
                 },
-                "date": integrated[row[0]]
+                "date": f"{userstamp} ({timestamp:%d %b %Y})",
+                "comments": num_comments
             })
 
         cur.close()

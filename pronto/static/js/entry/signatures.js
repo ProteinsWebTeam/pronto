@@ -81,9 +81,13 @@ export function refresh(accession) {
                         <td class="right aligned">${signature.sequences.all.toLocaleString()}</td>
                         <td class="right aligned">${signature.sequences.complete.toLocaleString()}</td>
                         <td class="nowrap">${signature.date}</td>
-                        <td class="collapsing"><i data-accession="${signature.accession}" class="unlink fitted button icon"></i></td>
-                        </tr>
+                        <td class="collapsing">
                     `;
+
+                    if (signature.comments > 0)
+                        html += `<span class="ui small basic label"><i class="comments icon"></i> ${signature.comments}</span>`;
+
+                    html += `</td><td class="collapsing"><i data-accession="${signature.accession}" class="unlink fitted button icon"></i></td></tr>`;
                 }
 
                 const accessions = Array.from(signatures, (s,) => s.accession).join('/');
