@@ -21,7 +21,7 @@ def get_recent_entries(cur, date):
         """
         SELECT
           E.ENTRY_AC, E.ENTRY_TYPE, E.SHORT_NAME, A.TIMESTAMP,
-          NVL(U.NAME, A.DBUSER), E.CHECKED
+          NVL(U.NAME, A.DBUSER), E.CHECKED, NVL(EC.CNT, 0), NVL(MC.CNT, 0)
         FROM INTERPRO.ENTRY E
         INNER JOIN (
           -- First audit event
@@ -34,6 +34,20 @@ def get_recent_entries(cur, date):
           FROM INTERPRO.ENTRY_AUDIT
         ) A ON E.ENTRY_AC = A.ENTRY_AC AND A.RN = 1
         LEFT OUTER JOIN INTERPRO.PRONTO_USER U ON A.DBUSER = U.DB_USER
+        LEFT OUTER JOIN (
+          SELECT ENTRY_AC, COUNT(*) AS CNT
+          FROM INTERPRO.ENTRY_COMMENT
+          WHERE STATUS = 'Y'
+          GROUP BY ENTRY_AC
+        ) EC ON E.ENTRY_AC = EC.ENTRY_AC
+        LEFT OUTER JOIN (
+          SELECT EM.ENTRY_AC, COUNT(*) AS CNT
+          FROM INTERPRO.ENTRY2METHOD EM
+          INNER JOIN INTERPRO.METHOD_COMMENT MC 
+            ON EM.METHOD_AC = MC.METHOD_AC
+          WHERE MC.STATUS = 'Y'
+          GROUP BY EM.ENTRY_AC
+        ) MC ON E.ENTRY_AC = MC.ENTRY_AC
         WHERE A.TIMESTAMP >= :1
         ORDER BY A.TIMESTAMP DESC
         """, (date,)
@@ -46,7 +60,11 @@ def get_recent_entries(cur, date):
             "short_name": row[2],
             "date": row[3].strftime("%d %b %Y"),
             "user": row[4],
-            "checked": row[5] == 'Y'
+            "checked": row[5] == 'Y',
+            "comments": {
+                "entry": row[6],
+                "signatures": row[7]
+            }
         })
 
     return entries
@@ -106,8 +124,9 @@ def get_unchecked_entries():
               NVL(FAE.TIMESTAMP, E.TIMESTAMP) AS CREATED_TIME,
               NVL(LAE.TIMESTAMP, E.TIMESTAMP) AS UPDATED_TIME, 
               NVL(U.NAME, E.USERSTAMP), 
-              NVL(EM.NUM_METHODS, 0) AS NUM_METHODS,
-              NVL(EC.NUM_COMMENTS, 0) AS NUM_COMMENTS
+              NVL(EM.CNT, 0) AS NUM_METHODS,
+              NVL(EC.CNT, 0) AS NUM_ECOMMENTS,
+              NVL(MC.CNT, 0) AS NUM_MCOMMENTS
             FROM INTERPRO.ENTRY E
             LEFT OUTER JOIN (
               -- First audit event
@@ -131,16 +150,24 @@ def get_unchecked_entries():
             LEFT OUTER JOIN INTERPRO.PRONTO_USER U 
                 ON LAE.DBUSER = U.DB_USER
             LEFT OUTER JOIN (
-              SELECT ENTRY_AC, COUNT(*) AS NUM_METHODS
+              SELECT ENTRY_AC, COUNT(*) AS CNT
               FROM INTERPRO.ENTRY2METHOD
               GROUP BY ENTRY_AC
             ) EM ON E.ENTRY_AC = EM.ENTRY_AC
             LEFT OUTER JOIN (
-                SELECT ENTRY_AC, COUNT(*) AS NUM_COMMENTS
+                SELECT ENTRY_AC, COUNT(*) AS CNT
                 FROM INTERPRO.ENTRY_COMMENT
                 WHERE STATUS = 'Y'
                 GROUP BY ENTRY_AC
             ) EC ON E.ENTRY_AC = EC.ENTRY_AC
+            LEFT OUTER JOIN (
+                SELECT EM.ENTRY_AC, COUNT(*) AS CNT
+                FROM INTERPRO.ENTRY2METHOD EM
+                INNER JOIN INTERPRO.METHOD_COMMENT MC 
+                    ON EM.METHOD_AC = MC.METHOD_AC
+                WHERE MC.STATUS = 'Y'
+                GROUP BY EM.ENTRY_AC
+            ) MC ON E.ENTRY_AC = MC.ENTRY_AC
             WHERE E.CHECKED = 'N'
         ) E
         WHERE {filter_sql}
@@ -157,7 +184,10 @@ def get_unchecked_entries():
             "update_date": row[4].strftime("%d %b %Y"),
             "user": row[5],
             "signatures": row[6],
-            "comments": row[7]
+            "comments": {
+                "entry": row[7],
+                "signatures": row[8],
+            }
         })
     cur.close()
     con.close()

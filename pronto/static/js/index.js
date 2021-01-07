@@ -99,8 +99,14 @@ function renderRecentActions(entries, hideChecked) {
             <td>${checkbox.createDisabled(entry.checked)}</td>
             <td>${entry.date}</td>
             <td>${entry.user}</td>
-            </tr>
+            <td>
         `;
+
+        let numComments = entry.comments.entry + entry.comments.signatures;
+        if (numComments > 0)
+            html += `<a href="/entry/${entry.accession}/" class="ui small basic label"><i class="comments icon"></i> ${numComments}</a>`;
+
+        html += '</td></tr>';
     }
 
     if (html.length === 0)
@@ -233,8 +239,9 @@ function getUncheckedEntries(database) {
                     <td class="right aligned">
                 `;
 
-                if (entry.comments > 0)
-                    html += `<a href="/entry/${entry.accession}/" class="ui small basic label"><i class="comments icon"></i> ${entry.comments}</a>`;
+                let numComments = entry.comments.entry + entry.comments.signatures;
+                if (numComments > 0)
+                    html += `<a href="/entry/${entry.accession}/" class="ui small basic label"><i class="comments icon"></i> ${numComments}</a>`;
 
                 html += '</td></tr>';
             }
