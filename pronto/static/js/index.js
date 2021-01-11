@@ -9,7 +9,7 @@ function getDatabases() {
         .then(response => response.json())
         .then(databases => {
             let html = '';
-            const series = [];
+            // const series = [];
             for (const database of databases) {
                 let total;
                 let unint;
@@ -20,11 +20,11 @@ function getDatabases() {
                     total = `<a href="/database/${database.id}/">${database.signatures.total.toLocaleString()}</a>`;
                     unint = `<a href="/database/${database.id}/unintegrated/?target=integrated">${(database.signatures.total-database.signatures.integrated).toLocaleString()}</a>`;
 
-                    series.push({
-                        name: database.name,
-                        int: database.signatures.integrated,
-                        unint: database.signatures.total - database.signatures.integrated
-                    });
+                    // series.push({
+                    //     name: database.name,
+                    //     int: database.signatures.integrated,
+                    //     unint: database.signatures.total - database.signatures.integrated
+                    // });
                 }
 
                 html += `
@@ -45,39 +45,39 @@ function getDatabases() {
             const tab = document.querySelector('.tab[data-tab="databases"]');
             tab.querySelector('tbody').innerHTML = html;
 
-            series.sort((a, b) => a.name.localeCompare(b.name));
-
-            Highcharts.chart(tab.querySelector('.chart'), {
-                chart: { type: 'bar', height: 600 },
-                title: { text: 'Integration progress' },
-                subtitle: { text: null },
-                credits: { enabled: false },
-                legend: { enabled: false },
-                xAxis: { type: 'category' },
-                yAxis: {
-                    title: { text: null },
-                    labels: {
-                        format: '{value}%'
-                    }
-                },
-                plotOptions: {
-                    series: {
-                        stacking: 'percent'
-                    }
-                },
-                series: [{
-                    name: 'integrated',
-                    data: series.map(x => ({ name: x.name, y: x.int })),
-                    color: '#4CAF50',
-                    index: 1
-                }, {
-                    name: 'unintegrated',
-                    data: series.map(x => ({ name: x.name, y: x.unint })),
-                    color: '#f44336',
-                    index: 0
-                }],
-                tooltip: { pointFormat: '<b>{point.percentage:.1f}%</b> signatures {series.name}' }
-            });
+            // series.sort((a, b) => a.name.localeCompare(b.name));
+            //
+            // Highcharts.chart(tab.querySelector('.chart'), {
+            //     chart: { type: 'bar', height: 600 },
+            //     title: { text: 'Integration progress' },
+            //     subtitle: { text: null },
+            //     credits: { enabled: false },
+            //     legend: { enabled: false },
+            //     xAxis: { type: 'category' },
+            //     yAxis: {
+            //         title: { text: null },
+            //         labels: {
+            //             format: '{value}%'
+            //         }
+            //     },
+            //     plotOptions: {
+            //         series: {
+            //             stacking: 'percent'
+            //         }
+            //     },
+            //     series: [{
+            //         name: 'integrated',
+            //         data: series.map(x => ({ name: x.name, y: x.int })),
+            //         color: '#4CAF50',
+            //         index: 1
+            //     }, {
+            //         name: 'unintegrated',
+            //         data: series.map(x => ({ name: x.name, y: x.unint })),
+            //         color: '#f44336',
+            //         index: 0
+            //     }],
+            //     tooltip: { pointFormat: '<b>{point.percentage:.1f}%</b> signatures {series.name}' }
+            // });
 
             return databases;
         });
@@ -127,34 +127,35 @@ function getRecentActions() {
             renderRecentActions(data.entries, hideChecked);
 
             // Recent integrated signatures (chart)
-            const series = Object.entries(data.signatures)
-                .sort((a, b) => a[0].localeCompare(b[0]))
-                .map(e => ({name: e[0], y: e[1]}));
+            // const series = Object.entries(data.signatures)
+            //     .sort((a, b) => a[0].localeCompare(b[0]))
+            //     .map(e => ({name: e[0], y: e[1]}));
 
-            Highcharts.chart(tab.querySelector('.chart'), {
-                chart: { type: 'column' },
-                title: { text: 'Recent integrations' },
-                subtitle: { text: null },
-                credits: { enabled: false },
-                legend: { enabled: false },
-                xAxis: { type: 'category' },
-                yAxis: {
-                    title: { text: null },
-                    type: Math.max(...Object.values(data.signatures)) >= Math.min(...Object.values(data.signatures)) * 100 ? 'logarithmic' : 'linear',
-                },
-                series: [{
-                    name: 'Member databases',
-                    data: series,
-                    color: '#2c3e50'
-                }],
-                tooltip: { pointFormat: '<b>{point.y}</b> signatures integrated' }
-            });
+            // Highcharts.chart(tab.querySelector('.chart'), {
+            //     chart: { type: 'column' },
+            //     title: { text: 'Recent integrations' },
+            //     subtitle: { text: null },
+            //     credits: { enabled: false },
+            //     legend: { enabled: false },
+            //     xAxis: { type: 'category' },
+            //     yAxis: {
+            //         title: { text: null },
+            //         type: Math.max(...Object.values(data.signatures)) >= Math.min(...Object.values(data.signatures)) * 100 ? 'logarithmic' : 'linear',
+            //     },
+            //     series: [{
+            //         name: 'Member databases',
+            //         data: series,
+            //         color: '#2c3e50'
+            //     }],
+            //     tooltip: { pointFormat: '<b>{point.y}</b> signatures integrated' }
+            // });
 
             let text = `Since ${data.date}, <strong>${data.entries.length} `;
             text += data.entries.length > 1 ? 'entries' : 'entry';
             text += '</strong> have been created, ';
 
-            const nIntegrated = series.reduce((acc, cur) => acc + cur.y, 0);
+            const nIntegrated = Object.values(data.signatures).reduce((acc, cur) => acc + cur, 0);
+            // const nIntegrated = series.reduce((acc, cur) => acc + cur.y, 0);
             text += `and <strong>${nIntegrated} ${nIntegrated > 1 ? 'signatures' : 'signature'}</strong> have been integrated.`;
 
             document.getElementById('news-summary').innerHTML = text;
@@ -254,24 +255,24 @@ function getUncheckedEntries(database) {
             tab.querySelector('tbody').innerHTML = html;
             document.querySelector('.item[data-tab="unchecked"] .label').innerHTML = entries.length.toString();
 
-            const years = [...entriesPerYear.entries()].sort((a, b) => a[0] - b[0]);
-            Highcharts.chart(tab.querySelector('.chart'), {
-                chart: { type: 'bar', height: 600 },
-                title: { text: 'Unchecked entries' },
-                subtitle: { text: 'By year of creation' },
-                credits: { enabled: false },
-                legend: { enabled: false },
-                xAxis: {
-                    categories: years.map(e => e[0])
-                },
-                yAxis: { title: { text: null }, },
-                series: [{
-                    name: 'Entries',
-                    data: years.map(e => e[1]),
-                    color: '#2c3e50'
-                }],
-                tooltip: { pointFormat: '<b>{point.y}</b> entries' }
-            });
+            // const years = [...entriesPerYear.entries()].sort((a, b) => a[0] - b[0]);
+            // Highcharts.chart(tab.querySelector('.chart'), {
+            //     chart: { type: 'bar', height: 600 },
+            //     title: { text: 'Unchecked entries' },
+            //     subtitle: { text: 'By year of creation' },
+            //     credits: { enabled: false },
+            //     legend: { enabled: false },
+            //     xAxis: {
+            //         categories: years.map(e => e[0])
+            //     },
+            //     yAxis: { title: { text: null }, },
+            //     series: [{
+            //         name: 'Entries',
+            //         data: years.map(e => e[1]),
+            //         color: '#2c3e50'
+            //     }],
+            //     tooltip: { pointFormat: '<b>{point.y}</b> entries' }
+            // });
         });
 }
 
