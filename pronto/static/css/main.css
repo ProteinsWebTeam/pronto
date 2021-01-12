@@ -94,3 +94,14 @@ code.negative {
 .ui.toggle.checkbox + .ui.toggle.checkbox {
     margin-left: 2em;
 }
+
+/* Customizing statistics (entry + progress pages) */
+.ui.statistics > .statistic > .label {
+    font-size: .8rem;
+    font-weight: 400;
+}
+.ui.statistics > .statistic > .value {
+    text-transform: none;
+    font-weight: 300;
+    overflow-wrap: break-word;
+}

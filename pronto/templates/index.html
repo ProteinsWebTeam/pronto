@@ -16,8 +16,10 @@
         <div class="ui top attached tabular secondary pointing menu">
             <a class="item" data-tab="databases">Member databases</a>
             <a class="item" data-tab="news"><span>Recent entries</span><div class="ui small secondary label"></div></a>
+            <a class="item" data-tab="interpro2go"><span>InterPro2GO</span><div class="ui small secondary label"></div></a>
             <a class="item" data-tab="unchecked"><span>Unchecked entries</span><div class="ui small secondary label"></div></a>
             <a class="item" data-tab="checks"><span>Sanity checks</span><div class="ui small secondary label"></div></a>
+            <a class="item" data-tab="statistics"><span>Statistics</span></a>
         </div>
         <div class="ui tab basic segment" data-tab="databases">
             <table class="ui table">
@@ -49,8 +51,8 @@
                     <th>Entry</th>
                     <th>Short name</th>
                     <th>Checked</th>
-                    <th>Created</th>
-                    <th>Author</th>
+                    <th>Date</th>
+                    <th>Curator</th>
                     <th class="collapsing"></th>
                 </tr>
                 </thead>
@@ -58,26 +60,26 @@
             </table>
         </div>
         <div class="ui tab basic segment" data-tab="unchecked">
-                {#            <div class="ui info message">#}
-                {#                <i class="close icon"></i>#}
-                {#                <div class="header">Unchecked entries</div>#}
-                {#                <p>The table below shows all unchecked InterPro entries containing at least one member database signature.</p>#}
-                {#            </div>#}
-                <div id="unchecked-databases" class="ui equal width form">
-                    <div class="fields"></div>
-                </div>
-                <table class="ui single line compact table">
-                    <thead>
-                    <tr>
-                        <th>Entry</th>
-                        <th>Short name</th>
-                        <th>Created</th>
-                        <th>Last edit</th>
-                        <th class="collapsing"></th>
-                    </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
+            {#            <div class="ui info message">#}
+            {#                <i class="close icon"></i>#}
+            {#                <div class="header">Unchecked entries</div>#}
+            {#                <p>The table below shows all unchecked InterPro entries containing at least one member database signature.</p>#}
+            {#            </div>#}
+            <div id="unchecked-databases" class="ui equal width form">
+                <div class="fields"></div>
+            </div>
+            <table class="ui single line compact table">
+                <thead>
+                <tr>
+                    <th>Entry</th>
+                    <th>Short name</th>
+                    <th>Created</th>
+                    <th>Last edit</th>
+                    <th class="collapsing"></th>
+                </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
         </div>
         <div class="ui tab basic segment" data-tab="checks">
             <button class="ui compact primary button">Run</button>
@@ -97,6 +99,70 @@
                 </thead>
                 <tbody></tbody>
             </table>
+        </div>
+        <div class="ui tab basic segment" data-tab="interpro2go">
+            <p class="meta"></p>
+            <div class="ui info message">
+                <i class="close icon"></i>
+                <div class="header">Checked entries only</div>
+                <p>Only checked entries are displayed in InterPro2GO mappings below.</p>
+            </div>
+            <table class="ui single line compact table">
+                <thead>
+                <tr>
+                    <th>Entry</th>
+                    <th>Go term</th>
+                    <th>Date</th>
+                    <th>Curator</th>
+                </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        <div class="ui tab basic segment" data-tab="statistics">
+            <button class="fluid ui primary button">Fetch statistics</button>
+            <div class="hidden content">
+                <div class="ui segment">
+                    <div class="ui four small statistics">
+                        <div class="statistic">
+                            <div class="label">Entries</div>
+                            <div id="stats-entries" class="value"></div>
+                        </div>
+                        <div class="statistic">
+                            <div class="label">Integrated signatures</div>
+                            <div id="stats-signatures" class="value"></div>
+                        </div>
+                        <div class="statistic">
+                            <div class="label">GO terms</div>
+                            <div id="stats-interpro2go" class="value"></div>
+                        </div>
+                        <div class="statistic">
+                            <div class="label">Citations</div>
+                            <div id="stats-citations" class="value"></div>
+                        </div>
+                    </div>
+                </div>
+                <h4>Quarterly reports</h4>
+                <div id="chart-reports"></div>
+                <div class="ui grid">
+                    <div class="twelve wide column">
+                        <h4>Number of entries by year of creation</h4>
+                        <div id="chart-entries"></div>
+
+                        <h4>Number of signatures integrated by week</h4>
+                        <div id="chart-integrated"></div>
+
+                        <h4>Number of GO terms by entry</h4>
+                        <div id="chart-interpro2go"></div>
+                    </div>
+                    <div class="four wide column">
+                        <h4>Member database updates</h4>
+                        <table id="table-updates" class="ui single line compact table">
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
