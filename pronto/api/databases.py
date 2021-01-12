@@ -64,3 +64,46 @@ def get_member_databases():
     con.close()
     return jsonify(sorted(databases.values(),
                           key=lambda x: x["name"].lower()))
+
+
+@bp.route("/updates/")
+def get_recent_updates():
+    con = utils.connect_oracle()
+    cur = con.cursor()
+    cur.execute(
+        """
+        SELECT LOWER(D.DBSHORT), D.DBNAME, A.VERSION, A.TIMESTAMP
+        FROM (
+            SELECT DBCODE, VERSION, TIMESTAMP, ROW_NUMBER() OVER (
+                PARTITION BY DBCODE, VERSION 
+                ORDER BY TIMESTAMP DESC
+            ) RN
+            FROM INTERPRO.DB_VERSION_AUDIT
+            WHERE TIMESTAMP >= ADD_MONTHS(SYSDATE, -12)
+        ) A
+        INNER JOIN INTERPRO.CV_DATABASE D ON A.DBCODE = D.DBCODE
+        WHERE A.RN = 1
+        ORDER BY TIMESTAMP DESC
+        """
+    )
+
+    results = []
+    for identifier, name, version, date in cur:
+        try:
+            db = utils.get_database_obj(identifier)
+        except KeyError:
+            continue
+        else:
+            results.append({
+                "name": name,
+                "color": db.color,
+                "version": version,
+                "date": date.strftime("%b %Y")
+            })
+
+    cur.close()
+    con.close()
+
+    return jsonify({
+        "results": results
+    }), 200
