@@ -4,12 +4,243 @@ import {fetchTasks, renderTaskList, updateHeader} from "./ui/header.js"
 import {setClass, escape, copy2clipboard} from "./ui/utils.js";
 import * as modal from "./ui/modals.js";
 
+async function getMemberDatabaseUpdates() {
+    const response = await fetch('/api/databases/updates/')
+    const data = await response.json();
+
+    let html = '';
+    for (const update of data.results) {
+        html += `
+            <tr>
+                <td style="border-left: 5px solid ${update.color};">${update.name}</td>
+                <td><span class="ui basic label">${update.version}</span></td>
+                <td>${update.date}</td>
+            </tr>
+        `;
+    }
+
+    document.querySelector('#table-updates tbody').innerHTML = html + '</table>';
+}
+
+async function getEntryStats() {
+    const response = await fetch('/api/entries/counts/')
+    const data = await response.json();
+
+    let total = 0;
+    const seriesData = [];
+    for (const item of data.results) {
+        seriesData.push({
+            name: item.year,
+            y: item.total
+        });
+        total += item.total;
+    }
+
+    Highcharts.chart(document.getElementById('chart-entries'), {
+        chart: { type: 'column', height: 250 },
+        title: { text: null },
+        subtitle: { text: null },
+        credits: { enabled: false },
+        legend: { enabled: false },
+        xAxis: {
+            type: 'category',
+            title: { text: null },
+        },
+        yAxis: {
+            title: { text: 'Entries' }
+        },
+        series: [{
+            data: seriesData,
+            color: '#2c3e50'
+        }],
+        tooltip: {
+            headerFormat: '<span style="font-size: 10px;">{point.key}</span><br/>',
+            pointFormat: '<b>{point.y}</b> entries created'
+        }
+    });
+
+    document.getElementById('stats-entries').innerHTML = total.toLocaleString();
+}
+
+async function getInterPro2GoStats() {
+    const response = await fetch('/api/entries/counts/go/')
+    const data = await response.json();
+
+    // Descending order
+    const results = data.results.sort((a, b) => b.terms - a.terms);
+
+    // Map insertion from highest number to lowest
+    const counts = new Map();
+    let total = 0;
+    for (const obj of results) {
+        let key = obj.terms < 5 ? obj.terms.toString() : '5+';
+        const val = obj.entries;
+
+        total += obj.terms * val;
+        if (counts.has(key))
+            counts.set(key, counts.get(key) + val);
+        else
+            counts.set(key, val);
+    }
+
+    Highcharts.chart(document.getElementById('chart-interpro2go'), {
+        chart: { type: 'bar', height: 250 },
+        title: { text: null },
+        subtitle: { text: null },
+        credits: { enabled: false },
+        legend: { enabled: false },
+        xAxis: {
+            type: 'category',
+            title: { text: 'GO terms' },
+        },
+        yAxis: {
+            // type: 'logarithmic',
+            title: { text: 'Entries' },
+        },
+        series: [{
+            data: [...counts.entries()],
+            color: '#2c3e50'
+        }],
+        tooltip: {
+            headerFormat: '<span style="font-size: 10px;">{point.key} GO Terms</span><br/>',
+            pointFormat: '<b>{point.y}</b> entries'
+        },
+    });
+
+    document.getElementById('stats-interpro2go').innerHTML = total.toLocaleString();
+}
+
+async function getIntegrationStats() {
+    const response = await fetch('/api/entries/counts/signatures/')
+    const data = await response.json();
+
+    document.getElementById('stats-signatures').innerHTML = data.total.toLocaleString();
+
+    Highcharts.chart(document.getElementById('chart-integrated'), {
+        chart: { type: 'column', height: 250 },
+        title: { text: null },
+        subtitle: { text: null },
+        credits: { enabled: false },
+        legend: { enabled: false },
+        xAxis: {
+            title: { text: null },
+            type: 'datetime',
+            labels: {
+                formatter: function() {
+                    return Highcharts.dateFormat('%b %Y', this.value);
+                }
+            }
+        },
+        yAxis: {
+            title: { text: 'Signatures' }
+        },
+        series: [{
+            data: data.results.map(e => ({
+                x: e.timestamp * 1000,  // seconds to milliseconds
+                y: e.count,
+                name: e.week
+            })),
+            color: '#2c3e50'
+        }],
+        tooltip: {
+            formatter: function() {
+                return `
+                    <span style="font-size: 10px">Week ${this.point.name} (${Highcharts.dateFormat('%e %b', this.x)})</span><br>
+                    <b>${this.y}</b> signatures integrated
+                `;
+            },
+        },
+    });
+}
+
+async function getCitationsStats() {
+    const response = await fetch('/api/entries/counts/citations/')
+    const data = await response.json();
+    document.getElementById('stats-citations').innerHTML = data.count.toLocaleString();
+}
+
+async function getQuartelyStats() {
+    const response = await fetch('/api/entries/stats/');
+    const data = await response.json();
+
+    Highcharts.chart(document.getElementById('chart-reports'), {
+        chart: { type: 'column', height: 250 },
+        title: { text: null },
+        subtitle: { text: null },
+        credits: { enabled: false },
+        xAxis: { categories: data.map(x => x.quarter ) },
+        yAxis: { title: { text: null } },
+        series: [{
+            name: 'Entries',
+            data: data.map(x => x.entries ),
+            color: '#241E26'
+        }, {
+            name: 'Signatures',
+            data: data.map(x => x.signatures ),
+            color: '#34BFA6'
+        }, {
+            name: 'GO terms',
+            data: data.map(x => x.terms ),
+            color: '#F29441'
+        }]
+    });
+}
+
+async function getInterPro2GO() {
+    const response = await fetch('/api/entries/news/go/')
+    const data = await response.json();
+
+    let html = '';
+    let label;
+    let labelColor;
+    for (const obj of data.results) {
+        if (obj.term.category === 'cellular_component') {
+            label = 'C';
+            labelColor = 'violet';
+        } else if (obj.term.category === 'biological_process') {
+            label = 'P';
+            labelColor = 'orange';
+        } else {  // molecular_function
+            label = 'F';
+            labelColor = 'green';
+        }
+
+        html += `
+            <tr>
+            <td>
+                <span class="ui circular mini label type ${obj.entry.type}">${obj.entry.type}</span>
+                <a href="/entry/${obj.entry.accession}/">${obj.entry.accession}</a>
+                <br>
+                ${obj.entry.short_name}
+            </td>
+            <td>
+                <span class="ui circular mini basic type label ${labelColor}">${label}</span>
+                <a href="//www.ebi.ac.uk/QuickGO/term/${obj.term.id}" target="_blank">${obj.term.id}<i class="external icon"></i></a><br>
+                ${obj.term.name}
+            </td>
+            <td>${obj.date}</td>
+            <td>${obj.user}</td>
+            </tr>
+        `;
+    }
+
+    const segment = document.querySelector('.tab[data-tab="interpro2go"]');
+    segment.querySelector('tbody').innerHTML = html;
+
+    html = `Since ${data.date}, <strong>${data.results.length} `;
+    html += data.results.length > 1 ? 'mappings' : 'mapping';
+    html += '</strong> have been created.';
+    segment.querySelector(':scope > p').innerHTML = html;
+
+    document.querySelector('.item[data-tab="interpro2go"] .label').innerHTML = data.results.length.toString();
+}
+
 function getDatabases() {
     return fetch('/api/databases/')
         .then(response => response.json())
         .then(databases => {
             let html = '';
-            const series = [];
+            // const series = [];
             for (const database of databases) {
                 let total;
                 let unint;
@@ -20,11 +251,11 @@ function getDatabases() {
                     total = `<a href="/database/${database.id}/">${database.signatures.total.toLocaleString()}</a>`;
                     unint = `<a href="/database/${database.id}/unintegrated/?target=integrated">${(database.signatures.total-database.signatures.integrated).toLocaleString()}</a>`;
 
-                    series.push({
-                        name: database.name,
-                        int: database.signatures.integrated,
-                        unint: database.signatures.total - database.signatures.integrated
-                    });
+                    // series.push({
+                    //     name: database.name,
+                    //     int: database.signatures.integrated,
+                    //     unint: database.signatures.total - database.signatures.integrated
+                    // });
                 }
 
                 html += `
@@ -45,45 +276,11 @@ function getDatabases() {
             const tab = document.querySelector('.tab[data-tab="databases"]');
             tab.querySelector('tbody').innerHTML = html;
 
-            series.sort((a, b) => a.name.localeCompare(b.name));
-
-            Highcharts.chart(tab.querySelector('.chart'), {
-                chart: { type: 'bar', height: 600 },
-                title: { text: 'Integration progress' },
-                subtitle: { text: null },
-                credits: { enabled: false },
-                legend: { enabled: false },
-                xAxis: { type: 'category' },
-                yAxis: {
-                    title: { text: null },
-                    labels: {
-                        format: '{value}%'
-                    }
-                },
-                plotOptions: {
-                    series: {
-                        stacking: 'percent'
-                    }
-                },
-                series: [{
-                    name: 'integrated',
-                    data: series.map(x => ({ name: x.name, y: x.int })),
-                    color: '#4CAF50',
-                    index: 1
-                }, {
-                    name: 'unintegrated',
-                    data: series.map(x => ({ name: x.name, y: x.unint })),
-                    color: '#f44336',
-                    index: 0
-                }],
-                tooltip: { pointFormat: '<b>{point.percentage:.1f}%</b> signatures {series.name}' }
-            });
-
             return databases;
         });
 }
 
-function renderRecentActions(entries, hideChecked) {
+function renderRecentEntries(entries, hideChecked) {
     let html = '';
     for (const entry of entries) {
         if (entry.checked && hideChecked)
@@ -99,8 +296,14 @@ function renderRecentActions(entries, hideChecked) {
             <td>${checkbox.createDisabled(entry.checked)}</td>
             <td>${entry.date}</td>
             <td>${entry.user}</td>
-            </tr>
+            <td>
         `;
+
+        let numComments = entry.comments.entry + entry.comments.signatures;
+        if (numComments > 0)
+            html += `<a href="/entry/${entry.accession}/" class="ui small basic label"><i class="comments icon"></i> ${numComments}</a>`;
+
+        html += '</td></tr>';
     }
 
     if (html.length === 0)
@@ -109,51 +312,23 @@ function renderRecentActions(entries, hideChecked) {
     document.querySelector('.tab[data-tab="news"] tbody').innerHTML = html;
 }
 
-function getRecentActions() {
-    return fetch('/api/news/')
-        .then(response => response.json())
-        .then(data => {
-            sessionStorage.setItem('newEntries', JSON.stringify(data.entries));
-            const tab = document.querySelector('.tab[data-tab="news"]');
-            const hideChecked = tab.querySelector('input[name="unchecked"]').checked;
+async function getRecentEntries() {
+    const response = await fetch('/api/entries/news/');
+    let data = await response.json();
 
-            // Recent entries
-            renderRecentActions(data.entries, hideChecked);
+    sessionStorage.setItem('newEntries', JSON.stringify(data.results));
+    const tab = document.querySelector('.tab[data-tab="news"]');
+    const hideChecked = tab.querySelector('input[name="unchecked"]').checked;
 
-            // Recent integrated signatures (chart)
-            const series = Object.entries(data.signatures)
-                .sort((a, b) => a[0].localeCompare(b[0]))
-                .map(e => ({name: e[0], y: e[1]}));
+    // Recent entries
+    renderRecentEntries(data.results, hideChecked);
 
-            Highcharts.chart(tab.querySelector('.chart'), {
-                chart: { type: 'column' },
-                title: { text: 'Recent integrations' },
-                subtitle: { text: null },
-                credits: { enabled: false },
-                legend: { enabled: false },
-                xAxis: { type: 'category' },
-                yAxis: {
-                    title: { text: null },
-                    type: Math.max(...Object.values(data.signatures)) >= Math.min(...Object.values(data.signatures)) * 100 ? 'logarithmic' : 'linear',
-                },
-                series: [{
-                    name: 'Member databases',
-                    data: series,
-                    color: '#2c3e50'
-                }],
-                tooltip: { pointFormat: '<b>{point.y}</b> signatures integrated' }
-            });
+    let text = `Since ${data.date}, <strong>${data.results.length} `;
+    text += data.results.length > 1 ? 'entries' : 'entry';
+    text += '</strong> have been created.';
 
-            let text = `Since ${data.date}, <strong>${data.entries.length} `;
-            text += data.entries.length > 1 ? 'entries' : 'entry';
-            text += '</strong> have been created, ';
-
-            const nIntegrated = series.reduce((acc, cur) => acc + cur.y, 0);
-            text += `and <strong>${nIntegrated} ${nIntegrated > 1 ? 'signatures' : 'signature'}</strong> have been integrated.`;
-
-            document.getElementById('news-summary').innerHTML = text;
-            document.querySelector('.item[data-tab="news"] .label').innerHTML = data.entries.length.toString();
-        });
+    document.getElementById('news-summary').innerHTML = text;
+    document.querySelector('.item[data-tab="news"] .label').innerHTML = data.results.length.toString();
 }
 
 function initUncheckedEntries(databases) {
@@ -233,8 +408,9 @@ function getUncheckedEntries(database) {
                     <td class="right aligned">
                 `;
 
-                if (entry.comments > 0)
-                    html += `<a href="/entry/${entry.accession}/" class="ui small basic label"><i class="comments icon"></i> ${entry.comments}</a>`;
+                let numComments = entry.comments.entry + entry.comments.signatures;
+                if (numComments > 0)
+                    html += `<a href="/entry/${entry.accession}/" class="ui small basic label"><i class="comments icon"></i> ${numComments}</a>`;
 
                 html += '</td></tr>';
             }
@@ -246,25 +422,6 @@ function getUncheckedEntries(database) {
 
             tab.querySelector('tbody').innerHTML = html;
             document.querySelector('.item[data-tab="unchecked"] .label').innerHTML = entries.length.toString();
-
-            const years = [...entriesPerYear.entries()].sort((a, b) => a[0] - b[0]);
-            Highcharts.chart(tab.querySelector('.chart'), {
-                chart: { type: 'bar', height: 600 },
-                title: { text: 'Unchecked entries' },
-                subtitle: { text: 'By year of creation' },
-                credits: { enabled: false },
-                legend: { enabled: false },
-                xAxis: {
-                    categories: years.map(e => e[0])
-                },
-                yAxis: { title: { text: null }, },
-                series: [{
-                    name: 'Entries',
-                    data: years.map(e => e[1]),
-                    color: '#2c3e50'
-                }],
-                tooltip: { pointFormat: '<b>{point.y}</b> entries' }
-            });
         });
 }
 
@@ -488,20 +645,40 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
 
         const hideChecked = e.currentTarget.checked;
-        renderRecentActions(JSON.parse(data), hideChecked);
+        renderRecentEntries(JSON.parse(data), hideChecked);
     });
 
     // Run sanity checks
     document.querySelector('.tab[data-tab="checks"] .primary.button').addEventListener('click', e => runSanityChecks());
 
-    const promises = [
+    Promise.all([
         getDatabases().then(databases => initUncheckedEntries(databases)),
-        getRecentActions(),
-        getSanityCheck()
-    ];
-
-    Promise.all(promises)
+        getRecentEntries(),
+        getSanityCheck(),
+        getInterPro2GO()
+    ])
         .then(() => {
             setClass(document.getElementById('welcome'), 'active', false);
         });
+
+    (function() {
+        const tab = document.querySelector('.tab[data-tab="statistics"]');
+        tab.querySelector(':scope > .button').addEventListener('click', e => {
+            const button = e.currentTarget;
+            setClass(button, 'loading', true);
+
+            Promise.all([
+                getEntryStats(),
+                getMemberDatabaseUpdates(),
+                getIntegrationStats(),
+                getInterPro2GoStats(),
+                getCitationsStats(),
+                getQuartelyStats()
+            ]).then(() => {
+                setClass(button, 'hidden', true);
+                setClass(tab.querySelector(':scope > .content'), 'hidden', false);
+            });
+        });
+
+    }());
 });

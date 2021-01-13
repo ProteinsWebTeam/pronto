@@ -11,6 +11,33 @@ from pronto import utils
 bp = Blueprint("api.database", __name__, url_prefix="/api/database")
 
 
+def get_latest_freeze(cur):
+    """
+    Get the date of the last time a record for InterPro was inserted into the
+    DB_VERSION_AUDIT table (triggered by an action for InterPro in DB_VERSION).
+    This roughly corresponds to the date of the last production freeze.
+    :param cur: Oracle cursor
+    :return: datetime object
+    """
+    cur.execute(
+        """
+        SELECT TIMESTAMP
+        FROM (
+            SELECT TIMESTAMP, ROWNUM AS RN
+            FROM (
+                SELECT TIMESTAMP
+                FROM DB_VERSION_AUDIT
+                WHERE DBCODE = 'I'
+                ORDER BY TIMESTAMP DESC
+            )
+        )
+        WHERE RN = 1
+        """
+    )
+    date, = cur.fetchone()
+    return date
+
+
 @bp.route("/<db_name>/signatures/")
 def get_integrated_signatures(db_name):
     try:

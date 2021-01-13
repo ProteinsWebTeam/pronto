@@ -3,6 +3,20 @@ import {updateHeader} from "../ui/header.js";
 import {selector, showProteinsModal} from "../ui/signatures.js";
 
 
+function getTaxonCounts(accessions, taxonID) {
+    return fetch(`/api/signatures/${accessions.join('/')}/taxon/${taxonID}`)
+        .then(response => response.json());
+}
+
+function addEventOnProteinCount(elem) {
+    elem.addEventListener('click', e => {
+        const acc = e.currentTarget.dataset.signature;
+        const taxon = e.currentTarget.dataset.taxon;
+        showProteinsModal(acc, [`taxon=${taxon}`], true);
+    });
+}
+
+
 function getTaxonomyCounts(accessions, rank) {
     const tabs = document.querySelectorAll('[data-rank]');
     for (const tab of tabs) {
@@ -26,8 +40,14 @@ function getTaxonomyCounts(accessions, rank) {
                         <tbody>`;
 
 
+            const url = new URL(location.href);
             for (const node of data.results) {
-                html += `<tr><td><a href="#!" data-id="${node.id}">${node.name}</a></td>`;
+                url.searchParams.set('taxon', node.id);
+
+                html += `<tr><td>
+                            <a href="#!" data-id="${node.id}"><i class="caret right icon"></i>${node.name}</a>
+                            <a class="right floated" href="${url.toString()}"><i class="filter fitted icon"></i></a>
+                         </td>`;
 
                 for (const acc of accessions) {
                     if (node.signatures.hasOwnProperty(acc))
@@ -35,6 +55,8 @@ function getTaxonomyCounts(accessions, rank) {
                     else
                         html += '<td></td>';
                 }
+
+                html += `</tr>`;
             }
 
             const table = document.getElementById('results');
@@ -43,10 +65,45 @@ function getTaxonomyCounts(accessions, rank) {
             for (const elem of table.querySelectorAll('[data-id]')) {
                 elem.addEventListener('click', e => {
                     e.preventDefault();
-                    const url = new URL(location.href);
-                    url.searchParams.set('taxon', e.currentTarget.dataset.id);
-                    history.replaceState(null, document.title, url.toString());
-                    getTaxonomyCounts(accessions, rank);
+                    const taxonID = e.currentTarget.dataset.id;
+
+                    if (e.currentTarget.className === 'active') {
+                        for (const child of table.querySelectorAll(`[data-child="${taxonID}"]`)) {
+                            child.remove();
+                        }
+
+                        e.currentTarget.className = '';
+                        return;
+                    }
+
+                    e.currentTarget.className = 'active';
+                    const tr = e.currentTarget.closest('tr');
+                    getTaxonCounts(accessions, taxonID)
+                        .then(data => {
+                            let html = '';
+
+                            for (const node of data.results) {
+                                let label = node.rank !== null ? `<span class="ui right floated small basic label">${node.rank}</span>` : '';
+                                html += `<tr data-child="${taxonID}"><td class="ignored">${node.name}${label}</td>`;
+
+                                for (const acc of accessions) {
+                                    if (node.signatures.hasOwnProperty(acc))
+                                        html += `<td><a href="#!" data-signature="${acc}" data-taxon="${node.id}">${node.signatures[acc].toLocaleString()}</a></td>`;
+                                    else
+                                        html += '<td></td>';
+                                }
+
+                                html += '</tr>';
+                            }
+
+                            tr.insertAdjacentHTML('afterend', html);
+
+                            // Adding event on link to show protein matches modal
+                            for (const elem of table.querySelectorAll(`[data-child="${taxonID}"] [data-signature]`)) {
+                                addEventOnProteinCount(elem);
+                            }
+                        });
+
                 });
             }
 
@@ -61,12 +118,8 @@ function getTaxonomyCounts(accessions, rank) {
             }
 
             for (const elem of table.querySelectorAll('[data-signature]')) {
-                    elem.addEventListener('click', e => {
-                        const acc = e.currentTarget.dataset.signature;
-                        const taxon = e.currentTarget.dataset.taxon;
-                        showProteinsModal(acc, [`taxon=${taxon}`], true);
-                    });
-                }
+                addEventOnProteinCount(elem);
+            }
 
             dimmer.off();
         });

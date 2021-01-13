@@ -18,6 +18,13 @@
 
         {% include 'signatures/selector.html' %}
 
+        <div class="ui info message">
+            <p>
+                Click the expand button (<i class="caret right fitted icon"></i>) to display a taxon's direct children.<br>
+                Click the filter button (<i class="filter fitted icon"></i>) to select the taxon as root: only its descendants will be shown for lower taxonomic ranks.
+            </p>
+        </div>
+
         <div class="ui top attached tabular menu">
             <a class="item" data-rank="superkingdom">Superkingdom</a>
             <a class="item" data-rank="kingdom">Kingdom</a>

@@ -27,3 +27,11 @@
 .ui.segment[data-tab] {
     margin-top: 0;
 }
+
+.tab[data-tab="statistics"] > .hidden {
+    display: none;
+}
+
+.tab[data-tab="statistics"] > .ui.button {
+    margin-top: 5rem;
+}
