@@ -11,32 +11,30 @@ from pronto.api.database import get_latest_freeze
 bp = Blueprint("api.entries", __name__, url_prefix="/api/entries")
 
 
-def _get_report_start():
-    return datetime(datetime.today().year - 1, 1, 1)
-
-
-@bp.route("/checked/")
-def get_entries_count():
+@bp.route("/counts/")
+def get_counts():
     con = utils.connect_oracle()
     cur = con.cursor()
     cur.execute(
         """
-        SELECT YEAR, COUNT(*)
+        SELECT YEAR, COUNT(*), SUM(CHECKED)
         FROM (
-             SELECT ENTRY_AC, EXTRACT(YEAR FROM CREATED) YEAR
-             FROM INTERPRO.ENTRY
-             WHERE CHECKED = 'Y'
-         )
+            SELECT ENTRY_AC, 
+                   CASE WHEN CHECKED = 'Y' THEN 1 ELSE 0 END CHECKED,
+                   EXTRACT(YEAR FROM CREATED) YEAR
+            FROM INTERPRO.ENTRY
+        )
         GROUP BY YEAR
         ORDER BY YEAR
         """
     )
 
     results = []
-    for year, cnt in cur:
+    for year, total, checked in cur:
         results.append({
             "year": year,
-            "count": cnt
+            "total": total,
+            "checked": checked
         })
 
     cur.close()
@@ -47,18 +45,11 @@ def get_entries_count():
     }), 200
 
 
-@bp.route("/citations/")
+@bp.route("/counts/citations/")
 def get_citations_count():
     con = utils.connect_oracle()
     cur = con.cursor()
-    cur.execute(
-        """
-        SELECT COUNT(*)
-        FROM INTERPRO.ENTRY E
-        INNER JOIN INTERPRO.ENTRY2PUB P ON E.ENTRY_AC = P.ENTRY_AC
-        WHERE E.CHECKED = 'Y'
-        """
-    )
+    cur.execute("SELECT COUNT(*) FROM INTERPRO.ENTRY2PUB")
     cnt, = cur.fetchone()
     cur.close()
     con.close()
@@ -68,46 +59,106 @@ def get_citations_count():
     }), 200
 
 
-@bp.route("/citations/report/")
-def get_citation_report():
-    date_start = _get_report_start()
+@bp.route("/counts/go/")
+def get_go_count():
+    con = utils.connect_oracle()
+    cur = con.cursor()
+
+    # Entries with at least one GO term
+    cur.execute(
+        """
+        SELECT IG.N_TERMS, COUNT(*)
+        FROM (
+            SELECT ENTRY_AC, COUNT(*) N_TERMS
+            FROM INTERPRO.INTERPRO2GO
+            GROUP BY ENTRY_AC
+        ) IG
+        GROUP BY N_TERMS
+        """
+    )
+    counts = dict(cur.fetchall())
+
+    # Entries without GO terms
+    cur.execute(
+        """
+        SELECT COUNT(*)
+        FROM (
+            SELECT ENTRY_AC
+            FROM INTERPRO.ENTRY
+            MINUS SELECT DISTINCT ENTRY_AC
+            FROM INTERPRO.INTERPRO2GO
+        )        
+        """
+    )
+    counts[0], = cur.fetchone()
+    cur.close()
+    con.close()
+
+    return jsonify({
+        "results": [{
+            "terms": n_terms,
+            "entries": counts[n_terms]
+        } for n_terms in sorted(counts)]
+    })
+
+
+@bp.route("/counts/signatures/")
+def get_signature_count():
     con = utils.connect_oracle()
     cur = con.cursor()
     cur.execute(
         """
-        SELECT E.ENTRY_AC, A.ACTION, TO_CHAR(A.TIMESTAMP, 'YYYY-MM')
-        FROM INTERPRO.ENTRY E
-        INNER JOIN INTERPRO.ENTRY2PUB_AUDIT A
-            ON E.ENTRY_AC = A.ENTRY_AC
-        WHERE E.CHECKED = 'Y'
-        AND A.TIMESTAMP >= :1
-        """, (date_start,)
+        SELECT COUNT(*), 
+               SUM(CASE WHEN CHECKED = 'Y' THEN 1 ELSE 0 END)
+        FROM INTERPRO.ENTRY2METHOD EM
+        INNER JOIN INTERPRO.ENTRY E ON EM.ENTRY_AC = E.ENTRY_AC
+        """
+    )
+    total, checked = cur.fetchone()
+
+    cur.execute(
+        """
+        SELECT METHOD_AC, ACTION, TIMESTAMP
+        FROM INTERPRO.ENTRY2METHOD_AUDIT
+        WHERE TIMESTAMP >= ADD_MONTHS(SYSDATE, -12)
+        AND ACTION IN ('I', 'D')
+        """,
     )
 
-    quarters = {}
-    for entry_acc, action, date_string in cur:
-        date = datetime.strptime(date_string, "%Y-%m")
-        key = f"{date.year} Q{date.month // 4 + 1}"
+    weeks = {}
+    for acc, action, date in cur:
+        # ISO calendar format (%G -> year, %V -> week, 1 -> Monday)
+        iso_cal = date.strftime("%G%V1")
 
         try:
-            entries = quarters[key]
+            entries = weeks[iso_cal]
         except KeyError:
-            entries = quarters[key] = {}
+            entries = weeks[iso_cal] = {}
 
-        i = -1 if action == 'D' else 1
-
+        i = 1 if action == 'I' else -1
         try:
-            entries[entry_acc] += i
+            entries[acc] += i
         except KeyError:
-            entries[entry_acc] = i
+            entries[acc] = i
 
     cur.close()
     con.close()
 
-    for key, entries in quarters.items():
-        quarters[key] = len([i for i in entries.values() if i > 0])
+    results = []
+    for iso_cal in sorted(weeks):
+        # Get timestamps from ISO calendar day
+        ts = datetime.strptime(iso_cal, "%G%V%u").timestamp()
 
-    return jsonify(quarters)
+        results.append({
+            "timestamp": ts,
+            "week": int(iso_cal[4:6]),  # week number
+            "count": len([i for i in weeks[iso_cal].values() if i > 0])
+        })
+    return jsonify({
+        "total": total,
+        "checked": checked,
+        "results": results
+    })
 
 
 @bp.route("/news/")
@@ -180,53 +231,7 @@ def get_recent_entries():
     })
 
 
-@bp.route("/go/")
-def get_go_count():
-    con = utils.connect_oracle()
-    cur = con.cursor()
-
-    # Checked entries with at least one GO term
-    cur.execute(
-        """
-        SELECT IG.N_TERMS, COUNT(*)
-        FROM (
-            SELECT E.ENTRY_AC, COUNT(*) N_TERMS
-            FROM INTERPRO.INTERPRO2GO IG
-            INNER JOIN INTERPRO.ENTRY E ON IG.ENTRY_AC = E.ENTRY_AC
-            WHERE E.CHECKED = 'Y'
-            GROUP BY E.ENTRY_AC
-        ) IG
-        GROUP BY N_TERMS
-        """
-    )
-    counts = dict(cur.fetchall())
-
-    # Checked entries without GO terms
-    cur.execute(
-        """
-        SELECT COUNT(*)
-        FROM (
-            SELECT ENTRY_AC
-            FROM INTERPRO.ENTRY
-            WHERE CHECKED = 'Y'
-            MINUS SELECT DISTINCT ENTRY_AC
-            FROM INTERPRO.INTERPRO2GO
-        )        
-        """
-    )
-    counts[0], = cur.fetchone()
-    cur.close()
-    con.close()
-
-    return jsonify({
-        "results": [{
-            "terms": n_terms,
-            "entries": counts[n_terms]
-        } for n_terms in sorted(counts)]
-    })
-
-
-@bp.route("/go/news/")
+@bp.route("/news/go/")
 def get_recent_go_terms():
     con = utils.connect_pg(utils.get_pg_url())
     cur = con.cursor()
@@ -257,24 +262,22 @@ def get_recent_go_terms():
 
     cur.execute(
         """
-        SELECT IG.ENTRY_AC, IG.SHORT_NAME, IG.ENTRY_TYPE, IG.GO_ID, 
-               IG.TIMESTAMP, IG.USERNAME
+        SELECT A.ENTRY_AC, A.SHORT_NAME, A.ENTRY_TYPE, A.GO_ID,
+               A.TIMESTAMP, NVL(U.NAME, A.DBUSER)
         FROM (
-          SELECT E.ENTRY_AC, E.SHORT_NAME, E.ENTRY_TYPE, IG.GO_ID, 
-                 IG.TIMESTAMP, NVL(U.NAME, IG.DBUSER) USERNAME, 
-                 ROW_NUMBER() OVER (PARTITION BY E.ENTRY_AC, IG.GO_ID 
-                                    ORDER BY IG.TIMESTAMP DESC) RN
-          FROM INTERPRO.INTERPRO2GO_AUDIT IG 
-          INNER JOIN INTERPRO.ENTRY E
-            ON IG.ENTRY_AC = E.ENTRY_AC
-          LEFT OUTER JOIN INTERPRO.PRONTO_USER U 
-            ON IG.DBUSER = U.DB_USER
-          WHERE IG.TIMESTAMP >= :1
-          AND IG.ACTION = 'I'
-          AND E.CHECKED = 'Y'
-        ) IG
-        WHERE IG.RN = 1
-        ORDER BY IG.TIMESTAMP DESC
+            SELECT E.ENTRY_AC, E.SHORT_NAME, E.ENTRY_TYPE, A.GO_ID, A.ACTION,
+                   A.TIMESTAMP, A.DBUSER, ROW_NUMBER() OVER (
+                       PARTITION BY E.ENTRY_AC, A.GO_ID
+                       ORDER BY A.TIMESTAMP DESC
+                   ) RN
+            FROM INTERPRO.INTERPRO2GO_AUDIT A
+            INNER JOIN INTERPRO.ENTRY E ON A.ENTRY_AC = E.ENTRY_AC
+            WHERE A.TIMESTAMP >= :1
+        ) A
+        LEFT OUTER JOIN INTERPRO.PRONTO_USER U ON A.DBUSER = U.DB_USER
+        WHERE A.RN = 1
+        AND A.ACTION = 'I'
+        ORDER BY A.TIMESTAMP DESC
         """, (date,)
     )
 
@@ -297,224 +300,6 @@ def get_recent_go_terms():
         "date": date.strftime("%d %B"),
         "results": interpro2go
     })
-
-
-@bp.route("/go/report/")
-def get_go_report():
-    date_start = _get_report_start()
-    con = utils.connect_oracle()
-    cur = con.cursor()
-    cur.execute(
-        """
-        SELECT E.ENTRY_AC, A.ACTION, TO_CHAR(A.TIMESTAMP, 'YYYY-MM')
-        FROM INTERPRO.ENTRY E
-        INNER JOIN INTERPRO.INTERPRO2GO_AUDIT A
-            ON E.ENTRY_AC = A.ENTRY_AC
-        WHERE E.CHECKED = 'Y'
-        AND A.TIMESTAMP >= :1
-        """, (date_start,)
-    )
-
-    quarters = {}
-    for entry_acc, action, date_string in cur:
-        date = datetime.strptime(date_string, "%Y-%m")
-        key = f"{date.year} Q{date.month // 4 + 1}"
-
-        try:
-            entries = quarters[key]
-        except KeyError:
-            entries = quarters[key] = {}
-
-        i = -1 if action == 'D' else 1
-
-        try:
-            entries[entry_acc] += i
-        except KeyError:
-            entries[entry_acc] = i
-
-    cur.close()
-    con.close()
-
-    for key, entries in quarters.items():
-        quarters[key] = len([i for i in entries.values() if i > 0])
-
-    return jsonify(quarters)
-
-
-@bp.route("/report/")
-def get_report():
-    date_start = _get_report_start()
-    con = utils.connect_oracle()
-    cur = con.cursor()
-    cur.execute(
-        """
-        SELECT CREATED, COUNT(*)
-        FROM (
-            SELECT ENTRY_AC, TO_CHAR(CREATED, 'YYYY-MM') CREATED
-            FROM INTERPRO.ENTRY
-            WHERE CHECKED = 'Y'
-            AND CREATED >= :1
-        )
-        GROUP BY CREATED
-        """, (date_start,)
-    )
-
-    quarters = {}
-    for date_string, cnt in cur:
-        date = datetime.strptime(date_string, "%Y-%m")
-        key = f"{date.year} Q{date.month // 4 + 1}"
-
-        try:
-            quarters[key] += cnt
-        except KeyError:
-            quarters[key] = cnt
-
-    cur.close()
-    con.close()
-
-    return jsonify(quarters)
-
-
-    # Integrated signatures
-    cur.execute(
-        """
-        SELECT A.ENTRY_AC, A.ACTION, TO_CHAR(A.TIMESTAMP, 'YYYY-MM') TIMESTAMP
-        FROM INTERPRO.ENTRY E
-        INNER JOIN INTERPRO.ENTRY2METHOD_AUDIT A 
-            ON E.ENTRY_AC = A.ENTRY_AC
-        WHERE E.CHECKED = 'Y'
-        AND A.TIMESTAMP >= :1
-        """, (date_start,)
-    )
-    _populate_quarters(cur, quarters, "signatures", True)
-
-    # InterPro2GO
-    cur.execute(
-        """
-        SELECT TIMESTAMP, COUNT(*)
-        FROM (
-            SELECT E.ENTRY_AC, TO_CHAR(A.TIMESTAMP, 'YYYY-MM') TIMESTAMP
-            FROM INTERPRO.ENTRY E
-            INNER JOIN INTERPRO.INTERPRO2GO_AUDIT A
-                ON E.ENTRY_AC = A.ENTRY_AC
-            WHERE E.CHECKED = 'Y'
-            AND A.ACTION IN ('I', 'U')
-            AND A.TIMESTAMP >= :1
-        ) A
-        GROUP BY TIMESTAMP
-        """, (date_start,)
-    )
-    _populate_quarters(cur, quarters, "terms")
-
-
-
-    cur.close()
-    con.close()
-
-    return jsonify(quarters)
-
-
-@bp.route("/signatures/")
-def get_signature_count():
-    con = utils.connect_oracle()
-    cur = con.cursor()
-    cur.execute(
-        """
-        SELECT COUNT(*)
-        FROM INTERPRO.ENTRY2METHOD EM
-        INNER JOIN INTERPRO.ENTRY E ON EM.ENTRY_AC = E.ENTRY_AC
-        WHERE E.CHECKED = 'Y'
-        """
-    )
-    cnt, = cur.fetchone()
-
-    cur.execute(
-        """
-        SELECT A.TIMESTAMP
-        FROM (
-            SELECT A.METHOD_AC, A.TIMESTAMP, ROW_NUMBER() OVER (
-                PARTITION BY A.METHOD_AC 
-                ORDER BY A.TIMESTAMP DESC
-            ) RN
-            FROM INTERPRO.ENTRY2METHOD_AUDIT A
-            INNER JOIN INTERPRO.ENTRY E ON A.ENTRY_AC = E.ENTRY_AC
-            WHERE A.TIMESTAMP >= ADD_MONTHS(SYSDATE, -12)
-            AND A.ACTION = 'I'
-            AND E.CHECKED = 'Y'
-        ) A
-        WHERE A.RN = 1
-        """,
-    )
-
-    weeks = {}
-    for date, in cur:
-        # ISO calendar format (%G -> year, %V -> week, 1 -> Monday)
-        iso_cal = date.strftime("%G%V1")
-
-        try:
-            weeks[iso_cal] += 1
-        except KeyError:
-            weeks[iso_cal] = 1
-
-    cur.close()
-    con.close()
-
-    results = []
-    for iso_cal in sorted(weeks):
-        # Get timestamps from ISO calendar day
-        ts = datetime.strptime(iso_cal, "%G%V%u").timestamp()
-
-        results.append({
-            "timestamp": ts,
-            "week": int(iso_cal[4:6]),  # week number
-            "count": weeks[iso_cal]
-        })
-    return jsonify({
-        "count": cnt,
-        "results": results
-    })
-
-
-@bp.route("/signatures/report/")
-def get_signature_report():
-    date_start = _get_report_start()
-    con = utils.connect_oracle()
-    cur = con.cursor()
-    cur.execute(
-        """
-        SELECT E.ENTRY_AC, A.ACTION, TO_CHAR(A.TIMESTAMP, 'YYYY-MM')
-        FROM INTERPRO.ENTRY2METHOD_AUDIT A
-        INNER JOIN INTERPRO.ENTRY E ON A.ENTRY_AC = E.ENTRY_AC
-        WHERE E.CHECKED = 'Y'
-        AND A.TIMESTAMP >= :1
-        """, (date_start,)
-    )
-
-    quarters = {}
-    for entry_acc, action, date_string in cur:
-        date = datetime.strptime(date_string, "%Y-%m")
-        key = f"{date.year} Q{date.month // 4 + 1}"
-
-        try:
-            entries = quarters[key]
-        except KeyError:
-            entries = quarters[key] = {}
-
-        i = -1 if action == 'D' else 1
-
-        try:
-            entries[entry_acc] += i
-        except KeyError:
-            entries[entry_acc] = i
-
-    cur.close()
-    con.close()
-
-    for key, entries in quarters.items():
-        quarters[key] = len([i for i in entries.values() if i > 0])
-
-    return jsonify(quarters)
-
 
 
 @bp.route("/unchecked/")
@@ -639,3 +424,121 @@ def get_unchecked_entries():
     cur.close()
     con.close()
     return jsonify(entries)
+
+
+def _get_quarterly_entries(cur, date):
+    cur.execute(
+        """
+        SELECT ENTRY_AC, ACTION, TIMESTAMP
+        FROM INTERPRO.ENTRY_AUDIT
+        WHERE TIMESTAMP >= :1
+        AND ACTION IN ('I', 'D')
+        """, (date,)
+    )
+
+    quarters = {}
+    for entry_acc, action, date in cur:
+        key = f"{date.year} Q{date.month //4 + 1}"
+        try:
+            entries = quarters[key]
+        except KeyError:
+            entries = quarters[key] = set()
+
+        if action == 'I':
+            entries.add(entry_acc)
+        else:
+            try:
+                entries.remove(entry_acc)
+            except KeyError:
+                pass
+
+    for key, entries in quarters.items():
+        quarters[key] = len(entries)
+
+    return quarters
+
+
+def _get_quarterly_signatures(cur, date):
+    cur.execute(
+        """
+        SELECT METHOD_AC, ACTION, TIMESTAMP
+        FROM INTERPRO.ENTRY2METHOD_AUDIT
+        WHERE TIMESTAMP >= :1 
+        AND ACTION IN ('I', 'D')
+        """, (date,)
+    )
+
+    quarters = {}
+    for acc, action, date in cur:
+        key = f"{date.year} Q{date.month //4 + 1}"
+        try:
+            entries = quarters[key]
+        except KeyError:
+            entries = quarters[key] = {}
+
+        i = 1 if action == 'I' else -1
+        try:
+            entries[acc] += i
+        except KeyError:
+            entries[acc] = i
+
+    for key, entries in quarters.items():
+        quarters[key] = len([i for i in entries.values() if i > 0])
+
+    return quarters
+
+
+def _get_quarterly_go(cur, date):
+    cur.execute(
+        """
+        SELECT ENTRY_AC || GO_ID, ACTION, TIMESTAMP
+        FROM INTERPRO.INTERPRO2GO_AUDIT A
+        WHERE TIMESTAMP >= :1
+        AND ACTION IN ('I', 'D')
+        """, (date,)
+    )
+
+    quarters = {}
+    for entry2go, action, date in cur:
+        key = f"{date.year} Q{date.month //4 + 1}"
+        try:
+            entries = quarters[key]
+        except KeyError:
+            entries = quarters[key] = {}
+
+        i = 1 if action == 'I' else -1
+        try:
+            entries[entry2go] += i
+        except KeyError:
+            entries[entry2go] = i
+
+    for key, entries in quarters.items():
+        quarters[key] = len([i for i in entries.values() if i > 0])
+
+    return quarters
+
+
+@bp.route("/stats/")
+def get_quarterly_stats():
+    date = datetime(datetime.today().year - 1, 1, 1)
+
+    con = utils.connect_oracle()
+    cur = con.cursor()
+    entries = _get_quarterly_entries(cur, date)
+    signatures = _get_quarterly_signatures(cur, date)
+    terms = _get_quarterly_go(cur, date)
+    cur.close()
+    con.close()
+
+    keys = set(entries.keys()) | set(signatures.keys()) | set(terms.keys())
+
+    quarters = []
+    for key in sorted(keys):
+        quarters.append({
+            "quarter": key,
+            "entries": entries.get(key, 0),
+            "signatures": signatures.get(key, 0),
+            "terms": terms.get(key, 0)
+        })
+
+    return jsonify(quarters)

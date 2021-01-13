@@ -23,17 +23,17 @@ async function getMemberDatabaseUpdates() {
 }
 
 async function getEntryStats() {
-    const response = await fetch('/api/entries/checked/')
+    const response = await fetch('/api/entries/counts/')
     const data = await response.json();
-    let total = 0;
-    const series = [];
 
+    let total = 0;
+    const seriesData = [];
     for (const item of data.results) {
-        series.push({
+        seriesData.push({
             name: item.year,
-            y: item.count
+            y: item.total
         });
-        total += item.count;
+        total += item.total;
     }
 
     Highcharts.chart(document.getElementById('chart-entries'), {
@@ -50,7 +50,7 @@ async function getEntryStats() {
             title: { text: 'Entries' }
         },
         series: [{
-            data: series,
+            data: seriesData,
             color: '#2c3e50'
         }],
         tooltip: {
@@ -63,7 +63,7 @@ async function getEntryStats() {
 }
 
 async function getInterPro2GoStats() {
-    const response = await fetch('/api/entries/go/')
+    const response = await fetch('/api/entries/counts/go/')
     const data = await response.json();
 
     // Descending order
@@ -111,10 +111,10 @@ async function getInterPro2GoStats() {
 }
 
 async function getIntegrationStats() {
-    const response = await fetch('/api/entries/signatures/')
+    const response = await fetch('/api/entries/counts/signatures/')
     const data = await response.json();
 
-    document.getElementById('stats-signatures').innerHTML = data.count.toLocaleString();
+    document.getElementById('stats-signatures').innerHTML = data.total.toLocaleString();
 
     Highcharts.chart(document.getElementById('chart-integrated'), {
         chart: { type: 'column', height: 250 },
@@ -154,60 +154,40 @@ async function getIntegrationStats() {
 }
 
 async function getCitationsStats() {
-    const response = await fetch('/api/entries/citations/')
+    const response = await fetch('/api/entries/counts/citations/')
     const data = await response.json();
     document.getElementById('stats-citations').innerHTML = data.count.toLocaleString();
 }
 
-async function getQuartelyReports() {
-    await Promise.all([
-        fetch('/api/entries/report/').then(response => response.json()),
-        fetch('/api/entries/signatures/report/').then(response => response.json()),
-        fetch('/api/entries/go/report/').then(response => response.json()),
-        fetch('/api/entries/citations/report/').then(response => response.json()),
-    ]).then(objects => {
-        const entriesData = new Map(Object.entries(objects[0]))
-        const signaturesData = new Map(Object.entries(objects[1]))
-        const termsData = new Map(Object.entries(objects[2]))
-        const citationsData = new Map(Object.entries(objects[3]))
+async function getQuartelyStats() {
+    const response = await fetch('/api/entries/stats/');
+    const data = await response.json();
 
-        let quarters = new Set(entriesData.keys());
-        for (const key of signaturesData.keys()) quarters.add(key);
-        for (const key of termsData.keys()) quarters.add(key);
-        for (const key of citationsData.keys()) quarters.add(key);
-
-        quarters = [...quarters].sort();
-
-        Highcharts.chart(document.getElementById('chart-reports'), {
-            chart: { type: 'column', height: 250 },
-            title: { text: null },
-            subtitle: { text: null },
-            credits: { enabled: false },
-            xAxis: { categories: quarters },
-            yAxis: { title: { text: null } },
-            series: [{
-                name: 'Entries',
-                data: quarters.map(key => entriesData.has(key) ? entriesData.get(key) : 0),
-                color: '#241E26'
-            }, {
-                name: 'Signatures',
-                data: quarters.map(key => signaturesData.has(key) ? signaturesData.get(key) : 0),
-                color: '#34BFA6'
-            }, {
-                name: 'GO terms',
-                data: quarters.map(key => termsData.has(key) ? termsData.get(key) : 0),
-                color: '#F29441'
-            }, {
-                name: 'Citations',
-                data: quarters.map(key => citationsData.has(key) ? citationsData.get(key) : 0),
-                color: '#D94E41'
-            }]
-        });
-    })
+    Highcharts.chart(document.getElementById('chart-reports'), {
+        chart: { type: 'column', height: 250 },
+        title: { text: null },
+        subtitle: { text: null },
+        credits: { enabled: false },
+        xAxis: { categories: data.map(x => x.quarter ) },
+        yAxis: { title: { text: null } },
+        series: [{
+            name: 'Entries',
+            data: data.map(x => x.entries ),
+            color: '#241E26'
+        }, {
+            name: 'Signatures',
+            data: data.map(x => x.signatures ),
+            color: '#34BFA6'
+        }, {
+            name: 'GO terms',
+            data: data.map(x => x.terms ),
+            color: '#F29441'
+        }]
+    });
 }
 
 async function getInterPro2GO() {
-    const response = await fetch('/api/entries/go/news/')
+    const response = await fetch('/api/entries/news/go/')
     const data = await response.json();
 
     let html = '';
@@ -690,10 +670,10 @@ document.addEventListener('DOMContentLoaded', () => {
             Promise.all([
                 getEntryStats(),
                 getMemberDatabaseUpdates(),
-                getInterPro2GoStats(),
                 getIntegrationStats(),
+                getInterPro2GoStats(),
                 getCitationsStats(),
-                getQuartelyReports()
+                getQuartelyStats()
             ]).then(() => {
                 setClass(button, 'hidden', true);
                 setClass(tab.querySelector(':scope > .content'), 'hidden', false);
