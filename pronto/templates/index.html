@@ -138,20 +138,30 @@
                     </div>
                 </div>
                 <h4>Quarterly reports</h4>
+                <p>
+                    Number of InterPro entries created, signatures integrated, and GO terms associated, per quarter.<br>
+                    Actions thar are done then undone during the same quarter (e.g. entry created then deleted) are not considered.
+                </p>
                 <div id="chart-reports"></div>
+
                 <div class="ui grid">
                     <div class="twelve wide column">
-                        <h4>Number of currently existing entries by year of creation</h4>
+                        <h4>Number of entries created per year</h4>
+                        <p>Only currently existing and checked entries are considered.</p>
                         <div id="chart-entries"></div>
 
-                        <h4>Number of signatures integrated by week</h4>
+                        <h4>Number of signatures integrated per week</h4>
+                        <p>
+                            For an integration to be considered, both the signature and the entry must currently exist, and the entry must be currently checked.
+                            If a signature has been integrated more than once, only the last integration is considered.
+                        </p>
                         <div id="chart-integrated"></div>
 
-                        <h4>Number of GO terms by entry</h4>
+                        <h4>Number of GO terms by checked entry</h4>
                         <div id="chart-interpro2go"></div>
                     </div>
                     <div class="four wide column">
-                        <h4>Member database updates</h4>
+                        <h4>Latest member database updates</h4>
                         <table id="table-updates" class="ui single line compact table">
                             <tbody></tbody>
                         </table>

@@ -31,9 +31,9 @@ async function getEntryStats() {
     for (const item of data.results) {
         seriesData.push({
             name: item.year,
-            y: item.total
+            y: item.checked
         });
-        total += item.total;
+        total += item.checked;
     }
 
     Highcharts.chart(document.getElementById('chart-entries'), {
@@ -114,7 +114,7 @@ async function getIntegrationStats() {
     const response = await fetch('/api/entries/counts/signatures/')
     const data = await response.json();
 
-    document.getElementById('stats-signatures').innerHTML = data.total.toLocaleString();
+    document.getElementById('stats-signatures').innerHTML = data.checked.toLocaleString();
 
     Highcharts.chart(document.getElementById('chart-integrated'), {
         chart: { type: 'column', height: 250 },

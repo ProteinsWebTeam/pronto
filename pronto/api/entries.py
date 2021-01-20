@@ -49,7 +49,14 @@ def get_counts():
 def get_citations_count():
     con = utils.connect_oracle()
     cur = con.cursor()
-    cur.execute("SELECT COUNT(*) FROM INTERPRO.ENTRY2PUB")
+    cur.execute(
+        """
+        SELECT COUNT(*) 
+        FROM INTERPRO.ENTRY2PUB P
+        INNER JOIN INTERPRO.ENTRY E ON P.ENTRY_AC = E.ENTRY_AC
+        WHERE E.CHECKED = 'Y'
+        """
+    )
     cnt, = cur.fetchone()
     cur.close()
     con.close()
@@ -64,27 +71,30 @@ def get_go_count():
     con = utils.connect_oracle()
     cur = con.cursor()
 
-    # Entries with at least one GO term
+    # Checked entries with at least one GO term
     cur.execute(
         """
         SELECT IG.N_TERMS, COUNT(*)
         FROM (
-            SELECT ENTRY_AC, COUNT(*) N_TERMS
-            FROM INTERPRO.INTERPRO2GO
-            GROUP BY ENTRY_AC
+            SELECT E.ENTRY_AC, COUNT(*) N_TERMS
+            FROM INTERPRO.INTERPRO2GO G
+            INNER JOIN INTERPRO.ENTRY E ON G.ENTRY_AC = E.ENTRY_AC
+            WHERE E.CHECKED = 'Y'
+            GROUP BY E.ENTRY_AC
         ) IG
         GROUP BY N_TERMS
         """
     )
     counts = dict(cur.fetchall())
 
-    # Entries without GO terms
+    # Checked entries without GO terms
     cur.execute(
         """
         SELECT COUNT(*)
         FROM (
             SELECT ENTRY_AC
             FROM INTERPRO.ENTRY
+            WHERE CHECKED = 'Y'
             MINUS SELECT DISTINCT ENTRY_AC
             FROM INTERPRO.INTERPRO2GO
         )        
@@ -118,28 +128,23 @@ def get_signature_count():
 
     cur.execute(
         """
-        SELECT METHOD_AC, ACTION, TIMESTAMP
-        FROM INTERPRO.ENTRY2METHOD_AUDIT
-        WHERE TIMESTAMP >= ADD_MONTHS(SYSDATE, -12)
-        AND ACTION IN ('I', 'D')
+        SELECT EM.METHOD_AC, EM.TIMESTAMP
+        FROM INTERPRO.ENTRY2METHOD EM
+        INNER JOIN INTERPRO.ENTRY E ON EM.ENTRY_AC = E.ENTRY_AC
+        WHERE EM.TIMESTAMP >= ADD_MONTHS(SYSDATE, -12)
+        AND E.CHECKED = 'Y'
         """,
     )
 
     weeks = {}
-    for acc, action, date in cur:
+    for acc, date in cur:
         # ISO calendar format (%G -> year, %V -> week, 1 -> Monday)
         iso_cal = date.strftime("%G%V1")
 
         try:
-            entries = weeks[iso_cal]
+            weeks[iso_cal].add(acc)
         except KeyError:
-            entries = weeks[iso_cal] = {}
-
-        i = 1 if action == 'I' else -1
-        try:
-            entries[acc] += i
-        except KeyError:
-            entries[acc] = i
+            weeks[iso_cal] = {acc}
 
     cur.close()
     con.close()
@@ -152,7 +157,7 @@ def get_signature_count():
         results.append({
             "timestamp": ts,
             "week": int(iso_cal[4:6]),  # week number
-            "count": len([i for i in weeks[iso_cal].values() if i > 0])
+            "count": len(weeks[iso_cal])
         })
     return jsonify({
         "total": total,
