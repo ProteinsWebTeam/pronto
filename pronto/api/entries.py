@@ -128,23 +128,30 @@ def get_signature_count():
 
     cur.execute(
         """
-        SELECT EM.METHOD_AC, EM.TIMESTAMP
+        SELECT EM.METHOD_AC, EM.TIMESTAMP, E.CHECKED
         FROM INTERPRO.ENTRY2METHOD EM
         INNER JOIN INTERPRO.ENTRY E ON EM.ENTRY_AC = E.ENTRY_AC
         WHERE EM.TIMESTAMP >= ADD_MONTHS(SYSDATE, -12)
-        AND E.CHECKED = 'Y'
         """,
     )
 
     weeks = {}
-    for acc, date in cur:
+    for acc, date, is_checked in cur:
         # ISO calendar format (%G -> year, %V -> week, 1 -> Monday)
         iso_cal = date.strftime("%G%V1")
 
         try:
-            weeks[iso_cal].add(acc)
+            week = weeks[iso_cal]
         except KeyError:
-            weeks[iso_cal] = {acc}
+            week = weeks[iso_cal] = {
+                "checked": 0,
+                "unchecked": 0
+            }
+
+        if is_checked == 'Y':
+            week["checked"] += 1
+        else:
+            week["unchecked"] += 1
 
     cur.close()
     con.close()
@@ -157,7 +164,7 @@ def get_signature_count():
         results.append({
             "timestamp": ts,
             "week": int(iso_cal[4:6]),  # week number
-            "count": len(weeks[iso_cal])
+            "counts": weeks[iso_cal]
         })
     return jsonify({
         "total": total,

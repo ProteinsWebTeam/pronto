@@ -137,8 +137,9 @@ async function getIntegrationStats() {
         series: [{
             data: data.results.map(e => ({
                 x: e.timestamp * 1000,  // seconds to milliseconds
-                y: e.count,
-                name: e.week
+                y: e.counts.checked + e.counts.unchecked,
+                name: e.week,
+                checked: e.counts.checked
             })),
             color: '#2c3e50'
         }],
@@ -146,7 +147,8 @@ async function getIntegrationStats() {
             formatter: function() {
                 return `
                     <span style="font-size: 10px">Week ${this.point.name} (${Highcharts.dateFormat('%e %b', this.x)})</span><br>
-                    <b>${this.y}</b> signatures integrated
+                    <b>${this.y}</b> signatures integrated<br>
+                    (${this.point.checked} in checked entries)
                 `;
             },
         },
