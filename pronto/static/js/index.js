@@ -102,7 +102,7 @@ async function getInterPro2GoStats() {
             color: '#2c3e50'
         }],
         tooltip: {
-            headerFormat: '<span style="font-size: 10px;">{point.key} GO Terms</span><br/>',
+            headerFormat: '<span style="font-size: 10px;">{point.key} GO terms</span><br/>',
             pointFormat: '<b>{point.y}</b> entries'
         },
     });
@@ -179,7 +179,49 @@ async function getIntegrationStats() {
 async function getCitationsStats() {
     const response = await fetch('/api/entries/counts/citations/')
     const data = await response.json();
-    document.getElementById('stats-citations').innerHTML = data.count.toLocaleString();
+
+    // Descending order
+    const results = data.results.sort((a, b) => b.citations - a.citations);
+
+    // Map insertion from highest number to lowest
+    const counts = new Map();
+    let total = 0;
+    for (const obj of results) {
+        let key = obj.citations < 5 ? obj.citations.toString() : '5+';
+        const val = obj.entries;
+
+        total += obj.citations * val;
+        if (counts.has(key))
+            counts.set(key, counts.get(key) + val);
+        else
+            counts.set(key, val);
+    }
+
+    Highcharts.chart(document.getElementById('chart-citations'), {
+        chart: { type: 'bar', height: 250 },
+        title: { text: null },
+        subtitle: { text: null },
+        credits: { enabled: false },
+        legend: { enabled: false },
+        xAxis: {
+            type: 'category',
+            title: { text: 'Citations' },
+        },
+        yAxis: {
+            // type: 'logarithmic',
+            title: { text: 'Entries' },
+        },
+        series: [{
+            data: [...counts.entries()],
+            color: '#2c3e50'
+        }],
+        tooltip: {
+            headerFormat: '<span style="font-size: 10px;">{point.key} citations</span><br/>',
+            pointFormat: '<b>{point.y}</b> entries'
+        },
+    });
+
+    document.getElementById('stats-citations').innerHTML = total.toLocaleString();
 }
 
 async function getQuartelyStats() {

@@ -49,21 +49,47 @@ def get_counts():
 def get_citations_count():
     con = utils.connect_oracle()
     cur = con.cursor()
+
+    # Checked entries with at least one citation
     cur.execute(
         """
-        SELECT COUNT(*) 
-        FROM INTERPRO.ENTRY2PUB P
-        INNER JOIN INTERPRO.ENTRY E ON P.ENTRY_AC = E.ENTRY_AC
-        WHERE E.CHECKED = 'Y'
+        SELECT N_REFS, COUNT(*)
+        FROM (
+            SELECT E.ENTRY_AC, COUNT(*) N_REFS
+            FROM INTERPRO.ENTRY2PUB P
+            INNER JOIN INTERPRO.ENTRY E ON P.ENTRY_AC = E.ENTRY_AC
+            WHERE E.CHECKED = 'Y'
+            GROUP BY E.ENTRY_AC
+        )
+        GROUP BY N_REFS
         """
     )
-    cnt, = cur.fetchone()
+    counts = dict(cur.fetchall())
+
+    # Checked entries without citations
+    cur.execute(
+        """
+        SELECT COUNT(*)
+        FROM (
+            SELECT ENTRY_AC
+            FROM INTERPRO.ENTRY
+            WHERE CHECKED = 'Y'
+            MINUS 
+            SELECT DISTINCT ENTRY_AC
+            FROM INTERPRO.ENTRY2PUB
+        )        
+        """
+    )
+    counts[0], = cur.fetchone()
     cur.close()
     con.close()
 
     return jsonify({
-        "count": cnt
-    }), 200
+        "results": [{
+            "citations": n_citations,
+            "entries": counts[n_citations]
+        } for n_citations in sorted(counts)]
+    })
 
 
 @bp.route("/counts/go/")
@@ -95,7 +121,8 @@ def get_go_count():
             SELECT ENTRY_AC
             FROM INTERPRO.ENTRY
             WHERE CHECKED = 'Y'
-            MINUS SELECT DISTINCT ENTRY_AC
+            MINUS 
+            SELECT DISTINCT ENTRY_AC
             FROM INTERPRO.INTERPRO2GO
         )        
         """
