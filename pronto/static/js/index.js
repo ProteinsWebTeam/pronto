@@ -116,6 +116,27 @@ async function getIntegrationStats() {
 
     document.getElementById('stats-signatures').innerHTML = data.checked.toLocaleString();
 
+    const addData = [];
+    const delData = [];
+
+    for (const week of data.results) {
+        const x = week.timestamp * 1000;  // seconds to milliseconds
+
+        addData.push({
+            x: x,
+            y: week.counts.integrated.all,
+            name: week.number,
+            checked: week.counts.integrated.checked
+        });
+
+        delData.push({
+            x: x,
+            y: week.counts.unintegrated.all,
+            name: week.number,
+            checked: week.counts.unintegrated.checked
+        });
+    }
+
     Highcharts.chart(document.getElementById('chart-integrated'), {
         chart: { type: 'column', height: 250 },
         title: { text: null },
@@ -135,20 +156,20 @@ async function getIntegrationStats() {
             title: { text: 'Signatures' }
         },
         series: [{
-            data: data.results.map(e => ({
-                x: e.timestamp * 1000,  // seconds to milliseconds
-                y: e.counts.checked + e.counts.unchecked,
-                name: e.week,
-                checked: e.counts.checked
-            })),
-            color: '#2c3e50'
+            name: 'integrated',
+            color: '#27ae60',
+            data: addData
+        }, {
+            name: 'unintegrated',
+            color: '#c0392b',
+            data: delData
         }],
         tooltip: {
             formatter: function() {
                 return `
                     <span style="font-size: 10px">Week ${this.point.name} (${Highcharts.dateFormat('%e %b', this.x)})</span><br>
-                    <b>${this.y}</b> signatures integrated<br>
-                    (${this.point.checked} in checked entries)
+                    <b>${this.y}</b> signature${this.y !==1 ? 's' : ''} ${this.series.name}<br>
+                    <span style="font-size: 10px">${this.point.checked} ${this.point.checked === 1 ? 'is' : 'are'} currently integrated in a checked entry</span>
                 `;
             },
         },

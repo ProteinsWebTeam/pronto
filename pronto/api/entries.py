@@ -128,30 +128,39 @@ def get_signature_count():
 
     cur.execute(
         """
-        SELECT EM.METHOD_AC, EM.TIMESTAMP, E.CHECKED
+        SELECT EM.METHOD_AC, EM.TIMESTAMP, 'L'
         FROM INTERPRO.ENTRY2METHOD EM
         INNER JOIN INTERPRO.ENTRY E ON EM.ENTRY_AC = E.ENTRY_AC
         WHERE EM.TIMESTAMP >= ADD_MONTHS(SYSDATE, -12)
+        AND E.CHECKED = 'Y'
+        UNION ALL
+        SELECT METHOD_AC, TIMESTAMP, ACTION
+        FROM INTERPRO.ENTRY2METHOD_AUDIT
+        WHERE TIMESTAMP >= ADD_MONTHS(SYSDATE, -12)
+        AND ACTION IN ('I', 'D')
         """,
     )
 
     weeks = {}
-    for acc, date, is_checked in cur:
+    for acc, date, action in cur:
         # ISO calendar format (%G -> year, %V -> week, 1 -> Monday)
         iso_cal = date.strftime("%G%V1")
 
         try:
-            week = weeks[iso_cal]
+            actions = weeks[iso_cal]
         except KeyError:
-            week = weeks[iso_cal] = {
-                "checked": 0,
-                "unchecked": 0
+            actions = weeks[iso_cal] = {
+                "live": set(),
+                "integrated": set(),
+                "unintegrated": set()
             }
 
-        if is_checked == 'Y':
-            week["checked"] += 1
+        if action == "L":
+            actions["live"].add(acc)
+        elif action == "I":
+            actions["integrated"].add(acc)
         else:
-            week["unchecked"] += 1
+            actions["unintegrated"].add(acc)
 
     cur.close()
     con.close()
@@ -161,11 +170,22 @@ def get_signature_count():
         # Get timestamps from ISO calendar day
         ts = datetime.strptime(iso_cal, "%G%V%u").timestamp()
 
+        actions = weeks[iso_cal]
         results.append({
             "timestamp": ts,
-            "week": int(iso_cal[4:6]),  # week number
-            "counts": weeks[iso_cal]
+            "number": int(iso_cal[4:6]),  # week number
+            "counts": {
+                "integrated": {
+                    "all": len(actions["integrated"]),
+                    "checked": len(actions["integrated"] & actions["live"])
+                },
+                "unintegrated": {
+                    "all": len(actions["unintegrated"]),
+                    "checked": len(actions["unintegrated"] & actions["live"])
+                }
+            }
         })
+
     return jsonify({
         "total": total,
         "checked": checked,
