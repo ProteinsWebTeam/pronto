@@ -41,9 +41,34 @@
                 <div class="header">Checkboxes are read-only</div>
                 <p>To check or uncheck an entry, please visit the entry page.</p>
             </div>
-            <div class="ui toggle checkbox">
-                <input type="checkbox" name="unchecked">
-                <label>Display unchecked entries only</label>
+            <div class="ui form">
+                <div class="inline fields">
+                    <label>Entries created by</label>
+                    <div class="field">
+                        <div class="ui radio checkbox">
+                            <input type="radio" name="entries-author" value="" checked="checked">
+                            <label>Anyone</label>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <div class="ui radio checkbox">
+                            <input type="radio" name="entries-author" value="me">
+                            <label>Me</label>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <div class="ui radio checkbox">
+                            <input type="radio" name="entries-author" value="others">
+                            <label>Others</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="ui checkbox">
+                        <input type="checkbox" name="entries-unchecked" value="yes">
+                        <label>Unchecked entries only</label>
+                    </div>
+                </div>
             </div>
             <table class="ui single line compact table">
                 <thead>

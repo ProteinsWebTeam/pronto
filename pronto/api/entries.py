@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 
 from flask import Blueprint, jsonify, request
 
-from pronto import utils
+from pronto import auth, utils
 from pronto.api.database import get_latest_freeze
 
 
@@ -175,9 +175,10 @@ def get_signature_count():
 
 @bp.route("/news/")
 def get_recent_entries():
+    user = auth.get_user()
+
     con = utils.connect_oracle()
     cur = con.cursor()
-
     try:
         days = int(request.args["days"])
     except (KeyError, ValueError):
@@ -188,7 +189,7 @@ def get_recent_entries():
     cur.execute(
         """
         SELECT
-          E.ENTRY_AC, E.ENTRY_TYPE, E.SHORT_NAME, A.TIMESTAMP,
+          E.ENTRY_AC, E.ENTRY_TYPE, E.SHORT_NAME, A.TIMESTAMP, A.DBUSER,
           NVL(U.NAME, A.DBUSER), E.CHECKED, NVL(EC.CNT, 0), NVL(MC.CNT, 0)
         FROM INTERPRO.ENTRY E
         INNER JOIN (
@@ -222,16 +223,22 @@ def get_recent_entries():
     )
     entries = []
     for row in cur:
+        db_user = row[4]
+        user_name = row[5]
+
         entries.append({
             "accession": row[0],
             "type": row[1],
             "short_name": row[2],
             "date": row[3].strftime("%d %b %Y"),
-            "user": row[4],
-            "checked": row[5] == 'Y',
+            "user": {
+                "name": user_name,
+                "by_me": user and user["dbuser"] == db_user
+            },
+            "checked": row[6] == 'Y',
             "comments": {
-                "entry": row[6],
-                "signatures": row[7]
+                "entry": row[7],
+                "signatures": row[8]
             }
         })
     cur.close()
