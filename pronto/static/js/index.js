@@ -345,11 +345,19 @@ function getDatabases() {
         });
 }
 
-function renderRecentEntries(entries, hideChecked) {
+function renderRecentEntries(entries) {
+    const tab = document.querySelector('.tab[data-tab="news"]');
+    const authorFilter = tab.querySelector('input[name="entries-author"]:checked').value;
+    const uncheckedOnly = tab.querySelector('input[name="entries-unchecked"]').checked
+
     let html = '';
     for (const entry of entries) {
-        if (entry.checked && hideChecked)
+        if (entry.checked && uncheckedOnly)
             continue;
+        else if (authorFilter === 'me' && !entry.user.by_me)
+            continue
+        else if (authorFilter === 'others' && entry.user.by_me)
+            continue
 
         html += `
             <tr>
@@ -360,7 +368,7 @@ function renderRecentEntries(entries, hideChecked) {
             <td>${entry.short_name}</td>
             <td>${checkbox.createDisabled(entry.checked)}</td>
             <td>${entry.date}</td>
-            <td>${entry.user}</td>
+            <td>${entry.user.name}</td>
             <td>
         `;
 
@@ -374,7 +382,7 @@ function renderRecentEntries(entries, hideChecked) {
     if (html.length === 0)
         html = '<tr><td colspan="5" class="center aligned">No entries found</td></tr>';
 
-    document.querySelector('.tab[data-tab="news"] tbody').innerHTML = html;
+    tab.querySelector('tbody').innerHTML = html;
 }
 
 async function getRecentEntries() {
@@ -382,11 +390,9 @@ async function getRecentEntries() {
     let data = await response.json();
 
     sessionStorage.setItem('newEntries', JSON.stringify(data.results));
-    const tab = document.querySelector('.tab[data-tab="news"]');
-    const hideChecked = tab.querySelector('input[name="unchecked"]').checked;
 
     // Recent entries
-    renderRecentEntries(data.results, hideChecked);
+    renderRecentEntries(data.results);
 
     let text = `Since ${data.date}, <strong>${data.results.length} `;
     text += data.results.length > 1 ? 'entries' : 'entry';
@@ -703,14 +709,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 .transition('fade');
         });
 
-    // Event on toggle
-    document.querySelector('[data-tab="news"] input[name="unchecked"]').addEventListener('change', e => {
-        const data = sessionStorage.getItem('newEntries');
-        if (data === null)
-            return;
-
-        const hideChecked = e.currentTarget.checked;
-        renderRecentEntries(JSON.parse(data), hideChecked);
+    // Init checkboxes in "Recent entries" tab
+    $('[data-tab="news"] .checkbox').checkbox({
+        onChange: function () {
+            const data = sessionStorage.getItem('newEntries');
+            if (data !== null) renderRecentEntries(JSON.parse(data));
+        }
     });
 
     // Run sanity checks

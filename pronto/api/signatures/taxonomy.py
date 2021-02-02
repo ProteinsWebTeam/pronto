@@ -104,7 +104,7 @@ def get_taxonomy_origins(accessions, rank):
 
 
 @bp.route("/<path:accessions>/taxon/<int:taxon_id>/")
-def get_taxonomy_origins2(accessions, taxon_id):
+def get_taxon_children(accessions, taxon_id):
     accessions = utils.split_path(accessions)
     con = utils.connect_pg()
     cur = con.cursor()
