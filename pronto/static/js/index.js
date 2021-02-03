@@ -102,7 +102,7 @@ async function getInterPro2GoStats() {
             color: '#2c3e50'
         }],
         tooltip: {
-            headerFormat: '<span style="font-size: 10px;">{point.key} GO Terms</span><br/>',
+            headerFormat: '<span style="font-size: 10px;">{point.key} GO terms</span><br/>',
             pointFormat: '<b>{point.y}</b> entries'
         },
     });
@@ -115,6 +115,27 @@ async function getIntegrationStats() {
     const data = await response.json();
 
     document.getElementById('stats-signatures').innerHTML = data.checked.toLocaleString();
+
+    const addData = [];
+    const delData = [];
+
+    for (const week of data.results) {
+        const x = week.timestamp * 1000;  // seconds to milliseconds
+
+        addData.push({
+            x: x,
+            y: week.counts.integrated.all,
+            name: week.number,
+            checked: week.counts.integrated.checked
+        });
+
+        delData.push({
+            x: x,
+            y: week.counts.unintegrated.all,
+            name: week.number,
+            checked: week.counts.unintegrated.checked
+        });
+    }
 
     Highcharts.chart(document.getElementById('chart-integrated'), {
         chart: { type: 'column', height: 250 },
@@ -135,20 +156,20 @@ async function getIntegrationStats() {
             title: { text: 'Signatures' }
         },
         series: [{
-            data: data.results.map(e => ({
-                x: e.timestamp * 1000,  // seconds to milliseconds
-                y: e.counts.checked + e.counts.unchecked,
-                name: e.week,
-                checked: e.counts.checked
-            })),
-            color: '#2c3e50'
+            name: 'integrated',
+            color: '#27ae60',
+            data: addData
+        }, {
+            name: 'unintegrated',
+            color: '#c0392b',
+            data: delData
         }],
         tooltip: {
             formatter: function() {
                 return `
                     <span style="font-size: 10px">Week ${this.point.name} (${Highcharts.dateFormat('%e %b', this.x)})</span><br>
-                    <b>${this.y}</b> signatures integrated<br>
-                    (${this.point.checked} in checked entries)
+                    <b>${this.y}</b> signature${this.y !==1 ? 's' : ''} ${this.series.name}<br>
+                    <span style="font-size: 10px">${this.point.checked} ${this.point.checked === 1 ? 'is' : 'are'} currently integrated in a checked entry</span>
                 `;
             },
         },
@@ -158,7 +179,49 @@ async function getIntegrationStats() {
 async function getCitationsStats() {
     const response = await fetch('/api/entries/counts/citations/')
     const data = await response.json();
-    document.getElementById('stats-citations').innerHTML = data.count.toLocaleString();
+
+    // Descending order
+    const results = data.results.sort((a, b) => b.citations - a.citations);
+
+    // Map insertion from highest number to lowest
+    const counts = new Map();
+    let total = 0;
+    for (const obj of results) {
+        let key = obj.citations < 5 ? obj.citations.toString() : '5+';
+        const val = obj.entries;
+
+        total += obj.citations * val;
+        if (counts.has(key))
+            counts.set(key, counts.get(key) + val);
+        else
+            counts.set(key, val);
+    }
+
+    Highcharts.chart(document.getElementById('chart-citations'), {
+        chart: { type: 'bar', height: 250 },
+        title: { text: null },
+        subtitle: { text: null },
+        credits: { enabled: false },
+        legend: { enabled: false },
+        xAxis: {
+            type: 'category',
+            title: { text: 'Citations' },
+        },
+        yAxis: {
+            // type: 'logarithmic',
+            title: { text: 'Entries' },
+        },
+        series: [{
+            data: [...counts.entries()],
+            color: '#2c3e50'
+        }],
+        tooltip: {
+            headerFormat: '<span style="font-size: 10px;">{point.key} citations</span><br/>',
+            pointFormat: '<b>{point.y}</b> entries'
+        },
+    });
+
+    document.getElementById('stats-citations').innerHTML = total.toLocaleString();
 }
 
 async function getQuartelyStats() {
