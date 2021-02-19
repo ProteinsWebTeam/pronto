@@ -91,22 +91,23 @@ function renderFeatures(proteinLength, features, multiLine = false, labelLink = 
     let html = initSVG(proteinLength, features.length, numDiscDomains);
 
     let y = matchHeight;
-    features.forEach((feature, i) => {
+    for (const feature of features) {
         if (feature.matches.filter(fragments => fragments.length > 1).length) {
             // has at least one disc domains (need more space for arcs)
             y += matchHeight * 3;
         }
 
-        feature.matches.forEach(fragments => {
+        for (const fragments of feature.matches) {
             html += '<g class="match">';
 
-            fragments.forEach((fragment, j) => {
+            for (let i = 0; i < fragments.length; i++) {
+                const fragment = fragments[i];
                 const x = Math.round(fragment.start * rectWidth / proteinLength);
                 const w = Math.round((fragment.end - fragment.start) * rectWidth / proteinLength);
 
-                if (j) {
+                if (i) {
                     // Discontinuous domain: draw arc
-                    const px = Math.round(fragments[j-1].end * rectWidth / proteinLength);
+                    const px = Math.round(fragments[i-1].end * rectWidth / proteinLength);
                     const x1 = (px + x) / 2;
                     const y1 = y - matchHeight * 6;
                     html += `<path d="M${px} ${y} Q ${x1} ${y1} ${x} ${y}" fill="none" stroke="${feature.color}"/>`;
@@ -116,10 +117,10 @@ function renderFeatures(proteinLength, features, multiLine = false, labelLink = 
                                data-name="${feature.name ? feature.name : ''}" data-db="${feature.database}" 
                                data-link="${feature.link}" x="${x}" y="${y}" width="${w}" height="${matchHeight}" 
                                rx="1" ry="1" style="fill: ${feature.color}"/>`;
-            });
+            }
 
             html += '</g>';
-        });
+        }
 
         if (labelLink)
             html += `<text class="label" x="${rectWidth+10}" y="${y+matchHeight/2}"><a href="/signature/${feature.accession}/">${feature.accession}</a></text>`;
@@ -127,7 +128,7 @@ function renderFeatures(proteinLength, features, multiLine = false, labelLink = 
             html += `<text class="label" x="${rectWidth+10}" y="${y+matchHeight/2}">${feature.accession}</text>`;
 
         y += matchHeight * 2;
-    });
+    }
 
     return html + '</svg>';
 }
@@ -234,7 +235,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Integrated signatures
             let html = '';
-            if (entries.size) {
+            if (entries.size && false) {
                 for (const key of [...entries.keys()].sort((a, b) => a.localeCompare(b))) {
                     const signatures = entries.get(key);
                     const entry = signatures[0].entry;
@@ -249,13 +250,13 @@ document.addEventListener('DOMContentLoaded', () => {
             } else
                 html += '<p>No protein matches</p>';
 
-            document.querySelector('#integrated + div').innerHTML = html;
+            //document.querySelector('#integrated + div').innerHTML = html;
 
             // Unintegrated signatures
             document.querySelector('#unintegrated + div').innerHTML = renderFeatures(protein.length, unintegrated);
 
             // Disordered regions
-            document.querySelector('#disordered-regions + div').innerHTML = renderFeatures(protein.length, extra, true, false);
+            //document.querySelector('#disordered-regions + div').innerHTML = renderFeatures(protein.length, extra, true, false);
 
             // Lineage
             html = '';
@@ -293,9 +294,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
 
-        })
-        .catch(() => {
-            // todo: show error
         })
         .finally(() => {
             $(document.querySelector('.ui.sticky')).sticky({
