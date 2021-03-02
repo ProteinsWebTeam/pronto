@@ -4,10 +4,28 @@ import re
 
 from flask import Blueprint, jsonify, request
 
+from pronto import utils
 
 bp = Blueprint("api.signatures", __name__, url_prefix="/api/signatures")
 
-from pronto import utils
+
+def get_sig2interpro(accessions):
+    args = ','.join(':' + str(i + 1) for i in range(len(accessions)))
+    con = utils.connect_oracle()
+    cur = con.cursor()
+    cur.execute(
+        f"""
+        SELECT METHOD_AC, ENTRY_AC
+        FROM INTERPRO.ENTRY2METHOD
+        WHERE METHOD_AC IN ({args})
+        """, tuple(accessions)
+    )
+    sig2entry = dict(cur.fetchall())
+    cur.close()
+    con.close()
+    return sig2entry
+
+
 from . import comments
 from . import descriptions
 from . import go
