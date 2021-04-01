@@ -7,10 +7,18 @@ function getComments(accessions) {
     fetch('/api' + location.pathname + location.search)
         .then(response => response.json())
         .then((data,) => {
+            const sig2ipr = new Map(Object.entries(data.integrated));
+            const genCell = (acc,) => {
+                if (sig2ipr.has(acc))
+                    return `<th class="center aligned"><span data-tooltip="${sig2ipr.get(acc)}" data-inverted=""><i class="star icon"></i>${acc}</span></th>`;
+                else
+                    return `<th class="center aligned"><i class="star outline icon"></i>${acc}</th>`;
+            };
+
             let html = `<thead>
                         <tr>
                         <th>${data.results.length.toLocaleString()} comments</th>
-                        ${accessions.map(acc => `<th>${acc}</th>`).join('')}
+                        ${accessions.map(genCell).join('')}
                         </tr>
                         </thead>`;
 

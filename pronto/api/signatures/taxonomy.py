@@ -5,7 +5,7 @@ import json
 from flask import jsonify, request
 
 from pronto import utils
-from . import bp
+from . import bp, get_sig2interpro
 
 
 RANKS = {"superkingdom", "kingdom", "phylum", "class", "order", "family",
@@ -99,7 +99,8 @@ def get_taxonomy_origins(accessions, rank):
         "taxon": {
             "id": taxon_id,
             "name": taxon_name,
-        }
+        },
+        "integrated": get_sig2interpro(accessions)
     })
 
 

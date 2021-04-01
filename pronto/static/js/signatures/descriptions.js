@@ -10,10 +10,18 @@ function getDescriptions(accessions) {
     fetch(`/api${location.pathname}${location.search}`)
         .then(response => response.json())
         .then((data,) => {
+                const sig2ipr = new Map(Object.entries(data.integrated));
+                const genCell = (acc,) => {
+                    if (sig2ipr.has(acc))
+                        return `<th class="center aligned"><a href="#!" data-signature="${acc}" data-tooltip="${sig2ipr.get(acc)}" data-inverted=""><i class="star icon"></i>${acc}</a></th>`;
+                    else
+                        return `<th class="center aligned"><a href="#!" data-signature="${acc}"><i class="star outline icon"></i>${acc}</a></th>`;
+                };
+
                 let html = `<thead>
                         <tr>
                         <th>${data.results.length.toLocaleString()} descriptions</th>
-                        ${accessions.map(acc => `<th><a href="#!" data-signature="${acc}">${acc}</a></th>`).join('')}
+                        ${accessions.map(genCell).join('')}
                         </tr>
                         </thead>`;
 

@@ -3,7 +3,7 @@
 from flask import jsonify, request
 
 from pronto import utils
-from . import bp
+from . import bp, get_sig2interpro
 
 
 @bp.route("/<path:accessions>/descriptions/")
@@ -44,5 +44,6 @@ def get_descriptions(accessions):
 
     return jsonify({
         "results": sorted(descriptions.values(),
-                          key=lambda d: -max(d["signatures"].values()))
+                          key=lambda d: -max(d["signatures"].values())),
+        "integrated": get_sig2interpro(accessions)
     })

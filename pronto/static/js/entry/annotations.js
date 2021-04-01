@@ -2,7 +2,6 @@ import * as references from "./references.js"
 import * as dimmer from "../ui/dimmer.js";
 import * as modals from "../ui/modals.js"
 import {setClass, toggleErrorMessage} from "../ui/utils.js";
-import {error} from "../ui/modals.js";
 
 export function create(accession, text) {
     const modal = document.getElementById('new-annotation');
@@ -130,6 +129,7 @@ export function refresh(accession) {
             const mainRefs = [];
             const annotations = new Map();
             const references = new Map(Object.entries(results.references));
+            const rights = new Map();
             let html = '';
 
             for (let i = 0; i < results.annotations.length; i++) {
@@ -165,14 +165,19 @@ export function refresh(accession) {
                 if (previewMode)
                     html += `<div class="ui vertical segment annotation">${text}</div>`;
                 else {
+                    rights.set(annotation.id, {
+                        unlink: results.annotations.length > 1,
+                        delete: results.annotations.length > 1 && annotation.num_entries === 1
+                    });
+
                     html += `
                         <div id="${annotation.id}" class="annotation">
                         <div class="ui top attached mini menu">
                         <a data-action="edit" class="item"><abbr title="Edit annotation"><i class="edit fitted icon"></i></abbr></a>
                         <a data-action="moveup" class="${i === 0 ? 'disabled' : ''} item"><abbr title="Move annotation up"><i class="arrow up fitted icon"></i></abbr></a>
                         <a data-action="movedown" class="${i + 1 === results.annotations.length ? 'disabled' : ''} item"><abbr title="Move annotation down"><i class="arrow down fitted icon"></i></abbr></a>
-                        <a data-action="unlink" class="${results.annotations.length === 1 ? 'disabled': ''} item"><abbr title="Unlink annotation"><i class="unlink fitted icon"></i></abbr></a>
-                        <a data-action="delete" class="${results.annotations.length === 1 || annotation.num_entries > 1 ? 'disabled': ''} item"><abbr title="Delete annotation"><i class="trash fitted icon"></i></abbr></a>
+                        <a data-action="unlink" class="item"><abbr title="Unlink annotation"><i class="unlink fitted icon"></i></abbr></a>
+                        <a data-action="delete" class="item"><abbr title="Delete annotation"><i class="trash fitted icon"></i></abbr></a>
                         <div class="right menu">
                             <span class="selectable item">${annotation.id}</span>
                             ${annotation.comment ? '<span class="item">'+annotation.comment+'</span>' : ''}
@@ -257,13 +262,28 @@ export function refresh(accession) {
                         annotationEditor.reorder(accession, annID, 'down');
                     else if (action === 'moveup')
                         annotationEditor.reorder(accession, annID, 'up');
-                    else if (action === 'unlink')
-                        unlink(accession, annID);
+                    else if (action === 'unlink') {
+                        if (rights.get(annID).unlink)
+                            unlink(accession, annID);
+                        else {
+                            modals.error(
+                                `Cannot unlink ${annID}`,
+                                `${annID} is the only annotation associated to ${accession}. Please make sure that ${accession} has at least one other annotation.`
+                            );
+                        }
+                    }
                     else if (action === 'delete') {
-                        remove(annID).then((status,) => {
-                            if (status)
-                                refresh(accession).then(() => {$('.ui.sticky').sticky();});
-                        });
+                        if (rights.get(annID).delete) {
+                            remove(annID).then((status,) => {
+                                if (status)
+                                    refresh(accession).then(() => {$('.ui.sticky').sticky();});
+                            });
+                        } else {
+                            modals.error(
+                                `Cannot remove ${annID}`,
+                                `${annID} cannot be removed, either because it is associated to more than one entry, or because it is the only annotation associated to ${accession}. Please make sure that ${annID} is associated to ${accession} only, and that ${accession} has at least one other annotation.`
+                            );
+                        }
                     } else if (action === 'save') {
                         if (annotation.entries > 1) {
                             modals.ask(

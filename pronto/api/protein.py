@@ -8,15 +8,15 @@ from pronto import utils
 bp = Blueprint("api.protein", __name__, url_prefix="/api/protein")
 
 
-@bp.route("/<accession>/")
-def get_protein(accession):
+@bp.route("/<protein_acc>/")
+def get_protein(protein_acc):
     inc_lineage = "lineage" in request.args
     inc_matches = "matches" in request.args
-    sig_accession = request.args.get("signature")
+    signature_acc = request.args.get("signature")
 
     con = utils.connect_pg()
     cur = con.cursor()
-    if accession.lower() == "random":
+    if protein_acc.lower() == "random":
         cur.execute(
             """
             SELECT accession 
@@ -24,7 +24,7 @@ def get_protein(accession):
             TABLESAMPLE SYSTEM(0.001) LIMIT 1 
             """
         )
-        accession, = cur.fetchone()
+        protein_acc, = cur.fetchone()
 
     cur.execute(
         """
@@ -35,7 +35,7 @@ def get_protein(accession):
         INNER JOIN protein2name p2n ON p.accession = p2n.protein_acc
         INNER JOIN protein_name pn ON p2n.name_id = pn.name_id
         WHERE p.accession = UPPER(%s)
-        """, (accession,)
+        """, (protein_acc,)
     )
     row = cur.fetchone()
     if not row:
@@ -59,12 +59,12 @@ def get_protein(accession):
 
     matches = {}
     if inc_matches:
-        if sig_accession:
+        if signature_acc:
             sql = "m.protein_acc = %s AND m.signature_acc = %s"
-            params = (accession, sig_accession)
+            params = (protein_acc, signature_acc)
         else:
             sql = "m.protein_acc = %s"
-            params = (accession,)
+            params = (protein_acc,)
 
         cur.execute(
             f"""
@@ -82,7 +82,7 @@ def get_protein(accession):
             except KeyError:
                 db = utils.get_database_obj(row[2])
                 if isinstance(db, utils.MobiDbLite):
-                    link = db.gen_link(accession)
+                    link = db.gen_link(protein_acc)
                 else:
                     link = db.gen_link(row[0])
 

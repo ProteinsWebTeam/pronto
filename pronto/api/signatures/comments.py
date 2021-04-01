@@ -3,7 +3,7 @@
 from flask import jsonify
 
 from pronto import utils
-from . import bp
+from . import bp, get_sig2interpro
 
 
 @bp.route("/<path:accessions>/comments/")
@@ -40,5 +40,6 @@ def get_comments(accessions):
 
     return jsonify({
         "results": sorted(comments.values(),
-                          key=lambda d: -max(d["signatures"].values()))
+                          key=lambda d: -max(d["signatures"].values())),
+        "integrated": get_sig2interpro(accessions)
     })

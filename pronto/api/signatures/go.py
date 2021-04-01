@@ -3,7 +3,7 @@
 from flask import jsonify, request
 
 from pronto import utils
-from . import bp
+from . import bp, get_sig2interpro
 
 
 _ASPECTS = {'cellular_component', 'molecular_function', 'biological_process'}
@@ -87,7 +87,8 @@ def get_go_terms(accessions):
 
     return jsonify({
         "aspects": list(aspects) or list(_ASPECTS),
-        "results": sorted(terms.values(), key=_sort_term)
+        "results": sorted(terms.values(), key=_sort_term),
+        "integrated": get_sig2interpro(accessions)
     })
 
 
