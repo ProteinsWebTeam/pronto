@@ -235,7 +235,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Integrated signatures
             let html = '';
-            if (entries.size && false) {
+            if (entries.size) {
                 for (const key of [...entries.keys()].sort((a, b) => a.localeCompare(b))) {
                     const signatures = entries.get(key);
                     const entry = signatures[0].entry;
