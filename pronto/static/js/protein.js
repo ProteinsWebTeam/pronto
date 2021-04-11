@@ -250,13 +250,14 @@ document.addEventListener('DOMContentLoaded', () => {
             } else
                 html += '<p>No protein matches</p>';
 
-            //document.querySelector('#integrated + div').innerHTML = html;
+            // Integrated signatures
+            document.querySelector('#integrated + div').innerHTML = html;
 
             // Unintegrated signatures
             document.querySelector('#unintegrated + div').innerHTML = renderFeatures(protein.length, unintegrated);
 
             // Disordered regions
-            //document.querySelector('#disordered-regions + div').innerHTML = renderFeatures(protein.length, extra, true, false);
+            document.querySelector('#disordered-regions + div').innerHTML = renderFeatures(protein.length, extra, true, false);
 
             // Lineage
             html = '';
