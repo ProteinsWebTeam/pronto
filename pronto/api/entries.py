@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from flask import Blueprint, jsonify, request
 
@@ -195,7 +195,8 @@ def get_signature_count():
     results = []
     for iso_cal in sorted(weeks):
         # Get timestamps from ISO calendar day
-        ts = datetime.strptime(iso_cal, "%G%V%u").timestamp()
+        dt = datetime.strptime(iso_cal, "%G%V%u").replace(tzinfo=timezone.utc)
+        ts = dt.timestamp()
 
         actions = weeks[iso_cal]
         results.append({
