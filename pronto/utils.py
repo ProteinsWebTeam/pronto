@@ -180,7 +180,7 @@ XREFS = {
     "SSF": "http://supfam.org/SUPERFAMILY/cgi-bin/scop.cgi?ipid={}",
     "SUPERFAMILY": "http://supfam.org/SUPERFAMILY/cgi-bin/scop.cgi?ipid={}",
     "SWISSPROT": "http://www.uniprot.org/uniprot/{}",
-    "TIGRFAMS": "http://www.jcvi.org/cgi-bin/tigrfams/HmmReportPage.cgi?acc={}"
+    "TIGRFAMS": "https://www.ncbi.nlm.nih.gov/genome/annotation_prok/evidence/{}/"
 }
 
 
@@ -298,11 +298,11 @@ class Superfamily:
 
 
 class Tigrfams:
-    home = 'http://www.jcvi.org/cgi-bin/tigrfams/index.cgi'
+    home = "https://www.ncbi.nlm.nih.gov/genome/annotation_prok/tigrfams/"
     color = '#a04867'
 
     def gen_link(self, acc: str):
-        return 'http://www.jcvi.org/cgi-bin/tigrfams/HmmReportPage.cgi?acc=' + acc
+        return f"https://www.ncbi.nlm.nih.gov/genome/annotation_prok/evidence/{acc}/"
 
 
 def get_database_obj(key):
