@@ -658,14 +658,14 @@ def update_annotation(ann_id):
                     WHERE ENTRY_AC = :1 AND PUB_ID = :2
                     """, to_delete
                 )
-            except DatabaseError as e:
+            except DatabaseError as exc:
                 cur.close()
                 con.close()
                 return jsonify({
                     "status": False,
                     "error": {
                         "title": "Database error",
-                        "message": str(e)
+                        "message": str(exc)
                     }
                 }), 500
 
@@ -736,14 +736,14 @@ def update_annotation(ann_id):
                 VALUES (:1, :2)
                 """, to_move
             )
-        except DatabaseError as e:
+        except DatabaseError as exc:
             cur.close()
             con.close()
             return jsonify({
                 "status": False,
                 "error": {
                     "title": "Database error",
-                    "message": str(e)
+                    "message": str(exc)
                 }
             }), 500
 
@@ -763,14 +763,14 @@ def update_annotation(ann_id):
                     )
                     """, dict(acc=entry_ac, pub=pub_id)
                 )
-            except DatabaseError as e:
+            except DatabaseError as exc:
                 cur.close()
                 con.close()
                 return jsonify({
                     "status": False,
                     "error": {
                         "title": "Database error",
-                        "message": str(e)
+                        "message": str(exc)
                     }
                 }), 500
 
@@ -786,12 +786,12 @@ def update_annotation(ann_id):
             """,
             (ann.wrap(), comment, ann_id)
         )
-    except DatabaseError:
+    except DatabaseError as exc:
         return jsonify({
             "status": False,
             "error": {
                 "title": "Database error",
-                "message": "Changes could not be saved."
+                "message": str(exc)
             }
         }), 500
     else:
