@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 
 from pronto import auth, utils
 from . import annotation
@@ -13,9 +13,14 @@ from . import protein
 from . import search
 from . import signature
 from . import signatures
+from . import taxon
 
 
 bp = Blueprint("api", __name__,  url_prefix="/api")
+
+blueprints = [bp, annotation.bp, checks.bp, database.bp, databases.bp,
+              entries.bp, entry.bp, protein.bp, search.bp, signature.bp,
+              signatures.bp, taxon.bp]
 
 
 @bp.route("/")
@@ -42,8 +47,17 @@ def api_index():
 
 
 @bp.route("/tasks/")
-def get_task():
-    return jsonify(utils.executor.tasks)
+def get_tasks():
+    return jsonify(utils.executor.get_tasks(
+        seconds=int(request.args.get('s', 0)),
+        get_result=False
+    ))
+
+
+@bp.route("/task/<string:task_id>/")
+def get_task(task_id):
+    tasks = utils.executor.get_tasks(task_id=task_id, get_result=True)
+    return jsonify(tasks[0])
 
 
 # def add_cors(response):
@@ -55,3 +69,4 @@ def get_task():
 #             entries.bp, entry.bp, protein.bp, search.bp, signature.bp,
 #             signatures.bp]:
 #     _bp.after_request(add_cors)
+

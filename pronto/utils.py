@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 
+import gzip
+import json
 import re
+import uuid
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from typing import Callable, List, Optional
@@ -13,98 +16,142 @@ from flask import current_app
 
 class Executor:
     def __init__(self):
-        self.executor = ThreadPoolExecutor()
+        self._executor = ThreadPoolExecutor()
+        self._submit = self._executor.submit
 
     @staticmethod
-    def run_task(user, dsn, name, fn, *args, **kwargs):
+    def _run_task(url: str, task_id: str, fn: Callable, *args, **kwargs):
+        result = None
         try:
-            fn(*args, **kwargs)
+            result = fn(*args, **kwargs)
         except Exception as exc:
             status = 'N'
         else:
             status = 'Y'
 
-        con = cx_Oracle.connect(user["dbuser"], user["password"], dsn)
+        result_obj = gzip.compress(json.dumps(result).encode("utf-8"))
+
+        con = cx_Oracle.connect(url)
         cur = con.cursor()
         cur.execute(
             """
             UPDATE INTERPRO.PRONTO_TASK
-            SET FINISHED = SYSDATE, STATUS = :1
-            WHERE NAME = :2 AND STATUS IS NULL
-            """, (status, name)
+            SET
+                FINISHED = SYSDATE,
+                STATUS = :1,
+                RESULT = :2
+            WHERE ID = :3
+            """, (status, result_obj, task_id)
         )
         con.commit()
         cur.close()
         con.close()
-
-    def submit(self, user: dict, task: str, fn: Callable, *args, **kwargs):
-        if self.is_running(user, task):
-            return False
-
-        # Insert task so it is immediately shown as 'in progress'
-        con = connect_oracle_auth(user)
-        cur = con.cursor()
-        cur.execute(
-            """
-            INSERT INTO INTERPRO.PRONTO_TASK (NAME, USERNAME, STARTED) 
-            VALUES (:1, USER, SYSDATE)
-            """, (task,)
-        )
-        con.commit()
-        cur.close()
-        con.close()
-
-        self.executor.submit(self.run_task, user, get_oracle_dsn(), task, fn,
-                             *args, **kwargs)
-        return True
 
     @staticmethod
-    def is_running(user: dict, task: str) -> bool:
-        con = connect_oracle_auth(user)
-        cur = con.cursor()
-        cur.execute(
-            """
-            SELECT COUNT(*)
-            FROM INTERPRO.PRONTO_TASK
-            WHERE NAME = :1 AND STATUS IS NULL
-            """, (task,)
-        )
-        count, = cur.fetchone()
-        cur.close()
-        con.close()
-        return count != 0
+    def _get_task_from_tuple(t: tuple):
+        try:
+            lob = t[6]
+        except IndexError:
+            lob = None
 
-    @property
-    def tasks(self, seconds: int = 3600):
+        if lob:
+            result = json.loads(gzip.decompress(lob.read()).decode("utf-8"))
+        else:
+            result = None
+
+        return {
+            "id": t[0],
+            "name": t[1],
+            "user": t[2],
+            "start_time": t[3].strftime("%Y-%m-%d %H:%M:%S"),
+            "end_time": t[4].strftime("%Y-%m-%d %H:%M:%S") if t[4] else None,
+            "success": t[5] == 'Y' if t[5] is not None else None,
+            "result": result
+        }
+
+    def get_tasks(self, task_id: Optional[str] = None,
+                  task_name: Optional[str] = None, seconds: int = 0,
+                  get_result: bool = True) -> List[dict]:
+        conds = []
+        params = {}
+        if seconds > 0:
+            conds.append(f"T.STARTED >= SYSDATE - INTERVAL '{seconds}' SECOND")
+
+        if task_id:
+            conds.append("T.ID = :taskid")
+            params["taskid"] = task_id
+
+        if task_name:
+            conds.append("T.NAME = :taskname")
+            params["taskname"] = task_name
+
+        columns = ["T.ID", "T.NAME AS TASK_NAME", "U.NAME AS USER_NAME",
+                   "T.STARTED", "T.FINISHED", "T.STATUS"]
+        if get_result:
+            columns.append("T.RESULT")
+
+        if conds:
+            conds = "WHERE " + " AND ".join([f"({c})" for c in conds])
+        else:
+            conds = ""
+
         con = connect_oracle()
         cur = con.cursor()
+
         cur.execute(
             f"""
-            SELECT T.NAME, U.NAME, T.STARTED, T.FINISHED, T.STATUS 
+            SELECT {', '.join(columns)}
             FROM INTERPRO.PRONTO_TASK T
               INNER JOIN INTERPRO.PRONTO_USER U
               ON T.USERNAME = U.DB_USER
-            WHERE T.STARTED >= SYSDATE - INTERVAL '{seconds}' SECOND
+            {conds}
             ORDER BY T.STARTED
-            """
+            """, params
         )
-        tasks = []
-        for name, user, start_time, end_time, status in cur:
-            if end_time is not None:
-                end_time = end_time.strftime("%d %b %Y, %H:%M")
-            else:
-                end_time = None
-
-            tasks.append({
-                "id": name,
-                "user": user,
-                "start_time": start_time.strftime("%d %b %Y, %H:%M"),
-                "end_time": end_time,
-                "success": status == 'Y'
-            })
+        tasks = [self._get_task_from_tuple(row) for row in cur.fetchall()]
         cur.close()
         con.close()
         return tasks
+
+    def submit(self, url: str, name: str,
+               fn: Callable, *args, **kwargs) -> dict:
+        """
+
+        :param url: Oracle connection string/URL
+        :param name: task name
+        :param fn: function to execute
+        :param args: positional arguments for `fn`
+        :param kwargs: keywords arguments for `fn`
+        :return: task
+        """
+
+        tasks = self.get_tasks(task_name=name, get_result=False)
+        if tasks and tasks[-1]["end_time"] is None:
+            # Running task: we do not submit an other one
+            return tasks[-1]
+
+        task_id = uuid.uuid1().hex
+
+        # Insert task in database
+        con = cx_Oracle.connect(url)
+        cur = con.cursor()
+        cur.execute(
+            """
+            INSERT INTO INTERPRO.PRONTO_TASK (ID, NAME, USERNAME, STARTED)
+            VALUES (:1, :2, USER, SYSDATE)
+            """, (task_id, name)
+        )
+        con.commit()
+        cur.close()
+        con.close()
+
+        # Get new task
+        tasks = self.get_tasks(task_name=name, get_result=False)
+
+        # Submit task to thread pool
+        self._submit(self._run_task, url, task_id, fn, *args, **kwargs)
+
+        return tasks[-1]
 
 
 executor = Executor()
@@ -115,8 +162,14 @@ def connect_oracle() -> cx_Oracle.Connection:
 
 
 def connect_oracle_auth(user: dict) -> cx_Oracle.Connection:
+    # input format:  app_user/app_passwd@[host:port]/service
     dsn = current_app.config["ORACLE"].rsplit('@', 1)[-1]
     return cx_Oracle.connect(user["dbuser"], user["password"], dsn)
+
+
+def get_oracle_url(user: dict) -> str:
+    dsn = current_app.config["ORACLE"].rsplit('@', 1)[-1]
+    return f"{user['dbuser']}/{user['password']}@{dsn}"
 
 
 def get_oracle_dsn():
@@ -389,3 +442,4 @@ def predict_relationship(a: int, b: int, intersection: int) -> tuple:
     elif containment_b >= 0.75:
         return containment_b, "parent"  # A parent of B
     return 0, "none"
+
