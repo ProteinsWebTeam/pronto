@@ -7,7 +7,7 @@ from flask import Flask, render_template
 from . import api
 from . import auth
 
-__version__ = "2.2.0"
+__version__ = "2.3.0"
 
 
 app = Flask(__name__)
@@ -93,19 +93,16 @@ def proteins(accessions):
 
 
 @app.route("/signatures/<path:accessions>/taxonomy/<rank>/")
-def taxonomy(accessions, rank):
+def sig_taxonomy(accessions, rank):
     return render_template("signatures/taxonomy.html")
 
 
-app.register_blueprint(api.bp)
-app.register_blueprint(api.annotation.bp)
-app.register_blueprint(api.checks.bp)
-app.register_blueprint(api.database.bp)
-app.register_blueprint(api.databases.bp)
-app.register_blueprint(api.entries.bp)
-app.register_blueprint(api.entry.bp)
-app.register_blueprint(api.protein.bp)
-app.register_blueprint(api.search.bp)
-app.register_blueprint(api.signature.bp)
-app.register_blueprint(api.signatures.bp)
+@app.route("/taxon/")
+def taxon():
+    return render_template("taxon.html")
+
+
+for bp in api.blueprints:
+    app.register_blueprint(bp)
+
 app.register_blueprint(auth.bp)

@@ -105,20 +105,20 @@ def submit_checks():
             }
         }), 401
 
-    args = (user, utils.get_oracle_dsn(), utils.get_pg_url())
-    submitted = utils.executor.submit(user, "checks", run_checks, *args)
+    ora_url = utils.get_oracle_url(user)
+    task = utils.executor.submit(ora_url, "sanitychecks", run_checks,
+                                 ora_url, utils.get_pg_url())
 
     return jsonify({
         "status": True,
-        "submitted": submitted,
-        "task": "checks"
-    }), 202 if submitted else 409
+        "task": task
+    }), 202
 
 
-def run_checks(user: dict, dsn: str, pg_url: str):
+def run_checks(ora_url: str, pg_url: str):
     run_id = uuid.uuid1().hex
 
-    con = cx_Oracle.connect(user["dbuser"], user["password"], dsn)
+    con = cx_Oracle.connect(ora_url)
     cur = con.cursor()
 
     counts = {}
@@ -168,7 +168,7 @@ def run_checks(user: dict, dsn: str, pg_url: str):
 def get_run(run_id):
     con = utils.connect_oracle()
     cur = con.cursor()
-    if run_id == "last":
+    if run_id == "latest":
         cur.execute(
             """
             SELECT *

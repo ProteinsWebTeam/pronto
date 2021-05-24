@@ -10,6 +10,7 @@ Pronto is a web application aiming to assist InterPro curators in creating/editi
 
 - Python>=3.7 with `cx_Oracle`, `Flask`, `mysqlclient`, and `psycopg2`.
 - A public database link to the `LITPUB` database (literature service) must exist.
+- Several `PRONTO_*` tables must exist in Oracle, see [SCHEMA.md](/SCHEMA.md).
 
 ### Installation
 
