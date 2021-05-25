@@ -194,7 +194,7 @@ function renderResults(task) {
             tbody += `
                 <tr>
                     <td><a href="/signature/${item.accession}/">${item.accession}</a></td>
-                    <td>${item.name}</td>
+                    <td>${item.name !== item.accession ? item.name : ''}</td>
                     <td class="right aligned">${item.proteins.total.toLocaleString()}</td>
                     <td class="right aligned">${item.proteins.reviewed.toLocaleString()}</td>
                 </tr>
