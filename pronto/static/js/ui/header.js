@@ -1,10 +1,5 @@
+import {fetchTasks} from "../tasks.js";
 import {setCharsCountdown, toggleErrorMessage} from "./utils.js";
-
-
-export async function fetchTasks() {
-    const response = await fetch(`/api/tasks/`);
-    return response.json();
-}
 
 export async function renderTaskList() {
     const tasks = await fetchTasks();
@@ -13,11 +8,11 @@ export async function renderTaskList() {
         let html = '';
         for (const task of tasks) {
             if (task.end_time === null)
-                html += `<div class="item"><i class="sync loading icon"></i>${task.id}</div>`;
+                html += `<div class="item"><i class="sync loading icon"></i>${task.name}</div>`;
             else if (task.success)
-                html += `<div class="item"><i class="check circle green icon"></i>${task.id}</div>`;
+                html += `<div class="item"><i class="check circle green icon"></i>${task.name}</div>`;
             else
-                html += `<div class="item"><i class="exclamation circle red icon"></i>${task.id}</div>`;
+                html += `<div class="item"><i class="exclamation circle red icon"></i>${task.name}</div>`;
         }
         menu.innerHTML = html;
     } else

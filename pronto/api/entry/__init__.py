@@ -319,16 +319,17 @@ def delete_entry(accession):
     cur.close()
     con.close()
 
-    args = (user, utils.get_oracle_dsn(), accession)
-    submitted = utils.executor.submit(user, accession, _delete_entry, *args)
+    url = utils.get_oracle_url(user)
+    task = utils.executor.submit(url, f"delete:{accession}", _delete_entry,
+                                 url, accession)
     return jsonify({
         "status": True,
-        "task": accession
-    }), 200
+        "task": task
+    }), 202
 
 
-def _delete_entry(user: dict, dsn: str, accession: str):
-    con = cx_Oracle.connect(user["dbuser"], user["password"], dsn)
+def _delete_entry(url: str, accession: str):
+    con = cx_Oracle.connect(url)
     cur = con.cursor()
     try:
         cur.execute(

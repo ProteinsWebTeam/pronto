@@ -1,7 +1,8 @@
 import * as checkbox from './ui/checkbox.js'
 import * as dimmer from './ui/dimmer.js'
-import {fetchTasks, renderTaskList, updateHeader} from "./ui/header.js"
+import {renderTaskList, updateHeader} from "./ui/header.js"
 import {setClass, escape, copy2clipboard} from "./ui/utils.js";
+import {waitForTask} from "./tasks.js";
 import * as modal from "./ui/modals.js";
 
 async function getMemberDatabaseUpdates() {
@@ -506,7 +507,7 @@ async function resolveError(runID, errID, addException) {
 }
 
 async function getSanityCheck() {
-    const response = await fetch('/api/checks/run/last/');
+    const response = await fetch('/api/checks/run/latest/');
     if (response.status !== 200 && response.status !== 404) {
         const tab = document.querySelector('.tab[data-tab="checks"]');
         tab.innerHTML = `
@@ -616,75 +617,53 @@ async function getSanityCheck() {
     document.querySelector('.item[data-tab="checks"] .label').innerHTML = numUnresolved.toString();
 }
 
-function runSanityChecks() {
-    fetch('/api/checks/', {method: 'PUT'})
-        .then(response => response.json())
-        .then(object => {
-            const tab = document.querySelector('.tab[data-tab="checks"]');
-            const message = tab.querySelector('.message');
-            if (!object.status) {
-                message.className = 'ui error message';
-                message.innerHTML = `
-                    <div class="header">${object.error.title}</div>
-                    <p>${object.error.message}</p>
-                `;
-                return;
-            }
-            message.className = 'ui icon info message';
-            message.innerHTML = `
-                <i class="notched circle loading icon"></i>
-                <div class="content">
-                    <div class="header">Sanity checks in progress</div>
-                    <p>Sanity checks are running. When complete, results will be displayed below.</p>
-                </div>
-            `;
+async function runSanityChecks() {
+    const response = await fetch('/api/checks/', {method: 'PUT'});
+    const run = await response.json();
 
-            const taskId = object.task;
+    const tab = document.querySelector('.tab[data-tab="checks"]');
+    const message = tab.querySelector('.message');
+    if (!run.status) {
+        message.className = 'ui error message';
+        message.innerHTML = `
+            <div class="header">${run.error.title}</div>
+            <p>${run.error.message}</p>
+        `;
+        return;
+    }
+    message.className = 'ui icon info message';
+    message.innerHTML = `
+        <i class="notched circle loading icon"></i>
+        <div class="content">
+            <div class="header">Sanity checks in progress</div>
+            <p>Sanity checks are running. When complete, results will be displayed below.</p>
+        </div>
+    `;
 
-            renderTaskList().then(tasks => {
-                const waitForTask = () => {
-                    setTimeout(() => {
-                        fetchTasks()
-                            .then(tasks => {
-                                let complete = false;
-                                let success = false;
-                                for (let i = tasks.length - 1; i >= 0; i--) {
-                                    if (tasks[i].id === taskId) {
-                                        if (tasks[i].end_time !== null) {
-                                            // Task complete
-                                            complete = true;
-                                            success = tasks[i].success;
-                                        }
-                                        break;
-                                    }
-                                }
+    const taskId = run.task.id;
 
-                                if (complete) {
-                                    if (success) {
-                                        message.className = 'ui success message';
-                                        message.innerHTML = `
-                                            <div class="header">Sanity checks complete!</div>
-                                            <p>Sanity checks completed successfully. Results will be displayed in a few seconds.</p>
-                                        `;
-                                        setTimeout(getSanityCheck, 3000);
-                                    } else {
-                                        message.className = 'ui error message';
-                                        message.innerHTML = `
-                                            <div class="header">Task failure</div>
-                                            <p>An error occurred while running sanity checks. Please try again or contact developers.</p>
-                                        `;
-                                    }
-                                    return;
-                                }
+    // Update task list
+    renderTaskList();
 
-                                waitForTask();
-                            });
-                    }, 5000);
-                }
+    // Wait for task to complete
+    const task = await waitForTask(taskId);
+    if (task.success) {
+        message.className = 'ui success message';
+        message.innerHTML = `
+            <div class="header">Sanity checks complete!</div>
+            <p>Sanity checks completed successfully. Results will be displayed in a few seconds.</p>
+        `;
+        setTimeout(getSanityCheck, 3000);
+    } else {
+        message.className = 'ui error message';
+        message.innerHTML = `
+            <div class="header">Task failure</div>
+            <p>An error occurred while running sanity checks. Please try again or contact developers.</p>
+        `;
+    }
 
-                waitForTask();
-            });
-        });
+    // Update task list
+    renderTaskList();
 }
 
 document.addEventListener('DOMContentLoaded', () => {

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/semantic.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <title>Taxonomic coverage | Pronto</title>
+    <style>
+        .ui.search { margin-bottom: 1em; }
+        #results { margin-top: 1em; }
+        #results .ui.grid { margin-top: .5em; }
+        #results .ui.menu > .item > .label {
+            color: rgba(0,0,0,.75);
+            background: none;
+        }
+    </style>
+</head>
+<body>
+
+{% include 'header.html' %}
+
+<div class="ui container">
+    <div class="ui basic segment">
+        <h1 class="ui dividing header">Taxonomic coverage</h1>
+
+        <p>
+            This page allows you to calculate the InterPro coverage for a given organism,
+            and prioritize the integration of signatures.<br>
+            <strong><i class="ui exclamation circle icon"></i> Please note:</strong>
+            only <em>complete sequences</em> are considered when calculating the coverage,
+            and an InterPro entry must be <em>checked</em> for its contributing signatures to be considered integrated.
+        </p>
+
+        <div class="ui grid">
+            <div class="row">
+                <div class="twelve wide column">
+                    <div class="ui fluid search">
+                        <div class="ui icon input">
+                            <input class="prompt" type="text" placeholder="Search organisms...">
+                            <i class="search icon"></i>
+                        </div>
+                        <div class="results"></div>
+                    </div>
+                </div>
+                <div class="four wide right aligned column">
+                    <button id="submit-task" class="ui disabled primary button">Calculate coverage</button>
+                </div>
+            </div>
+        </div>
+        <div id="main-message" class="ui hidden message"></div>
+        <div id="results"></div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='vendor/jquery.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/semantic.js') }}"></script>
+<script src="{{ url_for('static', filename='js/taxon.js') }}" type="module"></script>
+</body>
+</html>
