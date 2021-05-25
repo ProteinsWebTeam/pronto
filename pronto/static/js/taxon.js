@@ -193,7 +193,7 @@ function renderResults(task) {
 
             tbody += `
                 <tr>
-                    <td><a href="/signature/${item.accession}/">${item.accession}</a></td>
+                    <td><a href="/signatures/${item.accession}/proteins/?taxon=${data.id}">${item.accession}</a></td>
                     <td>${item.name !== item.accession ? item.name : ''}</td>
                     <td class="right aligned">${item.proteins.total.toLocaleString()}</td>
                     <td class="right aligned">${item.proteins.reviewed.toLocaleString()}</td>
@@ -247,6 +247,22 @@ function renderResults(task) {
                     </div>
                 </div>
             </div>
+            <!--<div class="item">
+                <div class="content">
+                    <div class="header">
+                        <div class="ui fitted checkbox">
+                            <input id="only-worth" type="checkbox">
+                            <label></label>
+                        </div>                    
+                    </div>
+                    <div class="description">
+                        worth integrating only
+                        <span data-tooltip="Only shows signatures whose integration would increase the coverage by at least ${minIncr}%.">
+                            <i class="question circle icon"></i>
+                        </span>
+                    </div>
+                </div>
+            </div>-->
         </div>
         <div class="ui grid">
             <div class="row">
@@ -268,8 +284,8 @@ function renderResults(task) {
                                 <th colspan="2">Unintegrated proteins</th>
                             </tr>
                             <tr class="center aligned">
-                                <th>Total</th>
-                                <th>Reviewed</th>
+                                <th class="right aligned">Total</th>
+                                <th class="right aligned">Reviewed</th>
                             </tr>
                         </thead>            
                         <tbody>
