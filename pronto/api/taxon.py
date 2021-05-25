@@ -177,6 +177,28 @@ def submit_taxon(taxon_id):
     })
 
 
+def add_comments(task):
+    if not task["success"]:
+        return
+
+    con = utils.connect_oracle()
+    cur = con.cursor()
+    cur.execute(
+        """
+        SELECT METHOD_AC, COUNT(*)
+        FROM INTERPRO.METHOD_COMMENT
+        WHERE STATUS = 'Y'
+        GROUP BY METHOD_AC
+        """
+    )
+    comments = dict(cur.fetchall())
+    cur.close()
+    con.close()
+
+    for sig in task["result"]["signatures"]:
+        sig["comments"] = comments.get(sig["accession"], 0)
+
+
 @bp.route("/<int:taxon_id>/")
 def get_taxon(taxon_id):
     try:
@@ -203,6 +225,7 @@ def get_taxon(taxon_id):
             "task": None
         }), 404
     else:
+        # add_comments(task)
         return jsonify({
             "status": True,
             "id": taxon_id,
