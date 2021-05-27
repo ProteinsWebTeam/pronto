@@ -225,7 +225,7 @@ def get_taxon(taxon_id):
             "task": None
         }), 404
     else:
-        # add_comments(task)
+        add_comments(task)
         return jsonify({
             "status": True,
             "id": taxon_id,
@@ -239,14 +239,25 @@ def search_taxon():
     query = request.args.get("q", "Homo sapiens")
     con = utils.connect_pg(utils.get_pg_url())
     cur = con.cursor()
-    cur.execute(
-        """
-        SELECT id, name, rank
-        FROM interpro.taxon
-        WHERE name ILIKE %s
-        ORDER BY name
-        """, (query + '%',)
-    )
+
+    if query.isdigit():
+        cur.execute(
+            """
+            SELECT id, name, rank
+            FROM interpro.taxon
+            WHERE id = %s
+            ORDER BY name
+            """, (query,)
+        )
+    else:
+        cur.execute(
+            """
+            SELECT id, name, rank
+            FROM interpro.taxon
+            WHERE name ILIKE %s
+            ORDER BY name
+            """, (query + '%',)
+        )
 
     cols = ("id", "name", "rank")
     results = [dict(zip(cols, row)) for row in cur.fetchall()]
