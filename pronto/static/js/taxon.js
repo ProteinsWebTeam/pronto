@@ -145,7 +145,7 @@ function renderResults(task) {
     }
 
     const getCoverage = (obj) => (obj.integrated * 100 / obj.total);
-    const minIncr = 0.01;  // coverage must increase by at least <minIncr>%
+    const minIncr = 0.005;  // coverage must increase by at least <minIncr>%
     const minCov = getCoverage(data.proteins) + minIncr;
     const databases = new Map();
     const signatures = data.signatures
@@ -191,10 +191,19 @@ function renderResults(task) {
             if (dbName !== null && item.database.name !== dbName)
                 return;
 
+            let btn = '';
+            if (item.comments > 0)
+                btn = `
+                    <a class="ui small basic label" data-accession="${item.accession}">
+                        <i class="comments icon"></i>${item.comments}
+                    </a>
+                `;
+
             tbody += `
                 <tr>
                     <td><a href="/signatures/${item.accession}/proteins/?taxon=${data.id}">${item.accession}</a></td>
                     <td>${item.name !== item.accession ? item.name : ''}</td>
+                    <td class="collapsing">${btn}</td>
                     <td class="right aligned">${item.proteins.total.toLocaleString()}</td>
                     <td class="right aligned">${item.proteins.reviewed.toLocaleString()}</td>
                 </tr>
@@ -281,6 +290,7 @@ function renderResults(task) {
                             <tr class="center aligned">
                                 <th rowspan="2">Accession</th>
                                 <th rowspan="2">Name</th>
+                                <th rowspan="2" class="collapsing"></th>
                                 <th colspan="2">Unintegrated proteins</th>
                             </tr>
                             <tr class="center aligned">
@@ -297,8 +307,42 @@ function renderResults(task) {
         </div>
     `;
 
+    const initPopups = (root) => {
+        $(root.querySelectorAll('a.label[data-accession]'))
+            .popup({
+                exclusive: true,
+                hoverable: true,
+                html: '<i class="notched circle loading icon"></i> Loading&hellip;',
+                position: 'left center',
+                variation: 'small basic custom',
+                onShow: function (elem) {
+                    const popup = this;
+                    const acc = elem.dataset.accession;
+                    fetch(`/api/signature/${acc}/comments/`)
+                        .then(response => response.json())
+                        .then(payload => {
+                            let html = '<div class="ui small comments">';
+                            for (let item of payload.results) {
+                                if (!item.status)
+                                    continue;
+
+                                html += `
+                                    <div class="comment">
+                                        <a class="author">${item.author}</a>
+                                        <div class="metadata"><span class="date">${item.date}</span></div>
+                                        <div class="text">${item.text}</div>
+                                    </div>
+                                `;
+                            }
+                            popup.html(html + '</div>');
+                        });
+                }
+            });
+    };
+
     const resultsElem = document.getElementById('results');
     resultsElem.innerHTML = html;
+    initPopups(resultsElem);
 
     for (let elem of resultsElem.querySelectorAll('a[data-database]')) {
         elem.addEventListener('click', event => {
@@ -307,8 +351,9 @@ function renderResults(task) {
 
             const value = event.currentTarget.dataset.database;
             const dbName = value !== null && value.length !== 0 ? value : null;
-            const tbody = genTableBody(dbName);
-            resultsElem.querySelector('tbody').innerHTML = tbody;
+            const tbody = resultsElem.querySelector('tbody');
+            tbody.innerHTML = genTableBody(dbName);
+            initPopups(tbody);
         });
     }
 }
