@@ -26,6 +26,14 @@ def _process_taxon(ora_url: str, pg_url: str, taxon_id: int, taxon_name: str,
 
     con = utils.connect_pg(pg_url)
     cur = con.cursor()
+    cur.execute(
+        """
+        SELECT COUNT(*), SUM(CASE WHEN is_reviewed THEN 1 ELSE 0 END)
+        FROM interpro.protein
+        WHERE taxon_id = %s AND NOT is_fragment
+        """, (taxon_id,)
+    )
+    num_proteins, num_reviewed = cur.fetchone()
 
     cur.execute(
         """
@@ -62,13 +70,13 @@ def _process_taxon(ora_url: str, pg_url: str, taxon_id: int, taxon_name: str,
     cur.close()
     con.close()
 
-    tot_proteins = rev_proteins = 0
-    tot_integrated = rev_integrated = 0
+    num_hit_proteins = num_hit_reviewed = 0
+    num_int_proteins = num_int_reviewed = 0
     results = {}
     for protein_acc, (prot_signatures, is_reviewed) in proteins.items():
-        tot_proteins += 1
+        num_hit_proteins += 1
         if is_reviewed:
-            rev_proteins += 1
+            num_hit_reviewed += 1
 
         is_integrated = False
         unintegrated = []
@@ -80,9 +88,9 @@ def _process_taxon(ora_url: str, pg_url: str, taxon_id: int, taxon_name: str,
             unintegrated.append(signature_acc)
 
         if is_integrated:
-            tot_integrated += 1
+            num_int_proteins += 1
             if is_reviewed:
-                rev_integrated += 1
+                num_int_reviewed += 1
             continue
 
         for signature_acc in unintegrated:
@@ -112,11 +120,15 @@ def _process_taxon(ora_url: str, pg_url: str, taxon_id: int, taxon_name: str,
         "name": taxon_name,
         "lower_nodes": lower_nodes,
         "proteins": {
-            "total": tot_proteins,
-            "integrated": tot_integrated,
+            "all": {
+                "total": num_proteins,
+                "hit": num_hit_proteins,
+                "integrated": num_int_proteins
+            },
             "reviewed": {
-                "total": rev_proteins,
-                "integrated": rev_integrated
+                "total": num_reviewed,
+                "hit": num_hit_reviewed,
+                "integrated": num_int_reviewed
             }
         },
         "signatures": list(results.values())
