@@ -146,11 +146,11 @@ function renderResults(task) {
 
     const getCoverage = (obj) => (obj.integrated * 100 / obj.total);
     const minIncr = 0.005;  // coverage must increase by at least <minIncr>%
-    const minCov = getCoverage(data.proteins) + minIncr;
+    const minCov = getCoverage(data.proteins.all) + minIncr;
     const databases = new Map();
     const signatures = data.signatures
         .filter((item) => {
-            const newCov = (data.proteins.integrated + item.proteins.total) * 100 / data.proteins.total;
+            const newCov = (data.proteins.all.integrated + item.proteins.total) * 100 / data.proteins.all.total;
             return newCov >= minCov;
         })
         .sort((a, b) => {
@@ -218,20 +218,20 @@ function renderResults(task) {
         <div class="ui relaxed horizontal list">
             <div class="item">
                 <div class="content">
-                    <div class="header">${data.proteins.total.toLocaleString()}</div>
-                    <div class="description">proteins with signature matches</div>
+                    <div class="header">${data.proteins.all.total.toLocaleString()}</div>
+                    <div class="description">proteins</div>
                 </div>
             </div>
             <div class="item">
                 <div class="content">
-                    <div class="header">${getCoverage(data.proteins).toFixed(2)}%</div>
+                    <div class="header">${getCoverage(data.proteins.all).toFixed(2)}%</div>
                     <div class="description">in InterPro</div>
                 </div>
             </div>
             <div class="item">
                 <div class="content">
                     <div class="header">${data.proteins.reviewed.total.toLocaleString()}</div>
-                    <div class="description">reviewed proteins with signature matches</div>
+                    <div class="description">reviewed proteins</div>
                 </div>
             </div>
             <div class="item">
