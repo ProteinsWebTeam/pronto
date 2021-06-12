@@ -3,7 +3,6 @@ from flask import Blueprint, jsonify, request
 
 from pronto import auth, utils
 
-
 bp = Blueprint("api.taxonomy", __name__, url_prefix="/api/taxon")
 
 
@@ -28,15 +27,6 @@ def _process_taxon(ora_url: str, pg_url: str, taxon_id: int, taxon_name: str,
     cur = con.cursor()
     cur.execute(
         """
-        SELECT COUNT(*), SUM(CASE WHEN is_reviewed THEN 1 ELSE 0 END)
-        FROM interpro.protein
-        WHERE taxon_id = %s AND NOT is_fragment
-        """, (taxon_id,)
-    )
-    num_proteins, num_reviewed = cur.fetchone()
-
-    cur.execute(
-        """
         SELECT s.accession, s.name, d.name, d.name_long
         FROM interpro.signature s
         INNER JOIN interpro.database d
@@ -45,38 +35,64 @@ def _process_taxon(ora_url: str, pg_url: str, taxon_id: int, taxon_name: str,
     )
     signatures = {row[0]: row[1:] for row in cur.fetchall()}
 
+    # Get proteins
     if lower_nodes:
-        sql = "taxon_left_num BETWEEN %s AND %s"
+        sql = """
+            SELECT accession, is_reviewed
+            FROM interpro.protein
+            WHERE taxon_id IN (
+                SELECT id
+                FROM interpro.taxon
+                WHERE left_number BETWEEN %s AND %s
+            )        
+        """
         params = (left_num, right_num)
     else:
-        sql = "taxon_left_num = %s"
+        sql = """
+            SELECT accession, is_reviewed
+            FROM interpro.protein
+            WHERE taxon_id IN (
+                SELECT id
+                FROM interpro.taxon
+                WHERE left_number = %s
+            )        
+        """
         params = (left_num,)
 
+    cur.execute(sql, params)
+
+    num_proteins = 0
+    reviewed = set()
+    for protein_acc, is_reviewed in cur.fetchall():
+        num_proteins += 1
+        if is_reviewed:
+            reviewed.add(protein_acc)
+
+    # Now get matches
     cur.execute(
         f"""
-        SELECT signature_acc, protein_acc, is_reviewed
-        FROM interpro.signature2protein
-        WHERE {sql}
-        ORDER BY protein_acc
+        WITH proteins AS ({sql})
+        SELECT protein_acc, signature_acc
+        FROM interpro.match
+        WHERE protein_acc IN (SELECT accession FROM proteins)
         """, params
     )
-    proteins = {}
-    for signature_acc, protein_acc, is_reviewed in cur.fetchall():
+
+    matches = {}
+    for protein_acc, signature_acc in cur.fetchall():
         try:
-            proteins[protein_acc][0].append(signature_acc)
+            matches[protein_acc].append(signature_acc)
         except KeyError:
-            proteins[protein_acc] = ([signature_acc], is_reviewed)
+            matches[protein_acc] = [signature_acc]
 
     cur.close()
     con.close()
 
-    num_hit_proteins = num_hit_reviewed = 0
+    # Compute coverage (i.e. proteins with at least one integrated signature)
     num_int_proteins = num_int_reviewed = 0
     results = {}
-    for protein_acc, (prot_signatures, is_reviewed) in proteins.items():
-        num_hit_proteins += 1
-        if is_reviewed:
-            num_hit_reviewed += 1
+    for protein_acc, prot_signatures in matches.items():
+        is_reviewed = protein_acc in reviewed
 
         is_integrated = False
         unintegrated = []
@@ -122,12 +138,10 @@ def _process_taxon(ora_url: str, pg_url: str, taxon_id: int, taxon_name: str,
         "proteins": {
             "all": {
                 "total": num_proteins,
-                "hit": num_hit_proteins,
                 "integrated": num_int_proteins
             },
             "reviewed": {
-                "total": num_reviewed,
-                "hit": num_hit_reviewed,
+                "total": len(reviewed),
                 "integrated": num_int_reviewed
             }
         },

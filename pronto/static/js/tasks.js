@@ -9,7 +9,7 @@ export async function fetchTasks() {
     return response.json();
 }
 
-export async function waitForTask(taskId) {
+export async function waitForTask(taskId, ms = 5000) {
     let response;
     let task;
 
@@ -20,6 +20,6 @@ export async function waitForTask(taskId) {
         if (task.end_time !== null)
             return task;
 
-        await sleep(5000);
+        await sleep(ms);
     }
 }

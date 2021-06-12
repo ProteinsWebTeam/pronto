@@ -54,20 +54,23 @@ async function getTaxon(taxonId) {
 }
 
 async function submitTask(taxonId) {
+    document.getElementById('submit-task').disabled = true;
+
     const response = await fetch(`/api/taxon/${taxonId}/?lowernodes`, {method: 'PUT'});
     const result = await response.json();
     const message = document.getElementById('main-message');
 
-    if (!result.status) {
+    if (result.status)
+        await waitForResults(result.task.id);
+    else {
         message.innerHTML = `
             <div class="header">${result.error.title}</div>
             <p>${result.error.message}</p>
         `;
         message.className = 'ui error message';
-        return;
     }
 
-    waitForResults(result.task.id);
+    document.getElementById('submit-task').disabled = false;
 }
 
 async function waitForResults(taskId) {
@@ -368,7 +371,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('submit-task').addEventListener('click', event => {
         const button = event.currentTarget;
-        button.disabled = true;
         submitTask(button.dataset.id);
     });
 
