@@ -87,10 +87,6 @@ Preview mode: no horizontal line between annotations, but a simple padding (like
     background-color: #C5E1B9;
 }
 
-#unirule {
-    display: none;
-}
-
 /* Relationships: increment nodes */
 .ui.list .list > .item > .content > .list, .ui.list > .item > .content > .list {
     margin-left: 0;

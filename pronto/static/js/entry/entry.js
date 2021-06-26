@@ -30,9 +30,6 @@ function getEntry(accession) {
                     ${entry.name}
                     <div class="sub header">${entry.short_name} (${entry.accession})</div>
                 `;
-
-                document.getElementById('unirule').checked = entry.unirule;
-
                 document.querySelector('input[name="name"]').dataset.value = entry.name;
                 document.querySelector('input[name="short_name"]').dataset.value = entry.short_name;
                 document.querySelector('select[name="type"]').dataset.value = entry.type.code;
