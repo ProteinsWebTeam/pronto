@@ -266,26 +266,31 @@ def search_taxon():
     con = utils.connect_pg(utils.get_pg_url())
     cur = con.cursor()
 
+    sql = """
+        SELECT t.id, t.name, t.rank, p.name
+        FROM interpro.taxon t
+        INNER JOIN interpro.lineage l 
+            ON t.id = l.child_id AND l.parent_rank = 'superkingdom'
+        INNER JOIN interpro.taxon p 
+            ON l.parent_id = p.id    
+    """
+
     if query.isdigit():
         cur.execute(
-            """
-            SELECT id, name, rank
-            FROM interpro.taxon
-            WHERE id = %s
-            ORDER BY name
+            f"""
+            {sql} 
+            WHERE t.id = %s
             """, (query,)
         )
     else:
         cur.execute(
-            """
-            SELECT id, name, rank
-            FROM interpro.taxon
-            WHERE name ILIKE %s
-            ORDER BY name
+            f"""
+            {sql}
+            WHERE t.name ILIKE %s
             """, (query + '%',)
         )
 
-    cols = ("id", "name", "rank")
+    cols = ("id", "name", "rank", "superkingdom")
     results = [dict(zip(cols, row)) for row in cur.fetchall()]
 
     cur.close()

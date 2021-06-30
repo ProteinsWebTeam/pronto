@@ -127,13 +127,13 @@ function renderResults(task) {
     resultsElem.querySelector('h2.ui.header').innerHTML = `
         <em>${data.name}</em>
         <div class="sub header">
-            Date: ${startTime.toLocaleString('en-GB', { 
-                day: 'numeric', 
-                year: 'numeric', 
-                month: 'short',  
-                hour: 'numeric', 
-                minute: 'numeric'
-            })}
+            Date: ${startTime.toLocaleString('en-GB', {
+        day: 'numeric',
+        year: 'numeric',
+        month: 'short',
+        hour: 'numeric',
+        minute: 'numeric'
+    })}
         </div>  
     `;
 
@@ -376,23 +376,49 @@ document.addEventListener('DOMContentLoaded', () => {
         submitTask(button.dataset.id);
     });
 
+    const useCategories = true;
+    const maxResults = 8;
     $('.ui.search')
         .search({
+            type: useCategories ? 'category' : 'standard',
+
             // change search endpoint to a custom endpoint by manipulating apiSettings
             apiSettings: {
                 url: '/api/taxon/search/?q={query}',
                 onResponse: (response) => {
-                    const items = response.items;
-                    return {
-                        results: items.map(item => ({
-                            id: item.id,
-                            title: item.name,
-                            description: item.rank,
-                            url: `/taxon?id=${item.id}`
-                        }))
-                    };
+                    // Sort items by name
+                    const items = response.items.sort((a, b) => a.name.localeCompare(b.name));
+
+                    // Function to format results
+                    const serverToFomantic = (item) => ({
+                        id: item.id,
+                        title: item.name,
+                        description: item.rank === 'no rank' ? '' : item.rank,
+                        url: `/taxon?id=${item.id}`
+                    });
+
+                    if (! useCategories)
+                        return { results: items.map(serverToFomantic) };
+
+                    const categories = new Map();
+                    items.forEach((item, index) => {
+                        if (index >= maxResults)
+                            return;
+
+                        const key = item.superkingdom;
+                        if (categories.has(key))
+                            categories.get(key).results.push(serverToFomantic(item));
+                        else
+                            categories.set(key, {
+                                name: key,
+                                results: [serverToFomantic(item)]
+                            });
+                    });
+
+                    return { results: Object.fromEntries(categories) };
                 }
             },
+            maxResults: maxResults,
             cache: false,
             searchDelay: 300
         });
