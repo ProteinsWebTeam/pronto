@@ -38,7 +38,7 @@ Open a Python terminal and run:
 
 ```python
 import os
-os.urandom(16)
+os.urandom(16).hex()
 ```
 
 Copy the string and paste it into the config file.
