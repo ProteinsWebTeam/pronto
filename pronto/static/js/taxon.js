@@ -26,7 +26,7 @@ async function getTaxon(taxonId) {
         // Never run
         message.innerHTML = `
             <div class="header">No coverage data for <em>${result.name}</em></div>
-            <p>A taxon with ID:${taxonId} has been found, but no coverage data is available. Click on the button above to start calculating the coverage.</p>
+            <p>A taxon with ID:${taxonId} has been found, but no coverage data has been calculated yet. Click on the button below to start calculating the coverage.</p>
         `;
         message.className = 'ui info message';
         enableButton = true;
@@ -122,26 +122,28 @@ function renderResults(task) {
     )
 
     const data = task.result;
-    let html = `
-        <h2 class="ui header">
-            ${data.name}
-            <div class="sub header">
-                Date: ${startTime.toLocaleString('en-GB', { 
-                    day: 'numeric', 
-                    year: 'numeric', 
-                    month: 'short',  
-                    hour: 'numeric', 
-                    minute: 'numeric'
-                })}
-            </div>
-        </h2>    
+    const resultsElem = document.getElementById('results');
+
+    resultsElem.querySelector('h2.ui.header').innerHTML = `
+        <em>${data.name}</em>
+        <div class="sub header">
+            Date: ${startTime.toLocaleString('en-GB', { 
+                day: 'numeric', 
+                year: 'numeric', 
+                month: 'short',  
+                hour: 'numeric', 
+                minute: 'numeric'
+            })}
+        </div>  
     `;
+
+    let html = '';
     if ((new Date() - startTime) / 1000 / 3600 / 24 >= 30) {
         html += `
             <div class="ui warning message">
                 <div class="header">Results possibly outdated</div>
                 <p>
-                    These results are over a month old. UniProt and several member databases may have been updated in the meantime, and many signatures may have been integrated or unintegrated. 
+                    These results are over a month old. UniProt and several member databases may have been updated in the meantime, and many signatures may have been integrated or unintegrated.
                 </p>
             </div>
         `;
@@ -166,7 +168,8 @@ function renderResults(task) {
                 return d;
 
             return a.name.localeCompare(b.name);
-        }).map(item => {
+        })
+        .map(item => {
             const key = item.database.name;
             if (databases.has(item.database.name))
                 databases.get(key).count += 1;
@@ -343,8 +346,7 @@ function renderResults(task) {
             });
     };
 
-    const resultsElem = document.getElementById('results');
-    resultsElem.innerHTML = html;
+    resultsElem.querySelector('.sixteen.wide.column').innerHTML = html;
     initPopups(resultsElem);
 
     for (let elem of resultsElem.querySelectorAll('a[data-database]')) {
