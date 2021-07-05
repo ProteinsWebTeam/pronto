@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import re
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Set, Tuple, Union
 
 from cx_Oracle import Cursor
 
@@ -11,7 +11,7 @@ from .utils import load_exceptions, load_global_exceptions, load_terms
 
 DoS = Dict[str, Set[str]]
 LoS = List[str]
-Err = List[Tuple[str, Optional[str]]]
+Err = List[Tuple[str, Union[str, int, None]]]
 LoT = List[Tuple[str, str, str]]
 
 
@@ -166,6 +166,53 @@ def ck_letter_case(entries: LoT, exceptions: Tuple[str]) -> Err:
 
         if prog.match(short_name) and not short_name.startswith(exceptions):
             errors.append((acc, short_name.split('_')[0]))
+
+    return errors
+
+
+def ck_retracted(cur: Cursor, entries: LoT):
+    # Get retracted publications
+    cur.execute(
+        """
+        SELECT SELECT DISTINCT C.EXTERNAL_ID
+        FROM CDB.CITATIONS@LITPUB C
+        INNER JOIN CDB.CITATION_PUBLICATIONTYPES@LITPUB C2T
+            ON C.ID = C2T.CITATION_ID
+        WHERE C2T.PUBLICATION_TYPE_ID = 140      
+        """
+    )
+    retracted = set()
+    for row in cur:
+        try:
+            pmid = int(row[0])
+        except (ValueError, TypeError):
+            continue
+        else:
+            retracted.add(pmid)
+
+    # Get accession of entries
+    accessions = {acc for acc, name, short_name in entries}
+
+    # Get citations for each entry
+    cur.execute(
+        """
+        SELECT DISTINCT E2P.ENTRY_AC, C.PUBMED_ID
+        FROM (
+            SELECT ENTRY_AC, PUB_ID
+            FROM INTERPRO.ENTRY2PUB
+            UNION
+            SELECT ENTRY_AC, PUB_ID
+            FROM INTERPRO.SUPPLEMENTARY_REF
+        ) E2P
+        INNER JOIN INTERPRO.CITATION C 
+            ON E2P.PUB_ID = C.PUB_ID        
+        """
+    )
+
+    errors = []
+    for acc, pmid in cur:
+        if acc in accessions and pmid in retracted:
+            errors.append((acc, pmid))
 
     return errors
 
@@ -337,6 +384,9 @@ def check(ora_cur: Cursor, pg_url: str):
 
     for item in ck_same_names(ora_cur):
         yield "same_name", item
+
+    for item in ck_retracted(ora_cur, entries):
+        yield "retracted", item
 
     exceptions = load_exceptions(ora_cur, "similar_name", "ENTRY_AC",
                                  "ENTRY_AC2")
