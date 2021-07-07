@@ -213,11 +213,15 @@ export function refresh(accession) {
                 html = '<ol>';
                 for (const pubID of mainRefs) {
                     const pub = references.get(pubID);
+                    let details = '';
+                    if (pub.volume && pub.issue && pub.pages)
+                        details = `, ${pub.volume}(${pub.issue}):${pub.pages}`;
+
                     html += `
                         <li id="${pubID}">
                         <div><strong>${pub.title}</strong></div>
                         <div>${pub.authors}</div>
-                        <div><em>${pub.journal}</em> ${pub.year}, ${pub.volume}, ${pub.pages}</div>
+                        <div><em>${pub.journal}</em> ${pub.year}${details}</div>
                         <div class="ui horizontal link list">
                     `;
 
