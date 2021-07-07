@@ -72,7 +72,7 @@ def get_annotations(accession):
     cur.execute(
         """
         SELECT
-          E.PUB_ID, C.TITLE, C.YEAR, C.VOLUME, C.RAWPAGES, C.DOI_URL,
+          E.PUB_ID, C.TITLE, C.YEAR, C.VOLUME, C.ISSUE, C.RAWPAGES, C.DOI_URL,
           C.PUBMED_ID, C.ISO_JOURNAL, C.MEDLINE_JOURNAL, C.AUTHORS
         FROM INTERPRO.ENTRY2PUB E
         INNER JOIN INTERPRO.CITATION C
@@ -89,11 +89,12 @@ def get_annotations(accession):
             "title": row[1],
             "year": row[2],
             "volume": row[3],
-            "pages": row[4],
-            "doi": row[5],
-            "pmid": row[6],
-            "journal": row[7] if row[7] else row[8],
-            "authors": row[9]
+            "issue": row[4],
+            "pages": row[5],
+            "doi": row[6],
+            "pmid": row[7],
+            "journal": row[9] if row[8] else row[9],
+            "authors": row[10]
         }
 
     cur.close()
