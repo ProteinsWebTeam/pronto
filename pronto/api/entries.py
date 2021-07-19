@@ -371,107 +371,94 @@ def get_recent_go_terms():
 
 @bp.route("/unchecked/")
 def get_unchecked_entries():
-    mem_db = request.args.get("db", "any")
+    counts_only = "counts" in request.args
 
     con = utils.connect_oracle()
     cur = con.cursor()
 
-    if mem_db == "any":
-        filter_sql = "E.NUM_METHODS > 0"
-        params = ()
-    elif mem_db == "none":
-        filter_sql = "E.NUM_METHODS = 0"
-        params = ()
-    else:
+    if counts_only:
         cur.execute(
             """
-            SELECT DBCODE
-            FROM INTERPRO.CV_DATABASE
-            WHERE LOWER(DBSHORT) = :1
-            """, (mem_db.lower(),)
+            SELECT COUNT(*)
+            FROM INTERPRO.ENTRY
+            WHERE CHECKED = 'N'
+            """
         )
-        row = cur.fetchone()
-        if not row:
-            cur.close()
-            con.close()
-            return jsonify({
-                "status": False,
-                "error": {
-                    "title": "Bad request",
-                    "message": "Invalid or missing parameters."
-                }
-            }), 400
+        cnt, = cur.fetchone()
+        cur.close()
+        con.close()
+        return {
+            "results": cnt
+        }, 200
 
-        dbcode, = row
-
-        filter_sql = """
-            E.ENTRY_AC IN (
-                SELECT DISTINCT EM.ENTRY_AC
-                FROM INTERPRO.ENTRY2METHOD EM
-                INNER JOIN INTERPRO.METHOD M
-                  ON EM.METHOD_AC = M.METHOD_AC
-                  AND M.DBCODE = :1
-            )
+    # Get databases per entry
+    cur.execute(
         """
-        params = (dbcode,)
+        SELECT DISTINCT EM.ENTRY_AC, LOWER(D.DBSHORT)
+        FROM INTERPRO.ENTRY E
+        INNER JOIN INTERPRO.ENTRY2METHOD EM 
+            ON E.ENTRY_AC = EM.ENTRY_AC
+        INNER JOIN INTERPRO.METHOD M
+            ON EM.METHOD_AC = M.METHOD_AC
+        INNER JOIN INTERPRO.CV_DATABASE D 
+            ON M.DBCODE = D.DBCODE
+        WHERE E.CHECKED = 'N'
+        """
+    )
+    entries2db = {}
+    for entry_acc, database in cur:
+        try:
+            entries2db[entry_acc].append(database)
+        except KeyError:
+            entries2db[entry_acc] = [database]
 
     cur.execute(
         f"""
-        SELECT * FROM (
-            SELECT
-              E.ENTRY_AC, E.ENTRY_TYPE, E.SHORT_NAME, 
-              NVL(FAE.TIMESTAMP, E.TIMESTAMP) AS CREATED_TIME,
-              NVL(LAE.TIMESTAMP, E.TIMESTAMP) AS UPDATED_TIME, 
-              NVL(U.NAME, E.USERSTAMP), 
-              NVL(EM.CNT, 0) AS NUM_METHODS,
-              NVL(EC.CNT, 0) AS NUM_ECOMMENTS,
-              NVL(MC.CNT, 0) AS NUM_MCOMMENTS
-            FROM INTERPRO.ENTRY E
-            LEFT OUTER JOIN (
-              -- First audit event
-              SELECT
-                ENTRY_AC, TIMESTAMP,
-                ROW_NUMBER() OVER (
-                  PARTITION BY ENTRY_AC
-                  ORDER BY TIMESTAMP
-                ) RN
-              FROM INTERPRO.ENTRY_AUDIT
-            ) FAE ON E.ENTRY_AC = FAE.ENTRY_AC AND FAE.RN = 1
-            LEFT OUTER JOIN (
-                -- Latest audit event when entry was unchecked
-                SELECT 
-                    ENTRY_AC, DBUSER, TIMESTAMP, 
-                    ROW_NUMBER() OVER (PARTITION BY ENTRY_AC 
-                                       ORDER BY TIMESTAMP DESC) RN
-                FROM INTERPRO.ENTRY_AUDIT
-                WHERE CHECKED = 'N' 
-            ) LAE ON E.ENTRY_AC = LAE.ENTRY_AC AND LAE.RN = 1
-            LEFT OUTER JOIN INTERPRO.PRONTO_USER U 
-                ON LAE.DBUSER = U.DB_USER
-            LEFT OUTER JOIN (
-              SELECT ENTRY_AC, COUNT(*) AS CNT
-              FROM INTERPRO.ENTRY2METHOD
-              GROUP BY ENTRY_AC
-            ) EM ON E.ENTRY_AC = EM.ENTRY_AC
-            LEFT OUTER JOIN (
-                SELECT ENTRY_AC, COUNT(*) AS CNT
-                FROM INTERPRO.ENTRY_COMMENT
-                WHERE STATUS = 'Y'
-                GROUP BY ENTRY_AC
-            ) EC ON E.ENTRY_AC = EC.ENTRY_AC
-            LEFT OUTER JOIN (
-                SELECT EM.ENTRY_AC, COUNT(*) AS CNT
-                FROM INTERPRO.ENTRY2METHOD EM
-                INNER JOIN INTERPRO.METHOD_COMMENT MC 
-                    ON EM.METHOD_AC = MC.METHOD_AC
-                WHERE MC.STATUS = 'Y'
-                GROUP BY EM.ENTRY_AC
-            ) MC ON E.ENTRY_AC = MC.ENTRY_AC
-            WHERE E.CHECKED = 'N'
-        ) E
-        WHERE {filter_sql}
+        SELECT
+          E.ENTRY_AC, E.ENTRY_TYPE, E.SHORT_NAME, 
+          NVL(FAE.TIMESTAMP, E.TIMESTAMP) AS CREATED_TIME,
+          NVL(LAE.TIMESTAMP, E.TIMESTAMP) AS UPDATED_TIME, 
+          NVL(U.NAME, E.USERSTAMP), 
+          NVL(EC.CNT, 0) AS NUM_ECOMMENTS,
+          NVL(MC.CNT, 0) AS NUM_MCOMMENTS
+        FROM INTERPRO.ENTRY E
+        LEFT OUTER JOIN (
+          -- First audit event
+          SELECT
+            ENTRY_AC, TIMESTAMP,
+            ROW_NUMBER() OVER (
+              PARTITION BY ENTRY_AC
+              ORDER BY TIMESTAMP
+            ) RN
+          FROM INTERPRO.ENTRY_AUDIT
+        ) FAE ON E.ENTRY_AC = FAE.ENTRY_AC AND FAE.RN = 1
+        LEFT OUTER JOIN (
+            -- Latest audit event when entry was unchecked
+            SELECT 
+                ENTRY_AC, DBUSER, TIMESTAMP, 
+                ROW_NUMBER() OVER (PARTITION BY ENTRY_AC 
+                                   ORDER BY TIMESTAMP DESC) RN
+            FROM INTERPRO.ENTRY_AUDIT
+        ) LAE ON E.ENTRY_AC = LAE.ENTRY_AC AND LAE.RN = 1
+        LEFT OUTER JOIN INTERPRO.PRONTO_USER U 
+            ON LAE.DBUSER = U.DB_USER
+        LEFT OUTER JOIN (
+            SELECT ENTRY_AC, COUNT(*) AS CNT
+            FROM INTERPRO.ENTRY_COMMENT
+            WHERE STATUS = 'Y'
+            GROUP BY ENTRY_AC
+        ) EC ON E.ENTRY_AC = EC.ENTRY_AC
+        LEFT OUTER JOIN (
+            SELECT EM.ENTRY_AC, COUNT(*) AS CNT
+            FROM INTERPRO.ENTRY2METHOD EM
+            INNER JOIN INTERPRO.METHOD_COMMENT MC 
+                ON EM.METHOD_AC = MC.METHOD_AC
+            WHERE MC.STATUS = 'Y'
+            GROUP BY EM.ENTRY_AC
+        ) MC ON E.ENTRY_AC = MC.ENTRY_AC
+        WHERE E.CHECKED = 'N'
         ORDER BY UPDATED_TIME DESC
-        """, params
+        """
     )
     entries = []
     for row in cur:
@@ -482,15 +469,17 @@ def get_unchecked_entries():
             "created_date": row[3].strftime("%d %b %Y"),
             "update_date": row[4].strftime("%d %b %Y"),
             "user": row[5],
-            "signatures": row[6],
             "comments": {
-                "entry": row[7],
-                "signatures": row[8],
-            }
+                "entry": row[6],
+                "signatures": row[7],
+            },
+            "databases": entries2db.get(row[0], [])
         })
     cur.close()
     con.close()
-    return jsonify(entries)
+    return {
+        "results": entries
+    }
 
 
 def _get_quarterly_entries(cur, date):

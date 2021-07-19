@@ -403,17 +403,23 @@ async function getRecentEntries() {
     document.querySelector('.item[data-tab="news"] .label').innerHTML = data.results.length.toString();
 }
 
-function initUncheckedEntries(databases) {
+async function getNumOfUncheckedEntries() {
+    const response = await fetch('/api/entries/unchecked/?counts');
+    const data = await response.json();
+    document.querySelector('.item[data-tab="unchecked"] .label').innerHTML = data.results.toString();
+}
+
+function initUncheckedEntriesForm(databases) {
     const sigDatabases = databases.filter(db => db.id !== 'mobidblt');
-    sigDatabases.splice(0, 0, true, false);
+    sigDatabases.splice(0, 0, 'any', 'none');
     const fieldsPerCol = Math.ceil(sigDatabases.length / 3);
     const columns = [[], [], []];
     for (let i = 0; i < sigDatabases.length; i++) {
         const x = Math.floor(i / fieldsPerCol);
         const database = sigDatabases[i];
-        if (database === true)
+        if (database === 'any')
             columns[x].push(['any', 'Any', null]);
-        else if (database === false)
+        else if (database === 'none')
             columns[x].push(['none', 'None', null]);
         else
             columns[x].push([database.id, database.name, database.color]);
@@ -442,19 +448,71 @@ function initUncheckedEntries(databases) {
             `;
         })
         .join('');
+}
 
-    for (const elem of form.querySelectorAll('input[type="radio"][name="database"]')) {
+async function getUncheckedEntries() {
+    const tab = document.querySelector('.tab[data-tab="unchecked"]');
+    if (tab.dataset.status === 'loaded')
+        return;
+
+    dimmer.on();
+    const response = await fetch(`/api/entries/unchecked/`);
+    const data = await response.json();
+
+    const refresh = () => {
+        let keepEntry;
+        const db = tab.querySelector('input[type="radio"][name="database"]:checked').value;
+        if (db === 'any')
+            keepEntry = (entry) => entry.databases.length >= 1;
+        else if (db === 'none')
+            keepEntry = (entry) => entry.databases.length === 0;
+        else
+            keepEntry = (entry) => entry.databases.includes(db);
+
+        let html = '';
+        const entries = data.results.filter(keepEntry);
+        for (const entry of entries) {
+            html += `
+                <tr>
+                <td>
+                    <span class="ui circular mini label type ${entry.type}">${entry.type}</span>
+                    <a href="/entry/${entry.accession}/">${entry.accession}</a>
+                </td>
+                <td>${entry.short_name}</td>
+                <td>${entry.created_date}</td>
+                <td>${entry.update_date}</td>
+                <td class="right aligned">
+            `;
+
+            let numComments = entry.comments.entry + entry.comments.signatures;
+            if (numComments > 0)
+                html += `<a href="/entry/${entry.accession}/" class="ui small basic label"><i class="comments icon"></i> ${numComments}</a>`;
+
+            html += '</td></tr>';
+        }
+
+        if (entries.length === 0)
+            html = '<tr><td colspan="5" class="center aligned">No results found</td></tr>';
+
+        tab.querySelector('tbody').innerHTML = html;
+        tab.querySelector('thead > tr:first-child > th:first-child').innerHTML = `${entries.length} entries`;
+    };
+
+    for (const elem of tab.querySelectorAll('input[type="radio"][name="database"]')) {
         elem.addEventListener('change', (e,) => {
-            const input = e.currentTarget;
-            dimmer.on();
-            getUncheckedEntries(input.value).then(() => {dimmer.off()});
+            refresh();
         });
     }
 
-    return getUncheckedEntries('any');
-}
+    refresh();
 
-function getUncheckedEntries(database) {
+    tab.dataset.status = 'loaded';
+    dimmer.off();
+
+    return ;
+
+
+
     return fetch(`/api/entries/unchecked/?db=${database}`)
         .then(response => response.json())
         .then(entries => {
@@ -677,6 +735,9 @@ document.addEventListener('DOMContentLoaded', () => {
         onVisible: (tabPath) => {
             const url = new URL(`/#/${tabPath}`, location.origin);
             history.replaceState(null, document.title, url.toString());
+
+            if (tabPath === 'unchecked')
+                getUncheckedEntries();
         }
     });
 
@@ -700,10 +761,11 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelector('.tab[data-tab="checks"] .primary.button').addEventListener('click', e => runSanityChecks());
 
     Promise.all([
-        getDatabases().then(databases => initUncheckedEntries(databases)),
+        getDatabases().then(databases => initUncheckedEntriesForm(databases)),
         getRecentEntries(),
+        getInterPro2GO(),
         getSanityCheck(),
-        getInterPro2GO()
+        getNumOfUncheckedEntries(),
     ])
         .then(() => {
             setClass(document.getElementById('welcome'), 'active', false);
