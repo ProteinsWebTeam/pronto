@@ -508,51 +508,6 @@ async function getUncheckedEntries() {
 
     tab.dataset.status = 'loaded';
     dimmer.off();
-
-    return ;
-
-
-
-    return fetch(`/api/entries/unchecked/?db=${database}`)
-        .then(response => response.json())
-        .then(entries => {
-            let html = '';
-            const entriesPerYear = new Map();
-
-            for (const entry of entries) {
-                const year = Number.parseInt(entry.created_date.split(' ')[2], 10);
-                if (entriesPerYear.has(year))
-                    entriesPerYear.set(year, entriesPerYear.get(year) + 1);
-                else
-                    entriesPerYear.set(year, 1);
-
-                html += `
-                    <tr>
-                    <td>
-                        <span class="ui circular mini label type ${entry.type}">${entry.type}</span>
-                        <a href="/entry/${entry.accession}/">${entry.accession}</a>
-                    </td>
-                    <td>${entry.short_name}</td>
-                    <td>${entry.created_date}</td>
-                    <td>${entry.update_date}</td>
-                    <td class="right aligned">
-                `;
-
-                let numComments = entry.comments.entry + entry.comments.signatures;
-                if (numComments > 0)
-                    html += `<a href="/entry/${entry.accession}/" class="ui small basic label"><i class="comments icon"></i> ${numComments}</a>`;
-
-                html += '</td></tr>';
-            }
-
-            const tab = document.querySelector('.tab[data-tab="unchecked"]');
-
-            if (html.length === 0)
-                html = '<tr><td colspan="5" class="center aligned">No results found</td></tr>';
-
-            tab.querySelector('tbody').innerHTML = html;
-            document.querySelector('.item[data-tab="unchecked"] .label').innerHTML = entries.length.toString();
-        });
 }
 
 async function resolveError(runID, errID, addException) {
