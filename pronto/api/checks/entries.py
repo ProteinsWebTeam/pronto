@@ -170,6 +170,48 @@ def ck_letter_case(entries: LoT, exceptions: Tuple[str]) -> Err:
     return errors
 
 
+def ck_retracted(cur: Cursor, entries: LoT) -> Err:
+    # Get retracted publications (EXTERNAL_ID is a VARCHAR)
+    cur.execute(
+        """
+        SELECT DISTINCT C.EXTERNAL_ID
+        FROM CDB.CITATIONS@LITPUB C
+        INNER JOIN CDB.CITATION_PUBLICATIONTYPES@LITPUB C2T
+            ON C.ID = C2T.CITATION_ID
+        WHERE C2T.PUBLICATION_TYPE_ID = 140      
+        """
+    )
+    retracted = {row[0] for row in cur}
+
+    # Get accession of entries
+    accessions = {acc for acc, name, short_name in entries}
+
+    # Get citations for each entry (PUBMED_ID is a NUMBER)
+    cur.execute(
+        """
+        SELECT DISTINCT E2P.ENTRY_AC, C.PUBMED_ID
+        FROM (
+            SELECT ENTRY_AC, PUB_ID
+            FROM INTERPRO.ENTRY2PUB
+            UNION
+            SELECT ENTRY_AC, PUB_ID
+            FROM INTERPRO.SUPPLEMENTARY_REF
+        ) E2P
+        INNER JOIN INTERPRO.CITATION C 
+            ON E2P.PUB_ID = C.PUB_ID        
+        """
+    )
+
+    errors = []
+    for row in cur:
+        acc = row[0]
+        pmid = str(row[1])
+        if acc in accessions and pmid in retracted:
+            errors.append((acc, pmid))
+
+    return errors
+
+
 def ck_same_names(cur: Cursor) -> Err:
     cur.execute(
         """
@@ -337,6 +379,9 @@ def check(ora_cur: Cursor, pg_url: str):
 
     for item in ck_same_names(ora_cur):
         yield "same_name", item
+
+    for item in ck_retracted(ora_cur, entries):
+        yield "retracted", item
 
     exceptions = load_exceptions(ora_cur, "similar_name", "ENTRY_AC",
                                  "ENTRY_AC2")

@@ -16,7 +16,7 @@ def get_signatures(accession):
     cur.execute(
         """
         SELECT EM.METHOD_AC, EM.TIMESTAMP, NVL(U.NAME, EM.USERSTAMP), 
-               NVL(MC.CNT, 0)
+               NVL(MC.CNT, 0), MU.METHOD_AC
         FROM INTERPRO.ENTRY2METHOD EM
         LEFT OUTER JOIN INTERPRO.PRONTO_USER U 
             ON EM.USERSTAMP = U.DB_USER
@@ -26,6 +26,8 @@ def get_signatures(accession):
             WHERE STATUS = 'Y'
             GROUP BY METHOD_AC
         ) MC ON EM.METHOD_AC = MC.METHOD_AC
+        LEFT OUTER JOIN INTERPRO.METHOD_UNIRULE MU
+            ON MU.METHOD_AC = EM.METHOD_AC
         WHERE EM.ENTRY_AC = :1
         """, (accession,)
     )
@@ -53,10 +55,11 @@ def get_signatures(accession):
         )
 
         for row in cur:
-            timestamp, userstamp, num_comments = integrated[row[0]]
+            acc = row[0]
+            timestamp, userstamp, num_comments, unirule = integrated[acc]
             db = utils.get_database_obj(row[4])
             signatures.append({
-                "accession": row[0],
+                "accession": acc,
                 "name": row[1],
                 "sequences": {
                     "all": row[2],
@@ -68,11 +71,13 @@ def get_signatures(accession):
                     "name": row[5]
                 },
                 "date": f"{userstamp} ({timestamp:%d %b %Y})",
-                "comments": num_comments
+                "comments": num_comments,
+                "unirule": unirule is not None
             })
 
         cur.close()
         con.close()
+
     return jsonify(signatures)
 
 

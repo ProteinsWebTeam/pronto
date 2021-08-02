@@ -33,15 +33,13 @@ export function integrate(entryAcc, signatureAcc, confirmed) {
         });
 }
 
-function unintegrate(entryAcc, signatureAcc) {
-    const unirule = document.getElementById('unirule').checked;
-    let message;
+function unintegrate(entryAcc, signatureAcc, inUnirule) {
+    let message = '';
 
-    if (unirule) {
-        message = `<strong>${entryAcc} is used by UniRule.</strong> Do you want to unintegrated ${signatureAcc}?`;
-    } else {
-        message = `Do you want to unintegrated ${signatureAcc} from ${entryAcc}?`;
-    }
+    if (inUnirule)
+        message = `<strong>${signatureAcc} is used by UniRule.</strong><br>`;
+
+    message += `Do you want to unintegrate ${signatureAcc} from ${entryAcc}?`;
 
     modals.ask(
         'Unintegrate signature?',
@@ -73,7 +71,7 @@ export function refresh(accession) {
             if (signatures.length > 0) {
                 for (const signature of signatures) {
                     html += `
-                        <tr>
+                        <tr data-unirule="${signature.unirule ? 1 : 0}">
                         <td class="collapsing"><i class="database fitted icon" style="color: ${signature.database.color};"></i></td>
                         <td><a target="_blank" href="${signature.database.link}">${signature.database.name}<i class="external icon"></i></a></td>
                         <td><a href="/signature/${signature.accession}/">${signature.accession}</a></td>
@@ -107,7 +105,8 @@ export function refresh(accession) {
 
             for (const elem of tbody.querySelectorAll('[data-accession]')) {
                 elem.addEventListener('click', (e,) => {
-                    unintegrate(accession, e.currentTarget.dataset.accession);
+                    const i = e.currentTarget;
+                    unintegrate(accession, i.dataset.accession, i.closest('tr').dataset.unirule !== '0');
                 });
             }
         });

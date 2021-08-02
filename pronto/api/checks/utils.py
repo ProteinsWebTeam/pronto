@@ -124,6 +124,13 @@ CHECKS = {
         "terms": True,
         "exceptions": 't'
     },
+    "retracted": {
+        "name": "Retracted publication",
+        "description": "Entries cannot reference retracted publication",
+        "label": "Retracted publication",
+        "terms": False,
+        "exceptions": None
+    },
     "same_name": {
         "name": "Same names",
         "description": "Clash between name and short name "

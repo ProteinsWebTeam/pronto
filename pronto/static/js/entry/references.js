@@ -13,13 +13,17 @@ export function refresh(accession) {
             let html = '<p>The following publications were not referred to in the description, but provide useful additional information.</p><ul class="ui list">';
             references.sort((a, b) => a.year - b.year);
             for (const pub of references) {
+                let details = '';
+                if (pub.volume && pub.issue && pub.pages)
+                    details = `, ${pub.volume}(${pub.issue}):${pub.pages}`;
+
                 html += `
                     <li id="${pub.id}" class="item">
                         <div><strong>${pub.title}</strong>
                         <i data-id="${pub.id}" class="right floated unlink button icon"></i>
                         </div>
                         <div>${pub.authors}</div>
-                        <div><em>${pub.journal}</em> ${pub.year}, ${pub.volume}, ${pub.pages}</div>
+                        <div><em>${pub.journal}</em> ${pub.year}${details}</div>
                         <div class="ui horizontal link list">
                 `;
 

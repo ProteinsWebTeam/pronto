@@ -16,6 +16,9 @@
         .ui.custom.popup {
             max-width: 400px;
         }
+        em {
+            font-style: italic;
+        }
     </style>
 </head>
 <body>
@@ -31,24 +34,31 @@
             and prioritize the integration of signatures.
         </p>
 
-        <div class="ui grid">
-            <div class="row">
-                <div class="twelve wide column">
-                    <div class="ui fluid search">
-                        <div class="ui icon input">
-                            <input class="prompt" type="text" placeholder="Search organisms...">
-                            <i class="search icon"></i>
-                        </div>
-                        <div class="results"></div>
+        <div class="ui fluid search">
+            <div class="ui icon input">
+                <input class="prompt" type="text" placeholder="Search organisms...">
+                <i class="search icon"></i>
+            </div>
+            <div class="results"></div>
+        </div>
+        <div id="main-message" class="ui hidden message"></div>
+        <div id="results">
+            <div class="ui grid">
+                <div class="row">
+                    <div class="twelve wide column">
+                        <h2 class="ui header"></h2>
+                    </div>
+                    <div class="four wide right aligned column">
+                        <button id="submit-task" class="ui disabled primary button">Calculate coverage</button>
                     </div>
                 </div>
-                <div class="four wide right aligned column">
-                    <button id="submit-task" class="ui disabled primary button">Calculate coverage</button>
+                <div class="row">
+                    <div class="sixteen wide column">
+
+                    </div>
                 </div>
             </div>
         </div>
-        <div id="main-message" class="ui hidden message"></div>
-        <div id="results"></div>
     </div>
 </div>
 
