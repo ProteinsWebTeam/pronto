@@ -149,7 +149,7 @@ function renderResults(task) {
         `;
     }
 
-    const getCoverage = (obj) => (obj.integrated * 100 / obj.total);
+    const getCoverage = (obj) => obj.total > 0 ? obj.integrated * 100 / obj.total : 0;
     const minIncr = 0.005;  // coverage must increase by at least <minIncr>%
     const minCov = getCoverage(data.proteins.all) + minIncr;
     const databases = new Map();
