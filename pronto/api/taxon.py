@@ -15,8 +15,7 @@ def _process_taxon(ora_url: str, pg_url: str, taxon_id: int, taxon_name: str,
         SELECT EM.METHOD_AC 
         FROM INTERPRO.ENTRY2METHOD EM
         INNER JOIN INTERPRO.ENTRY E
-            ON EM.ENTRY_AC = E.ENTRY_AC 
-            AND E.CHECKED = 'Y'
+            ON EM.ENTRY_AC = E.ENTRY_AC
         """
     )
     integrated = {acc for acc, in cur.fetchall()}
