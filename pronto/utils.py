@@ -72,28 +72,23 @@ class Executor:
     def get_tasks(self, task_id: Optional[str] = None,
                   task_name: Optional[str] = None, seconds: int = 0,
                   get_result: bool = True) -> List[dict]:
-        conds = []
-        params = {}
-        if seconds > 0:
-            conds.append(f"T.STARTED >= SYSDATE - INTERVAL '{seconds}' SECOND")
-
-        if task_id:
-            conds.append("T.ID = :taskid")
-            params["taskid"] = task_id
-
-        if task_name:
-            conds.append("T.NAME = :taskname")
-            params["taskname"] = task_name
-
         columns = ["T.ID", "T.NAME AS TASK_NAME", "U.NAME AS USER_NAME",
                    "T.STARTED", "T.FINISHED", "T.STATUS"]
         if get_result:
             columns.append("T.RESULT")
 
-        if conds:
-            conds = "WHERE " + " AND ".join([f"({c})" for c in conds])
+        if task_id:
+            cond = "T.ID = :1"
+            params = (task_id,)
+        elif task_name:
+            cond = "T.NAME = :1"
+            params = (task_name,)
         else:
-            conds = ""
+            cond = "T.FINISHED IS NULL"
+            params = ()
+            if seconds > 0:
+                cond += (f" OR T.STARTED >= SYSDATE - INTERVAL '{seconds}' "
+                         f"SECOND")
 
         con = connect_oracle()
         cur = con.cursor()
@@ -104,7 +99,7 @@ class Executor:
             FROM INTERPRO.PRONTO_TASK T
               INNER JOIN INTERPRO.PRONTO_USER U
               ON T.USERNAME = U.DB_USER
-            {conds}
+            WHERE {cond}
             ORDER BY T.STARTED
             """, params
         )
