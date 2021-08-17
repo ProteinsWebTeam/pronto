@@ -67,22 +67,28 @@ def _process_taxon(ora_url: str, pg_url: str, taxon_id: int, taxon_name: str,
         if is_reviewed:
             reviewed.add(protein_acc)
 
-    # Now get matches
+    # Now get matches (without PANTHER subfamilies)
     cur.execute(
         f"""
         WITH proteins AS ({sql})
-        SELECT protein_acc, signature_acc
+        SELECT DISTINCT protein_acc, signature_acc
         FROM interpro.match
         WHERE protein_acc IN (SELECT accession FROM proteins)
         """, params
     )
 
     matches = {}
+    total_proteins = {}
     for protein_acc, signature_acc in cur.fetchall():
         try:
             matches[protein_acc].append(signature_acc)
         except KeyError:
             matches[protein_acc] = [signature_acc]
+
+        try:
+            total_proteins[signature_acc] += 1
+        except KeyError:
+            total_proteins[signature_acc] = 1
 
     cur.close()
     con.close()
@@ -121,14 +127,17 @@ def _process_taxon(ora_url: str, pg_url: str, taxon_id: int, taxon_name: str,
                         "color": utils.get_database_obj(sig_dbkey).color
                     },
                     "proteins": {
-                        "total": 0,
-                        "reviewed": 0
+                        "total": total_proteins[signature_acc],
+                        "unintegrated": {
+                            "total": 0,
+                            "reviewed": 0
+                        }
                     }
                 }
             finally:
-                s["proteins"]["total"] += 1
+                s["proteins"]["unintegrated"]["total"] += 1
                 if is_reviewed:
-                    s["proteins"]["reviewed"] += 1
+                    s["proteins"]["unintegrated"]["reviewed"] += 1
 
     return {
         "id": taxon_id,
