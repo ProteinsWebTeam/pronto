@@ -74,6 +74,7 @@ def _process_taxon(ora_url: str, pg_url: str, taxon_id: int, taxon_name: str,
         SELECT DISTINCT protein_acc, signature_acc
         FROM interpro.match
         WHERE protein_acc IN (SELECT accession FROM proteins)
+        AND signature_acc !~ 'PTHR\d+:SF\d+'
         """, params
     )
 
