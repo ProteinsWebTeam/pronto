@@ -211,7 +211,8 @@ function renderResults(task) {
                     <td>${item.name !== item.accession ? item.name : ''}</td>
                     <td class="collapsing">${btn}</td>
                     <td class="right aligned">${item.proteins.total.toLocaleString()}</td>
-                    <td class="right aligned">${item.proteins.reviewed.toLocaleString()}</td>
+                    <td class="right aligned">${item.proteins.unintegrated.total.toLocaleString()}</td>
+                    <td class="right aligned">${item.proteins.unintegrated.reviewed.toLocaleString()}</td>
                 </tr>
             `;
 
@@ -297,6 +298,7 @@ function renderResults(task) {
                                 <th rowspan="2">Accession</th>
                                 <th rowspan="2">Name</th>
                                 <th rowspan="2" class="collapsing"></th>
+                                <th rowspan="2">Proteins</th>
                                 <th colspan="2">Unintegrated proteins</th>
                             </tr>
                             <tr class="center aligned">
