@@ -207,10 +207,11 @@ function renderResults(task) {
 
             tbody += `
                 <tr>
-                    <td><a href="/signatures/${item.accession}/proteins/?taxon=${data.id}">${item.accession}</a></td>
+                    <td><a href="/signature/${item.accession}/">${item.accession}</a></td>
                     <td>${item.name !== item.accession ? item.name : ''}</td>
                     <td class="collapsing">${btn}</td>
                     <td class="right aligned">${item.proteins.total.toLocaleString()}</td>
+                    <td class="right aligned">${item.proteins.reviewed.toLocaleString()}</td>
                     <td class="right aligned">${item.proteins.unintegrated.total.toLocaleString()}</td>
                     <td class="right aligned">${item.proteins.unintegrated.reviewed.toLocaleString()}</td>
                 </tr>
@@ -298,10 +299,12 @@ function renderResults(task) {
                                 <th rowspan="2">Accession</th>
                                 <th rowspan="2">Name</th>
                                 <th rowspan="2" class="collapsing"></th>
-                                <th rowspan="2">Proteins</th>
+                                <th colspan="2">Proteins</th>
                                 <th colspan="2">Unintegrated proteins</th>
                             </tr>
                             <tr class="center aligned">
+                                <th class="right aligned">Total</th>
+                                <th class="right aligned">Reviewed</th>
                                 <th class="right aligned">Total</th>
                                 <th class="right aligned">Reviewed</th>
                             </tr>

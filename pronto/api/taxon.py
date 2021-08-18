@@ -79,7 +79,7 @@ def _process_taxon(ora_url: str, pg_url: str, taxon_id: int, taxon_name: str,
     )
 
     matches = {}
-    total_proteins = {}
+    protein_counts = {}
     for protein_acc, signature_acc in cur.fetchall():
         try:
             matches[protein_acc].append(signature_acc)
@@ -87,9 +87,13 @@ def _process_taxon(ora_url: str, pg_url: str, taxon_id: int, taxon_name: str,
             matches[protein_acc] = [signature_acc]
 
         try:
-            total_proteins[signature_acc] += 1
+            obj = protein_counts[signature_acc]
         except KeyError:
-            total_proteins[signature_acc] = 1
+            obj = protein_counts[signature_acc] = [0, 0]
+        finally:
+            obj[0] += 1
+            if protein_acc in reviewed:
+                obj[1] += 1
 
     cur.close()
     con.close()
@@ -128,7 +132,8 @@ def _process_taxon(ora_url: str, pg_url: str, taxon_id: int, taxon_name: str,
                         "color": utils.get_database_obj(sig_dbkey).color
                     },
                     "proteins": {
-                        "total": total_proteins[signature_acc],
+                        **dict(zip(("total", "reviewed"),
+                                   protein_counts[signature_acc])),
                         "unintegrated": {
                             "total": 0,
                             "reviewed": 0
