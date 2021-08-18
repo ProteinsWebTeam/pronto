@@ -26,7 +26,8 @@ def _process_taxon(ora_url: str, pg_url: str, taxon_id: int, taxon_name: str,
     cur = con.cursor()
     cur.execute(
         """
-        SELECT s.accession, s.name, d.name, d.name_long
+        SELECT s.accession, s.name, s.num_reviewed_sequences, 
+               d.name, d.name_long
         FROM interpro.signature s
         INNER JOIN interpro.database d
             ON d.id = s.database_id
@@ -123,7 +124,12 @@ def _process_taxon(ora_url: str, pg_url: str, taxon_id: int, taxon_name: str,
             try:
                 s = results[signature_acc]
             except KeyError:
-                sig_name, sig_dbkey, sig_db = signatures[signature_acc]
+                (
+                    sig_name,
+                    sig_num_total_reviewed,
+                    sig_dbkey,
+                    sig_db
+                ) = signatures[signature_acc]
                 s = results[signature_acc] = {
                     "accession": signature_acc,
                     "name": sig_name,
@@ -132,16 +138,24 @@ def _process_taxon(ora_url: str, pg_url: str, taxon_id: int, taxon_name: str,
                         "color": utils.get_database_obj(sig_dbkey).color
                     },
                     "proteins": {
-                        **dict(zip(("total", "reviewed"),
+                        # Proteins from all clades
+                        "all_clades": {
+                            "reviewed": sig_num_total_reviewed
+                        },
+
+                        # From this clade, regardless of integration
+                        **dict(zip(("all", "reviewed"),
                                    protein_counts[signature_acc])),
+
+                        # From this clade, not hit by any integrated signature
                         "unintegrated": {
-                            "total": 0,
+                            "all": 0,
                             "reviewed": 0
                         }
                     }
                 }
             finally:
-                s["proteins"]["unintegrated"]["total"] += 1
+                s["proteins"]["unintegrated"]["all"] += 1
                 if is_reviewed:
                     s["proteins"]["unintegrated"]["reviewed"] += 1
 
