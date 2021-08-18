@@ -155,15 +155,16 @@ function renderResults(task) {
     const databases = new Map();
     const signatures = data.signatures
         .filter((item) => {
-            const newCov = (data.proteins.all.integrated + item.proteins.total) * 100 / data.proteins.all.total;
+            const newCnt = data.proteins.all.integrated + item.proteins.unintegrated.all;
+            const newCov = newCnt * 100 / data.proteins.all.total;
             return newCov >= minCov;
         })
         .sort((a, b) => {
-            let d = b.proteins.total - a.proteins.total;
+            let d = b.proteins.unintegrated.reviewed - a.proteins.unintegrated.reviewed;
             if (d !== 0)
                 return d;
 
-            d = b.proteins.reviewed - a.proteins.reviewed;
+            d = b.proteins.unintegrated.all - a.proteins.unintegrated.all;
             if (d !== 0)
                 return d;
 
@@ -210,9 +211,14 @@ function renderResults(task) {
                     <td><a href="/signature/${item.accession}/">${item.accession}</a></td>
                     <td>${item.name !== item.accession ? item.name : ''}</td>
                     <td class="collapsing">${btn}</td>
-                    <td class="right aligned">${item.proteins.total.toLocaleString()}</td>
+                    <td class="right aligned">${item.proteins.all_clades.reviewed.toLocaleString()}</td>
+                    <td class="right aligned">
+                        <a href="/signatures/${item.accession}/proteins/?taxon=${data.id}">
+                            ${item.proteins.all.toLocaleString()}
+                        </a>
+                    </td>
                     <td class="right aligned">${item.proteins.reviewed.toLocaleString()}</td>
-                    <td class="right aligned">${item.proteins.unintegrated.total.toLocaleString()}</td>
+                    <td class="right aligned">${item.proteins.unintegrated.all.toLocaleString()}</td>
                     <td class="right aligned">${item.proteins.unintegrated.reviewed.toLocaleString()}</td>
                 </tr>
             `;
@@ -299,14 +305,15 @@ function renderResults(task) {
                                 <th rowspan="2">Accession</th>
                                 <th rowspan="2">Name</th>
                                 <th rowspan="2" class="collapsing"></th>
+                                <th rowspan="2">Swiss-Prot<br>(all clades)</th>
                                 <th colspan="2">Proteins</th>
                                 <th colspan="2">Unintegrated proteins</th>
                             </tr>
                             <tr class="center aligned">
-                                <th class="right aligned">Total</th>
-                                <th class="right aligned">Reviewed</th>
-                                <th class="right aligned">Total</th>
-                                <th class="right aligned">Reviewed</th>
+                                <th class="right aligned">UniProtKB</th>
+                                <th class="right aligned">Swiss-Prot</th>
+                                <th class="right aligned">UniProtKB</th>
+                                <th class="right aligned">Swiss-Prot</th>
                             </tr>
                         </thead>            
                         <tbody>
