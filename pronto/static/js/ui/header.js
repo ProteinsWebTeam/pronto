@@ -9,9 +9,13 @@ export async function renderTaskList() {
         for (const task of tasks) {
             if (task.end_time === null)
                 html += `<div class="item"><i class="sync loading icon"></i>${task.name}</div>`;
-            else if (task.success)
-                html += `<div class="item"><i class="check circle green icon"></i>${task.name}</div>`;
-            else
+            else if (task.success) {
+                const match = task.name.match(/^taxon:(\d+)$/);
+                if (match !== null)
+                    html += `<a href="/taxon/?id=${match[1]}" class="item"><i class="check circle green icon"></i>${task.name}</a>`;
+                else
+                    html += `<div class="item"><i class="check circle green icon"></i>${task.name}</div>`;
+            } else
                 html += `<div class="item"><i class="exclamation circle red icon"></i>${task.name}</div>`;
         }
         menu.innerHTML = html;
