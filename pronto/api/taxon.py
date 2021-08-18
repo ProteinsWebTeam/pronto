@@ -1,3 +1,5 @@
+import re
+
 import cx_Oracle
 from flask import Blueprint, jsonify, request
 
@@ -68,14 +70,13 @@ def _process_taxon(ora_url: str, pg_url: str, taxon_id: int, taxon_name: str,
         if is_reviewed:
             reviewed.add(protein_acc)
 
-    # Now get matches (without PANTHER subfamilies)
+    # Now get matches
     cur.execute(
         f"""
         WITH proteins AS ({sql})
         SELECT DISTINCT protein_acc, signature_acc
         FROM interpro.match
         WHERE protein_acc IN (SELECT accession FROM proteins)
-        AND signature_acc !~ 'PTHR\d+:SF\d+'
         """, params
     )
 
@@ -111,8 +112,9 @@ def _process_taxon(ora_url: str, pg_url: str, taxon_id: int, taxon_name: str,
             if signature_acc in integrated:
                 is_integrated = True
                 break
-
-            unintegrated.append(signature_acc)
+            elif not re.match(r"PTHR\d+:SF\d+", signature_acc):
+                # Ignore PANTHER subfamilies
+                unintegrated.append(signature_acc)
 
         if is_integrated:
             num_int_proteins += 1
