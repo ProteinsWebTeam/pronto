@@ -28,8 +28,8 @@ def _process_taxon(ora_url: str, pg_url: str, taxon_id: int, taxon_name: str,
     cur = con.cursor()
     cur.execute(
         """
-        SELECT s.accession, s.name, s.num_reviewed_sequences, 
-               d.name, d.name_long
+        SELECT s.accession, s.name, s.num_complete_sequences, 
+               s.num_complete_reviewed_sequences, d.name, d.name_long
         FROM interpro.signature s
         INNER JOIN interpro.database d
             ON d.id = s.database_id
@@ -46,7 +46,7 @@ def _process_taxon(ora_url: str, pg_url: str, taxon_id: int, taxon_name: str,
                 SELECT id
                 FROM interpro.taxon
                 WHERE left_number BETWEEN %s AND %s
-            )        
+            ) AND NOT is_fragment
         """
         params = (left_num, right_num)
     else:
@@ -57,7 +57,7 @@ def _process_taxon(ora_url: str, pg_url: str, taxon_id: int, taxon_name: str,
                 SELECT id
                 FROM interpro.taxon
                 WHERE left_number = %s
-            )        
+            ) AND NOT is_fragment
         """
         params = (left_num,)
 
@@ -128,10 +128,12 @@ def _process_taxon(ora_url: str, pg_url: str, taxon_id: int, taxon_name: str,
             except KeyError:
                 (
                     sig_name,
-                    sig_num_total_reviewed,
+                    num_cmpl_seqs,
+                    num_cmpl_rev_seqs,
                     sig_dbkey,
                     sig_db
                 ) = signatures[signature_acc]
+
                 s = results[signature_acc] = {
                     "accession": signature_acc,
                     "name": sig_name,
@@ -142,7 +144,8 @@ def _process_taxon(ora_url: str, pg_url: str, taxon_id: int, taxon_name: str,
                     "proteins": {
                         # Proteins from all clades
                         "all_clades": {
-                            "reviewed": sig_num_total_reviewed
+                            "all": num_cmpl_seqs,
+                            "reviewed": num_cmpl_rev_seqs
                         },
 
                         # From this clade, regardless of integration
@@ -329,4 +332,3 @@ def search_taxon():
     return jsonify({
         "items": results
     })
-
