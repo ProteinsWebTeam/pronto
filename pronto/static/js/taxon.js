@@ -149,22 +149,14 @@ function renderResults(task) {
         `;
     }
 
-    const getCoverage = (obj) => obj.total > 0 ? obj.integrated * 100 / obj.total : 0;
-    const minIncr = 0.005;  // coverage must increase by at least <minIncr>%
-    const minCov = getCoverage(data.proteins.all) + minIncr;
     const databases = new Map();
     const signatures = data.signatures
-        .filter((item) => {
-            const newCnt = data.proteins.all.integrated + item.proteins.unintegrated.all;
-            const newCov = newCnt * 100 / data.proteins.all.total;
-            return newCov >= minCov;
-        })
         .sort((a, b) => {
-            let d = b.proteins.unintegrated.reviewed - a.proteins.unintegrated.reviewed;
+            let d = b.proteins.unintegrated_reviewed - a.proteins.unintegrated_reviewed;
             if (d !== 0)
                 return d;
 
-            d = b.proteins.unintegrated.all - a.proteins.unintegrated.all;
+            d = b.proteins.unintegrated_all - a.proteins.unintegrated_all;
             if (d !== 0)
                 return d;
 
@@ -192,10 +184,18 @@ function renderResults(task) {
             `;
         });
 
-    const genTableBody = (dbName = null) => {
+    let dbName = null;
+    let minIncr = 0;
+    const coverageAll = data.proteins.all > 0 ? data.proteins.integrated_all * 100 / data.proteins.all : 0;
+    const coverageRev = data.proteins.reviewed > 0 ? data.proteins.integrated_reviewed * 100 / data.proteins.reviewed : 0;
+    const genTableBody = () => {
         let tbody = '';
         signatures.forEach(item => {
             if (dbName !== null && item.database.name !== dbName)
+                return;
+
+            const newCov = data.proteins.all > 0 ? (data.proteins.integrated_all + item.proteins.unintegrated_all) * 100 / data.proteins.all : 0;
+            if (newCov < coverageAll + minIncr)
                 return;
 
             let btn = '';
@@ -211,46 +211,41 @@ function renderResults(task) {
                     <td><a href="/signature/${item.accession}/">${item.accession}</a></td>
                     <td>${item.name !== item.accession ? item.name : ''}</td>
                     <td class="collapsing">${btn}</td>
-                    <td class="right aligned">${item.proteins.all_clades.reviewed.toLocaleString()}</td>
-                    <td class="right aligned">
-                        <a href="/signatures/${item.accession}/proteins/?taxon=${data.id}">
-                            ${item.proteins.all.toLocaleString()}
-                        </a>
-                    </td>
-                    <td class="right aligned">${item.proteins.reviewed.toLocaleString()}</td>
-                    <td class="right aligned">${item.proteins.unintegrated.all.toLocaleString()}</td>
-                    <td class="right aligned">${item.proteins.unintegrated.reviewed.toLocaleString()}</td>
+                    <td class="right aligned">${item.proteins.total_all.toLocaleString()}</td>
+                    <td class="right aligned">${item.proteins.total_reviewed.toLocaleString()}</td>
+                    <td class="right aligned">${item.proteins.unintegrated_all.toLocaleString()}</td>
+                    <td class="right aligned">${item.proteins.unintegrated_reviewed.toLocaleString()}</td>
                 </tr>
             `;
 
         });
 
-        return tbody;
+        return tbody.length > 0 ? tbody : '<tr><td colspan="7" class="center aligned">No signatures</td></tr>';
     };
 
     html += `
         <div class="ui relaxed horizontal list">
             <div class="item">
                 <div class="content">
-                    <div class="header">${data.proteins.all.total.toLocaleString()}</div>
+                    <div class="header">${data.proteins.all.toLocaleString()}</div>
                     <div class="description">proteins</div>
                 </div>
             </div>
             <div class="item">
                 <div class="content">
-                    <div class="header">${getCoverage(data.proteins.all).toFixed(2)}%</div>
+                    <div class="header">${coverageAll.toFixed(2)}%</div>
                     <div class="description">in InterPro</div>
                 </div>
             </div>
             <div class="item">
                 <div class="content">
-                    <div class="header">${data.proteins.reviewed.total.toLocaleString()}</div>
+                    <div class="header">${data.proteins.reviewed.toLocaleString()}</div>
                     <div class="description">reviewed proteins</div>
                 </div>
             </div>
             <div class="item">
                 <div class="content">
-                    <div class="header">${getCoverage(data.proteins.reviewed).toFixed(2)}%</div>
+                    <div class="header">${coverageRev.toFixed(2)}%</div>
                     <div class="description">in InterPro</div>
                 </div>
             </div>
@@ -258,16 +253,6 @@ function renderResults(task) {
                 <div class="content">
                     <div class="header">${data.signatures.length.toLocaleString()}</div>
                     <div class="description">unintegrated signatures</div>
-                </div>
-            </div>
-            <div class="item">
-                <div class="content">
-                    <div class="header">${signatures.length.toLocaleString()}</div>
-                    <div class="description">worth integrating
-                        <span data-tooltip="Integrating a signature will increase the coverage by at least ${minIncr}%.">
-                            <i class="question circle icon"></i>
-                        </span>
-                    </div>
                 </div>
             </div>
             <!--<div class="item">
@@ -305,8 +290,7 @@ function renderResults(task) {
                                 <th rowspan="2">Accession</th>
                                 <th rowspan="2">Name</th>
                                 <th rowspan="2" class="collapsing"></th>
-                                <th rowspan="2">Swiss-Prot<br>(all clades)</th>
-                                <th colspan="2">Proteins</th>
+                                <th colspan="2">Proteins (all clades)</th>
                                 <th colspan="2">Unintegrated proteins</th>
                             </tr>
                             <tr class="center aligned">
@@ -317,7 +301,7 @@ function renderResults(task) {
                             </tr>
                         </thead>            
                         <tbody>
-                            ${genTableBody(null)}
+                            ${genTableBody()}
                         </tbody>        
                     </table>
                 </div>
@@ -367,12 +351,19 @@ function renderResults(task) {
             event.currentTarget.className = 'active item';
 
             const value = event.currentTarget.dataset.database;
-            const dbName = value !== null && value.length !== 0 ? value : null;
+            dbName = value !== null && value.length !== 0 ? value : null;
             const tbody = resultsElem.querySelector('tbody');
-            tbody.innerHTML = genTableBody(dbName);
+            tbody.innerHTML = genTableBody();
             initPopups(tbody);
         });
     }
+
+    // document.getElementById('only-worth').addEventListener('change', e => {
+    //     minIncr = e.currentTarget.checked ? 0.005 : 0;
+    //     const tbody = resultsElem.querySelector('tbody');
+    //     tbody.innerHTML = genTableBody();
+    //     initPopups(tbody);
+    // });
 }
 
 document.addEventListener('DOMContentLoaded', () => {

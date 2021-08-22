@@ -143,40 +143,32 @@ def _process_taxon(ora_url: str, pg_url: str, taxon_id: int, taxon_name: str,
                     },
                     "proteins": {
                         # Proteins from all clades
-                        "all_clades": {
-                            "all": num_cmpl_seqs,
-                            "reviewed": num_cmpl_rev_seqs
-                        },
+                        "total_all": num_cmpl_seqs,
+                        "total_reviewed": num_cmpl_rev_seqs,
 
                         # From this clade, regardless of integration
                         **dict(zip(("all", "reviewed"),
                                    protein_counts[signature_acc])),
 
                         # From this clade, not hit by any integrated signature
-                        "unintegrated": {
-                            "all": 0,
-                            "reviewed": 0
-                        }
+                        "unintegrated_all": 0,
+                        "unintegrated_reviewed": 0
                     }
                 }
             finally:
-                s["proteins"]["unintegrated"]["all"] += 1
+                s["proteins"]["unintegrated_all"] += 1
                 if is_reviewed:
-                    s["proteins"]["unintegrated"]["reviewed"] += 1
+                    s["proteins"]["unintegrated_reviewed"] += 1
 
     return {
         "id": taxon_id,
         "name": taxon_name,
         "lower_nodes": lower_nodes,
         "proteins": {
-            "all": {
-                "total": num_proteins,
-                "integrated": num_int_proteins
-            },
-            "reviewed": {
-                "total": len(reviewed),
-                "integrated": num_int_reviewed
-            }
+            "all": num_proteins,
+            "reviewed": len(reviewed),
+            "integrated_all": num_int_proteins,
+            "integrated_reviewed": num_int_reviewed,
         },
         "signatures": list(results.values())
     }
