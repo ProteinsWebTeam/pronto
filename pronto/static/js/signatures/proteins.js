@@ -292,6 +292,19 @@ document.addEventListener('DOMContentLoaded', () => {
         getProteins(accessions);
     });
 
+    checkbox = document.querySelector('input[type=checkbox][name=dom-orgs]');
+    checkbox.checked = url.searchParams.has('domainorganisation');
+    checkbox.addEventListener('change', e => {
+        const newURL = new URL(location.href);
+        if (e.currentTarget.checked)
+            newURL.searchParams.set('domainorganisation', '');
+        else
+            newURL.searchParams.delete('domainorganisation');
+
+        history.replaceState(null, document.title, newURL.toString());
+        getProteins(accessions);
+    });
+
     document.getElementById('copy-btn').addEventListener('click', e => {
         e.preventDefault();
         copyProteins();
