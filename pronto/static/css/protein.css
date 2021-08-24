@@ -27,10 +27,6 @@ svg text.length {
     margin-top: 0.25rem;
 }
 
-.ui.list > .hidden.item {
-    display: none;
-}
-
 .ui.horizontal.statistic > .label + .ui.tertiary.button {
     margin-left: 1rem !important;
 }

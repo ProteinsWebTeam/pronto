@@ -27,22 +27,28 @@
         </div>
     </div>
     <div class="ui vertical basic segment">
-        <div class="ui grid">
-            <div class="equal width row">
+        <div class="ui equal width grid">
+            <div class="row">
                 <div class="column">
                     <div class="ui form">
                         <div class="grouped fields">
                             <label>Options:</label>
                             <div class="field">
                                 <div class="ui checkbox">
-                                    <input type="checkbox" name="filter-matches">
-                                    <label>Show protein matches for observed signatures only</label>
+                                    <input type="checkbox" name="reviewed">
+                                    <label>Show only Swiss-Prot/reviewed proteins</label>
                                 </div>
                             </div>
                             <div class="field">
                                 <div class="ui checkbox">
                                     <input type="checkbox" name="dom-orgs">
                                     <label>Show domain organisations</label>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <div class="ui checkbox">
+                                    <input type="checkbox" name="filter-matches">
+                                    <label>Show protein matches for observed signatures only</label>
                                 </div>
                             </div>
                         </div>
@@ -55,41 +61,32 @@
             </div>
         </div>
 
-        <div class="ui list">
-            <div class="item">
-                <div class="content">
-                    <div class="header">Protein annotation</div>
-                    <div class="ui checkbox">
-                        <input type="checkbox" name="reviewed">
-                        <label>Show only Swiss-Prot/reviewed proteins</label>
-                    </div>
-                </div>
-            </div>
-            <div data-filter="comment" class="hidden item">
+        <div class="ui horizontal very relaxed list">
+            <div data-filter="comment" class="item">
                 <div class="content">
                     <div class="header">Similarity comment</div>
                     <div class="value"></div>
                 </div>
             </div>
-            <div data-filter="description" class="hidden item">
+            <div data-filter="description" class="item">
                 <div class="content">
                     <div class="header">Description</div>
                     <div class="value"></div>
                 </div>
             </div>
-            <div data-filter="go" class="hidden item">
+            <div data-filter="go" class="item">
                 <div class="content">
                     <div class="header">Go term</div>
                     <div class="value"></div>
                 </div>
             </div>
-            <div data-filter="taxon" class="hidden item">
+            <div data-filter="taxon" class="item">
                 <div class="content">
                     <div class="header">Taxon</div>
                     <div class="value"></div>
                 </div>
             </div>
-            <div data-filter="exclude" class="hidden item">
+            <div data-filter="exclude" class="item">
                 <div class="content">
                     <div class="header">Not found in any protein</div>
                     <div class="value"></div>
