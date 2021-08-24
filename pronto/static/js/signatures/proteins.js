@@ -92,42 +92,34 @@ function getProteins(signatureAccessions) {
 
             let filterElem;
             filterElem = document.querySelector('[data-filter="comment"]');
-            if (data.filters.comment) {
+            if (data.filters.comment)
                 filterElem.querySelector('.value').innerHTML = `${data.filters.comment}`;
-                setClass(filterElem, 'hidden', false);
-
-            } else
-                setClass(filterElem, 'hidden', true);
+            else
+                filterElem.querySelector('.value').innerHTML = 'N/A';
 
             filterElem = document.querySelector('[data-filter="description"]');
-            if (data.filters.description) {
+            if (data.filters.description)
                 filterElem.querySelector('.value').innerHTML = `${data.filters.description}`;
-                setClass(filterElem, 'hidden', false);
-
-            } else
-                setClass(filterElem, 'hidden', true);
+            else
+                filterElem.querySelector('.value').innerHTML = 'N/A';
 
             filterElem = document.querySelector('[data-filter="go"]');
-            if (data.filters.go) {
+            if (data.filters.go)
                 filterElem.querySelector('.value').innerHTML = `${data.filters.go}`;
-                setClass(filterElem, 'hidden', false);
-
-            } else
-                setClass(filterElem, 'hidden', true);
+            else
+                filterElem.querySelector('.value').innerHTML = 'N/A';
 
             filterElem = document.querySelector('[data-filter="exclude"]');
-            if (data.filters.exclude.length) {
+            if (data.filters.exclude.length)
                 filterElem.querySelector('.value').innerHTML = data.filters.exclude.map(acc => `<span class="ui small basic label">${acc}</span>`).join('');
-                setClass(filterElem, 'hidden', false);
-            } else
-                setClass(filterElem, 'hidden', true);
+            else
+                filterElem.querySelector('.value').innerHTML = 'N/A';
 
             filterElem = document.querySelector('[data-filter="taxon"]');
-            if (data.filters.taxon) {
+            if (data.filters.taxon)
                 filterElem.querySelector('.value').innerHTML = `<em>${data.filters.taxon}</em>`;
-                setClass(filterElem, 'hidden', false);
-            } else
-                setClass(filterElem, 'hidden', true);
+            else
+                filterElem.querySelector('.value').innerHTML = 'N/A';
 
             const promises = [];
             const extra = new Map();
