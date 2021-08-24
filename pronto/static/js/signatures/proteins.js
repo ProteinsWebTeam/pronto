@@ -129,8 +129,10 @@ async function getProteins(signatureAccessions) {
                 setClass(filterElem, 'hidden', true);
 
             const promises = [];
+            const extra = new Map();
             for (const protein of data.results) {
                 promises.push(fetchProtein(protein.accession, true));
+                extra.set(protein.accession, protein);
             }
 
             Promise.all(promises).then((proteins) => {
@@ -153,6 +155,11 @@ async function getProteins(signatureAccessions) {
 
                     let html = '';
                     for (const protein of proteins) {
+                        for (const [key, value] of Object.entries(extra.get(protein.accession))) {
+                            if (protein[key] === undefined)
+                                protein[key] = value;
+                        }
+
                         sessionStorage.setItem(protein.accession, JSON.stringify(protein));
                         html += renderProtein(protein, signatureAccessions, filterMatches, maxLength);
                     }
