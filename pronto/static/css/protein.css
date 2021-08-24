@@ -37,13 +37,14 @@ svg text.length {
 
 label.slider {
     display: block;
-    margin-top: 1rem;
+    /*margin-top: 1rem;*/
     color: rgba(0,0,0,.87);
     font-weight: bold;
 }
 
 .ui.slider:not(.vertical):not(.checkbox) {
-    margin: .25rem 0 1rem;
+    /*margin: .25rem 0 1rem;*/
+    margin: .25rem 0 0;
     width: 350px;
 }
 

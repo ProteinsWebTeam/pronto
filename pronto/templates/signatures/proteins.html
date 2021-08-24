@@ -27,13 +27,33 @@
         </div>
     </div>
     <div class="ui vertical basic segment">
-        <div class="ui checkbox">
-            <input type="checkbox" name="filter-matches">
-            <label>Only display protein matches for observed signatures</label>
+        <div class="ui grid">
+            <div class="equal width row">
+                <div class="column">
+                    <div class="ui form">
+                        <div class="grouped fields">
+                            <label>Options:</label>
+                            <div class="field">
+                                <div class="ui checkbox">
+                                    <input type="checkbox" name="filter-matches">
+                                    <label>Show protein matches for observed signatures only</label>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <div class="ui checkbox">
+                                    <input type="checkbox" name="dom-orgs">
+                                    <label>Show domain organisations</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="column">
+                    <label class="slider label">Minimum number of signatures</label>
+                    <div class="ui labeled slider"></div>
+                </div>
+            </div>
         </div>
-
-        <label class="slider label">Minimum number of signatures</label>
-        <div class="ui labeled slider"></div>
 
         <div class="ui list">
             <div class="item">
@@ -41,7 +61,7 @@
                     <div class="header">Protein annotation</div>
                     <div class="ui checkbox">
                         <input type="checkbox" name="reviewed">
-                        <label>Display Swiss-Prot/reviewed proteins only</label>
+                        <label>Show only Swiss-Prot/reviewed proteins</label>
                     </div>
                 </div>
             </div>
