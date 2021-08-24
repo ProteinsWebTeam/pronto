@@ -15,8 +15,9 @@ export function fetchProtein(proteinAccession, matches) {
 }
 
 export function genProtHeader(protein) {
-    return `${protein.name}
-            <div class="sub header">
+    let html = `
+        ${protein.name}
+        <div class="sub header">
             ${protein.accession} (${protein.identifier})
             &mdash;
             <a target="_blank" href="${genLink(protein.accession, protein.is_reviewed)}">${protein.is_reviewed ? 'reviewed' : 'unreviewed'}<i class="external icon"></i></a>
@@ -24,7 +25,24 @@ export function genProtHeader(protein) {
             Organism: <em>${protein.organism.name}</em>
             &mdash;
             Length: ${protein.length} AA
-            </div>`;
+    `;
+    if (protein.md5 !== undefined && protein.count !== undefined) {
+        const url = new URL(location.pathname, location.origin);
+        url.searchParams.set('md5', protein.md5);
+
+        const params = new URLSearchParams(location.search);
+        for (const [key, value] of params.entries()) {
+            if (key !== 'page' && key !== 'page_size' && key !== 'domainorganisation')
+                url.searchParams.set(key, value);
+        }
+
+        html += `
+            &mdash;
+            <a href="${url.toString()}">${protein.count.toLocaleString()} proteins</a> with this architecture 
+        `;
+    }
+
+    return html + '</div>';
 }
 
 export function renderMatches(proteinLength, signature, width, paddingLeft) {
