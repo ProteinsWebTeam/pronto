@@ -113,8 +113,8 @@ async function getProteins(accession, url, getMatches) {
     const object = await response.json();
 
     const promises = [];
-    for (const accession of object.results) {
-        promises.push(fetchProtein(accession, getMatches));
+    for (const protein of object.results) {
+        promises.push(fetchProtein(protein.accession, getMatches));
     }
 
     const proteins = await Promise.all(promises);
