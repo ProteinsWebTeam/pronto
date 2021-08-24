@@ -10,7 +10,8 @@ const svgWidth = 600;
 const svgPaddingLeft = 5;
 const svgPaddingRight = 30;
 const width = svgWidth - svgPaddingLeft - svgPaddingRight;
-const copyKey = 'proteinAccessions';
+const copyKey = 'allAccessions';
+const pageKey = 'accessions';
 
 
 function renderProtein(protein, signatures, filterMatches, maxLength) {
@@ -136,18 +137,7 @@ async function getProteins(signatureAccessions) {
             }
 
             Promise.all(promises).then((proteins) => {
-                proteins.sort((a, b) => a.accession.localeCompare(b.accession));
-
-                // Remove all stored data (except accessions for the 'copy' button)
-                const oldKeys = []
-                for (let i = 0; i < sessionStorage.length; i++) {
-                    const key = sessionStorage.key(i);
-                    if (key !== copyKey)
-                        oldKeys.push(key);
-                }
-                for (const key of oldKeys) {
-                    sessionStorage.removeItem(key);
-                }
+                sessionStorage.removeItem(pageKey);
 
                 if (proteins.length > 0) {
                     const maxLength = Math.max(...Array.from(proteins, p => p.length));
@@ -159,11 +149,9 @@ async function getProteins(signatureAccessions) {
                             if (protein[key] === undefined)
                                 protein[key] = value;
                         }
-
-                        sessionStorage.setItem(protein.accession, JSON.stringify(protein));
                         html += renderProtein(protein, signatureAccessions, filterMatches, maxLength);
                     }
-
+                    sessionStorage.setItem(pageKey, JSON.stringify(proteins));
                     elem.innerHTML = html;
                     postRendering();
                 } else
@@ -258,8 +246,6 @@ function downloadProteins() {
                             obj.organism.name
                         ]);
                     }
-                    // Sort protein by accession
-                    rows.sort((a, b) => a[0].localeCompare(b[0]));
                     for (const row of rows) {
                         content += row.join('\t') + '\n';
                     }
@@ -328,14 +314,7 @@ document.addEventListener('DOMContentLoaded', () => {
             newURL.searchParams.delete('filtermatches');
         history.replaceState(null, document.title, newURL.toString());
 
-        const proteins = [];
-        for (let i = 0; i < sessionStorage.length; i++) {
-            const key = sessionStorage.key(i);
-            if (key !== copyKey)
-                proteins.push(JSON.parse(sessionStorage.getItem(key)));
-        }
-        proteins.sort((a, b) => a.accession.localeCompare(b.accession));
-
+        const proteins = JSON.parse(sessionStorage.getItem(pageKey));
         const maxLength = Math.max(...Array.from(proteins, p => p.length));
         let html = '';
         for (const protein of proteins) {
