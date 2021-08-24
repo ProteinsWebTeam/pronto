@@ -68,7 +68,7 @@ function postRendering() {
     }
 }
 
-async function getProteins(signatureAccessions) {
+function getProteins(signatureAccessions) {
     dimmer.on();
 
     fetch(`/api${location.pathname+location.search}`)
