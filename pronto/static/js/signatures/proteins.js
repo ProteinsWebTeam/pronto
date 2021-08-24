@@ -130,7 +130,7 @@ async function getProteins(signatureAccessions) {
 
             const promises = [];
             for (const protein of data.results) {
-                promises.push(fetchProtein(protein, true));
+                promises.push(fetchProtein(protein.accession, true));
             }
 
             Promise.all(promises).then((proteins) => {
@@ -205,7 +205,7 @@ function copyProteins() {
     fetch(`/api${url.pathname}${url.search}`)
         .then(response => response.json())
         .then(object => {
-            const value = object.results.join(' ');
+            const value = object.results.map(x => x.accession).join(' ');
             sessionStorage.setItem(copyKey, value);
             copy2clipboard(value);
         });
@@ -236,8 +236,8 @@ function downloadProteins() {
                 let content = 'Accession\tIdentifier\tName\tLength\tSource\tOrganism\n';
                 for (let i = 0; i < object.results.length; i += 10) {
                     const promises = [];
-                    for (const accession of object.results.slice(i, i+10)) {
-                        promises.push(fetchProtein(accession, false));
+                    for (const protein of object.results.slice(i, i+10)) {
+                        promises.push(fetchProtein(protein.accession, false));
                     }
                     const rows = [];
                     for await (const obj of promises) {
