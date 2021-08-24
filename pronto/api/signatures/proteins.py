@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from flask import jsonify, request
 
 from pronto import utils
@@ -23,10 +21,12 @@ def get_proteins_alt(accessions):
         }), 400
 
     term_id = request.args.get("go")
+    dom_org_id = request.args.get("md5")
     name_id = request.args.get("name")
     taxon_id = request.args.get("taxon")
     reviewed_only = "reviewed" in request.args
     reviewed_first = "reviewedfirst" in request.args
+    group_by_dom_org = "domainorganisation" in request.args
 
     # dl_file = "file" in request.args
 
@@ -140,8 +140,8 @@ def get_proteins_alt(accessions):
                     }
                 }), 400
 
+        filters = [f"signature_acc IN ({','.join('%s' for _ in accessions)})"]
         params = list(accessions)
-        filters = []
 
         if reviewed_only:
             filters.append("is_reviewed")
@@ -150,19 +150,26 @@ def get_proteins_alt(accessions):
             filters.append("taxon_left_num BETWEEN %s AND %s")
             params += [left_num, right_num]
 
+        if dom_org_id is not None:
+            filters.append("md5 = %s")
+            params.append(dom_org_id)
+
         if name_id is not None:
             filters.append("name_id = %s")
             params.append(name_id)
 
         sql = f"""
-            SELECT protein_acc
+            SELECT protein_acc, is_reviewed, md5
             FROM (
-                SELECT DISTINCT protein_acc, is_reviewed
+                SELECT DISTINCT protein_acc, is_reviewed, md5
                 FROM (
-                    SELECT protein_acc, is_reviewed, COUNT(*) OVER (PARTITION BY protein_acc) cnt
+                    SELECT
+                        protein_acc, 
+                        is_reviewed, 
+                        md5, 
+                        COUNT(*) OVER (PARTITION BY protein_acc) cnt
                     FROM interpro.signature2protein
-                    WHERE signature_acc IN ({','.join("%s" for _ in accessions)})
-                    {' AND ' + ' AND '.join(filters) if filters else ''}
+                    WHERE {' AND '.join(filters)}
                 ) a
                 WHERE cnt >= %s   
             ) sp
@@ -215,12 +222,46 @@ def get_proteins_alt(accessions):
             sql += f"WHERE {' AND '.join(filters)} "
 
         if reviewed_first:
-            sql += "ORDER BY CASE WHEN is_reviewed THEN 1 ELSE 2 END, protein_acc"
+            sql += """
+                ORDER BY 
+                    CASE WHEN is_reviewed THEN 1 ELSE 2 END, 
+                    protein_acc
+            """
         else:
             sql += "ORDER BY protein_acc"
 
         cur.execute(sql, params)
-        proteins = [acc for acc, in cur]
+        results = cur.fetchall()
+        proteins = []
+        if group_by_dom_org:
+            domains = {}
+            domain_order = []
+
+            for protein_acc, _, md5 in results:
+                try:
+                    domains[md5].append(protein_acc)
+                except KeyError:
+                    domains[md5] = [protein_acc]
+                    domain_order.append(md5)
+
+            for md5 in domain_order:
+                domain_proteins = domains[md5]
+                proteins.append({
+                    "accession": domain_proteins[0],
+                    "count": len(domain_proteins),
+                    "md5": md5
+                })
+
+            proteins.sort(key=lambda x: -x["count"])
+        else:
+            if reviewed_first:
+                results.sort(key=lambda x: (0 if x[1] else 1, x[0]))
+            else:
+                results.sort(key=lambda x: x[0])
+
+            for protein_acc, _, _ in results:
+                proteins.append({"accession": protein_acc})
+
         cnt_proteins = len(proteins)
 
         if page_size > 0 and page > 0:
@@ -259,6 +300,7 @@ def get_proteins_alt(accessions):
             "description": name_value,
             "exclude": list(exclude),
             "go": f"{term_id}: {term_name}" if term_name else None,
+            "md5": dom_org_id,
             "reviewed": reviewed_only,
             "taxon": taxon_name,
         },
