@@ -24,7 +24,6 @@ def get_signature(accession):
           s.num_sequences,
           s.num_complete_sequences,
           s.num_reviewed_sequences,
-          s.num_reviewed_matches,
           d.name,
           d.name_long,
           d.version
@@ -41,7 +40,7 @@ def get_signature(accession):
     if not row:
         return jsonify(), 404
 
-    db = utils.get_database_obj(row[9])
+    db = utils.get_database_obj(row[8])
     result = {
         "accession": row[0],
         "name": row[1],
@@ -53,13 +52,12 @@ def get_signature(accession):
             "complete": row[6],
             "reviewed": row[7]
         },
-        "matches": row[8],
         "database": {
-            "name": row[10],
+            "name": row[9],
             "home": db.home,
             "link": db.gen_link(accession),
             "color": db.color,
-            "version": row[11]
+            "version": row[10]
         },
         "entry": None
     }
