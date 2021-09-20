@@ -70,41 +70,77 @@ async function getInterPro2GoStats() {
     // Descending order
     const results = data.results.sort((a, b) => b.terms - a.terms);
 
-    // Map insertion from highest number to lowest
-    const counts = new Map();
+    // Only one category for entries having five GO terms or more
+    const getKey = (obj) => obj.terms < 5 ? obj.terms.toString() : '5+';
+
+    // Find categories
+    const categories = [...new Set(results.map(getKey))];
+
+    const series = new Map();
     let total = 0;
     for (const obj of results) {
-        let key = obj.terms < 5 ? obj.terms.toString() : '5+';
-        const val = obj.entries;
+        const category = getKey(obj);
 
-        total += obj.terms * val;
-        if (counts.has(key))
-            counts.set(key, counts.get(key) + val);
-        else
-            counts.set(key, val);
+        for (const entryType of obj.types) {
+            const key = entryType.name;
+            const val = entryType.count;
+            total += val;
+
+            if (! series.has(key))
+                // Init array with zeros
+                series.set(key, new Array(categories.length).fill(0));
+
+            // Incr count
+            const i = categories.indexOf(category);
+            series.get(key)[i] += val;
+        }
     }
 
+    const colors = new Map([
+        ['Repeat', '#f2711c'],
+        ['Homologous_superfamily', '#1678c2'],
+        ['Domain', '#21ba45'],
+        ['Family', '#db2828'],
+    ]);
+    const defaultColor = '#a333c8';
+
     Highcharts.chart(document.getElementById('chart-interpro2go'), {
-        chart: { type: 'bar', height: 250 },
+        chart: {
+            type: 'bar',
+            height: 250,
+            events: {
+                load: function() {
+                    this.setSize(null, this.chartHeight + this.legend.legendHeight + this.legend.padding);
+                }
+            }
+        },
         title: { text: null },
         subtitle: { text: null },
         credits: { enabled: false },
-        legend: { enabled: false },
+        // legend: { enabled: false },
         xAxis: {
             type: 'category',
             title: { text: 'GO terms' },
+            categories: categories
         },
         yAxis: {
             // type: 'logarithmic',
             title: { text: 'Entries' },
         },
-        series: [{
-            data: [...counts.entries()],
-            color: '#2c3e50'
-        }],
+        plotOptions: {
+            series: {
+                stacking: 'normal'
+            }
+        },
+        series: [...series.entries()].map(([key, value]) => ({
+            name: key.replace('_', ' '),
+            color: colors.has(key) ? colors.get(key) : defaultColor,
+            data: value
+        }))
+            .sort((a, b) => a.name.localeCompare(b.name)),
         tooltip: {
-            headerFormat: '<span style="font-size: 10px;">{point.key} GO terms</span><br/>',
-            pointFormat: '<b>{point.y}</b> entries'
+            headerFormat: '<span style="font-size: 10px;">{point.key} GO term(s)</span><br/>',
+            pointFormat: '{series.name}: <b>{point.y}</b> entries'
         },
     });
 
