@@ -100,42 +100,60 @@ def get_go_count():
     # Checked entries with at least one GO term
     cur.execute(
         """
-        SELECT IG.N_TERMS, COUNT(*)
+        SELECT N_TERMS, ABBREV, COUNT(*)
         FROM (
-            SELECT E.ENTRY_AC, COUNT(*) N_TERMS
+            SELECT E.ENTRY_AC, MIN(ET.ABBREV) ABBREV, COUNT(*) N_TERMS
             FROM INTERPRO.INTERPRO2GO G
             INNER JOIN INTERPRO.ENTRY E ON G.ENTRY_AC = E.ENTRY_AC
+            INNER JOIN INTERPRO.CV_ENTRY_TYPE ET ON E.ENTRY_TYPE = ET.CODE
             WHERE E.CHECKED = 'Y'
             GROUP BY E.ENTRY_AC
         ) IG
-        GROUP BY N_TERMS
+        GROUP BY N_TERMS, ABBREV
         """
     )
-    counts = dict(cur.fetchall())
+    counts = {}
+    for n_terms, e_type, cnt in cur:
+        try:
+            counts[n_terms][e_type] = cnt
+        except KeyError:
+            counts[n_terms] = {e_type: cnt}
 
     # Checked entries without GO terms
     cur.execute(
         """
-        SELECT COUNT(*)
-        FROM (
-            SELECT ENTRY_AC
-            FROM INTERPRO.ENTRY
-            WHERE CHECKED = 'Y'
-            MINUS 
+        SELECT ET.ABBREV, COUNT(*)
+        FROM INTERPRO.ENTRY E
+        INNER JOIN INTERPRO.CV_ENTRY_TYPE ET ON E.ENTRY_TYPE = ET.CODE
+        WHERE E.ENTRY_AC NOT IN (
             SELECT DISTINCT ENTRY_AC
             FROM INTERPRO.INTERPRO2GO
-        )        
+        )
+        AND E.CHECKED = 'Y'      
+        GROUP BY ET.ABBREV 
         """
     )
-    counts[0], = cur.fetchone()
+    counts[0] = dict(cur.fetchall())
     cur.close()
     con.close()
 
-    return jsonify({
-        "results": [{
+    results = []
+    for n_terms in counts:
+        types = []
+
+        for e_type, cnt in sorted(counts[n_terms].items()):
+            types.append({
+                "name": e_type,
+                "count": cnt
+            })
+
+        results.append({
             "terms": n_terms,
-            "entries": counts[n_terms]
-        } for n_terms in sorted(counts)]
+            "types": types
+        })
+
+    return jsonify({
+        "results": results
     })
 
 
