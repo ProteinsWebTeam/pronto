@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, make_response, request
 
 from pronto import utils
 
@@ -160,3 +160,39 @@ def get_protein(protein_acc):
     protein["signatures"] = sorted(matches.values(),
                                    key=lambda x: x["accession"])
     return jsonify(protein)
+
+
+@bp.route("/<protein_acc>/sequence/")
+def get_sequence(protein_acc):
+    con = utils.connect_oracle()
+    cur = con.cursor()
+    cur.execute(
+        """
+        SELECT P.SEQ_SHORT, P.SEQ_LONG
+        FROM UNIPARC.PROTEIN P
+        INNER JOIN UNIPARC.XREF X ON P.UPI = X.UPI
+        WHERE X.AC = :1 
+        AND X.DBID IN (2, 3) 
+        AND X.DELETED = 'N'
+        """, (protein_acc,)
+    )
+    row = cur.fetchone()
+
+    if not row:
+        cur.close()
+        con.close()
+        return jsonify({}), 404
+
+    varchar, clob = row
+    sequence = varchar or clob.read()
+    cur.close()
+    con.close()
+
+    fasta = f">{protein_acc}\n"
+    for i in range(0, len(sequence), 60):
+        fasta += sequence[i:i+60] + "\n"
+
+    response = make_response(fasta, 200)
+    response.mimetype = 'text/plain'
+
+    return response
