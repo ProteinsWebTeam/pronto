@@ -1,6 +1,7 @@
 import {updateHeader} from "../ui/header.js";
 import * as dimmer from "../ui/dimmer.js";
 import {createDisabled} from "../ui/checkbox.js";
+import {initSignaturePopups} from "../ui/comments.js";
 import {render} from "../ui/pagination.js";
 
 function renderEntry(entry) {
@@ -16,6 +17,17 @@ function renderEntry(entry) {
     `;
 }
 
+function renderCommentLabel(obj) {
+    if (obj.comments > 0) {
+        return `
+        <a class="ui small basic label" data-accession="${obj.accession}">
+            <i class="comments icon"></i>${obj.comments}
+        </a>
+    `;
+    } else
+        return '';
+}
+
 async function refresh() {
     dimmer.on();
     const response = await fetch(`/api/signatures/recommendations/${location.search}`);
@@ -23,35 +35,29 @@ async function refresh() {
     let html = `
         <table class="ui small celled very compact table">
         <thead>
-            <tr><th colspan="5"><div class="ui secondary menu"><span class="item"></span></div></th></tr>
+            <tr><th colspan="6"><div class="ui secondary menu"><span class="item"></span></div></th></tr>
             <tr>
-            <th class="center aligned">Signature #1</th>
-            <th colspan="2" class="center aligned">Entry</th>
-            <th class="center aligned">Signature #2</th>
-            <th class="center aligned">Similarity</th>
+                <th colspan="2" class="center aligned">Query</th>
+                <th class="center aligned">Target</th>
+                <th colspan="2" class="center aligned">Entry</th>
+                <th class="center aligned">Similarity</th>
             </tr>
         </thead>
         <tbody>
     `;
     for (const obj of data.results) {
-        if (obj.query.entry === null && obj.target.entry !== null) {
-            // Ensure only query is integrated
-            const tmp = obj.query;
-            obj.query = obj.target;
-            obj.target = tmp;
-        }
-
         html += `
             <tr>
             <td>
                 <span class="ui empty circular label" style="background-color: ${obj.query.database.color};" data-content="${obj.query.database.name}" data-position="left center" data-variation="tiny"></span>
                 <a href="/signature/${obj.query.accession}/">${obj.query.accession}</a>
             </td>
-            ${renderEntry(obj.query.entry)}
+            <td class="collapsing">${renderCommentLabel(obj.query)}</td>
             <td>
                 <span class="ui empty circular label" style="background-color: ${obj.target.database.color};" data-content="${obj.target.database.name}" data-position="left center" data-variation="tiny"></span>
                 <a href="/signature/${obj.target.accession}/">${obj.target.accession}</a>
             </td>
+            ${renderEntry(obj.target.entry)}
             <td class="right aligned">${obj.similarity.toFixed(4)}</td>
             </tr>
         `;
@@ -60,7 +66,7 @@ async function refresh() {
     html += `
         </tbody>
         <tfoot>
-        <tr><th colspan="7"><div class="ui right floated pagination menu"></div></th></tr>
+        <tr><th colspan="6"><div class="ui right floated pagination menu"></div></th></tr>
         </tfoot>
     `;
 
@@ -69,6 +75,9 @@ async function refresh() {
 
     // Tooltips
     $('[data-content]').popup();
+
+    // Comment pop-ups
+    initSignaturePopups(elem, 'right center');
 
     render(
         elem.querySelector('table'),
@@ -100,14 +109,6 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="header">Checkboxes are read-only</div>
             <p>To check or uncheck an entry, please visit the entry page.</p>
         </div>
-        <div class="ui toggle checkbox">
-          <input type="checkbox" name="nopanthersf">
-          <label>Ignore PANTHER subfamilies</label>
-        </div>    
-        <div class="ui toggle checkbox">
-          <input type="checkbox" name="nocommented">
-          <label>Ignore commented candidates</label>
-        </div>    
     `;
 
     $(params.querySelectorAll('.message .close'))
