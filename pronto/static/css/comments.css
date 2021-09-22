@@ -48,3 +48,8 @@
 .ui.comments .reply.form textarea[rows] {
     height: inherit;
 }
+
+/* Pop-up */
+.ui.custom.popup {
+    max-width: 400px;
+}
