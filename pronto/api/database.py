@@ -26,7 +26,7 @@ def get_latest_freeze(cur):
             SELECT TIMESTAMP, ROWNUM AS RN
             FROM (
                 SELECT TIMESTAMP
-                FROM DB_VERSION_AUDIT
+                FROM INTERPRO.DB_VERSION_AUDIT
                 WHERE DBCODE = 'I'
                 ORDER BY TIMESTAMP DESC
             )
