@@ -14,10 +14,17 @@ Pronto is a web application aiming to assist InterPro curators in creating/editi
 
 ### Installation
 
+Deploy the code locally:
+
 ```bash
 git clone https://github.com/ProteinsWebTeam/pronto.git
 cd pronto
-pip install -r requirements.txt
+pip install -r requirements.txt 
+```
+
+When deploying the code for production, also run:
+
+```bash
 python setup.py install
 ```
 
@@ -53,10 +60,11 @@ export PRONTO_CONFIG=/path/to/config.cfg
 
 ### Built-in server
 
-*Easy to use and convenient for development, but not suitable for production.*
+Easy to use and convenient for development, but **not suitable for production**.
 
 ```bash
 export FLASK_APP=pronto
+export FLASK_ENV=development
 flask run
 ```
 
