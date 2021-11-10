@@ -1,8 +1,10 @@
-import {updateHeader} from '../ui/header.js'
+import { updateHeader } from '../ui/header.js'
 import * as checkbox from '../ui/checkbox.js'
+import * as comments from '../ui/comments.js';
 import * as dimmer from '../ui/dimmer.js'
+import * as modals from '../ui/modals.js'
 import * as pagination from '../ui/pagination.js'
-import {renderConfidence} from "../ui/signatures.js";
+import { renderConfidence } from "../ui/signatures.js";
 
 
 function renderEntry(entry) {
@@ -12,9 +14,11 @@ function renderEntry(entry) {
     return `
         <td class="nowrap">
             <span class="ui circular mini label type ${entry.type}">${entry.type}</span>
-            <a href="/entry/${entry.accession}/">${entry.accession} (${entry.name})</a>
+            <a href="/entry/${entry.accession}/">${entry.accession}</a> 
+    
         </td>
         <td class="collapsing">${checkbox.createDisabled(entry.checked)}</td>`;
+    // <a>(${entry.name})</a>
 }
 
 function getSignatures() {
@@ -35,12 +39,28 @@ function getSignatures() {
                 document.querySelector(`input[name="${key}"][value="${value ? value : ''}"]`).checked = true;
             }
 
+            const renderCommentText = (text) => {
+                if (text.length < 30)
+                    return text;
+                return text.substr(0, 30) + '&hellip;';
+            };
+
             let html = '';
             if (object.count > 0) {
                 for (const signature of object.results) {
-                    html += `<tr>
+                    html += `<tr data-id="${signature.accession}">
                          <td rowspan="${signature.targets.length}"><a href="/signature/${signature.accession}/">${signature.accession}</a></td>
-                         <td rowspan="${signature.targets.length}" class="right aligned">${signature.proteins.toLocaleString()}</td>`;
+                         <td rowspan="${signature.targets.length}" class="right aligned">${signature.proteins.toLocaleString()}</td>
+                         <td rowspan="${signature.targets.length}" class="ui comments"><div class="comment"><div class="content">`;
+                    if (signature.latest_comment) {
+                        html += `
+                                <div class="text"><a class="author">${signature.latest_comment.author}</a></div>
+                                <div class="metadata"><span class="date">${signature.latest_comment.date}</span></div>
+                                <div class="text">${renderCommentText(signature.latest_comment.text)}</div>
+                            `;
+                    }
+                    html += '<div class="actions"><a class="reply">Leave a comment</a></div></div></div></td>';
+
 
                     for (let i = 0; i < signature.targets.length; ++i) {
                         const target = signature.targets[i];
@@ -77,10 +97,18 @@ function getSignatures() {
                 object.page_info.page,
                 object.page_info.page_size,
                 object.count,
-                (url,) => {
+                (url, ) => {
                     history.replaceState(null, document.title, url);
                     getSignatures();
                 });
+
+            for (const elem of document.querySelectorAll('.comment .reply')) {
+                elem.addEventListener('click', e => {
+                    const accession = e.target.closest('tr').getAttribute('data-id');
+                    const div = document.querySelector('.ui.sticky .ui.comments');
+                    comments.getSignatureComments(accession, 2, div);
+                });
+            }
 
             // Tooltips
             $('[data-content]').popup();
@@ -100,7 +128,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
     for (const input of document.querySelectorAll('input[type="radio"]')) {
-        input.addEventListener('change', (e,) => {
+        input.addEventListener('change', (e, ) => {
             const key = e.currentTarget.name;
             const value = e.currentTarget.value;
             const url = new URL(location.href);
@@ -114,4 +142,20 @@ document.addEventListener('DOMContentLoaded', () => {
             getSignatures();
         });
     }
+
+    document.querySelector('.ui.comments form button').addEventListener('click', e => {
+        e.preventDefault();
+        const form = e.target.closest('form');
+        const accession = form.getAttribute('data-id');
+        const textarea = form.querySelector('textarea');
+
+        comments.postSignatureComment(accession, textarea.value.trim())
+            .then(object => {
+                if (object.status) {
+                    comments.getSignatureComments(accession, 2, e.target.closest(".ui.comments"));
+                    getSignatures();
+                } else
+                    modals.error(object.error.title, object.error.message);
+            });
+    });
 });
