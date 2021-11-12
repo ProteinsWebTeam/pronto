@@ -31,18 +31,12 @@ def get_counts():
 
     results = []
     for year, total, checked in cur:
-        results.append({
-            "year": year,
-            "total": total,
-            "checked": checked
-        })
+        results.append({"year": year, "total": total, "checked": checked})
 
     cur.close()
     con.close()
 
-    return jsonify({
-        "results": results
-    }), 200
+    return jsonify({"results": results}), 200
 
 
 @bp.route("/counts/citations/")
@@ -80,16 +74,18 @@ def get_citations_count():
         )        
         """
     )
-    counts[0], = cur.fetchone()
+    (counts[0],) = cur.fetchone()
     cur.close()
     con.close()
 
-    return jsonify({
-        "results": [{
-            "citations": n_citations,
-            "entries": counts[n_citations]
-        } for n_citations in sorted(counts)]
-    })
+    return jsonify(
+        {
+            "results": [
+                {"citations": n_citations, "entries": counts[n_citations]}
+                for n_citations in sorted(counts)
+            ]
+        }
+    )
 
 
 @bp.route("/counts/go/")
@@ -142,19 +138,11 @@ def get_go_count():
         types = []
 
         for e_type, cnt in sorted(counts[n_terms].items()):
-            types.append({
-                "name": e_type,
-                "count": cnt
-            })
+            types.append({"name": e_type, "count": cnt})
 
-        results.append({
-            "terms": n_terms,
-            "types": types
-        })
+        results.append({"terms": n_terms, "types": types})
 
-    return jsonify({
-        "results": results
-    })
+    return jsonify({"results": results})
 
 
 @bp.route("/counts/signatures/")
@@ -194,11 +182,7 @@ def get_signature_count():
         try:
             actions = weeks[iso_cal]
         except KeyError:
-            actions = weeks[iso_cal] = {
-                "live": set(),
-                "integrated": set(),
-                "unintegrated": set()
-            }
+            actions = weeks[iso_cal] = {"live": set(), "integrated": set(), "unintegrated": set()}
 
         if action == "L":
             actions["live"].add(acc)
@@ -217,26 +201,24 @@ def get_signature_count():
         ts = dt.timestamp()
 
         actions = weeks[iso_cal]
-        results.append({
-            "timestamp": ts,
-            "number": int(iso_cal[4:6]),  # week number
-            "counts": {
-                "integrated": {
-                    "all": len(actions["integrated"]),
-                    "checked": len(actions["integrated"] & actions["live"])
+        results.append(
+            {
+                "timestamp": ts,
+                "number": int(iso_cal[4:6]),  # week number
+                "counts": {
+                    "integrated": {
+                        "all": len(actions["integrated"]),
+                        "checked": len(actions["integrated"] & actions["live"]),
+                    },
+                    "unintegrated": {
+                        "all": len(actions["unintegrated"]),
+                        "checked": len(actions["unintegrated"] & actions["live"]),
+                    },
                 },
-                "unintegrated": {
-                    "all": len(actions["unintegrated"]),
-                    "checked": len(actions["unintegrated"] & actions["live"])
-                }
             }
-        })
+        )
 
-    return jsonify({
-        "total": total,
-        "checked": checked,
-        "results": results
-    })
+    return jsonify({"total": total, "checked": checked, "results": results})
 
 
 @bp.route("/news/")
@@ -285,35 +267,29 @@ def get_recent_entries():
         ) MC ON E.ENTRY_AC = MC.ENTRY_AC
         WHERE A.TIMESTAMP >= :1
         ORDER BY A.TIMESTAMP DESC
-        """, (date,)
+        """,
+        (date,),
     )
     entries = []
     for row in cur:
         db_user = row[4]
         user_name = row[5]
 
-        entries.append({
-            "accession": row[0],
-            "type": row[1],
-            "short_name": row[2],
-            "date": row[3].strftime("%d %b %Y"),
-            "user": {
-                "name": user_name,
-                "by_me": user and user["dbuser"] == db_user
-            },
-            "checked": row[6] == 'Y',
-            "comments": {
-                "entry": row[7],
-                "signatures": row[8]
+        entries.append(
+            {
+                "accession": row[0],
+                "type": row[1],
+                "short_name": row[2],
+                "date": row[3].strftime("%d %b %Y"),
+                "user": {"name": user_name, "by_me": user and user["dbuser"] == db_user},
+                "checked": row[6] == "Y",
+                "comments": {"entry": row[7], "signatures": row[8]},
             }
-        })
+        )
     cur.close()
     con.close()
 
-    return jsonify({
-        "date": date.strftime("%d %B"),
-        "results": entries
-    })
+    return jsonify({"date": date.strftime("%d %B"), "results": entries})
 
 
 @bp.route("/news/go/")
@@ -328,11 +304,7 @@ def get_recent_go_terms():
     )
     terms = {}
     for term_id, name, category in cur:
-        terms[term_id] = {
-            "id": term_id,
-            "name": name,
-            "category": category
-        }
+        terms[term_id] = {"id": term_id, "name": name, "category": category}
     cur.close()
     con.close()
 
@@ -363,28 +335,24 @@ def get_recent_go_terms():
         WHERE A.RN = 1
         AND A.ACTION = 'I'
         ORDER BY A.TIMESTAMP DESC
-        """, (date,)
+        """,
+        (date,),
     )
 
     interpro2go = []
     for row in cur:
-        interpro2go.append({
-            "entry": {
-                "accession": row[0],
-                "short_name": row[1],
-                "type": row[2]
-            },
-            "term": terms[row[3]],
-            "date": row[4].strftime("%d %b %Y"),
-            "user": row[5]
-        })
+        interpro2go.append(
+            {
+                "entry": {"accession": row[0], "short_name": row[1], "type": row[2]},
+                "term": terms[row[3]],
+                "date": row[4].strftime("%d %b %Y"),
+                "user": row[5],
+            }
+        )
     cur.close()
     con.close()
 
-    return jsonify({
-        "date": date.strftime("%d %B"),
-        "results": interpro2go
-    })
+    return jsonify({"date": date.strftime("%d %B"), "results": interpro2go})
 
 
 @bp.route("/unchecked/")
@@ -402,12 +370,10 @@ def get_unchecked_entries():
             WHERE CHECKED = 'N'
             """
         )
-        cnt, = cur.fetchone()
+        (cnt,) = cur.fetchone()
         cur.close()
         con.close()
-        return {
-            "results": cnt
-        }, 200
+        return {"results": cnt}, 200
 
     # Get databases per entry
     cur.execute(
@@ -432,13 +398,15 @@ def get_unchecked_entries():
 
     cur.execute(
         f"""
-        SELECT
-          E.ENTRY_AC, E.ENTRY_TYPE, E.SHORT_NAME, 
+        SELECT E.ENTRY_AC, E.ENTRY_TYPE, E.SHORT_NAME, 
           NVL(FAE.TIMESTAMP, E.TIMESTAMP) AS CREATED_TIME,
           NVL(LAE.TIMESTAMP, E.TIMESTAMP) AS UPDATED_TIME, 
           NVL(U.NAME, E.USERSTAMP), 
           NVL(EC.CNT, 0) AS NUM_ECOMMENTS,
-          NVL(MC.CNT, 0) AS NUM_MCOMMENTS
+          NVL(MC.CNT, 0) AS NUM_MCOMMENTS,
+          M2CT.METHOD_AC, 
+          M2CT.CREATED_ON AS SIGN_DATE,
+          EC.CREATED_ON AS ENT_DATE
         FROM INTERPRO.ENTRY E
         LEFT OUTER JOIN (
           -- First audit event
@@ -474,30 +442,50 @@ def get_unchecked_entries():
             WHERE MC.STATUS = 'Y'
             GROUP BY EM.ENTRY_AC
         ) MC ON E.ENTRY_AC = MC.ENTRY_AC
+        LEFT OUTER JOIN (
+          SELECT EM2.ENTRY_AC, MC2.METHOD_AC, MC2.CREATED_ON
+          FROM INTERPRO.ENTRY2METHOD EM2
+            INNER JOIN INTERPRO.METHOD_COMMENT MC2
+                ON EM2.METHOD_AC = MC2.METHOD_AC
+            AND (EM2.ENTRY_AC, MC2.CREATED_ON) IN
+              (SELECT E2M.ENTRY_AC, MAX(M2C.CREATED_ON)
+                  FROM INTERPRO.ENTRY2METHOD E2M
+                  JOIN INTERPRO.METHOD_COMMENT M2C ON E2M.METHOD_AC = M2C.METHOD_AC
+                  WHERE M2C.STATUS='Y'
+                  GROUP BY E2M.ENTRY_AC)
+        ) M2CT ON M2CT.ENTRY_AC=E.ENTRY_AC
+        LEFT OUTER JOIN(
+          SELECT ENTRY_AC, MAX(CREATED_ON) AS CREATED_ON
+          FROM INTERPRO.ENTRY_COMMENT
+          WHERE STATUS='Y'
+          GROUP BY ENTRY_AC) EC ON EC.ENTRY_AC=E.ENTRY_AC
         WHERE E.CHECKED = 'N'
         ORDER BY UPDATED_TIME DESC
         """
     )
     entries = []
     for row in cur:
-        entries.append({
-            "accession": row[0],
-            "type": row[1],
-            "short_name": row[2],
-            "created_date": row[3].strftime("%d %b %Y"),
-            "update_date": row[4].strftime("%d %b %Y"),
-            "user": row[5],
-            "comments": {
-                "entry": row[6],
-                "signatures": row[7],
-            },
-            "databases": entries2db.get(row[0], [])
-        })
+        entries.append(
+            {
+                "accession": row[0],
+                "type": row[1],
+                "short_name": row[2],
+                "created_date": row[3].strftime("%d %b %Y"),
+                "update_date": row[4].strftime("%d %b %Y"),
+                "user": row[5],
+                "comments": {
+                    "entry": row[6],
+                    "signatures": row[7],
+                    "com_sign": row[8],
+                    "com_sign_date": row[9].strftime("%d %b %Y") if row[9] else "",
+                    "com_ent_date": row[10].strftime("%d %b %Y") if row[10] else "",
+                },
+                "databases": entries2db.get(row[0], []),
+            }
+        )
     cur.close()
     con.close()
-    return {
-        "results": entries
-    }
+    return {"results": entries}
 
 
 def _get_quarterly_entries(cur, date):
@@ -507,7 +495,8 @@ def _get_quarterly_entries(cur, date):
         FROM INTERPRO.ENTRY_AUDIT
         WHERE TIMESTAMP >= :1
         AND ACTION IN ('I', 'D')
-        """, (date,)
+        """,
+        (date,),
     )
 
     quarters = {}
@@ -518,7 +507,7 @@ def _get_quarterly_entries(cur, date):
         except KeyError:
             entries = quarters[key] = set()
 
-        if action == 'I':
+        if action == "I":
             entries.add(entry_acc)
         else:
             try:
@@ -539,7 +528,8 @@ def _get_quarterly_signatures(cur, date):
         FROM INTERPRO.ENTRY2METHOD_AUDIT
         WHERE TIMESTAMP >= :1 
         AND ACTION IN ('I', 'D')
-        """, (date,)
+        """,
+        (date,),
     )
 
     quarters = {}
@@ -550,7 +540,7 @@ def _get_quarterly_signatures(cur, date):
         except KeyError:
             entries = quarters[key] = {}
 
-        i = 1 if action == 'I' else -1
+        i = 1 if action == "I" else -1
         try:
             entries[acc] += i
         except KeyError:
@@ -569,7 +559,8 @@ def _get_quarterly_go(cur, date):
         FROM INTERPRO.INTERPRO2GO_AUDIT A
         WHERE TIMESTAMP >= :1
         AND ACTION IN ('I', 'D')
-        """, (date,)
+        """,
+        (date,),
     )
 
     quarters = {}
@@ -580,7 +571,7 @@ def _get_quarterly_go(cur, date):
         except KeyError:
             entries = quarters[key] = {}
 
-        i = 1 if action == 'I' else -1
+        i = 1 if action == "I" else -1
         try:
             entries[entry2go] += i
         except KeyError:
@@ -608,11 +599,13 @@ def get_quarterly_stats():
 
     quarters = []
     for key in sorted(keys):
-        quarters.append({
-            "quarter": key,
-            "entries": entries.get(key, 0),
-            "signatures": signatures.get(key, 0),
-            "terms": terms.get(key, 0)
-        })
+        quarters.append(
+            {
+                "quarter": key,
+                "entries": entries.get(key, 0),
+                "signatures": signatures.get(key, 0),
+                "terms": terms.get(key, 0),
+            }
+        )
 
     return jsonify(quarters)
