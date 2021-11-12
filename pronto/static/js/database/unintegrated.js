@@ -52,9 +52,9 @@ function getSignatures() {
                          <td rowspan="${signature.targets.length}"><a href="/signature/${signature.accession}/">${signature.accession}</a></td>
                          <td rowspan="${signature.targets.length}" class="right aligned">${signature.proteins.toLocaleString()}</td>
                          <td rowspan="${signature.targets.length}" class="ui comments"><div class="comment"><div class="content">`;
-                    if (signature.latest_comment) {
+                    if (signature.comments > 0) {
                         html += `
-                                <div class="text"><a class="author">${signature.latest_comment.author}</a></div>
+                                <a class="author">${signature.latest_comment.author}</a>
                                 <div class="metadata"><span class="date">${signature.latest_comment.date}</span></div>
                                 <div class="text">${renderCommentText(signature.latest_comment.text)}</div>
                             `;

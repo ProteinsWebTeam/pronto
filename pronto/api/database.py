@@ -318,50 +318,34 @@ def get_unintegrated_signatures(db_name):
 
     con = utils.connect_oracle()
     cur = con.cursor()
+
     cur.execute(
         """
-        SELECT M.METHOD_AC, COUNT(*)
-        FROM INTERPRO.METHOD_COMMENT MC
-        INNER JOIN INTERPRO.METHOD M ON MC.METHOD_AC = M.METHOD_AC
-        WHERE M.DBCODE = (
-            SELECT DBCODE
-            FROM INTERPRO.CV_DATABASE
-            WHERE DBSHORT = :1
-        )
-        AND MC.STATUS = 'Y'
-        GROUP BY M.METHOD_AC
-        """,
-        (db_name.upper(),),
-    )
-    num_comments = dict(cur.fetchall())
-    cur.execute(
+        SELECT 
+            C.METHOD_AC, 
+            C.VALUE, 
+            P.NAME, 
+            C.CREATED_ON, 
+            ROW_NUMBER() OVER ( 
+            PARTITION BY METHOD_AC  
+            ORDER BY C.CREATED_ON DESC 
+            ) R 
+            FROM INTERPRO.METHOD_COMMENT C 
+            INNER JOIN INTERPRO.PRONTO_USER P  
+            ON C.USERNAME = P.USERNAME 
+            WHERE C.STATUS='Y' 
         """
-        SELECT M.METHOD_AC, MC.VALUE, MC.CREATED_ON, P.NAME
-        FROM INTERPRO.METHOD_COMMENT MC
-        INNER JOIN INTERPRO.METHOD M ON MC.METHOD_AC = M.METHOD_AC
-        INNER JOIN INTERPRO.PRONTO_USER P 
-              ON MC.USERNAME = P.USERNAME
-        WHERE M.DBCODE = (
-            SELECT DBCODE
-            FROM INTERPRO.CV_DATABASE
-            WHERE DBSHORT = :1
-        )
-        AND MC.STATUS = 'Y'
-        ORDER BY M.METHOD_AC, MC.CREATED_ON DESC
-        """,
-        (db_name.upper(),),
     )
     comments = {}
     for row in cur:
-        if row[0] not in comments:
-            comments[row[0]] = {
-                "text": row[1],
-                "date": row[2].strftime("%d %B %Y at %H:%M"),
-                "author": row[3],
-            }
-        else:
-            continue
-
+        try:
+            comments[row[0]].append(
+                {"text": row[1], "author": row[2], "date": row[3].strftime("%d %B %Y at %H:%M"),}
+            )
+        except KeyError:
+            comments[row[0]] = [
+                {"text": row[1], "author": row[2], "date": row[3].strftime("%d %B %Y at %H:%M"),}
+            ]
     cur.execute(
         """
         SELECT EM.METHOD_AC, E.ENTRY_AC, E.NAME, E.ENTRY_TYPE, E.CHECKED
@@ -511,7 +495,8 @@ def get_unintegrated_signatures(db_name):
             # We are not interested in PANTHER sub-families
             continue
 
-        q_comments = num_comments.get(q_acc, 0)
+        # q_comments = num_comments.get(q_acc, 0)
+        q_comments = len(comments[q_acc]) if comments.get(q_acc) else 0
         if comment_filter is None:
             pass
         elif comment_filter:
@@ -520,10 +505,7 @@ def get_unintegrated_signatures(db_name):
         elif q_comments:
             continue
 
-        try:
-            last_comment = comments[q_acc]
-        except KeyError:
-            last_comment = {}
+        last_comment = comments[q_acc][0] if comments.get(q_acc) else {}
 
         query = {
             "accession": q_acc,
