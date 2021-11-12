@@ -142,7 +142,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     searchbox.init(
-        document.querySelector('#signatures thread input'),
+        document.querySelector('#signatures thead input'),
         url.searchParams.get("search"),
         (value, ) => {
             url.searchParams.delete("page");
