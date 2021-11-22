@@ -1,4 +1,4 @@
-import {updateHeader} from '../ui/header.js'
+import { updateHeader } from '../ui/header.js'
 import * as checkbox from '../ui/checkbox.js'
 import * as comments from '../ui/comments.js';
 import * as dimmer from '../ui/dimmer.js'
@@ -61,7 +61,7 @@ function getSignatures() {
 
                     let change = '';
                     if (signature.proteins.then > 0 && signature.proteins.now > 0) {
-                        change = (signature.proteins.now-signature.proteins.then) / signature.proteins.then * 100;
+                        change = (signature.proteins.now - signature.proteins.then) / signature.proteins.then * 100;
                         if (change >= 1)
                             change = `+${Math.ceil(change)}%`;
                         else if (change <= -1)
@@ -99,7 +99,7 @@ function getSignatures() {
                 object.page_info.page,
                 object.page_info.page_size,
                 object.count,
-                (url,) => {
+                (url, ) => {
                     history.replaceState(null, document.title, url);
                     getSignatures();
                 });
