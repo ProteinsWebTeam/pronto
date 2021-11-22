@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/semantic.css') }}">
@@ -7,221 +8,221 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
     <title>Pronto</title>
 </head>
+
 <body>
 
-{% include 'header.html' %}
+    {% include 'header.html' %}
 
-<div class="ui container">
-    <div class="ui basic segment">
-        <div class="ui top attached tabular secondary pointing menu">
-            <a class="item" data-tab="databases">Member databases</a>
-            <a class="item" data-tab="news"><span>Recent entries</span><div class="ui small secondary label"></div></a>
-            <a class="item" data-tab="interpro2go"><span>InterPro2GO</span><div class="ui small secondary label"></div></a>
-            <a class="item" data-tab="unchecked"><span>Unchecked entries</span><div class="ui small secondary label"></div></a>
-            <a class="item" data-tab="checks"><span>Sanity checks</span><div class="ui small secondary label"></div></a>
-            <a class="item" data-tab="statistics"><span>Statistics</span></a>
-        </div>
-        <div class="ui tab basic segment" data-tab="databases">
-            <table class="ui table">
-                <thead>
-                <tr>
-                    <th colspan="2"></th>
-                    <th>Signatures</th>
-                    <th>Integrated</th>
-                    <th><a href="/signatures/recommendations/">Unintegrated</a></th>
-                </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-        </div>
-        <div class="ui tab basic segment" data-tab="news">
-            <p id="news-summary"></p>
-            <div class="ui warning message">
-                <i class="close icon"></i>
-                <div class="header">Checkboxes are read-only</div>
-                <p>To check or uncheck an entry, please visit the entry page.</p>
+    <div class="ui container">
+        <div class="ui basic segment">
+            <div class="ui top attached tabular secondary pointing menu">
+                <a class="item" data-tab="databases">Member databases</a>
+                <a class="item" data-tab="news"><span>Recent entries</span><div class="ui small secondary label"></div></a>
+                <a class="item" data-tab="interpro2go"><span>InterPro2GO</span><div class="ui small secondary label"></div></a>
+                <a class="item" data-tab="unchecked"><span>Unchecked entries</span><div class="ui small secondary label"></div></a>
+                <a class="item" data-tab="checks"><span>Sanity checks</span><div class="ui small secondary label"></div></a>
+                <a class="item" data-tab="statistics"><span>Statistics</span></a>
             </div>
-            <div class="ui form">
-                <div class="inline fields">
-                    <label>Entries created by</label>
-                    <div class="field">
-                        <div class="ui radio checkbox">
-                            <input type="radio" name="entries-author" value="" checked="checked">
-                            <label>Anyone</label>
-                        </div>
-                    </div>
-                    <div class="field">
-                        <div class="ui radio checkbox">
-                            <input type="radio" name="entries-author" value="me">
-                            <label>Me</label>
-                        </div>
-                    </div>
-                    <div class="field">
-                        <div class="ui radio checkbox">
-                            <input type="radio" name="entries-author" value="others">
-                            <label>Others</label>
-                        </div>
-                    </div>
-                </div>
-                <div class="field">
-                    <div class="ui checkbox">
-                        <input type="checkbox" name="entries-unchecked" value="yes">
-                        <label>Unchecked entries only</label>
-                    </div>
-                </div>
+            <div class="ui tab basic segment" data-tab="databases">
+                <table class="ui table">
+                    <thead>
+                        <tr>
+                            <th colspan="2"></th>
+                            <th>Signatures</th>
+                            <th>Integrated</th>
+                            <th><a href="/signatures/recommendations/">Unintegrated</a></th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
             </div>
-            <table class="ui single line compact table">
-                <thead>
-                <tr>
-                    <th>Entry</th>
-                    <th>Short name</th>
-                    <th>Checked</th>
-                    <th>Date</th>
-                    <th>Curator</th>
-                    <th class="collapsing"></th>
-                </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-        </div>
-        <div class="ui tab basic segment" data-tab="unchecked">
-            {#            <div class="ui info message">#}
-            {#                <i class="close icon"></i>#}
-            {#                <div class="header">Unchecked entries</div>#}
-            {#                <p>The table below shows all unchecked InterPro entries containing at least one member database signature.</p>#}
-            {#            </div>#}
-            <div id="unchecked-databases" class="ui equal width form">
-                <div class="fields"></div>
+            <div class="ui tab basic segment" data-tab="news">
+                <p id="news-summary"></p>
+                <div class="ui warning message">
+                    <i class="close icon"></i>
+                    <div class="header">Checkboxes are read-only</div>
+                    <p>To check or uncheck an entry, please visit the entry page.</p>
+                </div>
+                <div class="ui form">
+                    <div class="inline fields">
+                        <label>Entries created by</label>
+                        <div class="field">
+                            <div class="ui radio checkbox">
+                                <input type="radio" name="entries-author" value="" checked="checked">
+                                <label>Anyone</label>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <div class="ui radio checkbox">
+                                <input type="radio" name="entries-author" value="me">
+                                <label>Me</label>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <div class="ui radio checkbox">
+                                <input type="radio" name="entries-author" value="others">
+                                <label>Others</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <div class="ui checkbox">
+                            <input type="checkbox" name="entries-unchecked" value="yes">
+                            <label>Unchecked entries only</label>
+                        </div>
+                    </div>
+                </div>
+                <table class="ui single line compact table">
+                    <thead>
+                        <tr>
+                            <th>Entry</th>
+                            <th>Short name</th>
+                            <th>Checked</th>
+                            <th>Date</th>
+                            <th>Curator</th>
+                            <th class="collapsing"></th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
             </div>
-            <table class="ui single line compact table">
-                <thead>
-                <tr>
-                    <th colspan="5"></th>
-                </tr>
-                <tr>
-                    <th>Entry</th>
-                    <th>Short name</th>
-                    <th>Created</th>
-                    <th>Last edit</th>
-                    <th class="collapsing"></th>
-                </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-        </div>
-        <div class="ui tab basic segment" data-tab="checks">
-            <button class="ui compact primary button">Run</button>
-            <a href="/checks/" class="ui compact basic button">Details</a>
-            <div class="ui hidden message"></div>
-            <table class="ui single line compact table">
-                <thead>
-                <tr>
-                    <th class="basic" colspan="4"></th>
-                </tr>
-                <tr>
-                    <th>Entry/annotation</th>
-                    <th>Error type</th>
-                    <th>Error</th>
-                    <th></th>
-                </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-        </div>
-        <div class="ui tab basic segment" data-tab="interpro2go">
-            <p class="meta"></p>
-            <table class="ui single line compact table">
-                <thead>
-                <tr>
-                    <th>Entry</th>
-                    <th>Go term</th>
-                    <th>Date</th>
-                    <th>Curator</th>
-                </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-        </div>
-        <div class="ui tab basic segment" data-tab="statistics">
-            <button class="fluid ui primary button">Fetch statistics</button>
-            <div class="hidden content">
-                <div class="ui segment">
-                    <div class="ui four small statistics">
-                        <div class="statistic">
-                            <div class="label">Entries</div>
-                            <div id="stats-entries" class="value"></div>
-                        </div>
-                        <div class="statistic">
-                            <div class="label">Integrated signatures</div>
-                            <div id="stats-signatures" class="value"></div>
-                        </div>
-                        <div class="statistic">
-                            <div class="label">InterPro2GO</div>
-                            <div id="stats-interpro2go" class="value"></div>
-                        </div>
-                        <div class="statistic">
-                            <div class="label">Citations</div>
-                            <div id="stats-citations" class="value"></div>
-                        </div>
-                    </div>
+            <div class="ui tab basic segment" data-tab="unchecked">
+                {#
+                <div class="ui info message">#} {# <i class="close icon"></i>#} {#
+                    <div class="header">Unchecked entries</div>#} {#
+                    <p>The table below shows all unchecked InterPro entries containing at least one member database signature.</p>#} {# </div>#}
+                <div id="unchecked-databases" class="ui equal width form">
+                    <div class="fields"></div>
                 </div>
-                <div class="ui grid">
-                    <div class="twelve wide column">
-                        <h4>Quarterly reports</h4>
-                        <p>
-                            Number of InterPro entries created, signatures integrated, and GO terms associated, per quarter.<br>
-                            Actions thar are done then undone during the same quarter (e.g. entry created then deleted) are not considered.
-                        </p>
-                        <div id="chart-reports"></div>
+                <table class="ui single line compact table">
+                    <thead>
+                        <tr>
+                            <th colspan="6"></th>
+                        </tr>
+                        <tr>
+                            <th>Entry</th>
+                            <th>Short name</th>
+                            <th>Created</th>
+                            <th>Last edit</th>
+                            <th class="collapsing">Comments</th>
+                            <th class="collapsing">Last comment</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div class="ui tab basic segment" data-tab="checks">
+                <button class="ui compact primary button">Run</button>
+                <a href="/checks/" class="ui compact basic button">Details</a>
+                <div class="ui hidden message"></div>
+                <table class="ui single line compact table">
+                    <thead>
+                        <tr>
+                            <th class="basic" colspan="4"></th>
+                        </tr>
+                        <tr>
+                            <th>Entry/annotation</th>
+                            <th>Error type</th>
+                            <th>Error</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div class="ui tab basic segment" data-tab="interpro2go">
+                <p class="meta"></p>
+                <table class="ui single line compact table">
+                    <thead>
+                        <tr>
+                            <th>Entry</th>
+                            <th>Go term</th>
+                            <th>Date</th>
+                            <th>Curator</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div class="ui tab basic segment" data-tab="statistics">
+                <button class="fluid ui primary button">Fetch statistics</button>
+                <div class="hidden content">
+                    <div class="ui segment">
+                        <div class="ui four small statistics">
+                            <div class="statistic">
+                                <div class="label">Entries</div>
+                                <div id="stats-entries" class="value"></div>
+                            </div>
+                            <div class="statistic">
+                                <div class="label">Integrated signatures</div>
+                                <div id="stats-signatures" class="value"></div>
+                            </div>
+                            <div class="statistic">
+                                <div class="label">InterPro2GO</div>
+                                <div id="stats-interpro2go" class="value"></div>
+                            </div>
+                            <div class="statistic">
+                                <div class="label">Citations</div>
+                                <div id="stats-citations" class="value"></div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="four wide column">
-                        <h4>Latest member database updates</h4>
-                        <table id="table-updates" class="ui single line compact table">
-                            <tbody></tbody>
-                        </table>
+                    <div class="ui grid">
+                        <div class="twelve wide column">
+                            <h4>Quarterly reports</h4>
+                            <p>
+                                Number of InterPro entries created, signatures integrated, and GO terms associated, per quarter.<br> Actions thar are done then undone during the same quarter (e.g. entry created then deleted) are not considered.
+                            </p>
+                            <div id="chart-reports"></div>
+                        </div>
+                        <div class="four wide column">
+                            <h4>Latest member database updates</h4>
+                            <table id="table-updates" class="ui single line compact table">
+                                <tbody></tbody>
+                            </table>
+                        </div>
                     </div>
+
+                    <h4>Number of entries created per year</h4>
+                    <p>Only currently existing and checked entries are considered.</p>
+                    <div id="chart-entries"></div>
+
+                    <h4>Number of signatures integrated and unintegrated per week</h4>
+                    <p>
+                        If a signature has been integrated (or unintegrated) more than once during the same week, only one integration (or unintegration) is considered. Integration counts do not reflect whether a signature has been unintegrated or deleted since, and whether
+                        the entry was checked at the time of integration.
+                    </p>
+                    <div id="chart-integrated"></div>
+
+                    <div class="ui equal width grid">
+                        <div class="column">
+                            <h4>Number of GO terms by checked entry</h4>
+                            <div id="chart-interpro2go"></div>
+                        </div>
+                        <div class="column">
+                            <h4>Number of citations by checked entry</h4>
+                            <div id="chart-citations"></div>
+                        </div>
+                    </div>
+
+
                 </div>
-
-                <h4>Number of entries created per year</h4>
-                <p>Only currently existing and checked entries are considered.</p>
-                <div id="chart-entries"></div>
-
-                <h4>Number of signatures integrated and unintegrated per week</h4>
-                <p>
-                    If a signature has been integrated (or unintegrated) more than once during the same week, only one integration (or unintegration) is considered.
-                    Integration counts do not reflect whether a signature has been unintegrated or deleted since, and whether the entry was checked at the time of integration.
-                </p>
-                <div id="chart-integrated"></div>
-
-                <div class="ui equal width grid">
-                    <div class="column">
-                        <h4>Number of GO terms by checked entry</h4>
-                        <div id="chart-interpro2go"></div>
-                    </div>
-                    <div class="column">
-                        <h4>Number of citations by checked entry</h4>
-                        <div id="chart-citations"></div>
-                    </div>
-                </div>
-
-
             </div>
         </div>
     </div>
-</div>
 
-<div id="welcome" class="ui active page dimmer">
-    <div class="content">
-        <h2 class="ui inverted icon header">
-            <i class="smile outline icon"></i>
-            Welcome!
-        </h2>
+    <div id="welcome" class="ui active page dimmer">
+        <div class="content">
+            <h2 class="ui inverted icon header">
+                <i class="smile outline icon"></i> Welcome!
+            </h2>
+        </div>
     </div>
-</div>
 
-<script src="{{ url_for('static', filename='vendor/jquery.min.js') }}"></script>
-<script src="{{ url_for('static', filename='vendor/semantic.js') }}"></script>
-<script src="{{ url_for('static', filename='vendor/highcharts.js') }}"></script>
-<script src="{{ url_for('static', filename='js/index.js') }}" type="module"></script>
+    <script src="{{ url_for('static', filename='vendor/jquery.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/semantic.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/highcharts.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/index.js') }}" type="module"></script>
 </body>
+
 </html>
