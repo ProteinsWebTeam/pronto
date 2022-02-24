@@ -350,7 +350,7 @@ def create_annotation():
         }), 400  # could be 500 (if INSERT failed)
 
     comment = (f"Created by {user['name'].split()[0]} "
-                f"on {datetime.now():%Y-%m-%d %H:%M:%S}")
+               f"on {datetime.now():%Y-%m-%d %H:%M:%S}")
 
     text = ann.wrap()
     ann_id = cur.var(STRING)
