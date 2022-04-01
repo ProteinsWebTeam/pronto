@@ -24,29 +24,30 @@ export function genProtHeader(protein) {
             Organism: <em>${protein.organism.name}</em>
             &mdash;
             Length: ${protein.length} AA
-            </div>`;
+            ${protein.is_spurious ? '&mdash; <span class="ui spurious"><i class="warning icon"></i >Spurious protein</span>' : ''}
+            </div > `;
 }
 
 export function renderMatches(proteinLength, signature, width, paddingLeft) {
     let html = '';
     for (const fragments of signature.matches) {
-            for (let i = 0; i < fragments.length; i++) {
-                const frag = fragments[i];
-                const x = Math.round(frag.start * width / proteinLength) + paddingLeft;
-                const w = Math.round((frag.end - frag.start) * width / proteinLength);
+        for (let i = 0; i < fragments.length; i++) {
+            const frag = fragments[i];
+            const x = Math.round(frag.start * width / proteinLength) + paddingLeft;
+            const w = Math.round((frag.end - frag.start) * width / proteinLength);
 
-                html += '<g>';
-                if (i) {
-                    // Discontinuous domain: draw arc
-                    const px = Math.round(fragments[i-1].end * width / proteinLength) + paddingLeft;
-                    html += `<path d="M${px} 15 Q ${(px+x)/2} 0 ${x} 15" fill="none" stroke="${signature.color}"/>`
-                }
-
-                html += `<rect x="${x}" y="15" width="${w}" height="10" rx="1" ry="1" style="fill: ${signature.color};" />
-                         <text x="${x}" y="10" class="position">${frag.start}</text>
-                         <text x="${x+w}" y="10" class="position">${frag.end}</text>
-                         </g>`;
+            html += '<g>';
+            if (i) {
+                // Discontinuous domain: draw arc
+                const px = Math.round(fragments[i - 1].end * width / proteinLength) + paddingLeft;
+                html += `< path d = "M${px} 15 Q ${(px + x) / 2} 0 ${x} 15" fill = "none" stroke = "${signature.color}" /> `
             }
+
+            html += `< rect x = "${x}" y = "15" width = "${w}" height = "10" rx = "1" ry = "1" style = "fill: ${signature.color};" />
+                         <text x="${x}" y="10" class="position">${frag.start}</text>
+                         <text x="${x + w}" y="10" class="position">${frag.end}</text>
+                         </g > `;
         }
+    }
     return html;
 }

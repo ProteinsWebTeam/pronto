@@ -24,18 +24,23 @@ def get_protein(protein_acc):
             TABLESAMPLE SYSTEM(0.001) LIMIT 1 
             """
         )
-        protein_acc, = cur.fetchone()
+        (protein_acc,) = cur.fetchone()
 
     cur.execute(
         """
         SELECT p.accession, p.identifier, p.length, p.is_fragment, 
-               p.is_reviewed, t.id, t.name, pn.text
+               p.is_reviewed, t.id, t.name, pn.text, m.protein_acc
         FROM protein p
         INNER JOIN taxon t ON p.taxon_id = t.id
         INNER JOIN protein2name p2n ON p.accession = p2n.protein_acc
         INNER JOIN protein_name pn ON p2n.name_id = pn.name_id
+        LEFT JOIN 
+            (SELECT protein_acc 
+            FROM match 
+            WHERE database_id=16) m ON m.protein_acc=p.accession
         WHERE p.accession = UPPER(%s)
-        """, (protein_acc,)
+        """,
+        (protein_acc,),
     )
     row = cur.fetchone()
     if not row:
@@ -49,11 +54,9 @@ def get_protein(protein_acc):
         "length": row[2],
         "is_fragment": row[3],
         "is_reviewed": row[4],
-        "organism": {
-            "name": row[6],
-            "lineage": []
-        },
-        "name": row[7]
+        "organism": {"name": row[6], "lineage": []},
+        "name": row[7],
+        "is_spurious": True if row[8] else False,
     }
     taxon_id = row[5]
 
@@ -72,8 +75,10 @@ def get_protein(protein_acc):
             FROM match m 
             INNER JOIN database d ON m.database_id = d.id
             INNER JOIN signature s ON m.signature_acc = s.accession
+            
             WHERE {sql}
-            """, params
+            """,
+            params,
         )
 
         for row in cur:
@@ -93,19 +98,15 @@ def get_protein(protein_acc):
                     "color": db.color,
                     "link": link,
                     "matches": [],
-                    "entry": None
+                    "entry": None,
                 }
 
             fragments = []
-            for frag in row[4].split(','):
-                start, end, status = frag.split('-')
-                fragments.append({
-                    "start": int(start),
-                    "end": int(end)
-                })
+            for frag in row[4].split(","):
+                start, end, status = frag.split("-")
+                fragments.append({"start": int(start), "end": int(end)})
 
-            s["matches"].append(sorted(fragments,
-                                       key=lambda x: (x["start"], x["end"])))
+            s["matches"].append(sorted(fragments, key=lambda x: (x["start"], x["end"])))
 
     if inc_lineage:
         cur.execute(
@@ -123,7 +124,8 @@ def get_protein(protein_acc):
             SELECT name
             FROM ancestors
             ORDER BY level DESC            
-            """, (taxon_id,)
+            """,
+            (taxon_id,),
         )
         protein["organism"]["lineage"] = [name for name, in cur]
 
@@ -143,7 +145,8 @@ def get_protein(protein_acc):
             WHERE EM.METHOD_AC IN (
                 {','.join(':'+str(i+1) for i in range(len(params)))}
             )
-            """, params
+            """,
+            params,
         )
 
         for row in cur:
@@ -151,14 +154,13 @@ def get_protein(protein_acc):
                 "accession": row[1],
                 "name": row[2],
                 "type": row[3],
-                "type_long": row[4].replace('_', ' ')
+                "type_long": row[4].replace("_", " "),
             }
 
         cur.close()
         con.close()
 
-    protein["signatures"] = sorted(matches.values(),
-                                   key=lambda x: x["accession"])
+    protein["signatures"] = sorted(matches.values(), key=lambda x: x["accession"])
     return jsonify(protein)
 
 
@@ -174,7 +176,8 @@ def get_sequence(protein_acc):
         WHERE X.AC = :1 
         AND X.DBID IN (2, 3) 
         AND X.DELETED = 'N'
-        """, (protein_acc,)
+        """,
+        (protein_acc,),
     )
     row = cur.fetchone()
 
@@ -190,9 +193,9 @@ def get_sequence(protein_acc):
 
     fasta = f">{protein_acc}\n"
     for i in range(0, len(sequence), 60):
-        fasta += sequence[i:i+60] + "\n"
+        fasta += sequence[i : i + 60] + "\n"
 
     response = make_response(fasta, 200)
-    response.mimetype = 'text/plain'
+    response.mimetype = "text/plain"
 
     return response
