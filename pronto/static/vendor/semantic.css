@@ -46943,10 +46943,6 @@ Floated Menu / Item
      color: #573A08;
  }
  
- .ui.spurious {
-     color: #C96A45;
- }
- 
  .ui.warning.message,
  .ui.attached.warning.message {
      -webkit-box-shadow: 0 0 0 1px #C9BA9B inset, 0 0 0 0 rgba(0, 0, 0, 0);

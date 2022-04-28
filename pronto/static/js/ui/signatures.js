@@ -134,7 +134,7 @@ async function getProteins(accession, url, getMatches) {
             <tr>
             <td class="nowrap">
                 <a target="_blank" href="${genLink(protein.accession, protein.is_reviewed)}"><i class="${!protein.is_reviewed ? 'outline' : ''} star icon"></i>${protein.accession}<i class="external icon"></i></a>
-                ${protein.is_spurious ? '<span class="ui spurious"> <i class="warning icon"></i ></span>' : ''}
+                ${protein.is_spurious ? '<span class="ui red text"> <i class="warning icon"></i ></span>' : ''}
             </td>
             <td>${protein.identifier}</td>
             <td>${protein.name}</td>

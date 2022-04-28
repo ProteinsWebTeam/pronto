@@ -28,16 +28,24 @@ def get_protein(protein_acc):
 
     cur.execute(
         """
+            SELECT COUNT(*) 
+            FROM match 
+            WHERE protein_acc = UPPER(%s)
+            AND database_id = (SELECT id FROM database WHERE name = 'antifam')
+        """,
+        (protein_acc,),
+    )
+    row = cur.fetchone()
+    is_spurious = True if row[0] != 0 else False
+
+    cur.execute(
+        """
         SELECT p.accession, p.identifier, p.length, p.is_fragment, 
-               p.is_reviewed, t.id, t.name, pn.text, m.protein_acc
+               p.is_reviewed, t.id, t.name, pn.text
         FROM protein p
         INNER JOIN taxon t ON p.taxon_id = t.id
         INNER JOIN protein2name p2n ON p.accession = p2n.protein_acc
         INNER JOIN protein_name pn ON p2n.name_id = pn.name_id
-        LEFT JOIN 
-            (SELECT protein_acc 
-            FROM match 
-            WHERE database_id=16) m ON m.protein_acc=p.accession
         WHERE p.accession = UPPER(%s)
         """,
         (protein_acc,),
@@ -56,7 +64,7 @@ def get_protein(protein_acc):
         "is_reviewed": row[4],
         "organism": {"name": row[6], "lineage": []},
         "name": row[7],
-        "is_spurious": True if row[8] else False,
+        "is_spurious": is_spurious,
     }
     taxon_id = row[5]
 

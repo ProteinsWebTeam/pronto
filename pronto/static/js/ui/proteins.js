@@ -24,7 +24,7 @@ export function genProtHeader(protein) {
             Organism: <em>${protein.organism.name}</em>
             &mdash;
             Length: ${protein.length} AA
-            ${protein.is_spurious ? '&mdash; <span class="ui spurious"><i class="warning icon"></i >Spurious protein</span>' : ''}
+            ${protein.is_spurious ? '&mdash; <span class="ui red text"><i class="warning icon"></i >Spurious protein</span>' : ''}
             </div > `;
 }
 
@@ -40,13 +40,13 @@ export function renderMatches(proteinLength, signature, width, paddingLeft) {
             if (i) {
                 // Discontinuous domain: draw arc
                 const px = Math.round(fragments[i - 1].end * width / proteinLength) + paddingLeft;
-                html += `< path d = "M${px} 15 Q ${(px + x) / 2} 0 ${x} 15" fill = "none" stroke = "${signature.color}" /> `
+                html += `<path d="M${px} 15 Q ${(px + x) / 2} 0 ${x} 15" fill="none" stroke="${signature.color}"/>`
             }
 
-            html += `< rect x = "${x}" y = "15" width = "${w}" height = "10" rx = "1" ry = "1" style = "fill: ${signature.color};" />
-                         <text x="${x}" y="10" class="position">${frag.start}</text>
-                         <text x="${x + w}" y="10" class="position">${frag.end}</text>
-                         </g > `;
+            html += `<rect x="${x}" y="15" width="${w}" height="10" rx="1" ry="1" style="fill: ${signature.color};" />
+                    <text x="${x}" y="10" class="position">${frag.start}</text>
+                    <text x="${x + w}" y="10" class="position">${frag.end}</text>
+                    </g>`;
         }
     }
     return html;
