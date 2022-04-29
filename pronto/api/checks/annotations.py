@@ -20,10 +20,9 @@ LoT = List[Tuple[str, str]]
 def ck_abbreviations(cabs: LoT, terms: LoS, exceptions: DoS) -> Err:
     prog1 = re.compile(r"\d+\s+kDa")
     prog2 = re.compile(r"\b[cn][\-\s]termin(?:al|us)", flags=re.I)
-    prog2_except = {"N-terminal", "C-terminal",
-                    "C terminus", "N terminus"}
+    prog2_except = {"N-terminal", "C-terminal", "C terminus", "N terminus"}
 
-    prog3 = re.compile('|'.join(terms)) if terms else None
+    prog3 = re.compile("|".join(terms)) if terms else None
 
     errors = []
     for ann_id, text in cabs:
@@ -46,7 +45,7 @@ def ck_abbreviations(cabs: LoT, terms: LoS, exceptions: DoS) -> Err:
 
 
 def ck_citations(cabs: LoT, terms: LoS, exceptions: DoS) -> Err:
-    prog = re.compile('|'.join(map(re.escape, terms)), flags=re.I)
+    prog = re.compile("|".join(map(re.escape, terms)), flags=re.I)
 
     errors = []
     for ann_id, text in cabs:
@@ -62,11 +61,8 @@ def ck_encoding(cabs: LoT, exceptions: Set[str]) -> Err:
     errors = []
     for ann_id, text in cabs:
         for char in text:
-            try:
-                char.encode("ascii")
-            except UnicodeEncodeError:
-                if str(ord(char)) not in exceptions:
-                    errors.append((ann_id, char))
+            if not char.isascii() and str(ord(char)) not in exceptions:
+                errors.append((ann_id, char))
 
     return errors
 
@@ -125,13 +121,13 @@ def ck_punctuations(cabs: LoT, terms: LoS, exceptions: DoS) -> Err:
                 continue
 
             i, j = match.span()
-            if text[i-3:i] == "e.g":
+            if text[i - 3 : i] == "e.g":
                 continue  # e.g. [
-            elif text[i-2:i] == "sp":
+            elif text[i - 2 : i] == "sp":
                 continue  # sp. [
-            elif text[i-5:i] == "et al":
+            elif text[i - 5 : i] == "et al":
                 continue  # et al. [
-            elif prog_detail.match(text[i-3:i]):
+            elif prog_detail.match(text[i - 3 : i]):
                 """
                 [a-z]{3}            ent. [
                 \d[\]\d]\]          22]. [
@@ -147,9 +143,15 @@ def ck_punctuations(cabs: LoT, terms: LoS, exceptions: DoS) -> Err:
 
 def ck_spelling(cabs: LoT, terms: LoS, exceptions: DoS) -> Err:
     prog1 = re.compile(fr"\b(?:{'|'.join(terms)})\b", flags=re.I)
-    gram_terms = ["gram\s*-(?!negative|positive)", "gram\s*\+", "gram pos",
-                  "gram neg", "g-positive", "g-negative"]
-    prog2 = re.compile('|'.join(gram_terms), flags=re.I)
+    gram_terms = [
+        "gram\s*-(?!negative|positive)",
+        "gram\s*\+",
+        "gram pos",
+        "gram neg",
+        "g-positive",
+        "g-negative",
+    ]
+    prog2 = re.compile("|".join(gram_terms), flags=re.I)
 
     errors = []
     for ann_id, text in cabs:
