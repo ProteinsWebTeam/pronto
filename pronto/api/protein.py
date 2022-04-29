@@ -36,7 +36,7 @@ def get_protein(protein_acc):
         (protein_acc,),
     )
     row = cur.fetchone()
-    is_spurious = True if row[0] != 0 else False
+    is_spurious = row[0] != 0
 
     cur.execute(
         """
