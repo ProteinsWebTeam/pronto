@@ -26,7 +26,7 @@ class Annotation(object):
         for el in ("b", "i", "li", "ol", "p", "pre", "sub", "sup", "ul"):
             is_open = False
             for tag in re.findall(f"</?{el}>", self.text):
-                if tag[1] != "/":
+                if tag[1] != '/':
                     # is an opening tag
                     if is_open:
                         # Already open
@@ -56,7 +56,8 @@ class Annotation(object):
             elif tag == "</p>":
                 in_paragraph = False
             elif in_paragraph:
-                self.error = "f{tag} elements are not allowed " "inside a paragraph."
+                self.error = ("f{tag} elements are not allowed "
+                              "inside a paragraph.")
                 return False
 
         # Find list items outside list
@@ -68,9 +69,8 @@ class Annotation(object):
             if tag == "<ul>":
                 if lists and not is_open:
                     # Can only start a nested list inside a list element
-                    self.error = (
-                        "Nested <ul> element must be contained " "in a parent <li> element."
-                    )
+                    self.error = ("Nested <ul> element must be contained "
+                                  "in a parent <li> element.")
                     return False
                 else:
                     lists.append("ul")
@@ -84,9 +84,8 @@ class Annotation(object):
             elif tag == "<ol>":
                 if lists and not is_open:
                     # Can only start a nested list inside a list element
-                    self.error = (
-                        "Nested <ol> element must be contained " "in a parent <li> element."
-                    )
+                    self.error =  ("Nested <ol> element must be contained "
+                                   "in a parent <li> element.")
                     return False
                 else:
                     lists.append("ol")
@@ -102,9 +101,8 @@ class Annotation(object):
                     self.error = "Mismatched <li> element."
                     return False
                 elif not lists:
-                    self.error = (
-                        "<li> element must be contained " "in a parent <ol>, or <ul> element."
-                    )
+                    self.error = ("<li> element must be contained "
+                                  "in a parent <ol>, or <ul> element.")
                     return False
                 else:
                     is_open = True
@@ -132,7 +130,8 @@ class Annotation(object):
                 self.error = f"Invalid tag: '{ref_db}'."
                 return False
             elif ref_id != ref_id.strip():
-                self.error = f"Invalid cross-reference accession: " f"'{ref_id}'."
+                self.error = (f"Invalid cross-reference accession: "
+                              f"'{ref_id}'.")
                 return False
 
         return True
@@ -156,7 +155,7 @@ class Annotation(object):
         for match in re.finditer(r"\[cite:([^\]]+)\]", self.text, re.I):
             pmids = []
             pub_ids = set()
-            for ref_id in match.group(1).split(","):
+            for ref_id in match.group(1).split(','):
                 ref_id = ref_id.strip()
                 if not ref_id:
                     # e.g. [cite:1533,,1464]
@@ -182,14 +181,14 @@ class Annotation(object):
 
         if lookup_pmids:
             # Get the Pub IDs for the PMIDs found
-            args = ",".join(":" + str(i + 1) for i in range(len(lookup_pmids)))
+            args = ','.join(':'+str(i+1) for i in range(len(lookup_pmids)))
             cur.execute(
                 f"""
                 SELECT PUB_ID, PUBMED_ID
                 FROM INTERPRO.CITATION
                 WHERE PUBMED_ID IN ({args})
                 """,
-                tuple(lookup_pmids),
+                tuple(lookup_pmids)
             )
 
             for pub_id, pmid in cur:
@@ -274,50 +273,53 @@ class Annotation(object):
         return text
 
     def get_references(self, text: Optional[str] = None) -> set:
-        return {m.group(1) for m in re.finditer(r"\[cite:(PUB\d+)\]", text or self.text, re.I)}
+        return {
+            m.group(1)
+            for m
+            in re.finditer(r"\[cite:(PUB\d+)\]", text or self.text, re.I)
+        }
 
 
 @bp.route("/", methods=["PUT"])
 def create_annotation():
     user = auth.get_user()
     if not user:
-        return (
-            jsonify(
-                {
-                    "status": False,
-                    "error": {
-                        "title": "Access denied",
-                        "message": "Please log in to perform this operation.",
-                    },
-                }
-            ),
-            401,
-        )
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Access denied",
+                "message": "Please log in to perform this operation."
+            }
+        }), 401
 
     try:
         text = request.form["text"].strip()
     except (AttributeError, KeyError):
-        return (
-            jsonify(
-                {
-                    "status": False,
-                    "error": {"title": "Bad request", "message": "Invalid or missing parameters."},
-                }
-            ),
-            400,
-        )
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Bad request",
+                "message": "Invalid or missing parameters."
+            }
+        }), 400
 
     ann = Annotation(text)
     if not ann.validate_html():
-        return (
-            jsonify({"status": False, "error": {"title": "Text error", "message": ann.error}}),
-            400,
-        )
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Text error",
+                "message": ann.error
+            }
+        }), 400
     elif not ann.validate_xref_tags():
-        return (
-            jsonify({"status": False, "error": {"title": "Text error", "message": ann.error}}),
-            400,
-        )
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Text error",
+                "message": ann.error
+            }
+        }), 400
 
     con = utils.connect_oracle_auth(user)
     cur = con.cursor()
@@ -325,20 +327,27 @@ def create_annotation():
     if not ann.validate_encoding(load_global_exceptions(cur, "encoding")):
         cur.close()
         con.close()
-        return (
-            jsonify({"status": False, "error": {"title": "Text error", "message": ann.error}}),
-            400,
-        )
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Text error",
+                "message": ann.error
+            }
+        }), 400
 
     if not ann.update_references(cur):
         cur.close()
         con.close()
-        return (
-            jsonify({"status": False, "error": {"title": "Text error", "message": ann.error}}),
-            400,
-        )  # could be 500 (if INSERT failed)
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Text error",
+                "message": ann.error
+            }
+        }), 400  # could be 500 (if INSERT failed)
 
-    comment = f"Created by {user['name'].split()[0]} " f"on {datetime.now():%Y-%m-%d %H:%M:%S}"
+    comment = (f"Created by {user['name'].split()[0]} "
+                f"on {datetime.now():%Y-%m-%d %H:%M:%S}")
 
     text = ann.wrap()
     ann_id = cur.var(STRING)
@@ -348,11 +357,10 @@ def create_annotation():
             INSERT INTO INTERPRO.COMMON_ANNOTATION (ANN_ID, TEXT, COMMENTS)
             VALUES (INTERPRO.NEW_ANN_ID(), :1, :2)
             RETURNING ANN_ID INTO :3
-            """,
-            (text, comment, ann_id),
+            """, (text, comment, ann_id)
         )
     except DatabaseError as exc:
-        (error,) = exc.args
+        error, = exc.args
         if error.code == 1:
             # ORA-00001: unique constraint violated
             cur.execute(
@@ -360,45 +368,32 @@ def create_annotation():
                 SELECT ANN_ID
                 FROM INTERPRO.COMMON_ANNOTATION
                 WHERE TEXT = :1
-                """,
-                (text,),
+                """, (text,)
             )
-            (ann_id,) = cur.fetchone()
+            ann_id, = cur.fetchone()
 
-            return (
-                jsonify(
-                    {
-                        "status": False,
-                        "error": {"title": "Database error", "message": f"Duplicate of {ann_id}"},
-                    }
-                ),
-                500,
-            )
+            return jsonify({
+                "status": False,
+                "error": {
+                    "title": "Database error",
+                    "message": f"Duplicate of {ann_id}"
+                }
+            }), 500
         else:
-            return (
-                jsonify(
-                    {
-                        "status": False,
-                        "error": {
-                            "title": "Database error",
-                            "message": f"The annotation could not be created: {exc}.",
-                        },
-                    }
-                ),
-                500,
-            )
+            return jsonify({
+                "status": False,
+                "error": {
+                    "title": "Database error",
+                    "message": f"The annotation could not be created: {exc}."
+                }
+            }), 500
     else:
         con.commit()
-        return (
-            jsonify(
-                {
-                    "status": True,
-                    # RETURNING -> getvalue() returns an array
-                    "id": ann_id.getvalue()[0],
-                }
-            ),
-            200,
-        )
+        return jsonify({
+            "status": True,
+            # RETURNING -> getvalue() returns an array
+            "id": ann_id.getvalue()[0]
+        }), 200
     finally:
         cur.close()
         con.close()
@@ -421,12 +416,15 @@ def search_annotations():
               ON CA.ANN_ID = EC.ANN_ID
             WHERE CA.ANN_ID = :1
             GROUP BY CA.ANN_ID, CA.TEXT
-            """,
-            (search_query.upper(),),
+            """, (search_query.upper(),)
         )
         row = cur.fetchone()
         if row:
-            hits.append({"id": row[0], "text": row[1], "num_entries": row[2]})
+            hits.append({
+                "id": row[0],
+                "text": row[1],
+                "num_entries": row[2]
+            })
     elif search_query:
         if search_query.isdigit():
             # Could be PubMed ID
@@ -435,12 +433,11 @@ def search_annotations():
                 SELECT PUB_ID 
                 FROM INTERPRO.CITATION 
                 WHERE PUBMED_ID = :1
-                """,
-                (int(search_query),),
+                """, (int(search_query),)
             )
             row = cur.fetchone()
             if row:
-                (search_query,) = row
+                search_query, = row
 
         cur.execute(
             """
@@ -459,15 +456,22 @@ def search_annotations():
             GROUP BY CA.ANN_ID, CA.TEXT
             ORDER BY CNT DESC, CA.ANN_ID
             """,
-            dict(q=search_query.upper()),
+            dict(q=search_query.upper())
         )
 
         for row in cur:
-            hits.append({"id": row[0], "text": row[1], "num_entries": row[2]})
+            hits.append({
+                "id": row[0],
+                "text": row[1],
+                "num_entries": row[2]
+            })
 
     cur.close()
     con.close()
-    return jsonify({"query": search_query, "hits": hits})
+    return jsonify({
+        "query": search_query,
+        "hits": hits
+    })
 
 
 @bp.route("/<ann_id>/")
@@ -484,8 +488,7 @@ def get_annotation(ann_id):
           GROUP BY ANN_ID
         ) S ON A.ANN_ID = S.ANN_ID
         WHERE A.ANN_ID = :1
-        """,
-        (ann_id,),
+        """, (ann_id,)
     )
     row = cur.fetchone()
     if not row:
@@ -506,108 +509,106 @@ def get_annotation(ann_id):
         else:
             whole_match = match.group()
 
-            ext_refs[whole_match] = {"match": whole_match, "id": ref_id, "url": url.format(ref_id)}
-
-    return (
-        jsonify(
-            {
-                "id": ann_id,
-                "text": text,
-                "comment": comment,
-                "num_entries": n_entries,
-                "cross_references": list(ext_refs.values()),
+            ext_refs[whole_match] = {
+                "match": whole_match,
+                "id": ref_id,
+                "url": url.format(ref_id)
             }
-        ),
-        200,
-    )
+
+    return jsonify({
+        "id": ann_id,
+        "text": text,
+        "comment": comment,
+        "num_entries": n_entries,
+        "cross_references": list(ext_refs.values())
+    }), 200
 
 
 @bp.route("/<ann_id>/", methods=["POST"])
 def update_annotation(ann_id):
     user = auth.get_user()
     if not user:
-        return (
-            jsonify(
-                {
-                    "status": False,
-                    "error": {
-                        "title": "Access denied",
-                        "message": "Please log in to perform this operation.",
-                    },
-                }
-            ),
-            401,
-        )
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Access denied",
+                "message": "Please log in to perform this operation."
+            }
+        }), 401
 
     try:
         text = request.form["text"].strip()
         comment = request.form["reason"].strip()
         assert len(text) and len(comment)
     except (AssertionError, KeyError):
-        return (
-            jsonify(
-                {
-                    "status": False,
-                    "error": {"title": "Bad request", "message": "Invalid or missing parameters."},
-                }
-            ),
-            400,
-        )
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Bad request",
+                "message": "Invalid or missing parameters."
+            }
+        }), 400
 
     ann = Annotation(text)
     if not ann.validate_html():
-        return (
-            jsonify({"status": False, "error": {"title": "Text error", "message": ann.error}}),
-            400,
-        )
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Text error",
+                "message": ann.error
+            }
+        }), 400
     elif not ann.validate_xref_tags():
-        return (
-            jsonify({"status": False, "error": {"title": "Text error", "message": ann.error}}),
-            400,
-        )
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Text error",
+                "message": ann.error
+            }
+        }), 400
 
     con = utils.connect_oracle_auth(user)
     cur = con.cursor()
     if not ann.validate_encoding(load_global_exceptions(cur, "encoding")):
         cur.close()
         con.close()
-        return (
-            jsonify({"status": False, "error": {"title": "Text error", "message": ann.error}}),
-            400,
-        )
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Text error",
+                "message": ann.error
+            }
+        }), 400
 
     if not ann.update_references(cur):
         cur.close()
         con.close()
-        return (
-            jsonify({"status": False, "error": {"title": "Text error", "message": ann.error}}),
-            400,
-        )  # could be 500 (if INSERT failed)
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Text error",
+                "message": ann.error
+            }
+        }), 400  # could be 500 (if INSERT failed)
 
     cur.execute(
         """
         SELECT TEXT
         FROM INTERPRO.COMMON_ANNOTATION
         WHERE ANN_ID = :1
-        """,
-        (ann_id,),
+        """, (ann_id,)
     )
     row = cur.fetchone()
     if not row:
         cur.close()
         con.close()
-        return (
-            jsonify(
-                {
-                    "status": False,
-                    "error": {
-                        "title": "Invalid annotation",
-                        "message": f"{ann_id} is not a valid annotation ID.",
-                    },
-                }
-            ),
-            400,
-        )
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Invalid annotation",
+                "message": f"{ann_id} is not a valid annotation ID."
+            }
+        }), 400
 
     """
     Compare references, 
@@ -638,8 +639,7 @@ def update_annotation(ann_id):
                 FROM INTERPRO.ENTRY2COMMON
                 WHERE ANN_ID = :1                  
             )
-            """,
-            (ann_id,),
+            """, (ann_id,)
         )
         to_delete = []
         for entry_ac, pub_id in cur:
@@ -653,18 +653,18 @@ def update_annotation(ann_id):
                     """
                     DELETE FROM INTERPRO.SUPPLEMENTARY_REF
                     WHERE ENTRY_AC = :1 AND PUB_ID = :2
-                    """,
-                    to_delete,
+                    """, to_delete
                 )
             except DatabaseError as exc:
                 cur.close()
                 con.close()
-                return (
-                    jsonify(
-                        {"status": False, "error": {"title": "Database error", "message": str(exc)}}
-                    ),
-                    500,
-                )
+                return jsonify({
+                    "status": False,
+                    "error": {
+                        "title": "Database error",
+                        "message": str(exc)
+                    }
+                }), 500
 
         """
         Parse all annotations associated to entries associated 
@@ -686,8 +686,7 @@ def update_annotation(ann_id):
                 FROM INTERPRO.ENTRY2COMMON
                 WHERE ANN_ID = :1            
             )
-            """,
-            (ann_id,),
+            """, (ann_id, )
         )
 
         entries = {}
@@ -725,26 +724,25 @@ def update_annotation(ann_id):
                 """
                 DELETE FROM INTERPRO.ENTRY2PUB
                 WHERE ENTRY_AC = :1 AND PUB_ID = :2
-                """,
-                to_move,
+                """, to_move
             )
 
             cur.executemany(
                 """
                 INSERT INTO INTERPRO.SUPPLEMENTARY_REF
                 VALUES (:1, :2)
-                """,
-                to_move,
+                """, to_move
             )
         except DatabaseError as exc:
             cur.close()
             con.close()
-            return (
-                jsonify(
-                    {"status": False, "error": {"title": "Database error", "message": str(exc)}}
-                ),
-                500,
-            )
+            return jsonify({
+                "status": False,
+                "error": {
+                    "title": "Database error",
+                    "message": str(exc)
+                }
+            }), 500
 
         for entry_ac, pub_id in to_insert:
             try:
@@ -760,20 +758,21 @@ def update_annotation(ann_id):
                       ), 
                       :pub
                     )
-                    """,
-                    dict(acc=entry_ac, pub=pub_id),
+                    """, dict(acc=entry_ac, pub=pub_id)
                 )
             except DatabaseError as exc:
                 cur.close()
                 con.close()
-                return (
-                    jsonify(
-                        {"status": False, "error": {"title": "Database error", "message": str(exc)}}
-                    ),
-                    500,
-                )
+                return jsonify({
+                    "status": False,
+                    "error": {
+                        "title": "Database error",
+                        "message": str(exc)
+                    }
+                }), 500
 
-    comment += f" updated by {user['name'].split()[0]} " f"on {datetime.now():%Y-%m-%d %H:%M:%S}"
+    comment += (f" updated by {user['name'].split()[0]} "
+                f"on {datetime.now():%Y-%m-%d %H:%M:%S}")
 
     try:
         cur.execute(
@@ -782,16 +781,21 @@ def update_annotation(ann_id):
             SET TEXT = :1, COMMENTS = :2
             WHERE ANN_ID = :3
             """,
-            (ann.wrap(), comment, ann_id),
+            (ann.wrap(), comment, ann_id)
         )
     except DatabaseError as exc:
-        return (
-            jsonify({"status": False, "error": {"title": "Database error", "message": str(exc)}}),
-            500,
-        )
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Database error",
+                "message": str(exc)
+            }
+        }), 500
     else:
         con.commit()
-        return jsonify({"status": True}), 200
+        return jsonify({
+            "status": True
+        }), 200
     finally:
         cur.close()
         con.close()
@@ -801,18 +805,13 @@ def update_annotation(ann_id):
 def delete_annotations(ann_id):
     user = auth.get_user()
     if not user:
-        return (
-            jsonify(
-                {
-                    "status": False,
-                    "error": {
-                        "title": "Access denied",
-                        "message": "Please log in to perform this operation.",
-                    },
-                }
-            ),
-            401,
-        )
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Access denied",
+                "message": "Please log in to perform this operation."
+            }
+        }), 401
 
     con = utils.connect_oracle_auth(user)
     cur = con.cursor()
@@ -830,52 +829,49 @@ def delete_annotations(ann_id):
             FROM INTERPRO.ENTRY2COMMON
             WHERE ANN_ID != :annid
         )
-        """,
-        dict(annid=ann_id),
+        """, dict(annid=ann_id)
     )
-    (num_entries,) = cur.fetchone()
+    num_entries, = cur.fetchone()
 
     if num_entries:
         cur.close()
         con.close()
-        return (
-            jsonify(
-                {
-                    "status": False,
-                    "error": {
-                        "title": "Cannot deletion annotation",
-                        "message": f"This annotation cannot be deleted as it is "
-                        f"the only annotation for {num_entries} entries.",
-                    },
-                }
-            ),
-            409,
-        )
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Cannot deletion annotation",
+                "message": f"This annotation cannot be deleted as it is "
+                           f"the only annotation for {num_entries} entries."
+            }
+        }), 409
 
     try:
         cur.execute(
             """
             DELETE FROM INTERPRO.ENTRY2COMMON
             WHERE ANN_ID = :1
-            """,
-            (ann_id,),
+            """, (ann_id,)
         )
 
         cur.execute(
             """
             DELETE FROM INTERPRO.COMMON_ANNOTATION
             WHERE ANN_ID = :1
-            """,
-            (ann_id,),
+            """, (ann_id,)
         )
     except DatabaseError as exc:
-        return (
-            jsonify({"status": False, "error": {"title": "Database error", "message": str(exc)}}),
-            500,
-        )
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Database error",
+                "message": str(exc)
+            }
+        }), 500
     else:
         con.commit()
-        return jsonify({"status": True})
+        return jsonify({
+            "status": True
+        })
     finally:
         cur.close()
         con.close()
@@ -893,13 +889,16 @@ def get_annotation_entries(ann_id):
           ON EC.ENTRY_AC = E.ENTRY_AC
         WHERE EC.ANN_ID = :1
         ORDER BY EC.ENTRY_AC
-        """,
-        (ann_id,),
+        """, (ann_id,)
     )
 
     entries = []
     for row in cur:
-        entries.append({"accession": row[0], "name": row[1], "type": row[2]})
+        entries.append({
+            "accession": row[0],
+            "name": row[1],
+            "type": row[2]
+        })
 
     cur.close()
     return jsonify(entries)
@@ -935,8 +934,7 @@ def get_citations(cur: Cursor, pmids: Sequence[Union[int, str]]) -> dict:
               A.HAS_SPECIAL_CHARS = 'N'
             )
         WHERE C.EXTERNAL_ID IN ({','.join(keys)})
-        """,
-        params,
+        """, params
     )
 
     citations = {}
@@ -975,7 +973,7 @@ def insert_citations(cur: Cursor, citations: dict) -> Optional[int]:
                 )
                 RETURNING PUB_ID INTO :11
                 """,
-                (*row, pub_id),
+                (*row, pub_id)
             )
         except DatabaseError:
             return pmid

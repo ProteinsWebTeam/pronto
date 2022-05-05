@@ -18,9 +18,10 @@ LoT = List[Tuple[str, str, str]]
 def ck_abbreviations(entries: LoT, terms: LoS, exceptions: DoS) -> Err:
     prog1 = re.compile(r"\d+\s+kDa")
     prog2 = re.compile(r"\b[cn][\-\s]termin(?:al|us)", flags=re.I)
-    prog2_except = {"N-terminal", "C-terminal", "C terminus", "N terminus"}
+    prog2_except = {"N-terminal", "C-terminal",
+                    "C terminus", "N terminus"}
 
-    prog3 = re.compile("|".join(terms)) if terms else None
+    prog3 = re.compile('|'.join(terms)) if terms else None
     prog3_excep = exceptions
 
     errors = []
@@ -55,7 +56,7 @@ def ck_acc_in_name(entries: LoT, exceptions: DoS) -> Err:
         r"SSF\d{4,}",
         r"TIGR\d{4,}",
         r"cd\d{4,}",
-        r"sd\d{4,}",
+        r"sd\d{4,}"
     ]
     prog = re.compile(fr"\b(?:{'|'.join(terms)})\b")
 
@@ -161,10 +162,10 @@ def ck_letter_case(entries: LoT, exceptions: Tuple[str]) -> Err:
     errors = []
     for acc, name, short_name in entries:
         if prog.match(name) and not name.startswith(exceptions):
-            errors.append((acc, name.split(" ")[0]))
+            errors.append((acc, name.split(' ')[0]))
 
         if prog.match(short_name) and not short_name.startswith(exceptions):
-            errors.append((acc, short_name.split("_")[0]))
+            errors.append((acc, short_name.split('_')[0]))
 
     return errors
 
@@ -382,7 +383,8 @@ def check(ora_cur: Cursor, pg_url: str):
     for item in ck_retracted(ora_cur, entries):
         yield "retracted", item
 
-    exceptions = load_exceptions(ora_cur, "similar_name", "ENTRY_AC", "ENTRY_AC2")
+    exceptions = load_exceptions(ora_cur, "similar_name", "ENTRY_AC",
+                                 "ENTRY_AC2")
     for item in ck_similar_names(ora_cur, exceptions):
         yield "similar_name", item
 
