@@ -62,8 +62,7 @@ CHECKS = {
     },
     "encoding": {
         "name": "Encoding",
-        "description": "Special characters (e.g. greek letters) "
-                       "should be avoided",
+        "description": "Special characters should be avoided",
         "label": "Invalid character",
         "terms": False,
         "exceptions": 'g'
