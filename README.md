@@ -30,7 +30,7 @@ python setup.py install
 
 ## Configuration
 
-Edit `config.cfg`, and set the following options:
+Create a copy of `config.cfg` (e.g. `config.local.cfg`), and set the following options:
 
 * `ORACLE` - Connection string for InterPro production Oracle database.
 * `MYSQL` - Connection string for InterPro7 MySQL database.
@@ -55,7 +55,7 @@ Copy the string and paste it into the config file.
 Pronto relies on the file the `PRONTO_CONFIG` environment variable points to. On Linux or OS X, you can set this environment variable with:
   
 ```bash
-export PRONTO_CONFIG=/path/to/config.cfg
+export PRONTO_CONFIG=/path/to/config/file
 ```
 
 ### Built-in server
