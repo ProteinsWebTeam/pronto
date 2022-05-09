@@ -128,6 +128,24 @@ def update_entry(accession):
                            "30 characters."
             }
         }), 400
+    errors = set()
+    for char in entry_name:
+        if not char.isascii():
+            errors.add(char)
+
+    for char in entry_short_name:
+        if not char.isascii():
+            errors.add(char)
+
+    if errors:
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Invalid name or short name",
+                "message": f"Invalid character(s): {', '.join(errors)}"
+            }
+        }), 400
+
 
     con = utils.connect_oracle_auth(user)
     cur = con.cursor()
@@ -398,6 +416,24 @@ def create_entry():
                 "title": "Short name too long",
                 "message": "Entry short names cannot be longer than "
                            "30 characters."
+            }
+        }), 400
+
+    errors = set()
+    for char in entry_name:
+        if not char.isascii():
+            errors.add(char)
+
+    for char in entry_short_name:
+        if not char.isascii():
+            errors.add(char)
+
+    if errors:
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Invalid name or short name",
+                "message": f"Invalid character(s): {', '.join(errors)}"
             }
         }), 400
 

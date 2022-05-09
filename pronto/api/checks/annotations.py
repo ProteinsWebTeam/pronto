@@ -62,11 +62,8 @@ def ck_encoding(cabs: LoT, exceptions: Set[str]) -> Err:
     errors = []
     for ann_id, text in cabs:
         for char in text:
-            try:
-                char.encode("ascii")
-            except UnicodeEncodeError:
-                if str(ord(char)) not in exceptions:
-                    errors.append((ann_id, char))
+            if not char.isascii() and str(ord(char)) not in exceptions:
+                errors.append((ann_id, char))
 
     return errors
 

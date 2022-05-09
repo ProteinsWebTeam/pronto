@@ -139,11 +139,8 @@ class Annotation(object):
     def validate_encoding(self, exceptions: Set[str]) -> bool:
         errors = set()
         for char in self.text:
-            try:
-                char.encode("ascii")
-            except UnicodeEncodeError:
-                if str(ord(char)) not in exceptions:
-                    errors.add(char)
+            if not char.isascii() and str(ord(char)) not in exceptions:
+                errors.add(char)
 
         if errors:
             self.error = f"Invalid character(s): {', '.join(errors)}"

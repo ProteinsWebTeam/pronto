@@ -1,8 +1,8 @@
 import * as checkbox from './ui/checkbox.js'
 import * as dimmer from './ui/dimmer.js'
-import {renderTaskList, updateHeader} from "./ui/header.js"
-import {setClass, escape, copy2clipboard} from "./ui/utils.js";
-import {waitForTask} from "./tasks.js";
+import { renderTaskList, updateHeader } from "./ui/header.js"
+import { setClass, escape, copy2clipboard } from "./ui/utils.js";
+import { waitForTask } from "./tasks.js";
 import * as modal from "./ui/modals.js";
 
 async function getMemberDatabaseUpdates() {
@@ -86,7 +86,7 @@ async function getInterPro2GoStats() {
             const val = entryType.count;
             total += val;
 
-            if (! series.has(key))
+            if (!series.has(key))
                 // Init array with zeros
                 series.set(key, new Array(categories.length).fill(0));
 
@@ -109,7 +109,7 @@ async function getInterPro2GoStats() {
             type: 'bar',
             height: 250,
             events: {
-                load: function() {
+                load: function () {
                     this.setSize(null, this.chartHeight + this.legend.legendHeight + this.legend.padding);
                 }
             }
@@ -184,7 +184,7 @@ async function getIntegrationStats() {
             title: { text: null },
             type: 'datetime',
             labels: {
-                formatter: function() {
+                formatter: function () {
                     return Highcharts.dateFormat('%b %Y', this.value);
                 }
             }
@@ -202,10 +202,10 @@ async function getIntegrationStats() {
             data: delData
         }],
         tooltip: {
-            formatter: function() {
+            formatter: function () {
                 return `
                     <span style="font-size: 10px">Week ${this.point.name} (${Highcharts.dateFormat('%e %b', this.x)})</span><br>
-                    <b>${this.y}</b> signature${this.y !==1 ? 's' : ''} ${this.series.name}<br>
+                    <b>${this.y}</b> signature${this.y !== 1 ? 's' : ''} ${this.series.name}<br>
                     <span style="font-size: 10px">${this.point.checked} ${this.point.checked === 1 ? 'is' : 'are'} currently integrated in a checked entry</span>
                 `;
             },
@@ -270,19 +270,19 @@ async function getQuartelyStats() {
         title: { text: null },
         subtitle: { text: null },
         credits: { enabled: false },
-        xAxis: { categories: data.map(x => x.quarter ) },
+        xAxis: { categories: data.map(x => x.quarter) },
         yAxis: { title: { text: null } },
         series: [{
             name: 'Entries',
-            data: data.map(x => x.entries ),
+            data: data.map(x => x.entries),
             color: '#241E26'
         }, {
             name: 'Signatures',
-            data: data.map(x => x.signatures ),
+            data: data.map(x => x.signatures),
             color: '#34BFA6'
         }, {
             name: 'GO terms',
-            data: data.map(x => x.terms ),
+            data: data.map(x => x.terms),
             color: '#F29441'
         }]
     });
@@ -348,10 +348,10 @@ function getDatabases() {
                 let unint;
                 if (database.id === 'mobidblt') {
                     total = database.signatures.total.toLocaleString();
-                    unint = (database.signatures.total-database.signatures.integrated).toLocaleString();
+                    unint = (database.signatures.total - database.signatures.integrated).toLocaleString();
                 } else {
                     total = `<a href="/database/${database.id}/">${database.signatures.total.toLocaleString()}</a>`;
-                    unint = `<a href="/database/${database.id}/unintegrated/?target=integrated">${(database.signatures.total-database.signatures.integrated).toLocaleString()}</a>`;
+                    unint = `<a href="/database/${database.id}/unintegrated/?target=integrated">${(database.signatures.total - database.signatures.integrated).toLocaleString()}</a>`;
 
                     // series.push({
                     //     name: database.name,
@@ -551,7 +551,7 @@ async function resolveError(runID, errID, addException) {
     if (addException)
         url += '?exception';
 
-    const response = await fetch(url, {method: 'POST'});
+    const response = await fetch(url, { method: 'POST' });
     return await response.json();
 }
 
@@ -610,7 +610,7 @@ async function getSanityCheck() {
                 numUnresolved += 1;
                 html += '<td class="right aligned">';
 
-                if (error.exceptions)
+                if (error.exceptions && error.type !== 'Invalid character')
                     html += `<button data-resolve="${error.id}" data-except class="ui very compact basic button">Add exception</button>`;
 
                 html += `<button data-resolve="${error.id}" class="ui very compact basic button">Resolve</button>`;
@@ -667,7 +667,7 @@ async function getSanityCheck() {
 }
 
 async function runSanityChecks() {
-    const response = await fetch('/api/checks/', {method: 'PUT'});
+    const response = await fetch('/api/checks/', { method: 'PUT' });
     const run = await response.json();
 
     const tab = document.querySelector('.tab[data-tab="checks"]');
@@ -734,7 +734,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Init closable messages
     $(document.querySelectorAll('.message .close'))
-        .on('click', function() {
+        .on('click', function () {
             $(this)
                 .closest('.message')
                 .transition('fade');
@@ -762,7 +762,7 @@ document.addEventListener('DOMContentLoaded', () => {
             setClass(document.getElementById('welcome'), 'active', false);
         });
 
-    (function() {
+    (function () {
         const tab = document.querySelector('.tab[data-tab="statistics"]');
         tab.querySelector(':scope > .button').addEventListener('click', e => {
             const button = e.currentTarget;

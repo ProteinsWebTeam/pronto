@@ -78,11 +78,11 @@ def ck_encoding(entries: LoT, exceptions: Set[str]) -> Err:
     errors = []
     for acc, name, short_name in entries:
         for char in name:
-            try:
-                char.encode("ascii")
-            except UnicodeEncodeError:
-                if str(ord(char)) not in exceptions:
-                    errors.append((acc, char))
+            if not char.isascii():
+                errors.append((acc, char))
+        for char in short_name:
+            if not char.isascii():
+                errors.append((acc, char))
 
     return errors
 
