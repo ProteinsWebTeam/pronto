@@ -21,6 +21,11 @@ class Annotation(object):
         self.error = None
         self.references = {}  # PMID -> Pub ID
 
+        # Remove U+00AD (soft-hypen)
+        # http://www.fileformat.info/info/unicode/char/00AD/index.htm
+        self.text = self.text.replace("\xad", "")
+        self.text = self.text.replace("\u00ad", "")
+
     def validate_html(self) -> bool:
         # Find missing opening/closing tags
         for el in ("b", "i", "li", "ol", "p", "pre", "sub", "sup", "ul"):
