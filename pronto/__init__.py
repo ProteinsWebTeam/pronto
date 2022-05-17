@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from datetime import timedelta
 
 from flask import Flask, render_template
@@ -7,7 +5,7 @@ from flask import Flask, render_template
 from . import api
 from . import auth
 
-__version__ = "2.3.2"
+__version__ = "2.3.3"
 
 
 app = Flask(__name__)
