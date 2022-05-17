@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import re
 from typing import Dict, List, Optional, Set, Tuple
 
@@ -16,7 +14,7 @@ LoT = List[Tuple[str, str, str]]
 
 
 def ck_abbreviations(entries: LoT, terms: LoS, exceptions: DoS) -> Err:
-    prog1 = re.compile(r"\d+\s+kDa")
+    prog1 = re.compile(r"\d+\s{2,}kDa")
     prog2 = re.compile(r"\b[cn][\-\s]termin(?:al|us)", flags=re.I)
     prog2_except = {"N-terminal", "C-terminal",
                     "C terminus", "N terminus"}
