@@ -10,6 +10,8 @@ bp = Blueprint("api.checks", __name__, url_prefix="/api/checks")
 
 from .annotations import check as check_annotations
 from .entries import check as check_entries
+from .go_terms import check as check_go
+from .long_check import check as check_long
 from .utils import CHECKS
 from pronto import auth, utils
 
@@ -93,8 +95,9 @@ def get_checks():
     return jsonify(sorted(types.values(), key=lambda x: x["name"]))
 
 
-@bp.route("/", methods=["PUT"])
-def submit_checks():
+@bp.route("/<run_all_checks>/", methods=["PUT"])
+def submit_checks(run_all_checks):
+
     user = auth.get_user()
     if not user:
         return jsonify({
@@ -105,9 +108,10 @@ def submit_checks():
             }
         }), 401
 
-    ora_url = utils.get_oracle_url(user)
-    task = utils.executor.submit(ora_url, "sanitychecks", run_checks,
-                                 ora_url, utils.get_pg_url())
+    ora_ip_url = utils.get_oracle_url(user)
+    ora_goa_url = utils.get_oracle_goa_url()
+    task = utils.executor.submit(ora_ip_url, "sanitychecks", run_checks,
+                                 ora_ip_url, utils.get_pg_url(), ora_goa_url, run_all_checks)
 
     return jsonify({
         "status": True,
@@ -115,7 +119,7 @@ def submit_checks():
     }), 202
 
 
-def run_checks(ora_url: str, pg_url: str):
+def run_checks(ora_url: str, pg_url: str, ora_goa_url: str, run_all_checks:bool):
     run_id = uuid.uuid1().hex
 
     con = cx_Oracle.connect(ora_url)
@@ -135,6 +139,27 @@ def run_checks(ora_url: str, pg_url: str):
             counts[key] += 1
         except KeyError:
             counts[key] = 1
+    
+    con_goa = cx_Oracle.connect(ora_goa_url)
+    cur_goa = con_goa.cursor()
+
+    for check_type, (entry_acc, error) in check_go(cur, cur_goa):
+        key = (None, entry_acc, check_type, error)
+        try:
+            counts[key] += 1
+        except KeyError:
+            counts[key] = 1
+
+    cur_goa.close()
+    con_goa.close()
+
+    if run_all_checks == "true":
+        for check_type, (entry_acc, error) in check_long(ora_url, pg_url):
+            key = (None, entry_acc, check_type, error)
+            try:
+                counts[key] += 1
+            except KeyError:
+                counts[key] = 1
 
     errors = []
     i = 1

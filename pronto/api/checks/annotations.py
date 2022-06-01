@@ -170,6 +170,62 @@ def ck_substitutions(cabs: LoT, terms: LoS, exceptions: DoS) -> Err:
 
     return errors
 
+def ck_interpro_accessions(cur: Cursor, cabs: LoT) -> Err:
+
+    cur.execute(
+    """
+        SELECT ENTRY_AC 
+        FROM INTERPRO.ENTRY
+        WHERE CHECKED = 'Y'
+    """
+    )
+    checked_entries = [row[0] for row in cur]
+
+    errors = []
+    accession = re.compile(r"IPR\d{6}")
+    for ann_id, text in cabs:
+        for match in accession.finditer(text):
+            term = match.group(0)
+            if term not in checked_entries:
+                errors.append((ann_id, term))
+
+    return errors
+
+def ck_signature_accessions(cur: Cursor, cabs: LoT) -> Err:
+
+    cur.execute(
+    """
+        SELECT METHOD_AC
+        FROM INTERPRO.METHOD
+    """
+    )
+    checked_signatures = [row[0] for row in cur]
+
+    errors = []
+    terms = [
+        r"G3DSA:[\d.]{4,}",
+        r"MF_\d{4,}",
+        r"PF\d{5,}",
+        r"PIRSF\d{4,}",
+        r"PR\d{4,}",
+        r"PS\d{4,}",
+        r"PTHR\d{4,}",
+        r"SFLD[FGS]\d{4,}",
+        r"SM\d{4,}",
+        r"SSF\d{4,}",
+        r"TIGR\d{4,}",
+        r"cd\d{4,}",
+        r"sd\d{4,}"
+    ]
+
+    prog = re.compile(fr"\b(?:{'|'.join(terms)})\b")
+    for ann_id, text in cabs:
+        for match in prog.finditer(text):
+            term = match.group(0)
+            if term not in checked_signatures:
+                errors.append((ann_id, term))
+
+    return errors
 
 def check(cur: Cursor):
     cur.execute(
@@ -215,3 +271,9 @@ def check(cur: Cursor):
     exceptions = load_exceptions(cur, "substitution", "ANN_ID", "TERM")
     for item in ck_substitutions(cabs, terms, exceptions):
         yield "substitution", item
+
+    for item in ck_interpro_accessions(cur, cabs):
+        yield "deleted_entry", item
+
+    for item in ck_signature_accessions(cur, cabs):
+        yield "sign_not_found", item

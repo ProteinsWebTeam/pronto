@@ -31,6 +31,13 @@ CHECKS = {
         "terms": True,
         "exceptions": 't'
     },
+    "domain_in_family_name": {
+        "name": "Domain in family entry name",
+        "description": "Entry names of family cannot contain a domain",
+        "label": "Domain in family entry name",
+        "terms": False,
+        "exceptions": None
+    },
     "acc_in_name": {
         "name": "Accessions in names",
         "description": "Entry names cannot contain accessions",
@@ -184,6 +191,20 @@ CHECKS = {
         "terms": False,
         "exceptions": None
     },
+    "child_type_conflict": {
+        "name": "Child type conflict",
+        "description": "Parent and child entry have a different type",
+        "label": "Child type conflict",
+        "terms": False,
+        "exceptions": None
+    },
+    "unauthorised_child":{
+        "name": "Unauthorised child",
+        "description": "Parent entries of type R,C,A,B,P,H can't have children",
+        "label": "Unauthorised child",
+        "terms": False,
+        "exceptions": None
+    },
     "underscore": {
         "name": "Underscores in names",
         "description": "Names cannot contain underscores and, in short names,"
@@ -193,6 +214,97 @@ CHECKS = {
         "label": "Underscore in name",
         "terms": False,
         "exceptions": 's'
+    },
+    "generic_go_term": {
+        "name": "Generic GO term",
+        "description": "GO term used is too generic",
+        "label": "Generic GO term",
+        "terms": False,
+        "exceptions": None
+    },
+    "root_go_term": {
+        "name": "Root GO term",
+        "description": "GO term used is root",
+        "label": "Root GO term",
+        "terms": False,
+        "exceptions": None
+    },
+    "dead_entry": {
+        "name": "Retired InterPro entry found in InterPro2GO",
+        "description": "InterPro entry doesn't exist anymore, delete GO term from InterPro2GO",
+        "label": "Retired InterPro entry found in InterPro2GO",
+        "terms": False,
+        "exceptions": None
+    },
+    "secondary_acc": {
+        "name": "GO term in secondary InterPro entry",
+        "description": "GO term is assigned to an old InterPro entry",
+        "label": "Secondary InterPro entry",
+        "terms": False,
+        "exceptions": None
+    },
+    "secondary_go": {
+        "name": "Replaced GO term",
+        "description": "GO term has been replaced",
+        "label": "Replaced GO term",
+        "terms": False,
+        "exceptions": None
+    },
+    "obsolete_go": {
+        "name": "Obsolete GO term",
+        "description": "GO term used is obsolete",
+        "label": "Obsolete GO term",
+        "terms": False,
+        "exceptions": None
+    },
+    "interpro2go": {
+        "name": "GO term in empty entry",
+        "description": "GO term used in an entry without signature",
+        "label": "GO term in empty entry",
+        "terms": False,
+        "exceptions": None
+    },
+    "deleted_entry": {
+        "name": "Deleted entry",
+        "description": "The entry doesn't exist",
+        "label": "Deleted entry",
+        "terms": False,
+        "exceptions": None
+    },
+    "sign_not_found": {
+        "name": "Signature not found",
+        "description": "The signature doesn't exist in the InterPro database",
+        "label": "Signature not found",
+        "terms": False,
+        "exceptions": None
+    },
+    "empty_annotation": {
+        "name": "No annotation block",
+        "description": "The entry doesn't have an annotation block",
+        "label": "No annotation block",
+        "terms": False,
+        "exceptions": None
+    },
+    "child_matches": {
+        "name": "Low number of matches with child",
+        "description": "No common matches found with child entry",
+        "label": "Low number of matches with child",
+        "terms": False,
+        "exceptions": None
+    },
+    "skip_no_matches": {
+        "name": "No matches found",
+        "description": "No matches found where skip flag = N",
+        "label": "No matches found",
+        "terms": False,
+        "exceptions": None
+    },
+    "fragment_matches": {
+        "name": "Fragment matches",
+        "description": "Only fragment matches found for signature",
+        "label": "Fragment matches",
+        "terms": False,
+        "exceptions": None
     },
 }
 

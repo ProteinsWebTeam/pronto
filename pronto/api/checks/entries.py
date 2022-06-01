@@ -38,13 +38,27 @@ def ck_abbreviations(entries: LoT, terms: LoS, exceptions: DoS) -> Err:
 
     return errors
 
+def ck_domain_in_family(cur: Cursor) -> Err:
+    cur.execute(
+    """
+        SELECT ENTRY_AC, NAME
+        FROM INTERPRO.ENTRY
+        WHERE ENTRY_TYPE='F'
+        AND CHECKED = 'Y'
+        AND (NAME LIKE '%-terminal'
+        OR NAME LIKE '%-terminal domain')
+    """
+    )
+
+    return cur.fetchall()
+
 
 def ck_acc_in_name(entries: LoT, exceptions: DoS) -> Err:
     terms = [
         r"G3DSA:[\d.]{4,}",
-        r"IPR\d{4,}",
+        r"IPR\d{6,}",
         r"MF_\d{4,}",
-        r"PF\d{4,}",
+        r"PF\d{5,}",
         r"PIRSF\d{4,}",
         r"PR\d{4,}",
         r"PS\d{4,}",
@@ -318,6 +332,42 @@ def ck_unchecked_children(cur: Cursor) -> Err:
     )
     return [(acc, None) for acc, in cur]
 
+def ck_children_type(cur: Cursor) -> Err:
+    cur.execute(
+    """
+        SELECT A.PARENT_AC PARENT, A.ENTRY_AC CHILD, B1.ENTRY_TYPE TYPE
+        FROM INTERPRO.ENTRY2ENTRY A
+        JOIN INTERPRO.ENTRY B1 ON A.ENTRY_AC = B1.ENTRY_AC
+        JOIN INTERPRO.ENTRY B2 ON A.PARENT_AC = B2.ENTRY_AC
+        WHERE B2.ENTRY_TYPE != B1.ENTRY_TYPE
+        ORDER BY A.PARENT_AC,A.ENTRY_AC
+    """
+    )
+    errors = []
+
+    for row in cur:
+        errors.append((row[0], f"{row[1]}: {row[2]}"))
+
+    return errors
+
+def ck_no_children(cur: Cursor) -> Err:
+    cur.execute(
+    """
+        SELECT A.PARENT_AC PARENT, A.ENTRY_AC CHILD, B1.ENTRY_TYPE TYPE_C, B2.ENTRY_TYPE TYPE_P
+        FROM INTERPRO.ENTRY2ENTRY A
+        JOIN INTERPRO.ENTRY B1 ON A.ENTRY_AC = B1.ENTRY_AC
+        JOIN INTERPRO.ENTRY B2 ON A.PARENT_AC = B2.ENTRY_AC
+        WHERE B2.ENTRY_TYPE != B1.ENTRY_TYPE AND B2.ENTRY_TYPE IN ('R','C','A','B','P','H')
+        ORDER BY A.PARENT_AC, A.ENTRY_AC
+    """
+    )
+    errors = []
+
+    for row in cur:
+        errors.append((row[0], f"{row[3]} ({row[1]}: {row[2]})"))
+
+    return errors
+
 
 def ck_underscore(entries: LoT, exceptions: Set[str]) -> Err:
     prog1 = re.compile(r"\w*_\w*")
@@ -335,6 +385,17 @@ def ck_underscore(entries: LoT, exceptions: Set[str]) -> Err:
 
     return errors
 
+def ck_no_cab(cur: Cursor) -> Err:
+    cur.execute("""
+        SELECT E.ENTRY_AC, CA.TEXT
+        FROM INTERPRO.ENTRY E
+        LEFT OUTER JOIN INTERPRO.ENTRY2COMMON E2C ON (E.ENTRY_AC=E2C.ENTRY_AC)
+        LEFT OUTER JOIN INTERPRO.COMMON_ANNOTATION CA ON (E2C.ANN_ID=CA.ANN_ID)
+        WHERE CA.TEXT IS NULL
+    """
+    )
+
+    return cur.fetchall()
 
 def check(ora_cur: Cursor, pg_url: str):
     ora_cur.execute("SELECT ENTRY_AC, NAME, SHORT_NAME FROM INTERPRO.ENTRY")
@@ -344,6 +405,9 @@ def check(ora_cur: Cursor, pg_url: str):
     exceptions = load_exceptions(ora_cur, "abbreviation", "ENTRY_AC", "TERM")
     for item in ck_abbreviations(entries, terms, exceptions):
         yield "abbreviation", item
+
+    for item in ck_domain_in_family(ora_cur):
+        yield "domain_in_family_name", item
 
     exceptions = load_exceptions(ora_cur, "acc_in_name", "ENTRY_AC", "TERM")
     for item in ck_acc_in_name(entries, exceptions):
@@ -399,7 +463,16 @@ def check(ora_cur: Cursor, pg_url: str):
 
     for item in ck_unchecked_children(ora_cur):
         yield "unchecked_child", item
+    
+    for item in ck_children_type(ora_cur):
+        yield "child_type_conflict", item
+
+    for item in ck_no_children(ora_cur):
+        yield "unauthorised_child", item
 
     exceptions = load_exceptions(ora_cur, "underscore", "ENTRY_AC", "TERM")
     for item in ck_underscore(entries, set(exceptions)):
         yield "underscore", item
+    
+    for item in ck_no_cab(ora_cur):
+        yield "empty_annotation", item

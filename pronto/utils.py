@@ -153,22 +153,26 @@ executor = Executor()
 
 
 def connect_oracle() -> cx_Oracle.Connection:
-    return cx_Oracle.connect(current_app.config["ORACLE"])
+    return cx_Oracle.connect(current_app.config["ORACLE_IP"])
 
 
 def connect_oracle_auth(user: dict) -> cx_Oracle.Connection:
     # input format:  app_user/app_passwd@[host:port]/service
-    dsn = current_app.config["ORACLE"].rsplit('@', 1)[-1]
+    dsn = current_app.config["ORACLE_IP"].rsplit('@', 1)[-1]
     return cx_Oracle.connect(user["dbuser"], user["password"], dsn)
 
 
 def get_oracle_url(user: dict) -> str:
-    dsn = current_app.config["ORACLE"].rsplit('@', 1)[-1]
+    dsn = current_app.config["ORACLE_IP"].rsplit('@', 1)[-1]
     return f"{user['dbuser']}/{user['password']}@{dsn}"
 
 
 def get_oracle_dsn():
-    return current_app.config["ORACLE"].rsplit('@', 1)[-1]
+    return current_app.config["ORACLE_IP"].rsplit('@', 1)[-1]
+    
+
+def get_oracle_goa_url() -> str:
+    return current_app.config["ORACLE_GOA"]
 
 
 def connect_pg(url: Optional[str]=None):
