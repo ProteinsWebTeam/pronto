@@ -12,16 +12,16 @@ LoS = List[str]
 Err = List[Tuple[str, Optional[str]]]
 LoT = List[Tuple[str, str, str]]
 
-def ck_child_matches(cur: Cursor, pg_url: str) -> Err:
 
+def ck_child_matches(cur: Cursor, pg_url: str) -> Err:
     cur.execute(
-    """
+        """
         SELECT E2E.PARENT_AC, E2MP.METHOD_AC, E2E.ENTRY_AC, E2M.METHOD_AC
         FROM INTERPRO.ENTRY2ENTRY E2E
         JOIN INTERPRO.ENTRY2METHOD E2M ON E2E.ENTRY_AC = E2M.ENTRY_AC
         JOIN INTERPRO.ENTRY2METHOD E2MP ON E2E.PARENT_AC = E2MP.ENTRY_AC
         ORDER BY E2E.PARENT_AC
-    """
+        """
     )
 
     entries = dict()
@@ -73,9 +73,10 @@ def ck_child_matches(cur: Cursor, pg_url: str) -> Err:
 
     return errors
 
+
 def ck_skip_flag_no_match(cur: Cursor, sign_no_frag: set) -> Err:
     cur.execute(
-    """
+        """
         SELECT E2M.ENTRY_AC, E2M.METHOD_AC
         FROM INTERPRO.ENTRY E
         JOIN INTERPRO.ENTRY2METHOD E2M ON (E.ENTRY_AC=E2M.ENTRY_AC)
@@ -83,7 +84,7 @@ def ck_skip_flag_no_match(cur: Cursor, sign_no_frag: set) -> Err:
         WHERE M.SKIP_FLAG='N'
         AND M.DBCODE NOT IN ('V') 
         AND E.CHECKED = 'Y'
-    """
+        """
     )
 
     errors = []
@@ -96,16 +97,17 @@ def ck_skip_flag_no_match(cur: Cursor, sign_no_frag: set) -> Err:
 
     return errors
 
+
 def ck_fragments(cur: Cursor, sign_no_frag: set) -> Err:
     # Integrated ENTRIES that have METHODs that MATCH ONLY FRAGMENTS
     cur.execute(
-    """
+        """
         SELECT E.ENTRY_AC, E2M.METHOD_AC
         FROM INTERPRO.ENTRY E
         JOIN INTERPRO.ENTRY2METHOD E2M ON E.ENTRY_AC=E2M.ENTRY_AC
         WHERE E.CHECKED='Y'
         GROUP BY E.ENTRY_AC, E2M.METHOD_AC
-    """
+        """
     )
 
     errors = []
@@ -117,6 +119,7 @@ def ck_fragments(cur: Cursor, sign_no_frag: set) -> Err:
             errors.append((entry_ac, sign))
 
     return errors
+
 
 def get_proteins(pg_cur: Cursor, sign_list: list) -> Err:
 
@@ -124,9 +127,9 @@ def get_proteins(pg_cur: Cursor, sign_list: list) -> Err:
 
     pg_cur.execute(
         f"""
-            SELECT DISTINCT SIGNATURE_ACC, PROTEIN_ACC 
-            FROM SIGNATURE2PROTEIN S2P
-            WHERE SIGNATURE_ACC in ('{sign_list_txt}')
+        SELECT DISTINCT SIGNATURE_ACC, PROTEIN_ACC 
+        FROM SIGNATURE2PROTEIN S2P
+        WHERE SIGNATURE_ACC in ('{sign_list_txt}')
         """
     )
     list_acc = dict()
@@ -140,14 +143,15 @@ def get_proteins(pg_cur: Cursor, sign_list: list) -> Err:
 
     return list_acc
 
+
 def get_signatures(pg_url: str) -> Err:
     pg_con = connect_pg(pg_url)
     pg_cur = pg_con.cursor()
 
     pg_cur.execute(
         f"""
-            SELECT DISTINCT SIGNATURE_ACC
-            FROM SIGNATURE2PROTEIN S2P
+        SELECT DISTINCT SIGNATURE_ACC
+        FROM SIGNATURE2PROTEIN S2P
         """
     )
     list_acc = set()
@@ -159,6 +163,7 @@ def get_signatures(pg_url: str) -> Err:
     pg_con.close()
 
     return list_acc
+
 
 def check(ora_url: str, pg_url: str):
     sign_no_frag = get_signatures(pg_url)
@@ -180,4 +185,4 @@ def check(ora_url: str, pg_url: str):
 
     for item in ck_fragments(cur, sign_no_frag):
         yield "fragment_matches", item
-    
+
