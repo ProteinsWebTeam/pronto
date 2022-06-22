@@ -38,16 +38,16 @@ def ck_abbreviations(entries: LoT, terms: LoS, exceptions: DoS) -> Err:
 
     return errors
 
+
 def ck_domain_in_family(cur: Cursor) -> Err:
     cur.execute(
-    """
+        """
         SELECT ENTRY_AC, NAME
         FROM INTERPRO.ENTRY
         WHERE ENTRY_TYPE='F'
         AND CHECKED = 'Y'
-        AND (NAME LIKE '%-terminal'
-        OR NAME LIKE '%-terminal domain')
-    """
+        AND (NAME LIKE '%-terminal' OR NAME LIKE '%-terminal domain')
+        """
     )
 
     return cur.fetchall()
@@ -332,9 +332,10 @@ def ck_unchecked_children(cur: Cursor) -> Err:
     )
     return [(acc, None) for acc, in cur]
 
+
 def ck_children_type(cur: Cursor) -> Err:
     cur.execute(
-    """
+        """
         SELECT A.PARENT_AC PARENT, A.ENTRY_AC CHILD, B1.ENTRY_TYPE TYPE
         FROM INTERPRO.ENTRY2ENTRY A
         JOIN INTERPRO.ENTRY B1 ON A.ENTRY_AC = B1.ENTRY_AC
@@ -350,16 +351,17 @@ def ck_children_type(cur: Cursor) -> Err:
 
     return errors
 
+
 def ck_no_children(cur: Cursor) -> Err:
     cur.execute(
-    """
+        """
         SELECT A.PARENT_AC PARENT, A.ENTRY_AC CHILD, B1.ENTRY_TYPE TYPE_C, B2.ENTRY_TYPE TYPE_P
         FROM INTERPRO.ENTRY2ENTRY A
         JOIN INTERPRO.ENTRY B1 ON A.ENTRY_AC = B1.ENTRY_AC
         JOIN INTERPRO.ENTRY B2 ON A.PARENT_AC = B2.ENTRY_AC
         WHERE B2.ENTRY_TYPE != B1.ENTRY_TYPE AND B2.ENTRY_TYPE IN ('R','C','A','B','P','H')
         ORDER BY A.PARENT_AC, A.ENTRY_AC
-    """
+        """
     )
     errors = []
 
@@ -385,17 +387,20 @@ def ck_underscore(entries: LoT, exceptions: Set[str]) -> Err:
 
     return errors
 
+
 def ck_no_cab(cur: Cursor) -> Err:
-    cur.execute("""
+    cur.execute(
+        """
         SELECT E.ENTRY_AC, CA.TEXT
         FROM INTERPRO.ENTRY E
         LEFT OUTER JOIN INTERPRO.ENTRY2COMMON E2C ON (E.ENTRY_AC=E2C.ENTRY_AC)
         LEFT OUTER JOIN INTERPRO.COMMON_ANNOTATION CA ON (E2C.ANN_ID=CA.ANN_ID)
         WHERE CA.TEXT IS NULL
-    """
+        """
     )
 
     return cur.fetchall()
+
 
 def check(ora_cur: Cursor, pg_url: str):
     ora_cur.execute("SELECT ENTRY_AC, NAME, SHORT_NAME FROM INTERPRO.ENTRY")
