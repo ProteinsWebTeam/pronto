@@ -6,6 +6,7 @@ from urllib.request import urlopen
 
 from cx_Oracle import Cursor
 
+from pronto.utils import SIGNATURES
 from .utils import load_exceptions, load_global_exceptions, load_terms
 
 
@@ -170,14 +171,14 @@ def ck_substitutions(cabs: LoT, terms: LoS, exceptions: DoS) -> Err:
 
     return errors
 
-def ck_interpro_accessions(cur: Cursor, cabs: LoT) -> Err:
 
+def ck_interpro_accessions(cur: Cursor, cabs: LoT) -> Err:
     cur.execute(
-    """
+        """
         SELECT ENTRY_AC 
         FROM INTERPRO.ENTRY
         WHERE CHECKED = 'Y'
-    """
+        """
     )
     checked_entries = [row[0] for row in cur]
 
@@ -191,34 +192,18 @@ def ck_interpro_accessions(cur: Cursor, cabs: LoT) -> Err:
 
     return errors
 
-def ck_signature_accessions(cur: Cursor, cabs: LoT) -> Err:
 
+def ck_signature_accessions(cur: Cursor, cabs: LoT) -> Err:
     cur.execute(
-    """
+        """
         SELECT METHOD_AC
         FROM INTERPRO.METHOD
-    """
+        """
     )
     checked_signatures = [row[0] for row in cur]
 
     errors = []
-    terms = [
-        r"G3DSA:[\d.]{4,}",
-        r"MF_\d{4,}",
-        r"PF\d{5,}",
-        r"PIRSF\d{4,}",
-        r"PR\d{4,}",
-        r"PS\d{4,}",
-        r"PTHR\d{4,}",
-        r"SFLD[FGS]\d{4,}",
-        r"SM\d{4,}",
-        r"SSF\d{4,}",
-        r"TIGR\d{4,}",
-        r"cd\d{4,}",
-        r"sd\d{4,}"
-    ]
-
-    prog = re.compile(fr"\b(?:{'|'.join(terms)})\b")
+    prog = re.compile(fr"\b(?:{'|'.join(SIGNATURES)})\b")
     for ann_id, text in cabs:
         for match in prog.finditer(text):
             term = match.group(0)
@@ -226,6 +211,7 @@ def ck_signature_accessions(cur: Cursor, cabs: LoT) -> Err:
                 errors.append((ann_id, term))
 
     return errors
+
 
 def check(cur: Cursor):
     cur.execute(
