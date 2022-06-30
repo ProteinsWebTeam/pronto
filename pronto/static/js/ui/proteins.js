@@ -1,7 +1,7 @@
 export function genLink(accession, reviewed) {
     if (reviewed)
         return `//sp.isb-sib.ch/uniprot/${accession}`;
-    return `//www.uniprot.org/uniprot/${accession}`
+    return `//www.uniprot.org/uniprotkb/${accession}/entry`
 }
 
 export function fetchProtein(proteinAccession, matches) {

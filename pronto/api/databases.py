@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from flask import Blueprint, jsonify
 
 from pronto import utils
@@ -38,11 +36,12 @@ def get_member_databases():
     num_signatures = dict(cur.fetchall())
 
     cur.execute(
-        """
+        f"""
         SELECT id, name, name_long, version, updated
         FROM interpro.database
-        WHERE name NOT IN ('interpro', 'uniprot', 'antifam')
-        """
+        WHERE id IN ({','.join(['%s' for _ in num_signatures])})
+        """,
+        list(num_signatures.keys())
     )
     databases = {}
     for dbid, name, name_long, version, updated in cur:
