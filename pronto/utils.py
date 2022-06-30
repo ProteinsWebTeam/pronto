@@ -227,7 +227,7 @@ XREFS = {
     "PROSITEDOC": "https://prosite.expasy.org/{}",
     "SSF": "http://supfam.org/SUPERFAMILY/cgi-bin/scop.cgi?ipid={}",
     "SUPERFAMILY": "http://supfam.org/SUPERFAMILY/cgi-bin/scop.cgi?ipid={}",
-    "SWISSPROT": "http://www.uniprot.org/uniprot/{}",
+    "SWISSPROT": "https://www.uniprot.org/uniprotkb/{}/entry",
     "TIGRFAMS": "https://www.ncbi.nlm.nih.gov/genome/annotation_prok/evidence/{}/"
 }
 
