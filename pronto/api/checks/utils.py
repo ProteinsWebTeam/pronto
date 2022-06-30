@@ -198,9 +198,9 @@ CHECKS = {
         "terms": False,
         "exceptions": None
     },
-    "unauthorised_child":{
+    "unauthorised_child": {
         "name": "Unauthorised child",
-        "description": "Parent entries of type R,C,A,B,P,H can't have children",
+        "description": "Entries of type R, C, A, B, P, H cannot have children",
         "label": "Unauthorised child",
         "terms": False,
         "exceptions": None
