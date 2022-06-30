@@ -199,7 +199,7 @@ def ck_signature_accessions(cur: Cursor, cabs: LoT) -> Err:
         FROM INTERPRO.METHOD
     """
     )
-    checked_signatures = [row[0] for row in cur]
+    signatures = [row[0] for row in cur]
 
     errors = []
     terms = [
@@ -222,7 +222,7 @@ def ck_signature_accessions(cur: Cursor, cabs: LoT) -> Err:
     for ann_id, text in cabs:
         for match in prog.finditer(text):
             term = match.group(0)
-            if term not in checked_signatures:
+            if term not in signatures:
                 errors.append((ann_id, term))
 
     return errors

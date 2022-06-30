@@ -215,31 +215,10 @@ CHECKS = {
         "terms": False,
         "exceptions": 's'
     },
-    "generic_go_term": {
-        "name": "Generic GO term",
-        "description": "GO term used is too generic",
-        "label": "Generic GO term",
-        "terms": False,
-        "exceptions": None
-    },
-    "root_go_term": {
-        "name": "Root GO term",
-        "description": "GO term used is root",
-        "label": "Root GO term",
-        "terms": False,
-        "exceptions": None
-    },
-    "dead_entry": {
-        "name": "Retired InterPro entry found in InterPro2GO",
-        "description": "InterPro entry doesn't exist anymore, delete GO term from InterPro2GO",
-        "label": "Retired InterPro entry found in InterPro2GO",
-        "terms": False,
-        "exceptions": None
-    },
-    "secondary_acc": {
-        "name": "GO term in secondary InterPro entry",
-        "description": "GO term is assigned to an old InterPro entry",
-        "label": "Secondary InterPro entry",
+    "generic_go": {
+        "name": "Forbidden GO term",
+        "description": "GO term used is too generic or is a root GO term",
+        "label": "Forbidden GO term",
         "terms": False,
         "exceptions": None
     },
@@ -286,11 +265,11 @@ CHECKS = {
         "exceptions": None
     },
     "child_matches": {
-        "name": "Low number of matches with child",
-        "description": "No common matches found with child entry",
-        "label": "Low number of matches with child",
+        "name": "Parent/child overlap",
+        "description": "Low number of overlap found with child entry",
+        "label": "Poor parent/child overlap",
         "terms": False,
-        "exceptions": None
+        "exceptions": 'p'
     },
     "skip_no_matches": {
         "name": "No matches found",

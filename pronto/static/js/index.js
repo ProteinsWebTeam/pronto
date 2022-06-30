@@ -668,9 +668,7 @@ async function getSanityCheck() {
 
 async function runSanityChecks() {
     const tab = document.querySelector('.tab[data-tab="checks"]');
-    const runAllChecks = tab.querySelector('input[name="long-checks"]').checked
-
-    const response = await fetch(`/api/checks/${runAllChecks}/`, { method: 'PUT' });
+    const response = await fetch(`/api/checks/`, { method: 'PUT' });
     const run = await response.json();
 
     const message = tab.querySelector('.message');

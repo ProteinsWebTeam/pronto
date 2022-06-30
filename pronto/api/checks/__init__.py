@@ -11,7 +11,6 @@ bp = Blueprint("api.checks", __name__, url_prefix="/api/checks")
 from .annotations import check as check_annotations
 from .entries import check as check_entries
 from .go_terms import check as check_go
-from .long_check import check as check_long
 from .utils import CHECKS
 from pronto import auth, utils
 
@@ -53,6 +52,7 @@ def get_checks():
         exc_entry_acc2 = row[6]
 
         check = types[ck_type]
+        
         if ck_term:
             try:
                 t = check["terms"][ck_term]
@@ -95,8 +95,8 @@ def get_checks():
     return jsonify(sorted(types.values(), key=lambda x: x["name"]))
 
 
-@bp.route("/<run_all_checks>/", methods=["PUT"])
-def submit_checks(run_all_checks):
+@bp.route("/", methods=["PUT"])
+def submit_checks():
 
     user = auth.get_user()
     if not user:
@@ -111,7 +111,7 @@ def submit_checks(run_all_checks):
     ora_ip_url = utils.get_oracle_url(user)
     ora_goa_url = utils.get_oracle_goa_url()
     task = utils.executor.submit(ora_ip_url, "sanitychecks", run_checks,
-                                 ora_ip_url, utils.get_pg_url(), ora_goa_url, run_all_checks)
+                                 ora_ip_url, utils.get_pg_url(), ora_goa_url)
 
     return jsonify({
         "status": True,
@@ -119,7 +119,7 @@ def submit_checks(run_all_checks):
     }), 202
 
 
-def run_checks(ora_url: str, pg_url: str, ora_goa_url: str, run_all_checks:bool):
+def run_checks(ora_url: str, pg_url: str, ora_goa_url: str):
     run_id = uuid.uuid1().hex
 
     con = cx_Oracle.connect(ora_url)
@@ -139,27 +139,13 @@ def run_checks(ora_url: str, pg_url: str, ora_goa_url: str, run_all_checks:bool)
             counts[key] += 1
         except KeyError:
             counts[key] = 1
-    
-    con_goa = cx_Oracle.connect(ora_goa_url)
-    cur_goa = con_goa.cursor()
 
-    for check_type, (entry_acc, error) in check_go(cur, cur_goa):
+    for check_type, (entry_acc, error) in check_go(cur, ora_goa_url):
         key = (None, entry_acc, check_type, error)
         try:
             counts[key] += 1
         except KeyError:
             counts[key] = 1
-
-    cur_goa.close()
-    con_goa.close()
-
-    if run_all_checks == "true":
-        for check_type, (entry_acc, error) in check_long(ora_url, pg_url):
-            key = (None, entry_acc, check_type, error)
-            try:
-                counts[key] += 1
-            except KeyError:
-                counts[key] = 1
 
     errors = []
     i = 1

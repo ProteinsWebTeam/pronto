@@ -5,7 +5,7 @@ from cx_Oracle import Cursor
 
 from pronto.utils import connect_pg
 from .utils import load_exceptions, load_global_exceptions, load_terms
-
+from pronto.api.signatures.matrices import get_comparisons
 
 DoS = Dict[str, Set[str]]
 LoS = List[str]
@@ -335,7 +335,7 @@ def ck_unchecked_children(cur: Cursor) -> Err:
 def ck_children_type(cur: Cursor) -> Err:
     cur.execute(
     """
-        SELECT A.PARENT_AC PARENT, A.ENTRY_AC CHILD, B1.ENTRY_TYPE TYPE
+        SELECT A.PARENT_AC PARENT, B2.ENTRY_TYPE AS PARENT_TYPE, A.ENTRY_AC CHILD, B1.ENTRY_TYPE TYPE
         FROM INTERPRO.ENTRY2ENTRY A
         JOIN INTERPRO.ENTRY B1 ON A.ENTRY_AC = B1.ENTRY_AC
         JOIN INTERPRO.ENTRY B2 ON A.PARENT_AC = B2.ENTRY_AC
@@ -346,28 +346,96 @@ def ck_children_type(cur: Cursor) -> Err:
     errors = []
 
     for row in cur:
-        errors.append((row[0], f"{row[1]}: {row[2]}"))
+        errors.append((f"{row[0]}: {row[1]}", f"{row[2]}: {row[3]}"))
 
     return errors
 
 def ck_no_children(cur: Cursor) -> Err:
     cur.execute(
     """
-        SELECT A.PARENT_AC PARENT, A.ENTRY_AC CHILD, B1.ENTRY_TYPE TYPE_C, B2.ENTRY_TYPE TYPE_P
+        SELECT A.PARENT_AC PARENT, B2.ENTRY_TYPE TYPE_P, A.ENTRY_AC CHILD, B1.ENTRY_TYPE TYPE_C 
         FROM INTERPRO.ENTRY2ENTRY A
         JOIN INTERPRO.ENTRY B1 ON A.ENTRY_AC = B1.ENTRY_AC
         JOIN INTERPRO.ENTRY B2 ON A.PARENT_AC = B2.ENTRY_AC
-        WHERE B2.ENTRY_TYPE != B1.ENTRY_TYPE AND B2.ENTRY_TYPE IN ('R','C','A','B','P','H')
+        WHERE B2.ENTRY_TYPE IN ('R','C','A','B','P','H')
         ORDER BY A.PARENT_AC, A.ENTRY_AC
     """
     )
     errors = []
 
     for row in cur:
-        errors.append((row[0], f"{row[3]} ({row[1]}: {row[2]})"))
+        errors.append((f"{row[0]}: {row[1]}", f"{row[2]}: {row[3]}"))
 
     return errors
 
+def ck_child_matches(cur: Cursor, pg_url: str, exceptions: DoS) -> Err:
+
+    cur.execute(
+    """
+        SELECT E2E.PARENT_AC, E2MP.METHOD_AC, E2E.ENTRY_AC, E2M.METHOD_AC
+        FROM INTERPRO.ENTRY2ENTRY E2E
+        JOIN INTERPRO.ENTRY2METHOD E2M ON E2E.ENTRY_AC = E2M.ENTRY_AC
+        JOIN INTERPRO.ENTRY2METHOD E2MP ON E2E.PARENT_AC = E2MP.ENTRY_AC
+        ORDER BY E2E.PARENT_AC
+    """
+    )
+
+    entries = dict()
+    
+    for row in cur:
+        parent_ac, p_sign, child_ac, c_sign = row
+        try:
+            entries[parent_ac]["p_sign"].add(p_sign)
+            entries[parent_ac][child_ac].add(c_sign)
+        except KeyError:
+            if parent_ac in entries:
+                entries[parent_ac][child_ac]=set()
+            else:
+                entries[parent_ac] = {"p_sign":set(), child_ac:set()}
+            entries[parent_ac]["p_sign"].add(p_sign)
+            entries[parent_ac][child_ac].add(c_sign)
+
+    errors = []
+
+    pg_con = connect_pg(pg_url)
+    pg_cur = pg_con.cursor()
+
+    for parent_ac, info in entries.items():
+        all_sign = set()
+        for item in info.values():
+            all_sign = all_sign.union(item)
+        
+        signatures, comparisons = get_comparisons(pg_cur, tuple(all_sign))
+
+
+        no_overlap = dict()
+
+        for sign1, coloc in comparisons.items():
+            if sign1 in list(info["p_sign"]):
+                for sign2 in coloc:
+                    if coloc[sign2]["overlaps"] == 0:
+                        try:
+                            no_overlap[sign2].append(sign1)
+                        except KeyError:
+                            no_overlap[sign2] = [sign1]
+
+        entry_exceptions = exceptions.get(parent_ac, set())
+
+        if len(no_overlap) > 0:
+            for child_ac, list_sign in info.items():
+                count = 0
+                for sign in list_sign:
+                    #if the child signature is found having no overlap, verify it doesn't match any of the parent signatures
+                    if sign in no_overlap and len(no_overlap[sign]) == len(info["p_sign"]): 
+                        count +=1
+                # if none the child signatures are found matching the parent signatures, report an error
+                if count == len(list_sign) and child_ac not in entry_exceptions:
+                    errors.append((parent_ac, child_ac))
+
+    pg_cur.close()
+    pg_con.close()
+
+    return errors
 
 def ck_underscore(entries: LoT, exceptions: Set[str]) -> Err:
     prog1 = re.compile(r"\w*_\w*")
@@ -387,15 +455,60 @@ def ck_underscore(entries: LoT, exceptions: Set[str]) -> Err:
 
 def ck_no_cab(cur: Cursor) -> Err:
     cur.execute("""
-        SELECT E.ENTRY_AC, CA.TEXT
-        FROM INTERPRO.ENTRY E
-        LEFT OUTER JOIN INTERPRO.ENTRY2COMMON E2C ON (E.ENTRY_AC=E2C.ENTRY_AC)
-        LEFT OUTER JOIN INTERPRO.COMMON_ANNOTATION CA ON (E2C.ANN_ID=CA.ANN_ID)
-        WHERE CA.TEXT IS NULL
-    """
+            SELECT ENTRY_AC
+            FROM INTERPRO.ENTRY
+            WHERE CHECKED = 'Y'
+            MINUS
+            SELECT DISTINCT ENTRY_AC
+            FROM INTERPRO.ENTRY2COMMON
+        """
     )
 
     return cur.fetchall()
+def ck_fragments(cur: Cursor, sign_frag_only: set) -> Err:
+    # Integrated ENTRIES that have METHODs that MATCH ONLY FRAGMENTS
+    errors = []
+
+    if len(sign_frag_only) > 0:
+        text_frag = ','.join('%s' for _ in list(sign_frag_only))
+        cur.execute(
+        f"""
+            SELECT E.ENTRY_AC, E2M.METHOD_AC
+            FROM INTERPRO.ENTRY E
+            JOIN INTERPRO.ENTRY2METHOD E2M ON E.ENTRY_AC=E2M.ENTRY_AC
+            WHERE E.CHECKED='Y' AND E2M.METHOD_AC in ({text_frag})
+            GROUP BY E.ENTRY_AC, E2M.METHOD_AC
+        """, list(sign_frag_only)
+        )
+
+        for row in cur:
+            entry_ac, sign = row
+            if sign in sign_frag_only:
+                errors.append((entry_ac, sign))
+
+    return errors
+
+def get_signatures(pg_url: str) -> Err:
+    pg_con = connect_pg(pg_url)
+    pg_cur = pg_con.cursor()
+
+    pg_cur.execute(
+        """
+            SELECT accession
+            FROM signature
+            WHERE num_sequences > 0
+            AND num_complete_sequences = 0
+        """
+    )
+    list_acc = set()
+
+    for row in pg_cur:
+        list_acc.add(row[0])
+
+    pg_cur.close()
+    pg_con.close()
+
+    return list_acc
 
 def check(ora_cur: Cursor, pg_url: str):
     ora_cur.execute("SELECT ENTRY_AC, NAME, SHORT_NAME FROM INTERPRO.ENTRY")
@@ -469,6 +582,10 @@ def check(ora_cur: Cursor, pg_url: str):
 
     for item in ck_no_children(ora_cur):
         yield "unauthorised_child", item
+    
+    exceptions = load_exceptions(ora_cur, "child_matches", "ENTRY_AC", "TERM")
+    for item in ck_child_matches(ora_cur, pg_url, exceptions):
+        yield "child_matches", item
 
     exceptions = load_exceptions(ora_cur, "underscore", "ENTRY_AC", "TERM")
     for item in ck_underscore(entries, set(exceptions)):
@@ -476,3 +593,7 @@ def check(ora_cur: Cursor, pg_url: str):
     
     for item in ck_no_cab(ora_cur):
         yield "empty_annotation", item
+
+    sign_frag_only = get_signatures(pg_url)
+    for item in ck_fragments(ora_cur, sign_frag_only):
+        yield "fragment_matches", item
