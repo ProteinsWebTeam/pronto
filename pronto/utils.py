@@ -12,6 +12,45 @@ import psycopg2
 from flask import current_app
 
 
+SIGNATURES = [
+    r"G3DSA:[\d.]{4,}",     # CATH-Gene3D
+    r"MF_\d{4,}",           # HAMAP
+    r"PF\d{5,}",            # Pfam
+    r"PIRSF\d{4,}",         # PIRSF
+    r"PR\d{4,}",            # PROSITE
+    r"PS\d{4,}",            # PROSITE
+    r"PTHR\d{4,}",          # PANTHER
+    r"SFLD[FGS]\d{4,}",     # SFLD
+    r"SM\d{4,}",            # SMART
+    r"SSF\d{4,}",           # SUPERFAMILY
+    r"TIGR\d{4,}",          # TIGRFAMs
+    r"cd\d{4,}",            # CDD
+    r"sd\d{4,}"             # CDD
+]
+
+
+XREFS = {
+    "CATHGENE3D": "http://www.cathdb.info/superfamily/{}",
+    "CAZY": "http://www.cazy.org/fam/{}.html",
+    # "COG": "http://www.ncbi.nlm.nih.gov/COG/new/release/cow.cgi?cog={}",
+    "COG": "https://ftp.ncbi.nih.gov/pub/COG/COG2014/static/byCOG/{}.html",
+    # "EC": "http://www.ebi.ac.uk/intenz/query?cmd=SearchEC&ec={}",
+    "INTENZ": "http://www.ebi.ac.uk/intenz/query?cmd=SearchEC&ec={}",
+    "GENPROP": "https://www.ebi.ac.uk/interpro/genomeproperties/#{}",
+    "INTERPRO": "/entry/{}",
+    "MIM": "https://www.omim.org/entry/{}",
+    "PDBE": "http://www.ebi.ac.uk/pdbe/entry/pdb/{}",
+    "PFAM": "http://pfam.xfam.org/family/{}",
+    "PIRSF": "http://pir.georgetown.edu/cgi-bin/ipcSF?id={}",
+    "PROSITE": "https://prosite.expasy.org/{}",
+    "PROSITEDOC": "https://prosite.expasy.org/{}",
+    "SSF": "http://supfam.org/SUPERFAMILY/cgi-bin/scop.cgi?ipid={}",
+    "SUPERFAMILY": "http://supfam.org/SUPERFAMILY/cgi-bin/scop.cgi?ipid={}",
+    "SWISSPROT": "https://www.uniprot.org/uniprotkb/{}/entry",
+    "TIGRFAMS": "https://www.ncbi.nlm.nih.gov/genome/annotation_prok/evidence/{}/"
+}
+
+
 class Executor:
     def __init__(self):
         self._executor = ThreadPoolExecutor()
@@ -210,30 +249,6 @@ def split_path(path: str) -> List[str]:
             items.append(item)
 
     return items
-
-
-
-XREFS = {
-    "CATHGENE3D": "http://www.cathdb.info/superfamily/{}",
-    "CAZY": "http://www.cazy.org/fam/{}.html",
-    # "COG": "http://www.ncbi.nlm.nih.gov/COG/new/release/cow.cgi?cog={}",
-    "COG": "https://ftp.ncbi.nih.gov/pub/COG/COG2014/static/byCOG/{}.html",
-    # "EC": "http://www.ebi.ac.uk/intenz/query?cmd=SearchEC&ec={}",
-    "INTENZ": "http://www.ebi.ac.uk/intenz/query?cmd=SearchEC&ec={}",
-    "GENPROP": "https://www.ebi.ac.uk/interpro/genomeproperties/#{}",
-    "INTERPRO": "/entry/{}",
-    "MIM": "https://www.omim.org/entry/{}",
-    "PDBE": "http://www.ebi.ac.uk/pdbe/entry/pdb/{}",
-    "PFAM": "http://pfam.xfam.org/family/{}",
-    "PIRSF": "http://pir.georgetown.edu/cgi-bin/ipcSF?id={}",
-    "PROSITE": "https://prosite.expasy.org/{}",
-    "PROSITEDOC": "https://prosite.expasy.org/{}",
-    "SSF": "http://supfam.org/SUPERFAMILY/cgi-bin/scop.cgi?ipid={}",
-    "SUPERFAMILY": "http://supfam.org/SUPERFAMILY/cgi-bin/scop.cgi?ipid={}",
-    "SWISSPROT": "https://www.uniprot.org/uniprotkb/{}/entry",
-    "TIGRFAMS": "https://www.ncbi.nlm.nih.gov/genome/annotation_prok/evidence/{}/"
-}
-
 
 
 class CathGene3D:

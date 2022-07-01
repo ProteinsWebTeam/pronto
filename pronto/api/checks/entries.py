@@ -3,9 +3,9 @@ from typing import Dict, List, Optional, Set, Tuple
 
 from cx_Oracle import Cursor
 
-from pronto.utils import connect_pg
-from .utils import load_exceptions, load_global_exceptions, load_terms
+from pronto.utils import connect_pg, SIGNATURES
 from pronto.api.signatures.matrices import get_comparisons
+from .utils import load_exceptions, load_global_exceptions, load_terms
 
 DoS = Dict[str, Set[str]]
 LoS = List[str]
@@ -54,23 +54,7 @@ def ck_domain_in_family(cur: Cursor) -> Err:
 
 
 def ck_acc_in_name(entries: LoT, exceptions: DoS) -> Err:
-    terms = [
-        r"G3DSA:[\d.]{4,}",
-        r"IPR\d{6,}",
-        r"MF_\d{4,}",
-        r"PF\d{5,}",
-        r"PIRSF\d{4,}",
-        r"PR\d{4,}",
-        r"PS\d{4,}",
-        r"PTHR\d{4,}",
-        r"SFLD[FGS]\d{4,}",
-        r"SM\d{4,}",
-        r"SSF\d{4,}",
-        r"TIGR\d{4,}",
-        r"cd\d{4,}",
-        r"sd\d{4,}"
-    ]
-    prog = re.compile(fr"\b(?:{'|'.join(terms)})\b")
+    prog = re.compile(fr"\b(?:{'|'.join(SIGNATURES)})\b")
 
     errors = []
     for acc, name, short_name in entries:
