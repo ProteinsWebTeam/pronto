@@ -23,6 +23,7 @@ def get_matrices(accessions):
         "comparisons": comparisons
     })
 
+
 def get_comparisons(cur, accessions: tuple):
     
     in_params = ','.join('%s' for _ in accessions)
@@ -58,6 +59,3 @@ def get_comparisons(cur, accessions: tuple):
             }
 
     return signatures, comparisons
-    
-
-    

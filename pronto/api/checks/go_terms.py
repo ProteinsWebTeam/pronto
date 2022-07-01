@@ -16,28 +16,15 @@ LoT = List[Tuple[str, str]]
 
 def ck_forbidden_go(ip_cur: Cursor, terms : LoS) -> Err:
     # These terms are too general or root go and should not be used for annotation
-    prog3 = ','.join(["'%s'" % w for w in terms])
-    
-    query="""
+    binds = [":" + str(i + 1) for i in range(len(terms))]
+    ip_cur.execute(f"""
         SELECT ENTRY_AC, GO_ID
         FROM INTERPRO.INTERPRO2GO
-        WHERE GO_ID IN ({})
-        """.format(prog3)
-    
-    ip_cur.execute(query)
+        WHERE GO_ID IN ({",".join(binds)})
+        """, terms)
 
     return ip_cur.fetchall()
 
-# def ck_root_go(ip_cur: Cursor, terms : LoS) -> Err:
-#     prog3 = ','.join('%s' for _ in terms) if terms else None
-#     ip_cur.execute(
-#         f"""
-#             SELECT ENTRY_AC, GO_ID
-#             FROM INTERPRO.INTERPRO2GO
-#             WHERE GO_ID IN ({prog3})
-#         """,terms
-#     )
-#     return ip_cur.fetchall()
 
 def ck_secondary_go(ip_cur: Cursor, goa_cur: Cursor) -> Err:
     # SELECT GO ids which are now secondary
@@ -64,6 +51,7 @@ def ck_secondary_go(ip_cur: Cursor, goa_cur: Cursor) -> Err:
             replaced_go.append((entry,f"old: {go}, new: {list_old_goa[go]}"))
 
     return replaced_go
+
 
 def ck_obsolete_go(ip_cur: Cursor, goa_cur: Cursor) -> Err:
     # GO terms that are now obsolete
