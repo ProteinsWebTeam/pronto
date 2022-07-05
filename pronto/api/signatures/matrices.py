@@ -12,7 +12,22 @@ def get_matrices(accessions):
 
     con = utils.connect_pg(utils.get_pg_url())
     cur = con.cursor()
+
+    signatures, comparisons = get_comparisons(cur, accessions)
+
+    cur.close()
+    con.close()
+    
+    return jsonify({
+        "signatures": signatures,
+        "comparisons": comparisons
+    })
+
+
+def get_comparisons(cur, accessions: tuple):
+    
     in_params = ','.join('%s' for _ in accessions)
+
     cur.execute(
         f"""
         SELECT accession, num_complete_sequences
@@ -43,10 +58,4 @@ def get_matrices(accessions):
                 "overlaps": overlaps
             }
 
-    cur.close()
-    con.close()
-
-    return jsonify({
-        "signatures": signatures,
-        "comparisons": comparisons
-    })
+    return signatures, comparisons

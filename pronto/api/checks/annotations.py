@@ -6,6 +6,7 @@ from urllib.request import urlopen
 
 from cx_Oracle import Cursor
 
+from pronto.utils import SIGNATURES
 from .utils import load_exceptions, load_global_exceptions, load_terms
 
 
@@ -171,6 +172,47 @@ def ck_substitutions(cabs: LoT, terms: LoS, exceptions: DoS) -> Err:
     return errors
 
 
+def ck_interpro_accessions(cur: Cursor, cabs: LoT) -> Err:
+    cur.execute(
+        """
+        SELECT ENTRY_AC 
+        FROM INTERPRO.ENTRY
+        WHERE CHECKED = 'Y'
+        """
+    )
+    checked_entries = [row[0] for row in cur]
+
+    errors = []
+    accession = re.compile(r"IPR\d{6}")
+    for ann_id, text in cabs:
+        for match in accession.finditer(text):
+            term = match.group(0)
+            if term not in checked_entries:
+                errors.append((ann_id, term))
+
+    return errors
+
+
+def ck_signature_accessions(cur: Cursor, cabs: LoT) -> Err:
+    cur.execute(
+        """
+        SELECT METHOD_AC
+        FROM INTERPRO.METHOD
+        """
+    )
+    signatures = [row[0] for row in cur]
+
+    errors = []
+    prog = re.compile(fr"\b(?:{'|'.join(SIGNATURES)})\b")
+    for ann_id, text in cabs:
+        for match in prog.finditer(text):
+            term = match.group(0)
+            if term not in signatures:
+                errors.append((ann_id, term))
+
+    return errors
+
+
 def check(cur: Cursor):
     cur.execute(
         """
@@ -215,3 +257,9 @@ def check(cur: Cursor):
     exceptions = load_exceptions(cur, "substitution", "ANN_ID", "TERM")
     for item in ck_substitutions(cabs, terms, exceptions):
         yield "substitution", item
+
+    for item in ck_interpro_accessions(cur, cabs):
+        yield "deleted_entry", item
+
+    for item in ck_signature_accessions(cur, cabs):
+        yield "sign_not_found", item

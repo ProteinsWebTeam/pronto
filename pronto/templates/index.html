@@ -17,11 +17,11 @@
         <div class="ui basic segment">
             <div class="ui top attached tabular secondary pointing menu">
                 <a class="item" data-tab="databases">Member databases</a>
-                <a class="item" data-tab="news"><span>Recent entries</span><div class="ui small secondary label"></div></a>
+		<a class="item" data-tab="news"><span>Recent entries</span><div class="ui small secondary label"></div></a>
                 <a class="item" data-tab="interpro2go"><span>InterPro2GO</span><div class="ui small secondary label"></div></a>
                 <a class="item" data-tab="unchecked"><span>Unchecked entries</span><div class="ui small secondary label"></div></a>
                 <a class="item" data-tab="checks"><span>Sanity checks</span><div class="ui small secondary label"></div></a>
-                <a class="item" data-tab="statistics"><span>Statistics</span></a>
+		<a class="item" data-tab="statistics"><span>Statistics</span></a>
             </div>
             <div class="ui tab basic segment" data-tab="databases">
                 <table class="ui table">
@@ -90,7 +90,9 @@
                 {#
                 <div class="ui info message">#} {# <i class="close icon"></i>#} {#
                     <div class="header">Unchecked entries</div>#} {#
-                    <p>The table below shows all unchecked InterPro entries containing at least one member database signature.</p>#} {# </div>#}
+                    <p>The table below shows all unchecked InterPro entries containing at least one member database
+                        signature.</p>#} {#
+                </div>#}
                 <div id="unchecked-databases" class="ui equal width form">
                     <div class="fields"></div>
                 </div>
@@ -171,7 +173,9 @@
                         <div class="twelve wide column">
                             <h4>Quarterly reports</h4>
                             <p>
-                                Number of InterPro entries created, signatures integrated, and GO terms associated, per quarter.<br> Actions thar are done then undone during the same quarter (e.g. entry created then deleted) are not considered.
+                                Number of InterPro entries created, signatures integrated, and GO terms associated, per
+                                quarter.<br> Actions thar are done then undone during the same quarter (e.g. entry
+                                created then deleted) are not considered.
                             </p>
                             <div id="chart-reports"></div>
                         </div>
@@ -189,7 +193,9 @@
 
                     <h4>Number of signatures integrated and unintegrated per week</h4>
                     <p>
-                        If a signature has been integrated (or unintegrated) more than once during the same week, only one integration (or unintegration) is considered. Integration counts do not reflect whether a signature has been unintegrated or deleted since, and whether
+                        If a signature has been integrated (or unintegrated) more than once during the same week, only
+                        one integration (or unintegration) is considered. Integration counts do not reflect whether a
+                        signature has been unintegrated or deleted since, and whether
                         the entry was checked at the time of integration.
                     </p>
                     <div id="chart-integrated"></div>

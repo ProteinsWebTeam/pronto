@@ -667,10 +667,10 @@ async function getSanityCheck() {
 }
 
 async function runSanityChecks() {
-    const response = await fetch('/api/checks/', { method: 'PUT' });
+    const tab = document.querySelector('.tab[data-tab="checks"]');
+    const response = await fetch(`/api/checks/`, { method: 'PUT' });
     const run = await response.json();
 
-    const tab = document.querySelector('.tab[data-tab="checks"]');
     const message = tab.querySelector('.message');
     if (!run.status) {
         message.className = 'ui error message';
