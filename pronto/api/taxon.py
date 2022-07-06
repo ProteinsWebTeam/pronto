@@ -112,8 +112,8 @@ def _process_taxon(ora_url: str, pg_url: str, taxon_id: int, taxon_name: str,
             if signature_acc in integrated:
                 is_integrated = True
                 break
-            elif not re.match(r"PTHR\d+:SF\d+", signature_acc):
-                # Ignore PANTHER subfamilies
+            elif not re.match(r"PTHR\d+:SF\d+", signature_acc) and not re.match(r"ANF\d+", signature_acc):
+                # Ignore PANTHER subfamilies and Antifam
                 unintegrated.append(signature_acc)
 
         if is_integrated:
