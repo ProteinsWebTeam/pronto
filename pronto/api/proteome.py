@@ -8,7 +8,7 @@ from pronto import auth, utils
 bp = Blueprint("api.proteome", __name__, url_prefix="/api/proteome")
 
 
-def _process_proteome(ora_url: str, pg_url: str, taxon_id: int, taxon_name: str):
+def _process_proteome(ora_url: str, pg_url: str, taxon_id: int, taxon_name: str, upi: str):
     con = cx_Oracle.connect(ora_url)
     cur = con.cursor()
     cur.execute(
@@ -147,8 +147,9 @@ def _process_proteome(ora_url: str, pg_url: str, taxon_id: int, taxon_name: str)
                     s["proteins"]["unintegrated_reviewed"] += 1
         
     return {
-        "id": taxon_id,
+        "id": upi,
         "name": taxon_name,
+        "taxon_id": taxon_id,
         "proteins": {
             "all": num_proteins,
             "reviewed": len(reviewed),
@@ -202,7 +203,7 @@ def submit_proteome(taxon_id):
 
     ora_url = utils.get_oracle_url(user)
     task = utils.executor.submit(ora_url, task_name, _process_proteome, ora_url,
-                                 utils.get_pg_url(), taxon_id, name)
+                                 utils.get_pg_url(), taxon_id, name, upi)
 
     return jsonify({
         "status": True,

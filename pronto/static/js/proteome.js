@@ -125,7 +125,7 @@ function renderResults(task) {
     const resultsElem = document.getElementById('results');
 
     resultsElem.querySelector('h2.ui.header').innerHTML = `
-        <em>${data.name}</em>
+        <em>${data.name} - ${data.id}</em>
         <div class="sub header">
             Date: ${startTime.toLocaleString('en-GB', {
         day: 'numeric',
