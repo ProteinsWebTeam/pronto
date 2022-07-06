@@ -99,6 +99,9 @@ def sig_taxonomy(accessions, rank):
 def taxon():
     return render_template("taxon.html")
 
+@app.route("/proteome/")
+def proteome():
+    return render_template("proteome.html")
 
 for bp in api.blueprints:
     app.register_blueprint(bp)
