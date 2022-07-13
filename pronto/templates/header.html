@@ -4,7 +4,7 @@
         <div class="item">
             <div id="new-entry-btn" class="ui primary compact button">New entry</div>
         </div>
-        <a href="/taxon/" class="item">Coverage</a>
+        <a href="/proteome/" class="item">Coverage</a>
         <div id="pronto-info" class="left menu"></div>
 
         <div class="right menu">
@@ -49,41 +49,43 @@
         <div class="ui hidden error message"></div>
         <table class="ui small table">
             <thead>
-            <tr>
-                <th></th>
-                <th>Database</th>
-                <th>Accession</th>
-                <th>Name</th>
-                <th>Description</th>
-                <th class="right aligned">Proteins</th>
-                <th>Entry</th>
-                <th></th>
-            </tr>
+                <tr>
+                    <th></th>
+                    <th>Database</th>
+                    <th>Accession</th>
+                    <th>Name</th>
+                    <th>Description</th>
+                    <th class="right aligned">Proteins</th>
+                    <th>Entry</th>
+                    <th></th>
+                </tr>
             </thead>
             <tbody>
-            <tr><td colspan="8" class="center aligned">No signatures</td></tr>
+                <tr>
+                    <td colspan="8" class="center aligned">No signatures</td>
+                </tr>
             </tbody>
             <tfoot>
-            <tr>
-                <th colspan="8">
-                    <div class="ui secondary menu">
-                        <div class="item">
-                            <i class="circle exclamation icon"></i>Already integrated signatures will be moved
-                        </div>
+                <tr>
+                    <th colspan="8">
+                        <div class="ui secondary menu">
+                            <div class="item">
+                                <i class="circle exclamation icon"></i>Already integrated signatures will be moved
+                            </div>
 
-                        <div class="right fitted item">
-                            <div id="new-entry-signatures" class="ui form">
-                                <div class="field">
-                                    <div class="ui action input">
-                                        <input placeholder="Signature accession" type="text" name="accession">
-                                        <button class="ui primary submit button">Add</button>
+                            <div class="right fitted item">
+                                <div id="new-entry-signatures" class="ui form">
+                                    <div class="field">
+                                        <div class="ui action input">
+                                            <input placeholder="Signature accession" type="text" name="accession">
+                                            <button class="ui primary submit button">Add</button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </th>
-            </tr>
+                    </th>
+                </tr>
             </tfoot>
         </table>
         <div id="new-entry-info" class="ui form">
@@ -91,12 +93,14 @@
                 <div class="fields">
                     <div class="twelve wide required field">
                         <label>Name</label>
-                        <input name="name" placeholder="Entry name" type="text" maxlength="100" data-countdown="countdown2">
+                        <input name="name" placeholder="Entry name" type="text" maxlength="100"
+                            data-countdown="countdown2">
                         <p class="help-text"></p>
                     </div>
                     <div class="four wide required field">
                         <label>Short name</label>
-                        <input name="short_name" placeholder="Entry short name" type="text" maxlength="30" data-countdown>
+                        <input name="short_name" placeholder="Entry short name" type="text" maxlength="30"
+                            data-countdown>
                         <p class="help-text"></p>
                     </div>
                 </div>
