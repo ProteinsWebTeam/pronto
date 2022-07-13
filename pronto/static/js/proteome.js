@@ -3,9 +3,9 @@ import { renderTaskList, updateHeader } from "./ui/header.js";
 import { setClass } from "./ui/utils.js";
 import * as dimmer from "./ui/dimmer.js";
 
-async function getProteome(taxonId) {
+async function getProteome(proteomeId) {
     dimmer.on();
-    const response = await fetch(`/api/proteome/${taxonId}/`);
+    const response = await fetch(`/api/proteome/${proteomeId}/`);
     const result = await response.json();
 
     const message = document.getElementById('main-message');
@@ -26,7 +26,7 @@ async function getProteome(taxonId) {
         // Never run
         message.innerHTML = `
             <div class="header">No coverage data for <em>${result.name}</em></div>
-            <p>A proteome with taxonID:${taxonId} has been found, but no coverage data has been calculated yet. Click on the button below to start calculating the coverage.</p>
+            <p>A proteome with ID:${proteomeId} has been found, but no coverage data has been calculated yet. Click on the button below to start calculating the coverage.</p>
         `;
         message.className = 'ui info message';
         enableButton = true;
@@ -48,15 +48,15 @@ async function getProteome(taxonId) {
     }
 
     const button = document.getElementById('submit-task');
-    button.dataset.id = taxonId;
+    button.dataset.id = proteomeId;
     setClass(button, 'disabled', !enableButton);
     dimmer.off();
 }
 
-async function submitTask(taxonId) {
+async function submitTask(proteomeId) {
     document.getElementById('submit-task').disabled = true;
 
-    const response = await fetch(`/api/proteome/${taxonId}/`, { method: 'PUT' });
+    const response = await fetch(`/api/proteome/${proteomeId}/`, { method: 'PUT' });
     const result = await response.json();
     const message = document.getElementById('main-message');
 
@@ -125,7 +125,7 @@ function renderResults(task) {
     const resultsElem = document.getElementById('results');
 
     resultsElem.querySelector('h2.ui.header').innerHTML = `
-        <em>${data.name} - ${data.id}</em>
+        ${data.name} - ${data.id}
         <div class="sub header">
             Date: ${startTime.toLocaleString('en-GB', {
         day: 'numeric',
@@ -383,7 +383,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const maxResults = 8;
     $('.ui.search')
         .search({
-            type: useCategories ? 'category' : 'standard',
+            type: 'standard',
 
             // change search endpoint to a custom endpoint by manipulating apiSettings
             apiSettings: {
@@ -391,34 +391,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 onResponse: (response) => {
                     // Sort items by name
                     const items = response.items.sort((a, b) => a.name.localeCompare(b.name));
-                    console.log(items)
-                    // Function to format results
-                    const serverToFomantic = (item) => ({
-                        id: item.id,
-                        title: item.name,
-                        taxid: item.taxon_id,
-                        url: `/proteome?id=${item.taxon_id}`
-                    });
-
-                    if (!useCategories)
-                        return { results: items.map(serverToFomantic) };
-
-                    const categories = new Map();
-                    items.forEach((item, index) => {
-                        if (index >= maxResults)
-                            return;
-
-                        const key = item.id;
-                        if (categories.has(key))
-                            categories.get(key).results.push(serverToFomantic(item));
-                        else
-                            categories.set(key, {
-                                name: key,
-                                results: [serverToFomantic(item)]
-                            });
-                    });
-
-                    return { results: Object.fromEntries(categories) };
+                    // Format results
+                    return {
+                        results: items.map((item) => ({
+                            id: item.id,
+                            title: item.name,
+                            url: `/proteome?id=${item.id}`
+                        }))
+                    };
                 }
             },
             maxResults: maxResults,

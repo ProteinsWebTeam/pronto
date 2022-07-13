@@ -8,7 +8,7 @@ from pronto import auth, utils
 bp = Blueprint("api.proteome", __name__, url_prefix="/api/proteome")
 
 
-def _process_proteome(ora_url: str, pg_url: str, taxon_id: int, taxon_name: str, upi: str):
+def _process_proteome(ora_url: str, pg_url: str, proteome_id: str, proteome_name: str):
     con = cx_Oracle.connect(ora_url)
     cur = con.cursor()
     cur.execute(
@@ -40,12 +40,11 @@ def _process_proteome(ora_url: str, pg_url: str, taxon_id: int, taxon_name: str,
     sql = """
         SELECT p.accession, p.is_reviewed
         FROM interpro.protein p
-        JOIN interpro.proteome2protein o2p on o2p.protein_acc=p.accession
-        JOIN interpro.proteome r on r.id=o2p.id
-        WHERE r.taxon_id = %s
-        AND NOT p.is_fragment
+        JOIN interpro.proteome2protein p2p ON p2p.protein_acc=p.accession
+        WHERE p2p.id= %s 
+        AND NOT is_fragment
     """
-    params = (taxon_id,)
+    params = (proteome_id,)
 
     cur.execute(sql, params)
 
@@ -98,7 +97,8 @@ def _process_proteome(ora_url: str, pg_url: str, taxon_id: int, taxon_name: str,
             if signature_acc in integrated:
                 is_integrated = True
                 break
-            elif not re.match(r"PTHR\d+:SF\d+", signature_acc) and not re.match(r"ANF\d+", signature_acc):
+            elif (not re.match(r"PTHR\d+:SF\d+", signature_acc) 
+                and not re.match(r"ANF\d+", signature_acc)):
                 # Ignore PANTHER subfamilies and Antifam
                 unintegrated.append(signature_acc)
 
@@ -136,7 +136,7 @@ def _process_proteome(ora_url: str, pg_url: str, taxon_id: int, taxon_name: str,
                         **dict(zip(("all", "reviewed"),
                                    protein_counts[signature_acc])),
 
-                        # From this clade, not hit by any integrated signature
+                        # From this proteome, not hit by any integrated signature
                         "unintegrated_all": 0,
                         "unintegrated_reviewed": 0
                     }
@@ -147,9 +147,8 @@ def _process_proteome(ora_url: str, pg_url: str, taxon_id: int, taxon_name: str,
                     s["proteins"]["unintegrated_reviewed"] += 1
         
     return {
-        "id": upi,
-        "name": taxon_name,
-        "taxon_id": taxon_id,
+        "id": proteome_id,
+        "name": proteome_name,
         "proteins": {
             "all": num_proteins,
             "reviewed": len(reviewed),
@@ -160,15 +159,15 @@ def _process_proteome(ora_url: str, pg_url: str, taxon_id: int, taxon_name: str,
     }
 
 
-def _get_proteome(taxon_id):
+def _get_proteome(proteome_id):
     con = utils.connect_pg(utils.get_pg_url())
     cur = con.cursor()
     cur.execute(
         """
-        SELECT name, id
+        SELECT name
         FROM interpro.proteome
-        WHERE taxon_id = %s
-        """, (taxon_id,)
+        WHERE id = %s
+        """, (proteome_id,)
     )
     row = cur.fetchone()
     cur.close()
@@ -176,8 +175,8 @@ def _get_proteome(taxon_id):
     return row
 
 
-@bp.route("/<int:taxon_id>/", methods=["PUT"])
-def submit_proteome(taxon_id):
+@bp.route("/<proteome_id>/", methods=["PUT"])
+def submit_proteome(proteome_id):
     user = auth.get_user()
     if not user:
         return jsonify({
@@ -189,21 +188,21 @@ def submit_proteome(taxon_id):
         }), 401
 
     try:
-        name, upi = _get_proteome(taxon_id)
+        proteome_name = _get_proteome(proteome_id)
     except TypeError:
         return jsonify({
             "status": False,
             "error": {
-                "title": "Taxon not found",
-                "message": f"ID '{taxon_id}' is not matching any proteome."
+                "title": "Proteome not found",
+                "message": f"ID '{proteome_id}' is not matching any proteome."
             }
         }), 404
 
-    task_name = f"proteome:{taxon_id}"
+    task_name = f"proteome:{proteome_id}"
 
     ora_url = utils.get_oracle_url(user)
     task = utils.executor.submit(ora_url, task_name, _process_proteome, ora_url,
-                                 utils.get_pg_url(), taxon_id, name, upi)
+                                 utils.get_pg_url(), proteome_id, proteome_name)
 
     return jsonify({
         "status": True,
@@ -233,20 +232,20 @@ def add_comments(task):
         sig["comments"] = comments.get(sig["accession"], 0)
 
 
-@bp.route("/<int:taxon_id>/")
-def get_proteome(taxon_id):
+@bp.route("/<proteome_id>/")
+def get_proteome(proteome_id):
     try:
-        name, upi = _get_proteome(taxon_id)
+        proteome_name = _get_proteome(proteome_id)
     except TypeError:
         return jsonify({
             "status": False,
             "error": {
-                "title": "Taxon not found",
-                "message": f"ID '{taxon_id}' is not matching any proteome."
+                "title": "Proteome not found",
+                "message": f"ID '{proteome_id}' is not matching any proteome."
             }
         }), 404
 
-    task_name = f"proteome:{taxon_id}"
+    task_name = f"proteome:{proteome_id}"
     tasks = utils.executor.get_tasks(task_name=task_name, get_result=True)
 
     try:
@@ -254,39 +253,32 @@ def get_proteome(taxon_id):
     except IndexError:
         return jsonify({
             "status": True,
-            "id": taxon_id,
-            "name": name,
+            "id": proteome_id,
+            "name": proteome_name,
             "task": None
         }), 404
     else:
         add_comments(task)
         return jsonify({
             "status": True,
-            "id": taxon_id,
-            "name": name,
+            "id": proteome_id,
+            "name": proteome_name,
             "task": task
         }), 200
 
 
 @bp.route("/search/")
 def search_proteome():
-    query = request.args.get("q", "Homo sapiens")
+    query = request.args.get("q", "Homo sapiens (Human)")
     con = utils.connect_pg(utils.get_pg_url())
     cur = con.cursor()
 
     sql = """
-        SELECT p.id, p.name, p.taxon_id
+        SELECT p.id, p.name
         FROM interpro.proteome p
     """
 
-    if query.isdigit():
-        cur.execute(
-            f"""
-            {sql} 
-            WHERE p.taxon_id = %s
-            """, (query,)
-        )
-    elif re.match(r'UP', query):
+    if re.fullmatch(r'UP\d+', query):
         cur.execute(
             f"""
             {sql}
@@ -301,7 +293,7 @@ def search_proteome():
             """, (query + '%',)
         )
 
-    cols = ("id", "name", "taxon_id")
+    cols = ("id", "name")
     results = [dict(zip(cols, row)) for row in cur.fetchall()]
 
     cur.close()
