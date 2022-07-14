@@ -25,8 +25,8 @@ async function getProteome(proteomeId) {
     if (result.task === null) {
         // Never run
         message.innerHTML = `
-            <div class="header">No coverage data for <em>${result.name}</em></div>
-            <p>A proteome with ID:${proteomeId} has been found, but no coverage data has been calculated yet. Click on the button below to start calculating the coverage.</p>
+            <div class="header">No coverage for ${result.name}</div>
+            <p>A proteome has been found, but its coverage is unknown. Click on the button below to calculate the coverage.</p>
         `;
         message.className = 'ui info message';
         enableButton = true;
