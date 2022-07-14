@@ -97,8 +97,8 @@ def _process_proteome(ora_url: str, pg_url: str, proteome_id: str, proteome_name
             if signature_acc in integrated:
                 is_integrated = True
                 break
-            elif (not re.match(r"PTHR\d+:SF\d+", signature_acc) 
-                and not re.match(r"ANF\d+", signature_acc)):
+            elif (not re.match(r"PTHR\d+:SF\d+", signature_acc)
+                  and not re.match(r"ANF\d+", signature_acc)):
                 # Ignore PANTHER subfamilies and Antifam
                 unintegrated.append(signature_acc)
 
@@ -145,7 +145,7 @@ def _process_proteome(ora_url: str, pg_url: str, proteome_id: str, proteome_name
                 s["proteins"]["unintegrated_all"] += 1
                 if is_reviewed:
                     s["proteins"]["unintegrated_reviewed"] += 1
-        
+
     return {
         "id": proteome_id,
         "name": proteome_name,
