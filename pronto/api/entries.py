@@ -182,7 +182,11 @@ def get_signature_count():
         try:
             actions = weeks[iso_cal]
         except KeyError:
-            actions = weeks[iso_cal] = {"live": set(), "integrated": set(), "unintegrated": set()}
+            actions = weeks[iso_cal] = {
+                "live": set(),
+                "integrated": set(),
+                "unintegrated": set()
+            }
 
         if action == "L":
             actions["live"].add(acc)
@@ -208,11 +212,13 @@ def get_signature_count():
                 "counts": {
                     "integrated": {
                         "all": len(actions["integrated"]),
-                        "checked": len(actions["integrated"] & actions["live"]),
+                        "checked": len(actions["integrated"]
+                                       & actions["live"]),
                     },
                     "unintegrated": {
                         "all": len(actions["unintegrated"]),
-                        "checked": len(actions["unintegrated"] & actions["live"]),
+                        "checked": len(actions["unintegrated"]
+                                       & actions["live"]),
                     },
                 },
             }
@@ -281,7 +287,10 @@ def get_recent_entries():
                 "type": row[1],
                 "short_name": row[2],
                 "date": row[3].strftime("%d %b %Y"),
-                "user": {"name": user_name, "by_me": user and user["dbuser"] == db_user},
+                "user": {
+                    "name": user_name,
+                    "by_me": user and user["dbuser"] == db_user
+                },
                 "checked": row[6] == "Y",
                 "comments": {"entry": row[7], "signatures": row[8]},
             }
@@ -343,7 +352,11 @@ def get_recent_go_terms():
     for row in cur:
         interpro2go.append(
             {
-                "entry": {"accession": row[0], "short_name": row[1], "type": row[2]},
+                "entry": {
+                    "accession": row[0],
+                    "short_name": row[1],
+                    "type": row[2]
+                },
                 "term": terms[row[3]],
                 "date": row[4].strftime("%d %b %Y"),
                 "user": row[5],
@@ -450,7 +463,8 @@ def get_unchecked_entries():
             AND (EM2.ENTRY_AC, MC2.CREATED_ON) IN
               (SELECT E2M.ENTRY_AC, MAX(M2C.CREATED_ON)
                   FROM INTERPRO.ENTRY2METHOD E2M
-                  JOIN INTERPRO.METHOD_COMMENT M2C ON E2M.METHOD_AC = M2C.METHOD_AC
+                  JOIN INTERPRO.METHOD_COMMENT M2C 
+                      ON E2M.METHOD_AC = M2C.METHOD_AC
                   WHERE M2C.STATUS='Y'
                   GROUP BY E2M.ENTRY_AC)
         ) M2CT ON M2CT.ENTRY_AC=E.ENTRY_AC
@@ -465,24 +479,24 @@ def get_unchecked_entries():
     )
     entries = []
     for row in cur:
-        entries.append(
-            {
-                "accession": row[0],
-                "type": row[1],
-                "short_name": row[2],
-                "created_date": row[3].strftime("%d %b %Y"),
-                "update_date": row[4].strftime("%d %b %Y"),
-                "user": row[5],
-                "comments": {
-                    "entry": row[6],
-                    "signatures": row[7],
-                    "com_sign": row[8],
-                    "com_sign_date": row[9].strftime("%d %b %Y") if row[9] else "",
-                    "com_ent_date": row[10].strftime("%d %b %Y") if row[10] else "",
-                },
-                "databases": entries2db.get(row[0], []),
-            }
-        )
+        entries.append({
+            "accession": row[0],
+            "type": row[1],
+            "short_name": row[2],
+            "created_date": row[3].strftime("%d %b %Y"),
+            "update_date": row[4].strftime("%d %b %Y"),
+            "user": row[5],
+            "comments": {
+                "entry": row[6],
+                "signatures": row[7],
+                "com_sign": row[8],
+                "com_sign_date": (row[9].strftime("%d %b %Y") if row[9]
+                                  else ""),
+                "com_ent_date": (row[10].strftime("%d %b %Y") if row[10]
+                                 else ""),
+            },
+            "databases": entries2db.get(row[0], []),
+        })
     cur.close()
     con.close()
     return {"results": entries}
