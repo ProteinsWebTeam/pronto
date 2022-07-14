@@ -3,6 +3,35 @@ import { renderTaskList, updateHeader } from "./ui/header.js";
 import { setClass } from "./ui/utils.js";
 import * as dimmer from "./ui/dimmer.js";
 
+async function getProteomes() {
+    dimmer.on();
+    const response = await fetch(`/api/proteome/`);
+    const result = await response.json();
+    dimmer.off();
+
+    const items = result?.items;
+    if (items === undefined || items.length === 0)
+        return;
+
+    let html = `
+        <p>The following proteomes have their coverage already calculated:</p>
+        <div class="ui list">
+    `;
+
+    for (let item of items) {
+        html += `<a data-id="${item.id}" class="item">${item.name}</a>`;
+    }
+
+    const elem = document.querySelector('#results .sixteen.wide.column');
+    elem.innerHTML = html + '</div>';
+
+    for (let item of elem.querySelectorAll('a[data-id]')) {
+        item.addEventListener('click', event => {
+            getProteome(event.currentTarget.dataset.id);
+        });
+    }
+}
+
 async function getProteome(proteomeId) {
     dimmer.on();
     const response = await fetch(`/api/proteome/${proteomeId}/`);
@@ -370,9 +399,10 @@ document.addEventListener('DOMContentLoaded', () => {
     updateHeader();
 
     const params = new URLSearchParams(location.search);
-    if (params.has('id')) {
+    if (params.has('id'))
         getProteome(params.get('id'));
-    }
+    else
+        getProteomes();
 
     document.getElementById('submit-task').addEventListener('click', event => {
         const button = event.currentTarget;
