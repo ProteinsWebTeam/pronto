@@ -17,6 +17,39 @@ export function postSignatureComment(accession, text) {
     return postComment('signature', accession, text);
 }
 
+export function initSignaturePopups(element, position) {
+    $(element.querySelectorAll('a.label[data-accession]'))
+        .popup({
+            exclusive: true,
+            hoverable: true,
+            html: '<i class="notched circle loading icon"></i> Loading&hellip;',
+            position: position || 'left center',
+            variation: 'small basic custom',
+            onShow: function (elem) {
+                const popup = this;
+                const acc = elem.dataset.accession;
+                fetch(`/api/signature/${acc}/comments/`)
+                    .then(response => response.json())
+                    .then(payload => {
+                        let html = '<div class="ui small comments">';
+                        for (let item of payload.results) {
+                            if (!item.status)
+                                continue;
+
+                            html += `
+                                    <div class="comment">
+                                        <a class="author">${item.author}</a>
+                                        <div class="metadata"><span class="date">${item.date}</span></div>
+                                        <div class="text">${item.text}</div>
+                                    </div>
+                                `;
+                        }
+                        popup.html(html + '</div>');
+                    });
+            }
+        });
+}
+
 function getComments(type, accession, max, div, callback) {
     const url = new URL(`/api/${type}/${accession}/comments/`, location.origin);
     if (max)

@@ -37,8 +37,6 @@ from . import taxonomy
 @bp.route("/recommendations/")
 def get_recommendations():
     min_sim = float(request.args.get("minsim", 0.9))
-    no_panther_sf = "nopanthersf" in request.args
-    no_commented = "nocommented" in request.args
 
     try:
         page = int(request.args["page"])
@@ -68,17 +66,15 @@ def get_recommendations():
             "checked": row[4] == 'Y'
         }
 
-    if no_commented:
-        cur.execute(
-            """
-            SELECT DISTINCT METHOD_AC
-            FROM INTERPRO.METHOD_COMMENT
-            WHERE STATUS = 'Y'
-            """
-        )
-        commented = {acc for acc, in cur}
-    else:
-        commented = set()
+    cur.execute(
+        """
+        SELECT METHOD_AC, COUNT(*)
+        FROM INTERPRO.METHOD_COMMENT
+        WHERE STATUS = 'Y'
+        GROUP BY METHOD_AC
+        """
+    )
+    comments = dict(cur.fetchall())
 
     cur.close()
     con.close()
@@ -117,18 +113,21 @@ def get_recommendations():
         for acc1, dbkey1, dbname1, acc2, dbkey2, dbname2, sim in cur:
             entry1 = integrated.get(acc1)
             entry2 = integrated.get(acc2)
-            if entry1 and entry2:
-                continue
-            elif entry2:
-                # We want entry1 (query) to be the integrated one
-                _acc, _dbkey, _dbname, _entry = acc1, dbkey1, dbname1, entry1
-                acc1, dbkey1, dbname1, entry1 = acc2, dbkey2, dbname2, entry2
-                acc2, dbkey2, dbname2, entry2 = _acc, _dbkey, _dbname, _entry
 
-            if acc2 in commented:
-                continue  # ignore commented (assume no_commented == True)
-            elif no_panther_sf and (pthr_sf.match(acc1) or pthr_sf.match(acc2)):
-                continue
+            if entry1 and entry2:
+                continue  # Both integrated: ignore
+            elif entry1:
+                # entry1 (query) is integrated: swap query and target
+                (
+                    acc1, dbkey1, dbname1, entry1,
+                    acc2, dbkey2, dbname2, entry2
+                ) = (
+                    acc2, dbkey2, dbname2, entry2,
+                    acc1, dbkey1, dbname1, entry1
+                )
+
+            if pthr_sf.match(acc1) or pthr_sf.match(acc2):
+                continue  # Always ignore PANTHER subfamilies
 
             results.append({
                 "query": {
@@ -137,7 +136,7 @@ def get_recommendations():
                         "color": utils.get_database_obj(dbkey1).color,
                         "name": dbname1
                     },
-                    "entry": entry1,
+                    "comments": comments.get(acc1, 0)
                 },
                 "target": {
                     "accession": acc2,
