@@ -19,17 +19,10 @@ async function getProteomes() {
     `;
 
     for (let item of items) {
-        html += `<a data-id="${item.id}" class="item">${item.name}</a>`;
+        html += `<a class="item" href="/proteome/?id=${item.id}">${item.name}</a>`;
     }
 
-    const elem = document.querySelector('#results .sixteen.wide.column');
-    elem.innerHTML = html + '</div>';
-
-    for (let item of elem.querySelectorAll('a[data-id]')) {
-        item.addEventListener('click', event => {
-            getProteome(event.currentTarget.dataset.id);
-        });
-    }
+    document.querySelector('#results .sixteen.wide.column').innerHTML = html + '</div>';
 }
 
 async function getProteome(proteomeId) {
@@ -154,7 +147,7 @@ function renderResults(task) {
     const resultsElem = document.getElementById('results');
 
     resultsElem.querySelector('h2.ui.header').innerHTML = `
-        ${data.name} - ${data.id}
+        ${data.name}
         <div class="sub header">
             Date: ${startTime.toLocaleString('en-GB', {
         day: 'numeric',
