@@ -19,7 +19,21 @@ async function getProteomes() {
     `;
 
     for (let item of items) {
-        html += `<a class="item" href="/proteome/?id=${item.id}">${item.name}</a>`;
+        const endTime = strptime(item.end_time).toLocaleString('en-GB', {
+                day: 'numeric',
+                year: 'numeric',
+                month: 'long',
+                hour: 'numeric',
+                minute: 'numeric'
+        });
+        html += `
+            <div class="item">
+                <a class="header" href="/proteome/?id=${item.id}">${item.name}</a>
+                <div class="description">
+                    ${endTime}
+                </div>
+            </div>
+        `;
     }
 
     document.querySelector('#results .sixteen.wide.column').innerHTML = html + '</div>';
@@ -131,10 +145,10 @@ async function waitForResults(taskId) {
     renderTaskList();
 }
 
-function renderResults(task) {
+function strptime(dateString) {
     const reg = /^(\d{4})-(\d\d)-(\d\d) (\d\d):(\d\d):(\d\d)$/;
-    let m = reg.exec(task.start_time);
-    const startTime = new Date(
+    let m = reg.exec(dateString);
+    return new Date(
         Number.parseInt(m[1], 10),
         Number.parseInt(m[2], 10) - 1,
         Number.parseInt(m[3], 10),
@@ -142,7 +156,10 @@ function renderResults(task) {
         Number.parseInt(m[5], 10),
         Number.parseInt(m[6], 10)
     )
+}
 
+function renderResults(task) {
+    const startTime = strptime(task.start_time);
     const data = task.result;
     const resultsElem = document.getElementById('results');
 
@@ -150,12 +167,12 @@ function renderResults(task) {
         ${data.name}
         <div class="sub header">
             Date: ${startTime.toLocaleString('en-GB', {
-        day: 'numeric',
-        year: 'numeric',
-        month: 'short',
-        hour: 'numeric',
-        minute: 'numeric'
-    })}
+                day: 'numeric',
+                year: 'numeric',
+                month: 'long',
+                hour: 'numeric',
+                minute: 'numeric'
+            })}
         </div>  
     `;
 
