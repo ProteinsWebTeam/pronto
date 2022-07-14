@@ -267,6 +267,43 @@ def get_proteome(proteome_id):
         }), 200
 
 
+@bp.route("/")
+def get_proteomes():
+    proteomes = set()
+    for task in utils.executor.get_tasks(task_prefix="proteome:",
+                                         get_result=False):
+        if task["success"]:
+            proteome_id = task["name"].split(":")[1]
+            proteomes.add(proteome_id)
+
+    proteomes = list(proteomes)
+    results = []
+
+    con = utils.connect_pg(utils.get_pg_url())
+    cur = con.cursor()
+    for i in range(0, len(proteomes), 100):
+        cur.execute(
+            F"""
+            SELECT id, name
+            FROM interpro.proteome
+            WHERE id IN ({','.join(['%s' for _ in proteomes])})
+            """,
+            proteomes[i:i+100]
+        )
+
+        for rec in cur.fetchall():
+            results.append(dict(zip(("id", "name"), rec)))
+
+    cur.close()
+    con.close()
+
+    results.sort(key=lambda x: x["name"])
+
+    return jsonify({
+        "items": results
+    })
+
+
 @bp.route("/search/")
 def search_proteome():
     query = request.args.get("q", "Homo sapiens (Human)")
