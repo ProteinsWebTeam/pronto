@@ -107,8 +107,9 @@ class Executor:
         }
 
     def get_tasks(self, task_id: Optional[str] = None,
-                  task_name: Optional[str] = None, seconds: int = 0,
-                  get_result: bool = True) -> List[dict]:
+                  task_name: Optional[str] = None,
+                  task_prefix: Optional[str] = None,
+                  seconds: int = 0, get_result: bool = True) -> List[dict]:
         columns = ["T.ID", "T.NAME AS TASK_NAME", "U.NAME AS USER_NAME",
                    "T.STARTED", "T.FINISHED", "T.STATUS"]
         if get_result:
@@ -116,13 +117,16 @@ class Executor:
 
         if task_id:
             cond = "T.ID = :1"
-            params = (task_id,)
+            params = [task_id]
         elif task_name:
             cond = "T.NAME = :1"
-            params = (task_name,)
+            params = [task_name]
+        elif task_prefix:
+            cond = "T.NAME LIKE :1"
+            params = [task_prefix + "%"]
         else:
             cond = "T.FINISHED IS NULL"
-            params = ()
+            params = []
             if seconds > 0:
                 cond += (f" OR T.STARTED >= SYSDATE - INTERVAL '{seconds}' "
                          f"SECOND")
