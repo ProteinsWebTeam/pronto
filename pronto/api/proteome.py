@@ -272,30 +272,38 @@ def get_proteome(proteome_id):
 
 @bp.route("/")
 def get_proteomes():
-    proteomes = set()
+    proteomes = {}
     for task in utils.executor.get_tasks(task_prefix="proteome:",
                                          get_result=False):
         if task["success"]:
             proteome_id = task["name"].split(":")[1]
-            proteomes.add(proteome_id)
+            try:
+                proteomes[proteome_id].append(task["end_time"])
+            except KeyError:
+                proteomes[proteome_id] = [task["end_time"]]
 
-    proteomes = list(proteomes)
+    proteome_ids = list(proteomes.keys())
     results = []
 
     con = utils.connect_pg(utils.get_pg_url())
     cur = con.cursor()
-    for i in range(0, len(proteomes), 100):
+    for i in range(0, len(proteome_ids), 100):
+        params = proteome_ids[i:i+100]
         cur.execute(
             F"""
             SELECT id, name
             FROM interpro.proteome
-            WHERE id IN ({','.join(['%s' for _ in proteomes])})
+            WHERE id IN ({','.join(['%s' for _ in params])})
             """,
-            proteomes[i:i+100]
+            params
         )
 
-        for rec in cur.fetchall():
-            results.append(dict(zip(("id", "name"), rec)))
+        for proteome_id, proteome_name in cur.fetchall():
+            results.append({
+                "id": proteome_id,
+                "name": proteome_name,
+                "end_time": proteomes[proteome_id][-1]
+            })
 
     cur.close()
     con.close()
