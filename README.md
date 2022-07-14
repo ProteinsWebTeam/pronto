@@ -14,18 +14,26 @@ Pronto is a web application aiming to assist InterPro curators in creating/editi
 
 ### Installation
 
+Deploy the code locally:
+
 ```bash
 git clone https://github.com/ProteinsWebTeam/pronto.git
 cd pronto
-pip install -r requirements.txt
+pip install -r requirements.txt 
+```
+
+When deploying the code for production, also run:
+
+```bash
 python setup.py install
 ```
 
 ## Configuration
 
-Edit `config.cfg`, and set the following options:
+Create a copy of `config.cfg` (e.g. `config.local.cfg`), and set the following options:
 
-* `ORACLE` - Connection string for InterPro production Oracle database.
+* `ORACLE_IP` - Connection string for InterPro production Oracle database.
+* `ORACLE_GOA` - Connection string for GOA production Oracle database.
 * `MYSQL` - Connection string for InterPro7 MySQL database.
 * `POSTGRESQL` - Connection string for Pronto PostgreSQL database.
 * `SECRET_KEY` - key used to sign cookies (prevent forgery).
@@ -48,15 +56,16 @@ Copy the string and paste it into the config file.
 Pronto relies on the file the `PRONTO_CONFIG` environment variable points to. On Linux or OS X, you can set this environment variable with:
   
 ```bash
-export PRONTO_CONFIG=/path/to/config.cfg
+export PRONTO_CONFIG=/path/to/config/file
 ```
 
 ### Built-in server
 
-*Easy to use and convenient for development, but not suitable for production.*
+Easy to use and convenient for development, but **not suitable for production**.
 
 ```bash
 export FLASK_APP=pronto
+export FLASK_ENV=development
 flask run
 ```
 

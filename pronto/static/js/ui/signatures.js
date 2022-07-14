@@ -1,12 +1,12 @@
-import {setClass} from "./utils.js";
-import {fetchProtein, genLink, renderMatches} from "./proteins.js";
+import { setClass } from "./utils.js";
+import { fetchProtein, genLink, renderMatches } from "./proteins.js";
 import * as pagination from "./pagination.js";
 import * as dimmer from "./dimmer.js";
 
 export const selector = {
     elem: null,
     signatures: [],
-    init: function (elem) {
+    init: function(elem) {
         this.elem = elem;
         const input = this.elem.querySelector('input[type=text]');
         const self = this;
@@ -28,13 +28,13 @@ export const selector = {
         });
         return this;
     },
-    add: function (accession) {
+    add: function(accession) {
         if (accession.length && !this.signatures.includes(accession)) {
             this.signatures.push(accession);
         }
         return this;
     },
-    render: function () {
+    render: function() {
         const div = this.elem.querySelector('.ui.grid .column:last-child');
 
         let html = '';
@@ -46,7 +46,7 @@ export const selector = {
         for (const elem of div.querySelectorAll('a i.delete')) {
             elem.addEventListener('click', e => {
                 if (this.signatures.length === 1)
-                    return;  // Always have at least one signature selected
+                    return; // Always have at least one signature selected
 
                 const accession = e.currentTarget.parentNode.dataset.id;
                 this.signatures = this.signatures.filter(item => item !== accession);
@@ -66,7 +66,7 @@ export const selector = {
         }
         return this;
     },
-    tab: function (tabName) {
+    tab: function(tabName) {
         for (const elem of this.elem.querySelectorAll('.links a')) {
             setClass(elem, 'active', elem.dataset.name === tabName);
         }
@@ -134,6 +134,7 @@ async function getProteins(accession, url, getMatches) {
             <tr>
             <td class="nowrap">
                 <a target="_blank" href="${genLink(protein.accession, protein.is_reviewed)}"><i class="${!protein.is_reviewed ? 'outline' : ''} star icon"></i>${protein.accession}<i class="external icon"></i></a>
+                ${protein.is_spurious ? '<span class="ui red text"> <i class="warning icon"></i ></span>' : ''}
             </td>
             <td>${protein.identifier}</td>
             <td>${protein.name}</td>

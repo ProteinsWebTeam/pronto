@@ -34,7 +34,7 @@ def get_latest_freeze(cur):
         WHERE RN = 1
         """
     )
-    date, = cur.fetchone()
+    (date,) = cur.fetchone()
     return date
 
 
@@ -80,17 +80,14 @@ def get_integrated_signatures(db_name):
         SELECT id, name_long, version
         FROM database
         WHERE name = %s
-        """, (db_name,)
+        """,
+        (db_name,),
     )
     row = cur.fetchone()
     if not row:
         cur.close()
         con.close()
-        return jsonify({
-            "results": [],
-            "count": 0,
-            "database": None
-        }), 404
+        return jsonify({"results": [], "count": 0, "database": None}), 404
     db_identifier, db_full_name, db_version = row
 
     sql = """
@@ -145,10 +142,12 @@ def get_integrated_signatures(db_name):
             FROM INTERPRO.METHOD_COMMENT C
             INNER JOIN INTERPRO.PRONTO_USER P 
               ON C.USERNAME = P.USERNAME
+            WHERE C.STATUS='Y'
         ) C ON (M.METHOD_AC = C.METHOD_AC AND C.R = 1)
         WHERE LOWER(D.DBSHORT) = :1
 
-        """, (db_name,)
+        """,
+        (db_name,),
     )
     ora_signatures = {row[0]: row[1:] for row in cur}
     cur.close()
@@ -164,7 +163,7 @@ def get_integrated_signatures(db_name):
         entry_acc = info[0]
         type_code = info[1]
         entry_type_name = code2type[type_code] if entry_acc else None
-        is_checked = info[2] == 'Y'
+        is_checked = info[2] == "Y"
         comment_text = info[3]
         comment_author = info[4]
         comment_date = info[5]
@@ -189,33 +188,33 @@ def get_integrated_signatures(db_name):
         elif filter_type is False and type_name == entry_type_name:
             continue
 
-        results.append({
-            "accession": acc,
-            "type": {
-                "code": [k for k, v in code2type.items() if v == type_name][0],
-                "name": type_name.replace('_', ' ')
-            },
-            "entry": {
-                "accession": entry_acc,
+        results.append(
+            {
+                "accession": acc,
                 "type": {
-                    "code": type_code,
-                    "name": entry_type_name.replace('_', ' ')
+                    "code": [k for k, v in code2type.items() if v == type_name][0],
+                    "name": type_name.replace("_", " "),
                 },
-                "checked": is_checked,
-            } if entry_acc else None,
-            "proteins": {
-                "then": 0,
-                "now": cnt
-            },
-            "latest_comment": {
-                "text": comment_text,
-                "author": comment_author,
-                "date": comment_date.strftime("%d %B %Y at %H:%M")
-            } if comment_text else None
-        })
+                "entry": {
+                    "accession": entry_acc,
+                    "type": {"code": type_code, "name": entry_type_name.replace("_", " ")},
+                    "checked": is_checked,
+                }
+                if entry_acc
+                else None,
+                "proteins": {"then": 0, "now": cnt},
+                "latest_comment": {
+                    "text": comment_text,
+                    "author": comment_author,
+                    "date": comment_date.strftime("%d %B %Y at %H:%M"),
+                }
+                if comment_text
+                else None,
+            }
+        )
 
     num_results = len(results)
-    results = results[(page - 1) * page_size:page * page_size]
+    results = results[(page - 1) * page_size : page * page_size]
 
     if results and details:
         # Get the count from the latest InterPro release (using the MySQL DW)
@@ -229,7 +228,8 @@ def get_integrated_signatures(db_name):
             SELECT accession, counts
             FROM webfront_entry
             WHERE accession IN ({','.join('%s' for _ in accessions)})
-            """, accessions
+            """,
+            accessions,
         )
 
         for row in cur:
@@ -242,18 +242,14 @@ def get_integrated_signatures(db_name):
             acc = res["accession"]
             res["proteins"]["then"] = counts.get(acc, 0)
 
-    return jsonify({
-        "page_info": {
-            "page": page,
-            "page_size": page_size
-        },
-        "results": results,
-        "count": num_results,
-        "database": {
-            "name": db_full_name,
-            "version": db_version
+    return jsonify(
+        {
+            "page_info": {"page": page, "page_size": page_size},
+            "results": results,
+            "count": num_results,
+            "database": {"name": db_full_name, "version": db_version},
         }
-    })
+    )
 
 
 @bp.route("/<db_name>/unintegrated/")
@@ -270,13 +266,17 @@ def get_unintegrated_signatures(db_name):
 
     rel_filter = request.args.get("relationship", "similar")
     if rel_filter not in ("similar", "parent", "child", "none"):
-        return jsonify({
-            "error": {
-                "title": "Bad Request (invalid relationship parameter)",
-                f"message": "Accepted values are: "
-                            "similar, parent, child, none."
-            }
-        }), 400
+        return (
+            jsonify(
+                {
+                    "error": {
+                        "title": "Bad Request (invalid relationship parameter)",
+                        f"message": "Accepted values are: " "similar, parent, child, none.",
+                    }
+                }
+            ),
+            400,
+        )
 
     try:
         integ_filter = request.args["target"]
@@ -284,46 +284,68 @@ def get_unintegrated_signatures(db_name):
         integ_filter = None
     else:
         if integ_filter not in ("integrated", "unintegrated"):
-            return jsonify({
-                "error": {
-                    "title": "Bad Request (invalid target parameter)",
-                    f"message": "Accepted values are: "
-                                "integrated, unintegrated."
-                }
-            }), 400
+            return (
+                jsonify(
+                    {
+                        "error": {
+                            "title": "Bad Request (invalid target parameter)",
+                            f"message": "Accepted values are: " "integrated, unintegrated.",
+                        }
+                    }
+                ),
+                400,
+            )
 
     try:
         comment_filter = int(request.args["commented"]) != 0
     except KeyError:
         comment_filter = None
     except ValueError:
-        return jsonify({
-            "error": {
-                "title": "Bad Request (invalid commented parameter)",
-                f"message": "An integer is expected"
-            }
-        }), 400
+        return (
+            jsonify(
+                {
+                    "error": {
+                        "title": "Bad Request (invalid commented parameter)",
+                        f"message": "An integer is expected",
+                    }
+                }
+            ),
+            400,
+        )
 
     no_same_db = "nosamedb" in request.args
     no_panther_sf = "nopanthersf" in request.args
 
     con = utils.connect_oracle()
     cur = con.cursor()
+
     cur.execute(
         """
-        SELECT M.METHOD_AC, COUNT(*)
-        FROM INTERPRO.METHOD_COMMENT MC
-        INNER JOIN INTERPRO.METHOD M ON MC.METHOD_AC = M.METHOD_AC
-        WHERE M.DBCODE = (
-            SELECT DBCODE
-            FROM INTERPRO.CV_DATABASE
-            WHERE DBSHORT = :1
-        )
-        AND MC.STATUS = 'Y'
-        GROUP BY M.METHOD_AC
-        """, (db_name.upper(),)
+        SELECT 
+            C.METHOD_AC, 
+            C.VALUE, 
+            P.NAME, 
+            C.CREATED_ON, 
+            ROW_NUMBER() OVER ( 
+            PARTITION BY METHOD_AC  
+            ORDER BY C.CREATED_ON DESC 
+            ) R 
+            FROM INTERPRO.METHOD_COMMENT C 
+            INNER JOIN INTERPRO.PRONTO_USER P  
+            ON C.USERNAME = P.USERNAME 
+            WHERE C.STATUS='Y' 
+        """
     )
-    num_comments = dict(cur.fetchall())
+    comments = {}
+    for row in cur:
+        try:
+            comments[row[0]].append(
+                {"text": row[1], "author": row[2], "date": row[3].strftime("%d %B %Y at %H:%M"),}
+            )
+        except KeyError:
+            comments[row[0]] = [
+                {"text": row[1], "author": row[2], "date": row[3].strftime("%d %B %Y at %H:%M"),}
+            ]
     cur.execute(
         """
         SELECT EM.METHOD_AC, E.ENTRY_AC, E.NAME, E.ENTRY_TYPE, E.CHECKED
@@ -337,7 +359,7 @@ def get_unintegrated_signatures(db_name):
             "accession": row[1],
             "name": row[2],
             "type": row[3],
-            "checked": row[4] == 'Y',
+            "checked": row[4] == "Y",
         }
     cur.close()
     con.close()
@@ -349,17 +371,14 @@ def get_unintegrated_signatures(db_name):
         SELECT id, name_long, version
         FROM database
         WHERE name = %s
-        """, (db_name,)
+        """,
+        (db_name,),
     )
     row = cur.fetchone()
     if not row:
         cur.close()
         con.close()
-        return jsonify({
-            "results": [],
-            "count": 0,
-            "database": None
-        }), 404
+        return jsonify({"results": [], "count": 0, "database": None}), 404
     db_identifier, db_full_name, db_version = row
 
     cur.execute(
@@ -367,7 +386,8 @@ def get_unintegrated_signatures(db_name):
         SELECT accession, type, num_complete_sequences, num_residues
         FROM signature
         WHERE database_id = %s
-        """, (db_identifier,)
+        """,
+        (db_identifier,),
     )
     db_unintegrated = {}
     for accession, _type, num_proteins, num_residues in cur:
@@ -385,7 +405,8 @@ def get_unintegrated_signatures(db_name):
         INNER JOIN interpro.signature s2 ON p.signature_acc_2 = s2.accession
         INNER JOIN interpro.database d ON s2.database_id = d.id
         WHERE s1.database_id = %s
-        """, (db_identifier,)
+        """,
+        (db_identifier,),
     )
     queries = {}
     blacklist = set()
@@ -441,28 +462,29 @@ def get_unintegrated_signatures(db_name):
         except KeyError:
             q = queries[q_acc] = []
         finally:
-            q.append({
-                # Target signature
-                "accession": t_acc,
-                "database": {
-                    "name": t_db_name,
-                    "color": utils.get_database_obj(t_db_key).color
-                },
-                "entry": t_entry,
-                "proteins": t_proteins,
-
-                # Comparison query/target
-                "collocations": collocations,
-                "overlaps": protein_overlaps,
-                "similarity": p.similarity,
-                "containment": p.containment,
-                "relationship": p.relationship,
-                "residues": {
-                    "similarity": pr.similarity,
-                    "containment": pr.containment,
-                    "relationship": pr.relationship,
+            q.append(
+                {
+                    # Target signature
+                    "accession": t_acc,
+                    "database": {
+                        "name": t_db_name,
+                        "color": utils.get_database_obj(t_db_key).color,
+                    },
+                    "entry": t_entry,
+                    "proteins": t_proteins,
+                    # Comparison query/target
+                    "collocations": collocations,
+                    "overlaps": protein_overlaps,
+                    "similarity": p.similarity,
+                    "containment": p.containment,
+                    "relationship": p.relationship,
+                    "residues": {
+                        "similarity": pr.similarity,
+                        "containment": pr.containment,
+                        "relationship": pr.relationship,
+                    },
                 }
-            })
+            )
 
     cur.close()
     con.close()
@@ -473,7 +495,8 @@ def get_unintegrated_signatures(db_name):
             # We are not interested in PANTHER sub-families
             continue
 
-        q_comments = num_comments.get(q_acc, 0)
+        # q_comments = num_comments.get(q_acc, 0)
+        q_comments = len(comments[q_acc]) if comments.get(q_acc) else 0
         if comment_filter is None:
             pass
         elif comment_filter:
@@ -482,11 +505,14 @@ def get_unintegrated_signatures(db_name):
         elif q_comments:
             continue
 
+        last_comment = comments[q_acc][0] if comments.get(q_acc) else {}
+
         query = {
             "accession": q_acc,
             "proteins": q_proteins,
             "comments": q_comments,
-            "targets": []
+            "latest_comment": last_comment,
+            "targets": [],
         }
 
         try:
@@ -505,28 +531,24 @@ def get_unintegrated_signatures(db_name):
     results.sort(key=_sort_results)
 
     num_results = len(results)
-    results = results[(page-1)*page_size:page*page_size]
+    results = results[(page - 1) * page_size : page * page_size]
 
     if comment_filter is not None:
-        comment_filter = '1' if comment_filter else '0'
+        comment_filter = "1" if comment_filter else "0"
 
-    return jsonify({
-        "page_info": {
-            "page": page,
-            "page_size": page_size
-        },
-        "results": results,
-        "count": num_results,
-        "database": {
-            "name": db_full_name,
-            "version": db_version
-        },
-        "parameters": {
-            "relationship": rel_filter,
-            "target": integ_filter,
-            "commented": comment_filter
+    return jsonify(
+        {
+            "page_info": {"page": page, "page_size": page_size},
+            "results": results,
+            "count": num_results,
+            "database": {"name": db_full_name, "version": db_version},
+            "parameters": {
+                "relationship": rel_filter,
+                "target": integ_filter,
+                "commented": comment_filter,
+            },
         }
-    })
+    )
 
 
 def _sort_target(s):

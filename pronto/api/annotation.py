@@ -21,6 +21,11 @@ class Annotation(object):
         self.error = None
         self.references = {}  # PMID -> Pub ID
 
+        # Remove U+00AD (soft-hyphen)
+        # http://www.fileformat.info/info/unicode/char/00AD/index.htm
+        self.text = self.text.replace("\xad", "")
+        self.text = self.text.replace("\u00ad", "")
+
     def validate_html(self) -> bool:
         # Find missing opening/closing tags
         for el in ("b", "i", "li", "ol", "p", "pre", "sub", "sup", "ul"):
@@ -137,13 +142,12 @@ class Annotation(object):
         return True
 
     def validate_encoding(self, exceptions: Set[str]) -> bool:
-        errors = set()
-        for char in self.text:
-            try:
-                char.encode("ascii")
-            except UnicodeEncodeError:
-                if str(ord(char)) not in exceptions:
-                    errors.add(char)
+        errors = []
+        for i, line in enumerate(self.text.splitlines(keepends=False)):
+            for j, char in enumerate(line):
+                if not char.isascii() and str(ord(char)) not in exceptions:
+                    errors.append(f"'{char}' (line {i+1}, position {j+1}, "
+                                  f"code: {ord(char)})")
 
         if errors:
             self.error = f"Invalid character(s): {', '.join(errors)}"

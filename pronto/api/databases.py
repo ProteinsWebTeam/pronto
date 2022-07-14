@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from flask import Blueprint, jsonify
 
 from pronto import utils
@@ -38,11 +36,12 @@ def get_member_databases():
     num_signatures = dict(cur.fetchall())
 
     cur.execute(
-        """
+        f"""
         SELECT id, name, name_long, version, updated
         FROM interpro.database
-        WHERE name NOT IN ('interpro', 'uniprot')
-        """
+        WHERE id IN ({','.join(['%s' for _ in num_signatures])})
+        """,
+        list(num_signatures.keys())
     )
     databases = {}
     for dbid, name, name_long, version, updated in cur:
@@ -56,14 +55,13 @@ def get_member_databases():
             "color": db.color,
             "signatures": {
                 "total": num_signatures.get(dbid, 0),
-                "integrated": num_integrated.get(name, 0)
-            }
+                "integrated": num_integrated.get(name, 0),
+            },
         }
 
     cur.close()
     con.close()
-    return jsonify(sorted(databases.values(),
-                          key=lambda x: x["name"].lower()))
+    return jsonify(sorted(databases.values(), key=lambda x: x["name"].lower()))
 
 
 @bp.route("/updates/")
@@ -94,16 +92,17 @@ def get_recent_updates():
         except KeyError:
             continue
         else:
-            results.append({
-                "name": name,
-                "color": db.color,
-                "version": version,
-                "date": date.strftime("%b %Y")
-            })
+            results.append(
+                {
+                    "name": name,
+                    "color": db.color,
+                    "version": version,
+                    "date": date.strftime("%b %Y"),
+                }
+            )
 
     cur.close()
     con.close()
 
-    return jsonify({
-        "results": results
-    }), 200
+    return jsonify({"results": results}), 200
+
