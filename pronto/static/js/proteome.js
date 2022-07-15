@@ -419,8 +419,7 @@ document.addEventListener('DOMContentLoaded', () => {
         submitTask(button.dataset.id);
     });
 
-    const useCategories = true;
-    const maxResults = 8;
+    const maxResults = 10;
     $('.ui.search')
         .search({
             type: 'standard',
@@ -429,15 +428,16 @@ document.addEventListener('DOMContentLoaded', () => {
             apiSettings: {
                 url: '/api/proteome/search/?q={query}',
                 onResponse: (response) => {
-                    // Sort items by name
-                    const items = response.items.sort((a, b) => a.name.localeCompare(b.name));
                     // Format results
                     return {
-                        results: items.map((item) => ({
-                            id: item.id,
-                            title: item.name,
-                            url: `/proteome?id=${item.id}`
-                        }))
+                        results: response.items
+                            .sort((a, b) => a.name.localeCompare(b.name))
+                            .slice(0, maxResults)
+                            .map((item) => ({
+                                id: item.id,
+                                title: item.name,
+                                url: `/proteome?id=${item.id}`
+                            }))
                     };
                 }
             },
