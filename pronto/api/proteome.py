@@ -317,7 +317,7 @@ def get_proteomes():
 
 @bp.route("/search/")
 def search_proteome():
-    query = request.args.get("q", "Homo sapiens (Human)")
+    query = request.args.get("q", "Human")
     con = utils.connect_pg(utils.get_pg_url())
     cur = con.cursor()
 
@@ -331,14 +331,16 @@ def search_proteome():
             f"""
             {sql}
             WHERE p.id = %s
-            """, (query,)
+            """,
+            [query]
         )
     else:
         cur.execute(
             f"""
             {sql}
             WHERE p.name ILIKE %s
-            """, (query + '%',)
+            """,
+            [f"%{query}%"]
         )
 
     cols = ("id", "name")
