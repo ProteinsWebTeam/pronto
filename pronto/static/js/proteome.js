@@ -224,17 +224,12 @@ function renderResults(task) {
         });
 
     let dbName = null;
-    let minIncr = 0;
     const coverageAll = data.proteins.all > 0 ? data.proteins.integrated_all * 100 / data.proteins.all : 0;
     const coverageRev = data.proteins.reviewed > 0 ? data.proteins.integrated_reviewed * 100 / data.proteins.reviewed : 0;
     const genTableBody = () => {
         let tbody = '';
         signatures.forEach(item => {
             if (dbName !== null && item.database.name !== dbName)
-                return;
-
-            const newCov = data.proteins.all > 0 ? (data.proteins.integrated_all + item.proteins.unintegrated_all) * 100 / data.proteins.all : 0;
-            if (newCov < coverageAll + minIncr)
                 return;
 
             let btn = '';
@@ -267,7 +262,7 @@ function renderResults(task) {
             <div class="item">
                 <div class="content">
                     <div class="header">${data.proteins.all.toLocaleString()}</div>
-                    <div class="description">proteins</div>
+                    <div class="description">complete proteins</div>
                 </div>
             </div>
             <div class="item">
@@ -279,7 +274,7 @@ function renderResults(task) {
             <div class="item">
                 <div class="content">
                     <div class="header">${data.proteins.reviewed.toLocaleString()}</div>
-                    <div class="description">reviewed proteins</div>
+                    <div class="description">reviewed complete proteins</div>
                 </div>
             </div>
             <div class="item">
@@ -294,22 +289,6 @@ function renderResults(task) {
                     <div class="description">unintegrated signatures</div>
                 </div>
             </div>
-            <!--<div class="item">
-                <div class="content">
-                    <div class="header">
-                        <div class="ui fitted checkbox">
-                            <input id="only-worth" type="checkbox">
-                            <label></label>
-                        </div>                    
-                    </div>
-                    <div class="description">
-                        worth integrating only
-                        <span data-tooltip="Only shows signatures whose integration would increase the coverage by at least ${minIncr}%.">
-                            <i class="question circle icon"></i>
-                        </span>
-                    </div>
-                </div>
-            </div>-->
         </div>
         <div class="ui grid">
             <div class="row">
@@ -396,13 +375,6 @@ function renderResults(task) {
             initPopups(tbody);
         });
     }
-
-    // document.getElementById('only-worth').addEventListener('change', e => {
-    //     minIncr = e.currentTarget.checked ? 0.005 : 0;
-    //     const tbody = resultsElem.querySelector('tbody');
-    //     tbody.innerHTML = genTableBody();
-    //     initPopups(tbody);
-    // });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
