@@ -388,6 +388,7 @@ function renderRecentEntries(entries) {
     const uncheckedOnly = tab.querySelector('input[name="entries-unchecked"]').checked
 
     let html = '';
+    let count = 0;
     for (const entry of entries) {
         if (entry.checked && uncheckedOnly)
             continue;
@@ -396,6 +397,7 @@ function renderRecentEntries(entries) {
         else if (authorFilter === 'others' && entry.user.by_me)
             continue
 
+        count += 1;
         html += `
             <tr>
             <td>
@@ -419,6 +421,7 @@ function renderRecentEntries(entries) {
     if (html.length === 0)
         html = '<tr><td colspan="5" class="center aligned">No entries found</td></tr>';
 
+    tab.querySelector('thead th:first-child').innerHTML = `${count.toLocaleString()} entr${count === 1 ? 'y' : 'ies'}`;
     tab.querySelector('tbody').innerHTML = html;
 }
 
