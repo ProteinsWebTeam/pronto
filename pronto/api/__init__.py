@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from flask import Blueprint, jsonify, request
 
 from pronto import auth, utils
@@ -57,7 +55,8 @@ def get_tasks():
 
 @bp.route("/task/<string:task_id>/")
 def get_task(task_id):
-    tasks = utils.executor.get_tasks(task_id=task_id, get_result=True)
+    tasks = utils.executor.get_tasks(task_id=task_id,
+                                     get_result="results" in request.args)
     return jsonify(tasks[0])
 
 
