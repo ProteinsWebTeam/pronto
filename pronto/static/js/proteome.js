@@ -48,7 +48,7 @@ async function getProteome(proteomeId) {
     let enableButton = false;
 
     if (!result.status) {
-        // Taxon does not exist
+        // Proteome does not exist
         message.innerHTML = `
             <div class="header">${result.error.title}</div>
             <p>${result.error.message}</p>
@@ -67,7 +67,7 @@ async function getProteome(proteomeId) {
         message.className = 'ui info message';
         enableButton = true;
     } else if (result.task.end_time === null) {
-        waitForResults(result.task.id);
+        waitForResults(proteomeId, result.task.id);
     } else if (result.task.success) {
         // Success
         message.className = 'ui hidden message';
@@ -97,7 +97,7 @@ async function submitTask(proteomeId) {
     const message = document.getElementById('main-message');
 
     if (result.status)
-        await waitForResults(result.task.id);
+        await waitForResults(proteomeId, result.task.id);
     else {
         message.innerHTML = `
             <div class="header">${result.error.title}</div>
@@ -109,7 +109,7 @@ async function submitTask(proteomeId) {
     document.getElementById('submit-task').disabled = false;
 }
 
-async function waitForResults(taskId) {
+async function waitForResults(proteomeId, taskId) {
     const message = document.getElementById('main-message');
     message.className = 'ui icon info message';
     message.innerHTML = `
@@ -132,7 +132,7 @@ async function waitForResults(taskId) {
             <p>The coverage has been successfully calculated. Results will be displayed in a few seconds.</p>
         `;
 
-        setTimeout(renderResults, 3000, task);
+        setTimeout(getProteome, 3000, proteomeId);
     } else {
         message.className = 'ui error message';
         message.innerHTML = `
