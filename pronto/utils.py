@@ -255,6 +255,14 @@ def split_path(path: str) -> List[str]:
     return items
 
 
+class DefaultDatabase:
+    home = None
+    color = "#7F8C8D"
+
+    def gen_link(self, *args):
+        return None
+
+
 class CathGene3D:
     home = 'http://www.cathdb.info'
     color = '#d9417c'
@@ -406,7 +414,11 @@ def get_database_obj(key):
         "ssf": Superfamily,
         "tigrfams": Tigrfams,
     }
-    return databases[key]()
+
+    try:
+        return databases[key]()
+    except KeyError:
+        return DefaultDatabase()
 
 
 @dataclass
