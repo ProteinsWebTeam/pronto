@@ -65,6 +65,7 @@ def get_protein(protein_acc):
         "organism": {"name": row[6], "lineage": []},
         "name": row[7],
         "is_spurious": is_spurious,
+        "signatures": []
     }
     taxon_id = row[5]
 
@@ -82,8 +83,7 @@ def get_protein(protein_acc):
             SELECT m.signature_acc, s.name, d.name, d.name_long, m.fragments
             FROM match m 
             INNER JOIN database d ON m.database_id = d.id
-            INNER JOIN signature s ON m.signature_acc = s.accession
-            
+            LEFT OUTER JOIN signature s ON m.signature_acc = s.accession
             WHERE {sql}
             """,
             params,
@@ -114,7 +114,7 @@ def get_protein(protein_acc):
                 start, end, status = frag.split("-")
                 fragments.append({"start": int(start), "end": int(end)})
 
-            s["matches"].append(sorted(fragments, key=lambda x: (x["start"], x["end"])))
+            s["matches"].append(sorted(fragments, key=_repr_location))
 
     if inc_lineage:
         cur.execute(
@@ -168,8 +168,17 @@ def get_protein(protein_acc):
         cur.close()
         con.close()
 
-    protein["signatures"] = sorted(matches.values(), key=lambda x: x["accession"])
+    for s in sorted(matches.values(), key=lambda x: x["accession"]):
+        # Sort by the leftmost fragment of each match
+        s["matches"].sort(key=lambda m: _repr_location(m[0]))
+
+        protein["signatures"].append(s)
+
     return jsonify(protein)
+
+
+def _repr_location(x: dict) -> tuple:
+    return x["start"], x["end"]
 
 
 @bp.route("/<protein_acc>/sequence/")
