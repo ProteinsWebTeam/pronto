@@ -115,7 +115,7 @@ function renderFeatures(proteinLength, features, multiLine = false, labelLink = 
 
                 html += `<rect data-start="${fragment.start}" data-end="${fragment.end}" data-id="${feature.accession}" 
                                data-name="${feature.name ? feature.name : ''}" data-db="${feature.database}" 
-                               data-link="${feature.link}" x="${x}" y="${y}" width="${w}" height="${matchHeight}" 
+                               data-link="${feature.link ? feature.link : ''}" x="${x}" y="${y}" width="${w}" height="${matchHeight}" 
                                rx="1" ry="1" style="fill: ${feature.color}"/>`;
             }
 
@@ -171,9 +171,13 @@ document.addEventListener('DOMContentLoaded', () => {
             if (name.length)
                 content += `<div class="meta">${name}&nbsp;&ndash;&nbsp;${dbName}</div>`;
             else
-                content += '<div class="meta">${dbName}</div>';
+                content += `<div class="meta">${dbName}</div>`;
 
-            content += `<div class="description"><a target="_blank" href="${link}">${id}&nbsp;<i class="external icon"></i></div>`;
+            if (link.length)
+                content += `<div class="description"><a target="_blank" href="${link}">${id}&nbsp;<i class="external icon"></i></div>`;
+            else
+                content += `<div class="description">${id}</div>`;
+
             this.element.querySelector('.content').innerHTML = content;
         },
         lock: function (id) {
@@ -223,7 +227,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const unintegrated = [];
             const extra = [];
             for (const signature of protein.signatures) {
-                if (signature.accession === 'mobidb-lite')
+                if (signature.name === null)
+                    // Only non-signatures don't have name
                     extra.push(signature);
                 else if (signature.entry === null)
                     unintegrated.push(signature);
@@ -256,8 +261,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // Unintegrated signatures
             document.querySelector('#unintegrated + div').innerHTML = renderFeatures(protein.length, unintegrated);
 
-            // Disordered regions
-            // document.querySelector('#disordered-regions + div').innerHTML = renderFeatures(protein.length, extra, true, false);
+            // Extra features
+            document.querySelector('#others + div').innerHTML = renderFeatures(protein.length, extra, true, false);
 
             // Lineage
             html = '';
