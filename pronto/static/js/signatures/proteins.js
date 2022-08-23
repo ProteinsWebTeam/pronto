@@ -45,7 +45,7 @@ function renderProtein(protein, signatures, filterMatches, maxLength) {
         const _width = Math.floor(protein.length * width / maxLength);
         html += `<td><a href="/signature/${signature.accession}/">${signature.accession}</a></td>
                  <td class="collapsing"><a href="#" data-add-id="${signature.accession}"><i class="cart plus fitted icon"></i></a></td>
-                 <td><a target="_blank" href="${signature.link}">${signature.name}<i class="external icon"></i></a></td>
+                 <td><a target="_blank" href="${signature.link}">${signature.name || signature.accession}<i class="external icon"></i></a></td>
                  <td>
                     <svg width="${svgWidth}" height="30">
                         <line x1="${svgPaddingLeft}" y1="20" x2="${_width}" y2="20" stroke="#888" stroke-width="1px"/>
