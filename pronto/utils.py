@@ -265,11 +265,23 @@ class CathGene3D:
 
 
 class Cdd:
-    home = 'http://www.ncbi.nlm.nih.gov/Structure/cdd/cdd.shtml'
+    base = "//www.ncbi.nlm.nih.gov/Structure/cdd"
+    home = f"{base}/cdd.shtml"
     color = '#c6554b'
 
     def gen_link(self, acc: str):
-        return f"http://www.ncbi.nlm.nih.gov/Structure/cdd/cddsrv.cgi?uid={acc}"
+        return f"{self.base}/cddsrv.cgi?uid={acc}"
+
+
+class FunFam:
+    home = '//www.cathdb.info'
+    color = '#d9417c'
+
+    def gen_link(self, acc: str):
+        # G3DSA:3.40.640.10:FF:000006
+        m = re.match(r"G3DSA:([0-9.]+):FF:(\d+)", acc)
+        fam_acc, funfam_acc = m.groups()
+        return f"{self.home}/superfamily/{fam_acc}/funfam/{int(funfam_acc)}"
 
 
 class Hamap:
@@ -380,6 +392,7 @@ def get_database_obj(key):
     databases = {
         "cathgene3d": CathGene3D,
         "cdd": Cdd,
+        "funfam": FunFam,
         "hamap": Hamap,
         "mobidblt": MobiDbLite,
         "panther": Panther,
