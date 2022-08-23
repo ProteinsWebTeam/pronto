@@ -77,7 +77,8 @@ def get_recent_updates():
                 ORDER BY TIMESTAMP DESC
             ) RN
             FROM INTERPRO.DB_VERSION_AUDIT
-            WHERE TIMESTAMP >= ADD_MONTHS(SYSDATE, -12)
+            WHERE DBCODE NOT IN ('I', 'S', 'T', 'u')
+              AND TIMESTAMP >= ADD_MONTHS(SYSDATE, -12)
         ) A
         INNER JOIN INTERPRO.CV_DATABASE D ON A.DBCODE = D.DBCODE
         WHERE A.RN = 1
