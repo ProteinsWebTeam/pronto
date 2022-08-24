@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from flask import Blueprint, jsonify, request
 
 from pronto import auth, utils
@@ -9,6 +7,7 @@ from . import database
 from . import databases
 from . import entries
 from . import entry
+from . import interproscan
 from . import protein
 from . import search
 from . import signature
@@ -20,8 +19,8 @@ from . import proteome
 bp = Blueprint("api", __name__,  url_prefix="/api")
 
 blueprints = [bp, annotation.bp, checks.bp, database.bp, databases.bp,
-              entries.bp, entry.bp, protein.bp, search.bp, signature.bp,
-              signatures.bp, taxon.bp, proteome.bp]
+              entries.bp, entry.bp, interproscan.bp, protein.bp, search.bp,
+              signature.bp, signatures.bp, taxon.bp, proteome.bp]
 
 
 @bp.route("/")
