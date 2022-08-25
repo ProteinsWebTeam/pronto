@@ -718,6 +718,71 @@ async function runSanityChecks() {
     renderTaskList();
 }
 
+async function getDatabaseJobs(name, version) {
+    const response = await fetch(`/api/interproscan/jobs/${name}/${version}/`);
+    const payload = await response.json();
+    payload.name = name;
+    payload.version = version;
+    return payload
+}
+
+async function getInterProScanJobs() {
+    const response = await fetch('/api/interproscan/?active');
+    let databases = await response.json();
+
+    const promises = [];
+    for (const db of databases) {
+        for (const version of db.versions) {
+            promises.push(getDatabaseJobs(db.name, version));
+        }
+    }
+
+    databases = await Promise.all(promises);
+
+    const seriesData = [];
+    for (const item of databases) {
+        // Runtime (in hours) for 1M sequences
+        const y = Math.round(item.runtime * 1e6 / item.sequences / 3600 * 10) / 10;
+
+        seriesData.push({
+            name: `${item.name} ${item.version}`,
+            y: y
+        });
+    }
+
+    seriesData.sort((a, b) => b.y - a.y );
+
+    Highcharts.chart(document.getElementById('chart-jobs'), {
+        chart: { type: 'column' },
+        title: { text: null },
+        subtitle: { text: null },
+        credits: { enabled: false },
+        legend: { enabled: false },
+        xAxis: {
+            type: 'category',
+            title: { text: null },
+        },
+        yAxis: {
+            title: { text: 'Runtime' },
+            labels: { format: '{value} h' },
+        },
+        series: [{
+            data: seriesData,
+            color: '#2c3e50'
+        }],
+        tooltip: {
+            headerFormat: '<span style="font-size: 10px;">{point.key}</span><br/>',
+            pointFormat: '<b>{point.y}</b> hours'
+        }
+    });
+}
+
+async function getRunningInterProScanJobs() {
+    let response = await fetch('/api/interproscan/running/');
+    let payload = await response.json();
+    console.log(payload);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     updateHeader();
     const match = location.href.match(/\/#\/(.+)$/);
@@ -755,19 +820,18 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelector('.tab[data-tab="checks"] .primary.button').addEventListener('click', e => runSanityChecks());
 
     Promise.all([
-        getDatabases().then(databases => initUncheckedEntriesForm(databases)),
-        getRecentEntries(),
-        getInterPro2GO(),
-        getSanityCheck(),
-        getNumOfUncheckedEntries(),
+        // getDatabases().then(databases => initUncheckedEntriesForm(databases)),
+        // getRecentEntries(),
+        // getInterPro2GO(),
+        // getSanityCheck(),
+        // getNumOfUncheckedEntries(),
     ])
         .then(() => {
             setClass(document.getElementById('welcome'), 'active', false);
         });
 
-    (function () {
-        const tab = document.querySelector('.tab[data-tab="statistics"]');
-        tab.querySelector(':scope > .button').addEventListener('click', e => {
+    document.querySelector('.tab[data-tab="statistics"] > .button')
+        .addEventListener('click', e => {
             const button = e.currentTarget;
             setClass(button, 'loading', true);
 
@@ -780,9 +844,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 getQuartelyStats()
             ]).then(() => {
                 setClass(button, 'hidden', true);
-                setClass(tab.querySelector(':scope > .content'), 'hidden', false);
+                setClass(button.parentNode.querySelector(':scope > .content'), 'hidden', false);
             });
         });
 
-    }());
+    document.querySelector('.tab[data-tab="interproscan"] > .button')
+        .addEventListener('click', e => {
+            const button = e.currentTarget;
+            setClass(button, 'loading', true);
+
+            Promise.all([
+                getInterProScanJobs()
+            ]).then(() => {
+                setClass(button, 'hidden', true);
+                setClass(button.parentNode.querySelector(':scope > .content'), 'hidden', false);
+            });
+        });
 });

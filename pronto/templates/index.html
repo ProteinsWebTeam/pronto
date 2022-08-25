@@ -17,11 +17,12 @@
         <div class="ui basic segment">
             <div class="ui top attached tabular secondary pointing menu">
                 <a class="item" data-tab="databases">Member databases</a>
-		<a class="item" data-tab="news"><span>Recent entries</span><div class="ui small secondary label"></div></a>
+		        <a class="item" data-tab="news"><span>Recent entries</span><div class="ui small secondary label"></div></a>
                 <a class="item" data-tab="interpro2go"><span>InterPro2GO</span><div class="ui small secondary label"></div></a>
                 <a class="item" data-tab="unchecked"><span>Unchecked entries</span><div class="ui small secondary label"></div></a>
                 <a class="item" data-tab="checks"><span>Sanity checks</span><div class="ui small secondary label"></div></a>
-		<a class="item" data-tab="statistics"><span>Statistics</span></a>
+		        <a class="item" data-tab="statistics"><span>Statistics</span></a>
+                <a class="item" data-tab="interproscan"><span>InterProScan</span></a>
             </div>
             <div class="ui tab basic segment" data-tab="databases">
                 <table class="ui table">
@@ -147,7 +148,7 @@
                 </table>
             </div>
             <div class="ui tab basic segment" data-tab="statistics">
-                <button class="fluid ui primary button">Fetch statistics</button>
+                <button class="fluid ui primary button">Load statistics</button>
                 <div class="hidden content">
                     <div class="ui segment">
                         <div class="ui four small statistics">
@@ -213,6 +214,15 @@
 
 
                 </div>
+            </div>
+            <div class="ui tab basic segment" data-tab="interproscan">
+                <button class="fluid ui primary button">Load data</button>
+                <div class="hidden content">
+                    <h4>Runtime</h4>
+                    <p>Estimated run time to process one million of sequences.</p>
+                    <div id="chart-jobs"></div>
+                </div>
+
             </div>
         </div>
     </div>
