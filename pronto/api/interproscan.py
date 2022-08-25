@@ -10,12 +10,18 @@ bp = Blueprint("api.interproscan", __name__, url_prefix="/api/interproscan")
 
 @bp.route("/")
 def get_analyses():
+    if request.args.get("active") is not None:
+        condition = "WHERE ACTIVE = 'Y'"
+    else:
+        condition = ""
+
     con = utils.connect_oracle()
     cur = con.cursor()
     cur.execute(
-        """
+        f"""
         SELECT NAME, VERSION 
-        FROM IPRSCAN.ANALYSIS@ISPRO
+        FROM INTERPRO.ANALYSIS
+        {condition}
         ORDER BY ID
         """
     )
@@ -43,27 +49,27 @@ def get_jobs(name: str, version: str):
         params = {"version": version}
 
         """
-        SignalP is made of three analyses, so for each sequences, we need
-        to run three jobs so it takes three times more time
+        SignalP is made of three analyses: we need to run three jobs 
+        for each sequence so it takes three times more time
         """
-        time_factor = 3
+        db_factor = 3
     else:
         condition = "LOWER(NAME) = LOWER(:name)"
         params = {"name": name, "version": version}
-        time_factor = 1
+        db_factor = 1
 
     con = utils.connect_oracle()
     cur = con.cursor()
     cur.execute(
         f"""
-        SELECT UPI_FROM, UPI_TO, 
+        SELECT UPI_FROM, UPI_TO
                FLOOR((END_TIME - NVL(START_TIME, SUBMIT_TIME))*24*3600), 
                CPU_TIME, LIM_MEMORY, MAX_MEMORY, SUCCESS
-        FROM IPRSCAN.ANALYSIS_JOBS@ISPRO J
+        FROM INTERPRO.ANALYSIS_JOBS J
         WHERE END_TIME IS NOT NULL
         AND ANALYSIS_ID IN (
             SELECT ID
-            FROM IPRSCAN.ANALYSIS@ISPRO
+            FROM INTERPRO.ANALYSIS
             WHERE {condition}
               AND VERSION = :version
         )
@@ -72,42 +78,50 @@ def get_jobs(name: str, version: str):
     )
 
     data = {
-        "runtime": [],
-        "cputime": [],
+        "failure": 0,
+        "sequences": 0,
+        "runtime": 0,
+        "cputime": 0,
         "reqmem": [],
-        "maxmem": [],
-        "failure_rate": 0
+        "maxmem": []
     }
+    total_jobs = 0
+    unique_jobs = set()
 
     for upi_from, upi_to, run_time, cpu_time, req_mem, max_mem, success in cur:
-        data["runtime"].append(run_time)
-        data["cputime"].append(cpu_time)
+        total_jobs += 1
+
+        if upi_from not in unique_jobs:
+            data["sequences"] += upi_to_int(upi_to) - upi_to_int(upi_from) + 1
+            unique_jobs.add(upi_from)
+
+        if success != "Y":
+            data["failure"] += 1
+
         data["reqmem"].append(req_mem)
         data["maxmem"].append(max_mem)
-        if success != "Y":
-            data["failure_rate"] += 1
+        data["runtime"] += run_time
+        data["cputime"] += cpu_time
 
     cur.close()
     con.close()
 
-    num_jobs = len(data["runtime"])
-    data["failure_rate"] /= num_jobs
-
-    for key in ["runtime", "cputime"]:
-        values = sorted(data[key])
-        data[key] = {
-            "max": values[-1],
-            "med": values[math.ceil(0.50 * num_jobs)],
-            "avg": math.ceil(sum(values) / (num_jobs / time_factor)),
-        }
-
     for key in ["reqmem", "maxmem"]:
         values = sorted(data[key])
+        num_jobs = len(values)
         data[key] = {
-            "max": values[-1],
-            "med": values[math.ceil(0.50 * num_jobs)],
+            "q1": values[math.ceil(0.25 * num_jobs)],
+            "q2": values[math.ceil(0.50 * num_jobs)],
+            "q3": values[math.ceil(0.75 * num_jobs)],
             "avg": math.ceil(sum(values) / num_jobs),
+            "max": values[-1],
         }
+
+    for key in ["runtime", "cputime"]:
+        data[key] = math.ceil(data[key] / len(unique_jobs) * db_factor)
+
+    data["sequences"] /= len(unique_jobs)
+    data["failure"] /= total_jobs
 
     return jsonify(data)
 
@@ -119,7 +133,7 @@ def get_running_jobs():
     cur.execute(
         """
         SELECT A.ID, A.NAME, A.VERSION, NVL(J.CNT, 0)
-        FROM IPRSCAN.ANALYSIS@ISPRO A
+        FROM INTERPRO.ANALYSIS A
         LEFT OUTER JOIN (
             SELECT ANALYSIS_ID, COUNT(*) CNT
             FROM (
@@ -131,7 +145,7 @@ def get_running_jobs():
                 FROM (
                     SELECT ANALYSIS_ID, UPI_FROM, UPI_TO, 
                            NVL(END_TIME, SYSDATE) END_TIME, SUCCESS
-                    FROM IPRSCAN.ANALYSIS_JOBS@ISPRO
+                    FROM INTERPRO.ANALYSIS_JOBS
                 ) A
             )
             WHERE RN = 1 AND SUCCESS != 'Y'
@@ -177,3 +191,7 @@ def get_running_jobs():
             results.append(version)
 
     return jsonify(results)
+
+
+def upi_to_int(upi):
+    return int(upi[3:], 16)
