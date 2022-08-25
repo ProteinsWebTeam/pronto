@@ -31,10 +31,10 @@ def get_analyses():
         if name.startswith("SignalP"):
             name = "SignalP"
 
-        try:
-            analyses[name]["versions"].append(version)
-        except KeyError:
+        if name not in analyses:
             analyses[name] = {"name": name, "versions": [version]}
+        elif version not in analyses[name]["versions"]:
+            analyses[name]["versions"].append(version)
 
     cur.close()
     con.close()
@@ -47,32 +47,25 @@ def get_jobs(name: str, version: str):
     if name.lower().startswith("signalp"):
         condition = "REGEXP_LIKE(NAME, '^SignalP')"
         params = {"version": version}
-
-        """
-        SignalP is made of three analyses: we need to run three jobs 
-        for each sequence so it takes three times more time
-        """
-        db_factor = 3
     else:
         condition = "LOWER(NAME) = LOWER(:name)"
         params = {"name": name, "version": version}
-        db_factor = 1
 
     con = utils.connect_oracle()
     cur = con.cursor()
     cur.execute(
         f"""
-        SELECT UPI_FROM, UPI_TO
+        SELECT UPI_FROM, UPI_TO,
                FLOOR((END_TIME - NVL(START_TIME, SUBMIT_TIME))*24*3600), 
                CPU_TIME, LIM_MEMORY, MAX_MEMORY, SUCCESS
         FROM INTERPRO.ANALYSIS_JOBS J
-        WHERE END_TIME IS NOT NULL
-        AND ANALYSIS_ID IN (
+        WHERE ANALYSIS_ID IN (
             SELECT ID
             FROM INTERPRO.ANALYSIS
             WHERE {condition}
               AND VERSION = :version
-        )
+        ) 
+        AND END_TIME IS NOT NULL
         """,
         params
     )
@@ -92,8 +85,8 @@ def get_jobs(name: str, version: str):
         total_jobs += 1
 
         if upi_from not in unique_jobs:
-            data["sequences"] += upi_to_int(upi_to) - upi_to_int(upi_from) + 1
             unique_jobs.add(upi_from)
+            data["sequences"] += upi_to_int(upi_to) - upi_to_int(upi_from) + 1
 
         if success != "Y":
             data["failure"] += 1
@@ -108,19 +101,14 @@ def get_jobs(name: str, version: str):
 
     for key in ["reqmem", "maxmem"]:
         values = sorted(data[key])
-        num_jobs = len(values)
         data[key] = {
-            "q1": values[math.ceil(0.25 * num_jobs)],
-            "q2": values[math.ceil(0.50 * num_jobs)],
-            "q3": values[math.ceil(0.75 * num_jobs)],
-            "avg": math.ceil(sum(values) / num_jobs),
+            "q1": values[math.ceil(0.25 * total_jobs)],
+            "q2": values[math.ceil(0.50 * total_jobs)],
+            "q3": values[math.ceil(0.75 * total_jobs)],
+            "avg": math.ceil(sum(values) / total_jobs),
             "max": values[-1],
         }
 
-    for key in ["runtime", "cputime"]:
-        data[key] = math.ceil(data[key] / len(unique_jobs) * db_factor)
-
-    data["sequences"] /= len(unique_jobs)
     data["failure"] /= total_jobs
 
     return jsonify(data)
@@ -148,7 +136,7 @@ def get_running_jobs():
                     FROM INTERPRO.ANALYSIS_JOBS
                 ) A
             )
-            WHERE RN = 1 AND SUCCESS != 'Y'
+            WHERE RN = 1 --AND SUCCESS != 'Y'
             GROUP BY ANALYSIS_ID
         ) J ON A.ID = J.ANALYSIS_ID
         WHERE A.ACTIVE = 'Y'
