@@ -8,38 +8,115 @@ from pronto import utils
 bp = Blueprint("api.interproscan", __name__, url_prefix="/api/interproscan")
 
 
+"""
+Relies on views IPPRO -> ISPRO
+
+As INTERPRO:
+
+SQL> CREATE VIEW ISPRO_ANALYSIS AS SELECT * FROM IPRSCAN.ANALYSIS@ISPRO;
+SQL> GRANT SELECT ON ISPRO_ANALYSIS TO INTERPRO_SELECT;
+SQL> CREATE VIEW ISPRO_ANALYSIS_JOBS AS SELECT * FROM IPRSCAN.ANALYSIS_JOBS@ISPRO;
+SQL> GRANT SELECT ON ISPRO_ANALYSIS_JOBS TO INTERPRO_SELECT;
+SQL> CREATE VIEW ISPRO_PROTEIN AS SELECT UPI FROM UNIPARC.PROTEIN@ISPRO;
+SQL> GRANT SELECT ON ISPRO_PROTEIN TO INTERPRO_SELECT;
+"""
+
+
 @bp.route("/")
-def get_analyses():
+def get_summary():
     if request.args.get("active") is not None:
-        condition = "WHERE ACTIVE = 'Y'"
+        active_condition = "AND A.ACTIVE = 'Y'"
     else:
-        condition = ""
+        active_condition = ""
 
     con = utils.connect_oracle()
     cur = con.cursor()
     cur.execute(
-        f"""
-        SELECT NAME, VERSION 
-        FROM INTERPRO.ANALYSIS
-        {condition}
-        ORDER BY ID
         """
+        SELECT MAX(UPI)
+        FROM UNIPARC.PROTEIN
+        """
+    )
+    max_upi, = cur.fetchone()
+
+    cur.execute(
+        """
+        SELECT COUNT(*)
+        FROM INTERPRO.ISPRO_PROTEIN
+        WHERE UPI > :1
+        """,
+        [max_upi]
+    )
+    num_sequences, = cur.fetchone()
+
+    cur.execute(
+        F"""
+        SELECT A.NAME, LOWER(D.DBSHORT), A.VERSION, 
+               FLOOR((J.END_TIME - NVL(J.START_TIME, J.SUBMIT_TIME))*24*3600), 
+               J.CPU_TIME, J.LIM_MEMORY, J.MAX_MEMORY
+        FROM INTERPRO.ISPRO_ANALYSIS A
+        INNER JOIN INTERPRO.ISPRO_ANALYSIS_JOBS J ON A.ID = J.ANALYSIS_ID
+        LEFT OUTER JOIN INTERPRO.CV_DATABASE D ON A.NAME = D.DBNAME
+        WHERE J.UPI_FROM > :1 AND J.END_TIME IS NOT NULL {active_condition}
+        """,
+        [max_upi]
     )
 
     analyses = {}
-    for name, version in cur.fetchall():
-        if name.startswith("SignalP"):
+    for name, dbkey, version, runtime, cputime, reqmem, maxmem in cur:
+        if name.lower().startswith("signalp"):
             name = "SignalP"
 
-        if name not in analyses:
-            analyses[name] = {"name": name, "versions": [version]}
-        elif version not in analyses[name]["versions"]:
-            analyses[name]["versions"].append(version)
+        key = f"{name}{version}"
+
+        if key in analyses:
+            obj = analyses[key]
+        else:
+            try:
+                db = utils.get_database_obj(dbkey)
+            except KeyError:
+                color = None
+            else:
+                color = db.color
+
+            obj = analyses[key] = {
+                "name": name,
+                "version": version,
+                "color": color,
+                "runtime": 0,
+                "cputime": 0,
+                "reqmem": None,
+                "maxmem": [],
+            }
+
+        if runtime is not None:
+            obj["runtime"] += runtime
+
+        if cputime is not None:
+            obj["cputime"] += cputime
+
+        if obj["reqmem"] is None or reqmem < obj["reqmem"]:
+            obj["reqmem"] = reqmem
+
+        obj["maxmem"].append(maxmem)
 
     cur.close()
     con.close()
 
-    return jsonify(sorted(analyses.values(), key=lambda x: x["name"]))
+    for analysis in analyses.values():
+        values = sorted(analysis["maxmem"])
+        analysis["maxmem"] = {
+            "q1": values[math.ceil(0.25 * len(values))],
+            "q2": values[math.ceil(0.50 * len(values))],
+            "q3": values[math.ceil(0.75 * len(values))],
+            "avg": math.ceil(sum(values) / len(values)),
+            "max": values[-1],
+        }
+
+    return jsonify({
+        "databases": list(analyses.values()),
+        "sequences": num_sequences
+    })
 
 
 @bp.route("/jobs/<string:name>/<string:version>/")

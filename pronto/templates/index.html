@@ -219,8 +219,17 @@
                 <button class="fluid ui primary button">Load data</button>
                 <div class="hidden content">
                     <h4>Runtime</h4>
-                    <p>Estimated run time to process one million of sequences.</p>
-                    <div id="chart-jobs"></div>
+                    <p>Time to process <strong id="jobs-sequences"></strong> sequences since the latest protein update, by member database.</p>
+
+
+                    <div class="ui equal width grid">
+                        <div class="column">
+                            <div id="chart-runtime"></div>
+                        </div>
+                        <div class="column">
+                            <div id="chart-cputime"></div>
+                        </div>
+                    </div>
                 </div>
 
             </div>

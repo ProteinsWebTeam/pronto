@@ -727,53 +727,92 @@ async function getDatabaseJobs(name, version) {
 }
 
 async function getInterProScanJobs() {
-    const response = await fetch('/api/interproscan/?active');
-    let databases = await response.json();
+    const response = await fetch('/api/interproscan/');
+    const payload = await response.json();
 
-    const promises = [];
-    for (const db of databases) {
-        for (const version of db.versions) {
-            promises.push(getDatabaseJobs(db.name, version));
+    const runTimeData = [];
+    const cpuTimeData = [];
+    const otherColors = ['#1b9e77','#d95f02','#7570b3','#e7298a','#66a61e','#e6ab02','#a6761d','#666666'];
+    const colorMap = new Map();
+    for (const item of payload.databases) {
+        const name = `${item.name} ${item.version}`;
+
+        let color = null;
+
+        if (item.color !== null) {
+            color = item.color
+        } else if (colorMap.has(item.name)) {
+            color = colorMap.get(item.name);
+        } else if (otherColors.length > 0) {
+            color = otherColors.shift();
+            colorMap.set(item.name, color);
         }
-    }
 
-    databases = await Promise.all(promises);
-
-    const seriesData = [];
-    for (const item of databases) {
-        // Runtime (in hours) for 1M sequences
-        const y = Math.round(item.runtime * 1e6 / item.sequences / 3600 * 10) / 10;
-
-        seriesData.push({
-            name: `${item.name} ${item.version}`,
-            y: y
+        runTimeData.push({
+            name: name,
+            y: item.runtime / 3600,
+            color: color
+        });
+        cpuTimeData.push({
+            name: name,
+            y: item.cputime / 3600,
+            color: color
         });
     }
 
-    seriesData.sort((a, b) => b.y - a.y );
+    document.getElementById('jobs-sequences').innerHTML = payload.sequences.toLocaleString();
+    plotPieChart('chart-runtime', runTimeData);
+    plotPieChart('chart-cputime', cpuTimeData);
 
-    Highcharts.chart(document.getElementById('chart-jobs'), {
-        chart: { type: 'column' },
+    // Highcharts.chart(document.getElementById('chart-jobs-column'), {
+    //     chart: { type: 'column' },
+    //     title: { text: null },
+    //     subtitle: { text: null },
+    //     credits: { enabled: false },
+    //     legend: { enabled: false },
+    //     xAxis: {
+    //         type: 'category',
+    //         title: { text: null },
+    //     },
+    //     yAxis: {
+    //         title: { text: 'Runtime' },
+    //         labels: { format: '{value} h' },
+    //     },
+    //     series: [{
+    //         data: seriesData,
+    //         color: '#2c3e50'
+    //     }],
+    //     tooltip: {
+    //         headerFormat: '<span style="font-size: 10px;">{point.key}</span><br/>',
+    //         pointFormat: '<b>{point.y:.1f}</b> hours'
+    //     }
+    // });
+}
+
+function plotPieChart(elementId, data) {
+    data.sort((a, b) => b.y - a.y );
+    Highcharts.chart(document.getElementById(elementId), {
+        chart: { type: 'pie' },
         title: { text: null },
         subtitle: { text: null },
         credits: { enabled: false },
         legend: { enabled: false },
-        xAxis: {
-            type: 'category',
-            title: { text: null },
-        },
-        yAxis: {
-            title: { text: 'Runtime' },
-            labels: { format: '{value} h' },
+        plotOptions: {
+            pie: {
+                allowPointSelect: true,
+                cursor: 'pointer',
+                dataLabels: {
+                    enabled: true,
+                    format: '<b>{point.name}</b>'
+                }
+            }
         },
         series: [{
-            data: seriesData,
-            color: '#2c3e50'
+            data: data
         }],
         tooltip: {
-            headerFormat: '<span style="font-size: 10px;">{point.key}</span><br/>',
-            pointFormat: '<b>{point.y}</b> hours'
-        }
+            pointFormat: '<b>{point.y:.1f}</b> hours ({point.percentage:.1f}%)'
+        },
     });
 }
 
