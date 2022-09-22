@@ -1,4 +1,4 @@
-cx_Oracle>=7.2.3
-Flask>=1.1.1,<2.0
-mysqlclient>=1.4.6
-psycopg2>=2.8.4
+cx_Oracle~=7.0
+Flask~=1.0
+mysqlclient~=2.0
+psycopg2~=2.0
