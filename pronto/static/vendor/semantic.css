@@ -44728,7 +44728,7 @@ Floated Menu / Item
  /* Left Floated */
  
  .ui.menu:not(.vertical) .left.item,
- .ui.menu:not(.vertical) .left.menu {
+ .ui.menu:not(.vertical) {
      display: -webkit-box;
      display: -ms-flexbox;
      display: flex;
