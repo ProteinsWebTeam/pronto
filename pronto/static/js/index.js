@@ -718,27 +718,32 @@ async function runSanityChecks() {
     renderTaskList();
 }
 
-async function getDatabaseJobs(name, version) {
-    const response = await fetch(`/api/interproscan/jobs/${name}/${version}/`);
-    const payload = await response.json();
-    payload.name = name;
-    payload.version = version;
-    return payload
-}
-
 async function getInterProScanJobs() {
     const response = await fetch('/api/interproscan/');
     const payload = await response.json();
 
-    const runTimeData = [];
-    const cpuTimeData = [];
+    document.querySelector('.ui.segment[data-tab="interproscan"] .message.info').innerHTML = `
+        The charts below presents benchmarks for InterProScan jobs run against 
+        the <strong>${payload.sequences.toLocaleString()}</strong> new sequences in UniParc 
+        since the latest protein update.
+    `;
+    sessionStorage.setItem('jobs', JSON.stringify(payload.databases));
+
+    plotJobTimeChart();
+    plotJobMemoryChart(payload.databases);
+}
+
+function plotJobTimeChart() {
+    const databases = JSON.parse(sessionStorage.getItem('jobs'));
+    const dataType = document.querySelector('input[name="data-type"]:checked').value;
+    const chartType = document.querySelector('input[name="chart-type"]:checked').value;
+
+    const seriesData = [];
     const otherColors = ['#1b9e77','#d95f02','#7570b3','#e7298a','#66a61e','#e6ab02','#a6761d','#666666'];
     const colorMap = new Map();
-    for (const item of payload.databases) {
-        const name = `${item.name} ${item.version}`;
 
+    for (const item of databases) {
         let color = null;
-
         if (item.color !== null) {
             color = item.color
         } else if (colorMap.has(item.name)) {
@@ -748,78 +753,161 @@ async function getInterProScanJobs() {
             colorMap.set(item.name, color);
         }
 
-        runTimeData.push({
-            name: name,
-            y: item.runtime / 3600,
-            color: color
-        });
-        cpuTimeData.push({
-            name: name,
-            y: item.cputime / 3600,
-            color: color
+        seriesData.push({
+            name: `${item.name} ${item.version}`,
+            y: (dataType === 'cputime' ?  item.cputime : item.runtime) / 3600,
+            color: color,
+            dbName: item.name,
+            dbVersion: item.version
         });
     }
 
-    document.getElementById('jobs-sequences').innerHTML = payload.sequences.toLocaleString();
-    plotPieChart('chart-runtime', runTimeData);
-    plotPieChart('chart-cputime', cpuTimeData);
+    seriesData.sort((a, b) => b.y - a.y );
 
-    // Highcharts.chart(document.getElementById('chart-jobs-column'), {
-    //     chart: { type: 'column' },
-    //     title: { text: null },
-    //     subtitle: { text: null },
-    //     credits: { enabled: false },
-    //     legend: { enabled: false },
-    //     xAxis: {
-    //         type: 'category',
-    //         title: { text: null },
-    //     },
-    //     yAxis: {
-    //         title: { text: 'Runtime' },
-    //         labels: { format: '{value} h' },
-    //     },
-    //     series: [{
-    //         data: seriesData,
-    //         color: '#2c3e50'
-    //     }],
-    //     tooltip: {
-    //         headerFormat: '<span style="font-size: 10px;">{point.key}</span><br/>',
-    //         pointFormat: '<b>{point.y:.1f}</b> hours'
-    //     }
-    // });
+    const onClick = (e) => {
+        // getDatabaseInterProScanJobs(e.point.dbName, e.point.dbVersion)
+        //     .then(() => {});
+    };
+
+    if (chartType === 'pie') {
+        Highcharts.chart('chart-jobs-time', {
+            chart: { type: 'pie', height: 500 },
+            title: { text: null },
+            subtitle: { text: null },
+            credits: { enabled: false },
+            legend: { enabled: false },
+            plotOptions: {
+                series: {
+                    allowPointSelect: true,
+                    cursor: 'pointer',
+                    dataLabels: {
+                        enabled: true,
+                        format: '<b>{point.name}</b>'
+                    },
+                    point: {
+                        events: {
+                            click: onClick
+                        }
+                    }
+                }
+            },
+            series: [{
+                data: seriesData
+            }],
+            tooltip: {
+                pointFormat: '<b>{point.y:.0f}</b> hours ({point.percentage:.1f}%)'
+            },
+        });
+    } else {
+        Highcharts.chart('chart-jobs-time', {
+            chart: { type: 'column', height: 500 },
+            title: { text: null },
+            subtitle: { text: null },
+            credits: { enabled: false },
+            legend: { enabled: false },
+            plotOptions: {
+                series: {
+                    point: {
+                        events: {
+                            click: onClick
+                        }
+                    }
+                }
+            },
+            xAxis: {
+                type: 'category',
+                title: { text: null },
+            },
+            yAxis: {
+                title: { text: dataType === 'cputime' ? 'CPU time' : 'Runtime' },
+                labels: { format: '{value} h' },
+            },
+            series: [{
+                data: seriesData,
+                // color: '#2c3e50'
+            }],
+            tooltip: {
+                headerFormat: '<span style="font-size: 10px;">{point.key}</span><br/>',
+                pointFormat: '<b>{point.y:.1f}</b> hours'
+            }
+        });
+    }
 }
 
-function plotPieChart(elementId, data) {
-    data.sort((a, b) => b.y - a.y );
-    Highcharts.chart(document.getElementById(elementId), {
-        chart: { type: 'pie' },
+function plotJobMemoryChart(databases) {
+    databases.sort((a, b) => {
+        if (a.name !== b.name)
+            return a.name.localeCompare(b.name);
+        return a.version.localeCompare(b.version);
+    });
+
+    const boxPlotData = [];
+    for (const item of databases) {
+        // See https://api.highcharts.com/highcharts/series.boxplot.data
+        boxPlotData.push([
+            `${item.name} ${item.version}`,
+            +(item.maxmem.min / 1024).toFixed(1),
+            +(item.maxmem.q1 / 1024).toFixed(1),
+            +(item.maxmem.q2 / 1024).toFixed(1),
+            +(item.maxmem.q3 / 1024).toFixed(1),
+            +(item.maxmem.max / 1024).toFixed(1),
+        ]);
+    }
+
+    Highcharts.chart('chart-jobs-memory', {
+        chart: { type: 'boxplot', height: 500 },
         title: { text: null },
         subtitle: { text: null },
         credits: { enabled: false },
         legend: { enabled: false },
-        plotOptions: {
-            pie: {
-                allowPointSelect: true,
-                cursor: 'pointer',
-                dataLabels: {
-                    enabled: true,
-                    format: '<b>{point.name}</b>'
-                }
-            }
+        xAxis: {
+            type: 'category',
+            title: { text: null },
+        },
+        yAxis: {
+            title: { text: 'Memory' },
+            labels: { format: '{value} GB' },
+        },
+        tooltip: {
+            formatter: function() {
+                return `
+                    <span style="font-size: 10px; font-weight: bold;">${this.key}</span>
+                    <table class="simple">
+                        <tbody>
+                            <tr>
+                                <td>Maximum</td>
+                                <td class="right-align">${this.point.high.toLocaleString()} GB</td>
+                            </tr>
+                            <tr>
+                                <td>Upper quartile</td>
+                                <td class="right-align">${this.point.q3.toLocaleString()} GB</td>
+                            </tr>
+                            <tr>
+                                <td>Median</td>
+                                <td class="right-align">${this.point.median.toLocaleString()} GB</td>
+                            </tr>
+                            <tr>
+                                <td>Lower quartile</td>
+                                <td class="right-align">${this.point.q1.toLocaleString()} GB</td>
+                            </tr>
+                            <tr>
+                                <td>Minimum</td>
+                                <td class="right-align">${this.point.low.toLocaleString()} GB</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                `;
+            },
+            hideDelay: 1500,
+            style: {
+                pointerEvents: 'auto'
+            },
+            useHTML: true,
         },
         series: [{
-            data: data
-        }],
-        tooltip: {
-            pointFormat: '<b>{point.y:.1f}</b> hours ({point.percentage:.1f}%)'
-        },
+            data: boxPlotData,
+        }]
     });
-}
-
-async function getRunningInterProScanJobs() {
-    let response = await fetch('/api/interproscan/running/');
-    let payload = await response.json();
-    console.log(payload);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -859,11 +947,11 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelector('.tab[data-tab="checks"] .primary.button').addEventListener('click', e => runSanityChecks());
 
     Promise.all([
-        // getDatabases().then(databases => initUncheckedEntriesForm(databases)),
-        // getRecentEntries(),
-        // getInterPro2GO(),
-        // getSanityCheck(),
-        // getNumOfUncheckedEntries(),
+        getDatabases().then(databases => initUncheckedEntriesForm(databases)),
+        getRecentEntries(),
+        getInterPro2GO(),
+        getSanityCheck(),
+        getNumOfUncheckedEntries(),
     ])
         .then(() => {
             setClass(document.getElementById('welcome'), 'active', false);
@@ -892,9 +980,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const button = e.currentTarget;
             setClass(button, 'loading', true);
 
-            Promise.all([
-                getInterProScanJobs()
-            ]).then(() => {
+            getInterProScanJobs().then(() => {
+                // Init checkboxes in "InterProScan" tab
+                $('[data-tab="interproscan"] .checkbox').checkbox({
+                    onChange: function () {
+                        plotJobTimeChart();
+                    }
+                });
+
                 setClass(button, 'hidden', true);
                 setClass(button.parentNode.querySelector(':scope > .content'), 'hidden', false);
             });

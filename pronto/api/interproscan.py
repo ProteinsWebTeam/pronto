@@ -50,8 +50,8 @@ def get_summary():
     num_sequences, = cur.fetchone()
 
     cur.execute(
-        F"""
-        SELECT A.NAME, LOWER(D.DBSHORT), A.VERSION, 
+        f"""
+        SELECT A.NAME, LOWER(D.DBSHORT), A.VERSION,
                FLOOR((J.END_TIME - NVL(J.START_TIME, J.SUBMIT_TIME))*24*3600), 
                J.CPU_TIME, J.LIM_MEMORY, J.MAX_MEMORY
         FROM INTERPRO.ISPRO_ANALYSIS A
@@ -106,6 +106,7 @@ def get_summary():
     for analysis in analyses.values():
         values = sorted(analysis["maxmem"])
         analysis["maxmem"] = {
+            "min": values[0],
             "q1": values[math.ceil(0.25 * len(values))],
             "q2": values[math.ceil(0.50 * len(values))],
             "q3": values[math.ceil(0.75 * len(values))],
@@ -121,74 +122,44 @@ def get_summary():
 
 @bp.route("/jobs/<string:name>/<string:version>/")
 def get_jobs(name: str, version: str):
-    if name.lower().startswith("signalp"):
-        condition = "REGEXP_LIKE(NAME, '^SignalP')"
-        params = {"version": version}
-    else:
-        condition = "LOWER(NAME) = LOWER(:name)"
-        params = {"name": name, "version": version}
-
     con = utils.connect_oracle()
     cur = con.cursor()
     cur.execute(
+        """
+        SELECT MAX(UPI)
+        FROM UNIPARC.PROTEIN
+        """
+    )
+    max_upi, = cur.fetchone()
+
+    cur.execute(
         f"""
-        SELECT UPI_FROM, UPI_TO,
-               FLOOR((END_TIME - NVL(START_TIME, SUBMIT_TIME))*24*3600), 
-               CPU_TIME, LIM_MEMORY, MAX_MEMORY, SUCCESS
-        FROM INTERPRO.ANALYSIS_JOBS J
-        WHERE ANALYSIS_ID IN (
-            SELECT ID
-            FROM INTERPRO.ANALYSIS
-            WHERE {condition}
-              AND VERSION = :version
-        ) 
-        AND END_TIME IS NOT NULL
+        SELECT FLOOR((J.END_TIME - NVL(J.START_TIME, J.SUBMIT_TIME))*24*3600), 
+               J.CPU_TIME, J.MAX_MEMORY, J.SUCCESS
+        FROM INTERPRO.ISPRO_ANALYSIS A
+        INNER JOIN INTERPRO.ISPRO_ANALYSIS_JOBS J ON A.ID = J.ANALYSIS_ID
+        WHERE A.NAME = :1 
+          AND A.VERSION = :2 
+          AND J.UPI_FROM > :3 
+          AND J.END_TIME IS NOT NULL
+        ORDER BY UPI_FROM, SUBMIT_TIME
         """,
-        params
+        [name, version, max_upi]
     )
 
-    data = {
-        "failure": 0,
-        "sequences": 0,
-        "runtime": 0,
-        "cputime": 0,
-        "reqmem": [],
-        "maxmem": []
-    }
-    total_jobs = 0
-    unique_jobs = set()
-
-    for upi_from, upi_to, run_time, cpu_time, req_mem, max_mem, success in cur:
-        total_jobs += 1
-
-        if upi_from not in unique_jobs:
-            unique_jobs.add(upi_from)
-            data["sequences"] += upi_to_int(upi_to) - upi_to_int(upi_from) + 1
-
-        if success != "Y":
-            data["failure"] += 1
-
-        data["reqmem"].append(req_mem)
-        data["maxmem"].append(max_mem)
-        data["runtime"] += run_time
-        data["cputime"] += cpu_time
+    jobs = []
+    for runtime, cputime, maxmem, success in cur:
+        jobs.append({
+            "runtime": runtime,
+            "cputime": cputime,
+            "maxmem": maxmem,
+            "success": success == "Y"
+        })
 
     cur.close()
     con.close()
 
-    for key in ["reqmem", "maxmem"]:
-        values = sorted(data[key])
-        data[key] = {
-            "q1": values[math.ceil(0.25 * total_jobs)],
-            "q2": values[math.ceil(0.50 * total_jobs)],
-            "q3": values[math.ceil(0.75 * total_jobs)],
-            "avg": math.ceil(sum(values) / total_jobs),
-            "max": values[-1],
-        }
-
-    data["failure"] /= total_jobs
-
-    return jsonify(data)
+    return jsonify(jobs)
 
 
 @bp.route("/jobs/running/")
@@ -256,7 +227,3 @@ def get_running_jobs():
             results.append(version)
 
     return jsonify(results)
-
-
-def upi_to_int(upi):
-    return int(upi[3:], 16)
