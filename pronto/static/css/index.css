@@ -28,11 +28,11 @@
     margin-top: 0;
 }
 
-.tab[data-tab="statistics"] > .hidden {
+.tab.segment > .hidden {
     display: none;
 }
 
-.tab[data-tab="statistics"] > .ui.button {
+.tab.segment > .ui.button {
     margin-top: 5rem;
 }
 
