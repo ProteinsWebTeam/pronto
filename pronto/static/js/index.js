@@ -719,7 +719,7 @@ async function runSanityChecks() {
 }
 
 async function getInterProScanJobs() {
-    const response = await fetch('/api/interproscan/');
+    const response = await fetch('/api/interproscan/?active');
     const payload = await response.json();
 
     document.querySelector('.ui.segment[data-tab="interproscan"] .message.info').innerHTML = `
@@ -737,6 +737,7 @@ function plotJobTimeChart() {
     const databases = JSON.parse(sessionStorage.getItem('jobs'));
     const dataType = document.querySelector('input[name="data-type"]:checked').value;
     const chartType = document.querySelector('input[name="chart-type"]:checked').value;
+    const orderBy = document.querySelector('input[name="order-type"]:checked').value;
 
     const seriesData = [];
     const otherColors = ['#1b9e77','#d95f02','#7570b3','#e7298a','#66a61e','#e6ab02','#a6761d','#666666'];
@@ -762,7 +763,10 @@ function plotJobTimeChart() {
         });
     }
 
-    seriesData.sort((a, b) => b.y - a.y );
+    if (orderBy === 'time')
+        seriesData.sort((a, b) => a.y - b.y );
+    else
+        seriesData.sort((a, b) => a.name.localeCompare(b.name) );
 
     const onClick = (e) => {
         // getDatabaseInterProScanJobs(e.point.dbName, e.point.dbVersion)
