@@ -40,7 +40,7 @@ XREFS = {
     "INTERPRO": "/entry/{}",
     "MIM": "https://www.omim.org/entry/{}",
     "PDBE": "http://www.ebi.ac.uk/pdbe/entry/pdb/{}",
-    "PFAM": "http://pfam.xfam.org/family/{}",
+    "PFAM": "https://www.ebi.ac.uk/interpro/entry/pfam/{}",
     "PIRSF": "http://pir.georgetown.edu/cgi-bin/ipcSF?id={}",
     "PROSITE": "https://prosite.expasy.org/{}",
     "PROSITEDOC": "https://prosite.expasy.org/{}",
@@ -317,11 +317,11 @@ class Panther:
 
 
 class Pfam:
-    home = 'http://pfam.xfam.org'
+    home = 'https://www.ebi.ac.uk/interpro'
     color = '#77b341'
 
     def gen_link(self, acc: str):
-        return f"{self.home}/family/{acc}"
+        return f"{self.home}/entry/pfam/PF07961/{acc}"
 
 
 class Pirsf:
