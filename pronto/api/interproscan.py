@@ -53,7 +53,7 @@ def get_summary():
         f"""
         SELECT A.NAME, LOWER(D.DBSHORT), A.VERSION,
                FLOOR((J.END_TIME - NVL(J.START_TIME, J.SUBMIT_TIME))*24*3600), 
-               J.CPU_TIME, J.LIM_MEMORY, J.MAX_MEMORY
+               J.CPU_TIME, J.LIM_MEMORY, J.MAX_MEMORY, J.SUCCESS
         FROM INTERPRO.ISPRO_ANALYSIS A
         INNER JOIN INTERPRO.ISPRO_ANALYSIS_JOBS J ON A.ID = J.ANALYSIS_ID
         LEFT OUTER JOIN INTERPRO.CV_DATABASE D ON A.NAME = D.DBNAME
@@ -63,7 +63,7 @@ def get_summary():
     )
 
     analyses = {}
-    for name, dbkey, version, runtime, cputime, reqmem, maxmem in cur:
+    for name, dbkey, version, runtime, cputime, reqmem, maxmem, success in cur:
         if name.lower().startswith("signalp"):
             name = "SignalP"
 
@@ -95,10 +95,12 @@ def get_summary():
         if cputime is not None:
             obj["cputime"] += cputime
 
-        if obj["reqmem"] is None or reqmem < obj["reqmem"]:
-            obj["reqmem"] = reqmem
+        if success == "Y":
+            # Ignore failed jobs
+            if obj["reqmem"] is None or reqmem < obj["reqmem"]:
+                obj["reqmem"] = reqmem
 
-        obj["maxmem"].append(maxmem)
+            obj["maxmem"].append(maxmem)
 
     cur.close()
     con.close()
@@ -116,7 +118,8 @@ def get_summary():
 
     return jsonify({
         "databases": list(analyses.values()),
-        "sequences": num_sequences
+        "sequences": num_sequences,
+        "upi": max_upi
     })
 
 
