@@ -37,7 +37,7 @@ export function updateHeader(signatureAcc) {
             .then(object => {
                 document.getElementById("pronto-info").innerHTML = `<div class="item">UniProt ${object.uniprot}</div>`;
                 if (object.refreshed == false) {
-                    document.getElementById("pronto-refresh").innerHTML = `<div class="item"><span class="ui red text"><i class="warning icon"></i >Pronto is being refreshed</span></div>`;
+                    document.getElementById("pronto-refresh").innerHTML = `<div class="item"><span class="ui red text"><i class="warning sign icon"></i >Pronto is being refreshed</span></div>`;
                 }
 
                 const menu = document.querySelector("header .right.menu");
