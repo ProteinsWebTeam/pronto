@@ -321,7 +321,7 @@ class Pfam:
     color = '#77b341'
 
     def gen_link(self, acc: str):
-        return f"{self.home}/entry/pfam/PF07961/{acc}"
+        return f"{self.home}/entry/pfam/{acc}"
 
 
 class Pirsf:
