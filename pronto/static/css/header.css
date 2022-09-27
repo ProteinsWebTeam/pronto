@@ -1,6 +1,31 @@
-header.ui.menu {
+header > .ui.menu {
     border-radius: 0;
+    margin: 0;
 }
-.ui.menu .item > .ui.label:only-child {
+
+header > .ui.menu:last-child {
+    margin-bottom: 1rem;
+}
+
+header > .ui.menu .item > .ui.label:only-child {
     margin-left: 0;
+}
+
+#not-ready:not(.ui.menu) {
+    display: none;
+}
+
+#not-ready.ui.menu .item {
+    display: block;
+    text-align: left;
+}
+
+#not-ready .header {
+    display: block;
+    font-size: 1.14285714em;
+    font-weight: bold;
+}
+
+#not-ready .header + p {
+    margin-top: .25em;
 }

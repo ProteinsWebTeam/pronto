@@ -35,13 +35,18 @@ export function updateHeader(signatureAcc) {
         fetch('/api/')
             .then(response => response.json())
             .then(object => {
+                let item;
                 document.getElementById("pronto-info").innerHTML = `<div class="item">UniProt ${object.uniprot}</div>`;
-                if (object.refreshed == false) {
-                    document.getElementById("pronto-refresh").innerHTML = `<div class="item"><span class="ui red text"><i class="warning sign icon"></i >Pronto is being refreshed</span></div>`;
+                if (!object.ready) {
+                    item = document.getElementById("not-ready");
+                    item.className = "ui red inverted one item menu";
+                    item.querySelector('.item').innerHTML = `
+                        <div class="header"><i class="warning sign icon"></i> Pronto is being updated</div>
+                        <p>Some pages may not work properly until the update is complete.</p>
+                    `;
                 }
 
                 const menu = document.querySelector("header .right.menu");
-                let item;
                 if (object.user) {
                     item = document.createElement("div");
                     item.className = "ui simple dropdown item";
