@@ -35,6 +35,8 @@ def api_index():
     cur = con.cursor()
     cur.execute("SELECT version FROM interpro.database WHERE name='uniprot'")
     version, = cur.fetchone()
+    cur.execute("SELECT ready FROM interpro.database WHERE name='interpro'")
+    is_ready, = cur.fetchone()
     cur.close()
     con.close()
 
@@ -42,6 +44,7 @@ def api_index():
         "oracle": utils.get_oracle_dsn().rsplit('/')[-1],
         "postgresql": utils.get_pg_url().rsplit('/')[-1],
         "uniprot": version,
+        "ready": is_ready,
         "user": user,
     })
 

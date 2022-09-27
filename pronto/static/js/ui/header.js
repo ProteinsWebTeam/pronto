@@ -1,5 +1,5 @@
-import {fetchTasks} from "../tasks.js";
-import {setCharsCountdown, toggleErrorMessage} from "./utils.js";
+import { fetchTasks } from "../tasks.js";
+import { setCharsCountdown, toggleErrorMessage } from "./utils.js";
 
 export async function renderTaskList() {
     const tasks = await fetchTasks();
@@ -35,10 +35,18 @@ export function updateHeader(signatureAcc) {
         fetch('/api/')
             .then(response => response.json())
             .then(object => {
+                let item;
                 document.getElementById("pronto-info").innerHTML = `<div class="item">UniProt ${object.uniprot}</div>`;
+                if (!object.ready) {
+                    item = document.getElementById("not-ready");
+                    item.className = "ui red inverted one item menu";
+                    item.querySelector('.item').innerHTML = `
+                        <div class="header"><i class="warning sign icon"></i> Pronto is being updated</div>
+                        <p>Some pages may not work properly until the update is complete.</p>
+                    `;
+                }
 
                 const menu = document.querySelector("header .right.menu");
-                let item;
                 if (object.user) {
                     item = document.createElement("div");
                     item.className = "ui simple dropdown item";
@@ -61,7 +69,7 @@ export function updateHeader(signatureAcc) {
                 $(modal.querySelector('.ui.dropdown')).dropdown();
 
                 // Countdown events
-                const fields = {type: 'empty'};
+                const fields = { type: 'empty' };
                 for (const elem of modal.querySelectorAll('[data-countdown]')) {
                     const n = elem.getAttribute('maxlength');
                     fields[elem.name] = [`maxLength[${n}]`, 'empty'];
@@ -155,7 +163,7 @@ export function updateHeader(signatureAcc) {
                                 toggleErrorMessage(errMsg, null);
                             })
                             .catch(() => {
-                                toggleErrorMessage(errMsg, {title: 'Signature not found', message: `<strong>${acc}</strong> does not match any member database signature accession or name.`});
+                                toggleErrorMessage(errMsg, { title: 'Signature not found', message: `<strong>${acc}</strong> does not match any member database signature accession or name.` });
                             });
                     }
                 });
@@ -164,7 +172,7 @@ export function updateHeader(signatureAcc) {
                     fields: fields,
                     onSuccess: (event, fields) => {
                         if (signatures.size === 0) {
-                            toggleErrorMessage(errMsg, {title: 'No signatures', message: 'Please add at least one member database signature.'});
+                            toggleErrorMessage(errMsg, { title: 'No signatures', message: 'Please add at least one member database signature.' });
                             return;
                         }
 
