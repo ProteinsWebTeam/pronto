@@ -24,47 +24,54 @@ SQL> GRANT SELECT ON ISPRO_PROTEIN TO INTERPRO_SELECT;
 
 @bp.route("/")
 def get_summary():
-    if request.args.get("active") is not None:
-        active_condition = "AND A.ACTIVE = 'Y'"
-    else:
-        active_condition = ""
-
     con = utils.connect_oracle()
     cur = con.cursor()
     cur.execute(
         """
         SELECT MAX(UPI)
-        FROM UNIPARC.PROTEIN
+        FROM (
+            SELECT MIN(J.UPI_FROM) UPI
+            FROM INTERPRO.ISPRO_ANALYSIS A
+            INNER JOIN INTERPRO.ISPRO_ANALYSIS_JOBS J 
+                ON A.ID = J.ANALYSIS_ID
+            WHERE A.ACTIVE = 'Y'
+            GROUP BY A.ID
+        )
         """
     )
-    max_upi, = cur.fetchone()
+    upi_from, = cur.fetchone()
 
     cur.execute(
         """
-        SELECT COUNT(*)
+        SELECT COUNT(UPI)
         FROM INTERPRO.ISPRO_PROTEIN
-        WHERE UPI > :1
+        WHERE UPI >= :1
         """,
-        [max_upi]
+        [upi_from]
     )
-    num_sequences, = cur.fetchone()
+    total_sequences, = cur.fetchone()
 
     cur.execute(
         f"""
         SELECT A.NAME, LOWER(D.DBSHORT), A.VERSION,
                FLOOR((J.END_TIME - NVL(J.START_TIME, J.SUBMIT_TIME))*24*3600), 
-               J.CPU_TIME, J.LIM_MEMORY, J.MAX_MEMORY, J.SUCCESS
+               J.CPU_TIME, J.LIM_MEMORY, J.MAX_MEMORY, J.SUCCESS, J.SEQUENCES
         FROM INTERPRO.ISPRO_ANALYSIS A
         INNER JOIN INTERPRO.ISPRO_ANALYSIS_JOBS J ON A.ID = J.ANALYSIS_ID
         LEFT OUTER JOIN INTERPRO.CV_DATABASE D ON A.NAME = D.DBNAME
-        WHERE J.UPI_FROM > :1 AND J.END_TIME IS NOT NULL {active_condition}
+        WHERE J.UPI_FROM >= :1 
+          AND J.END_TIME IS NOT NULL
+          AND A.ACTIVE = 'Y'
         """,
-        [max_upi]
+        [upi_from]
     )
 
     analyses = {}
-    for name, dbkey, version, runtime, cputime, reqmem, maxmem, success in cur:
-        if name.lower().startswith("signalp"):
+    for (name, dbkey, version, runtime, cputime, reqmem, maxmem, success,
+         num_sequences) in cur:
+        if num_sequences == 0:
+            continue
+        elif name.lower().startswith("signalp"):
             name = "SignalP"
 
         key = f"{name}{version}"
@@ -118,8 +125,7 @@ def get_summary():
 
     return jsonify({
         "databases": list(analyses.values()),
-        "sequences": num_sequences,
-        "upi": max_upi
+        "sequences": total_sequences,
     })
 
 
