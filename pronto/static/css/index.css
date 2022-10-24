@@ -40,3 +40,7 @@
 .ui.grid .column > h1:first-child, h2:first-child, h3:first-child, h4:first-child, h5:first-child {
     margin: calc(2rem - 0.1428571428571429em) 0 1rem;
 }
+
+.ui.menu > a.item.hidden {
+    display: none;
+}

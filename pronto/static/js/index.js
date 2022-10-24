@@ -719,13 +719,12 @@ async function runSanityChecks() {
 }
 
 async function getInterProScanJobs() {
-    const response = await fetch('/api/interproscan/?active');
+    const response = await fetch('/api/interproscan/?mini');
     const payload = await response.json();
 
     document.querySelector('.ui.segment[data-tab="interproscan"] .message.info').innerHTML = `
         The charts below presents benchmarks for InterProScan jobs run against 
-        the <strong>${payload.sequences.toLocaleString()}</strong> new sequences in UniParc 
-        since the latest protein update.
+        the <strong>${payload.sequences.toLocaleString()}</strong> latest sequences in UniParc.
     `;
     sessionStorage.setItem('jobs', JSON.stringify(payload.databases));
 
@@ -978,6 +977,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 setClass(button.parentNode.querySelector(':scope > .content'), 'hidden', false);
             });
         });
+
+    let numClicks = 0;
+    document.querySelector('a.item[data-tab="statistics"]').addEventListener('click', (e) => {
+        numClicks++;
+        if (numClicks === 1) {
+            setTimeout(() => {
+                numClicks = 0;
+            }, 1000);
+        } else if (numClicks === 5)
+            document.querySelector('a.item[data-tab="interproscan"]').className = 'item';
+    });
 
     document.querySelector('.tab[data-tab="interproscan"] > .button')
         .addEventListener('click', e => {
