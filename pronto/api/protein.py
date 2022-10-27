@@ -80,7 +80,7 @@ def get_protein(protein_acc):
 
         cur.execute(
             f"""
-            SELECT m.signature_acc, s.name, d.name, d.name_long, m.fragments
+            SELECT m.signature_acc, s.name, d.name, d.name_long, m.fragments, s.accession
             FROM match m 
             INNER JOIN database d ON m.database_id = d.id
             LEFT OUTER JOIN signature s ON m.signature_acc = s.accession
@@ -107,6 +107,7 @@ def get_protein(protein_acc):
                     "link": link,
                     "matches": [],
                     "entry": None,
+                    "sign_acc":row[5],
                 }
 
             fragments = []

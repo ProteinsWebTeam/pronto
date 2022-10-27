@@ -75,7 +75,7 @@ export function refresh(accession) {
                         <td class="collapsing"><i class="database fitted icon" style="color: ${signature.database.color};"></i></td>
                         <td><a target="_blank" href="${signature.database.link}">${signature.database.name}<i class="external icon"></i></a></td>
                         <td><a href="/signature/${signature.accession}/">${signature.accession}</a></td>
-                        <td>${signature.name}</td>
+                        <td>${signature.name !== null ? signature.name : ''}</td>
                         <td class="right aligned">${signature.sequences.all.toLocaleString()}</td>
                         <td class="right aligned">${signature.sequences.complete.toLocaleString()}</td>
                         <td class="nowrap">${signature.date}</td>
