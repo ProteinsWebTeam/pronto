@@ -718,18 +718,59 @@ async function runSanityChecks() {
     renderTaskList();
 }
 
-async function getInterProScanJobs() {
-    const response = await fetch('/api/interproscan/?mini');
-    const payload = await response.json();
+async function getInterProScanAnalyses(progressBar, numSequences) {
+    const response = await fetch('/api/interproscan/');
+    const analyses = await response.json();
+    const activeAnalyses = analyses.filter((x) => x.active);
 
-    document.querySelector('.ui.segment[data-tab="interproscan"] .message.info').innerHTML = `
-        The charts below presents benchmarks for InterProScan jobs run against 
-        the <strong>${payload.sequences.toLocaleString()}</strong> latest sequences in UniParc.
-    `;
-    sessionStorage.setItem('jobs', JSON.stringify(payload.databases));
+    const $progress = $(progressBar);
+    $progress.progress({
+        percent: 0,
+        total: activeAnalyses.length
+    });
 
-    plotJobTimeChart();
-    plotJobMemoryChart(payload.databases);
+    const trackProgress = (promises) => {
+        const increment = (promise) => {
+            promise.then(function () {
+                $progress.progress('increment');
+            });
+            return promise;
+        };
+
+        return Promise.all(promises.map(increment));
+    };
+
+    const promises = activeAnalyses.map((x) => getInterProScanAnalysis(x.name, x.version, numSequences));
+    const results = await trackProgress(promises);
+
+    const sequenceCounts = [];
+    results
+        .filter((x) => x.name !== 'SignalP')
+        .forEach((x) => {
+            if (!sequenceCounts.includes(x.sequences)) {
+                sequenceCounts.push(x.sequences);
+            }
+        });
+
+    if (sequenceCounts.length === 1) {
+        progressBar
+            .parentNode
+            .querySelector(':scope > .content > .ui.info.message > strong')
+            .innerHTML = sequenceCounts[0].toLocaleString();
+    } else {
+        progressBar
+            .parentNode
+            .querySelector(':scope > .content > .ui.info.message > strong')
+            .innerHTML = sequenceCounts[0].toLocaleString();
+    }
+
+
+    sessionStorage.setItem('jobs', JSON.stringify(results));
+}
+
+async function getInterProScanAnalysis(name, version, numSequences) {
+    const response = await fetch(`/api/interproscan/${name}/${version}/?sequences=${numSequences}`);
+    return await response.json();
 }
 
 function plotJobTimeChart() {
@@ -837,7 +878,8 @@ function plotJobTimeChart() {
     }
 }
 
-function plotJobMemoryChart(databases) {
+function plotJobMemoryChart() {
+    const databases = JSON.parse(sessionStorage.getItem('jobs'));
     databases.sort((a, b) => {
         if (a.name !== b.name)
             return a.name.localeCompare(b.name);
@@ -992,18 +1034,29 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelector('.tab[data-tab="interproscan"] > .button')
         .addEventListener('click', e => {
             const button = e.currentTarget;
-            setClass(button, 'loading', true);
+            const segment = button.parentNode;
+            segment.removeChild(button);
 
-            getInterProScanJobs().then(() => {
-                // Init checkboxes in "InterProScan" tab
-                $('[data-tab="interproscan"] .checkbox').checkbox({
-                    onChange: function () {
+            const progressBar = document.querySelector('.tab[data-tab="interproscan"] > .ui.progress');
+            setClass(progressBar, 'hidden', false);
+
+            const content = segment.querySelector(':scope > .content');
+            getInterProScanAnalyses(progressBar, 10000000)
+                .then(() => {
+                    setTimeout(() => {
+                        segment.removeChild(progressBar);
+                        setClass(content, 'hidden', false);
+
+                        // Init checkboxes in "InterProScan" tab
+                        $('[data-tab="interproscan"] .checkbox').checkbox({
+                            onChange: function () {
+                                plotJobTimeChart();
+                            }
+                        });
+
                         plotJobTimeChart();
-                    }
+                        plotJobMemoryChart();
+                    }, 1000);
                 });
-
-                setClass(button, 'hidden', true);
-                setClass(button.parentNode.querySelector(':scope > .content'), 'hidden', false);
-            });
         });
 });

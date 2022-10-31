@@ -32,7 +32,7 @@
     display: none;
 }
 
-.tab.segment > .ui.button {
+.tab.segment > .ui.button, .tab.segment > .ui.progress {
     margin-top: 5rem;
 }
 

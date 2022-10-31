@@ -396,27 +396,32 @@ class Tigrfams:
         return f"https://www.ncbi.nlm.nih.gov/genome/annotation_prok/evidence/{acc}/"
 
 
-def get_database_obj(key):
+def get_database_obj(key: str):
     databases = {
         "cathgene3d": CathGene3D,
+        "cath-gene3d": CathGene3D,
         "cdd": Cdd,
         "funfam": FunFam,
         "hamap": Hamap,
         "mobidblt": MobiDbLite,
+        "mobidb lite": MobiDbLite,
         "panther": Panther,
         "pfam": Pfam,
         "pirsf": Pirsf,
         "prints": Prints,
         "profile": PrositeProfiles,
+        "prosite profiles": PrositeProfiles,
         "prosite": PrositePatterms,
+        "prosite patterns": PrositePatterms,
         "sfld": Sfld,
         "smart": Smart,
         "ssf": Superfamily,
+        "superfamily": Superfamily,
         "tigrfams": Tigrfams,
     }
 
     try:
-        return databases[key]()
+        return databases[key.lower()]()
     except KeyError:
         return DefaultDatabase()
 
