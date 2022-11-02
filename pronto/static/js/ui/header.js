@@ -103,7 +103,7 @@ export function updateHeader(signatureAcc) {
                                 if (values.name.length === 0)
                                     $(infoForm).form('set value', 'name', signature.description);
                                 if (values.short_name.length === 0)
-                                    $(infoForm).form('set value', 'short_name', signature.name);
+                                    $(infoForm).form('set value', 'short_name', signature.name !== null ? signature.name : '');
                                 if (values.type.length === 0) {
                                     /*
                                         API returns signature full type (e.g. Domain, Family, etc.)
