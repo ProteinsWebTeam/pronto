@@ -107,7 +107,7 @@ def get_protein(protein_acc):
                     "link": link,
                     "matches": [],
                     "entry": None,
-                    "sign_acc":row[5],
+                    "is_signature": True if row[5] else False,
                 }
 
             fragments = []

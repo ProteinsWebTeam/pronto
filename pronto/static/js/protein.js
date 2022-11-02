@@ -227,7 +227,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const unintegrated = [];
             const extra = [];
             for (const signature of protein.signatures) {
-                if (signature.sign_acc === null)
+                if (!signature.is_signature)
                     // Only non-signatures don't have a sign_acc
                     extra.push(signature);
                 else if (signature.entry === null)
