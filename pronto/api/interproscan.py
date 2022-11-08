@@ -52,6 +52,7 @@ def get_analyses():
 
 @bp.route("/<string:name>/<string:version>/")
 def get_analysis(name: str, version: str):
+    upi_from = request.args.get("from")
     num_sequences = int(request.args.get("sequences", "1000000"))
 
     results = {
@@ -67,22 +68,24 @@ def get_analysis(name: str, version: str):
 
     con = utils.connect_oracle()
     cur = con.cursor()
-    cur.execute(
-        """
-        SELECT MIN(UPI)
-        FROM (
-            SELECT P.UPI
+
+    if not upi_from:
+        cur.execute(
+            """
+            SELECT MIN(UPI)
             FROM (
-                SELECT UPI
-                FROM INTERPRO.ISPRO_PROTEIN
-                ORDER BY UPI DESC
-            ) P
-            WHERE ROWNUM <= :1
+                SELECT P.UPI
+                FROM (
+                    SELECT UPI
+                    FROM INTERPRO.ISPRO_PROTEIN
+                    ORDER BY UPI DESC
+                ) P
+                WHERE ROWNUM <= :1
+            )
+            """,
+            [num_sequences]
         )
-        """,
-        [num_sequences]
-    )
-    upi_from, = cur.fetchone()
+        upi_from, = cur.fetchone()
 
     if name == "SignalP":
         comp = "LIKE"
