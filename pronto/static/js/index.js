@@ -747,8 +747,8 @@ async function getInterProScanAnalyses(progressBar, numSequences) {
     results
         .filter((x) => x.name !== 'SignalP')
         .forEach((x) => {
-            if (!sequenceCounts.includes(x.sequences)) {
-                sequenceCounts.push(x.sequences);
+            if (!sequenceCounts.includes(x.proteins.count)) {
+                sequenceCounts.push(x.proteins.count);
             }
         });
 

@@ -53,7 +53,68 @@ def get_analyses():
 @bp.route("/<string:name>/<string:version>/")
 def get_analysis(name: str, version: str):
     upi_from = request.args.get("from")
+    upi_to = request.args.get("to")
     num_sequences = int(request.args.get("sequences", "1000000"))
+
+    con = utils.connect_oracle()
+    cur = con.cursor()
+
+    if not upi_from:
+        if upi_to:
+            cond = "WHERE UPI <= :upito"
+            params = dict(upito=upi_to, nseqs=num_sequences)
+        else:
+            cond = ""
+            params = dict(nseqs=num_sequences)
+
+        cur.execute(
+            f"""
+            SELECT MIN(UPI)
+            FROM (
+                SELECT P.UPI
+                FROM (
+                    SELECT UPI
+                    FROM INTERPRO.ISPRO_PROTEIN
+                    {cond}
+                    ORDER BY UPI DESC
+                ) P
+                WHERE ROWNUM <= :nseqs
+            )
+            """,
+            params
+        )
+        upi_from, = cur.fetchone()
+
+    if name == "SignalP":
+        name_cond = "LIKE"
+        params = ["signalp%", version]
+    else:
+        name_cond = "="
+        params = [name.lower(), version]
+
+    if upi_to:
+        upi_cond = "BETWEEN :3 AND :4"
+        params += [upi_from, upi_to]
+    else:
+        upi_cond = ">= :3"
+        params.append(upi_from)
+
+    cur.execute(
+        f"""
+        SELECT J.START_TIME, J.END_TIME, J.CPU_TIME, J.LIM_MEMORY, J.MAX_MEMORY,
+               J.SEQUENCES
+        FROM INTERPRO.ISPRO_ANALYSIS A
+        INNER JOIN INTERPRO.ISPRO_ANALYSIS_JOBS J ON A.ID = J.ANALYSIS_ID
+        WHERE LOWER(A.NAME) {name_cond} :1 
+          AND A.VERSION = :2 
+          AND J.UPI_TO {upi_cond} 
+          AND J.END_TIME IS NOT NULL
+          AND J.SUCCESS = 'Y'
+          AND J.SEQUENCES IS NOT NULL
+          AND J.SEQUENCES > 0
+        """,
+        params
+    )
 
     results = {
         "name": name,
@@ -63,53 +124,12 @@ def get_analysis(name: str, version: str):
         "cputime": 0,
         "reqmem": None,
         "maxmem": [],
-        "sequences": 0
+        "proteins": {
+            "from": upi_from,
+            "to": upi_to,
+            "count": 0
+        }
     }
-
-    con = utils.connect_oracle()
-    cur = con.cursor()
-
-    if not upi_from:
-        cur.execute(
-            """
-            SELECT MIN(UPI)
-            FROM (
-                SELECT P.UPI
-                FROM (
-                    SELECT UPI
-                    FROM INTERPRO.ISPRO_PROTEIN
-                    ORDER BY UPI DESC
-                ) P
-                WHERE ROWNUM <= :1
-            )
-            """,
-            [num_sequences]
-        )
-        upi_from, = cur.fetchone()
-
-    if name == "SignalP":
-        comp = "LIKE"
-        params = ["SignalP%", version, upi_from]
-    else:
-        comp = "="
-        params = [name, version, upi_from]
-
-    cur.execute(
-        f"""
-        SELECT J.START_TIME, J.END_TIME, J.CPU_TIME, J.LIM_MEMORY, J.MAX_MEMORY,
-               J.SEQUENCES
-        FROM INTERPRO.ISPRO_ANALYSIS A
-        INNER JOIN INTERPRO.ISPRO_ANALYSIS_JOBS J ON A.ID = J.ANALYSIS_ID
-        WHERE A.NAME {comp} :1 
-          AND A.VERSION = :2 
-          AND J.UPI_TO >= :3 
-          AND J.END_TIME IS NOT NULL
-          AND J.SUCCESS = 'Y'
-          AND J.SEQUENCES IS NOT NULL
-          AND J.SEQUENCES > 0
-        """,
-        params
-    )
 
     for start_time, end_time, cpu_time, req_mem, max_mem, num_sequences in cur:
         runtime = (end_time - start_time).total_seconds()
@@ -120,7 +140,7 @@ def get_analysis(name: str, version: str):
             results["reqmem"] = req_mem
 
         results["maxmem"].append(max_mem)
-        results["sequences"] += num_sequences
+        results["proteins"]["count"] += num_sequences
 
     cur.close()
     con.close()
@@ -128,12 +148,29 @@ def get_analysis(name: str, version: str):
     values = sorted(results.pop("maxmem"))
 
     if len(values):
+        q1 = values[math.ceil(0.25 * len(values))]
+        med = values[math.ceil(0.50 * len(values))]
+        q3 = values[math.ceil(0.75 * len(values))]
+        iqr = q3 - q1  # Interquartile range
+
+        low = high = None
+        for val in values:
+            if low is None and val >= (q1 - 1.5 * iqr):
+                # `and` is NOT and error: we want the smallest value
+                # that verifies the condition
+                low = val
+
+            if high is None or high < val <= (q3 + 1.5 * iqr):
+                high = val
+
         results["maxmem"] = {
             "min": values[0],
-            "q1": values[math.ceil(0.25 * len(values))],
-            "q2": values[math.ceil(0.50 * len(values))],
-            "q3": values[math.ceil(0.75 * len(values))],
+            "low": low,
+            "q1": q1,
+            "q2": med,
+            "q3": q3,
             "avg": math.ceil(sum(values) / len(values)),
+            "high": high,
             "max": values[-1],
         }
     else:
