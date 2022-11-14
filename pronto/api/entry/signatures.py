@@ -352,8 +352,8 @@ def get_signatures_annotations(accession):
     for accession, name, text in cur:
         #format citations coming from signatures
         if text and re.search(r'PMID', text):
-            REGEX_REPLACEMENTS = [(r']',']]'),('PMID: ','[cite:'),(r', \[', '], [')]
-            for old, new in REGEX_REPLACEMENTS:
+            regex_replacements = [(r']',']]'),('PMID:\s*','[cite:'),(r', \[', '], [')]
+            for old, new in regex_replacements:
                 text=re.sub(old, new, text)
         signatures.append({
             "accession": accession,
