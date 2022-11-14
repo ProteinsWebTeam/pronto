@@ -758,6 +758,7 @@ async function getInterProScanAnalyses(progressBar, numSequences) {
             .querySelector(':scope > .content > .ui.info.message > strong')
             .innerHTML = sequenceCounts[0].toLocaleString();
     } else {
+        // TODO: show warning that not all stats use the same number of sequences
         progressBar
             .parentNode
             .querySelector(':scope > .content > .ui.info.message > strong')
