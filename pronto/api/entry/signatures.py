@@ -350,6 +350,7 @@ def get_signatures_annotations(accession):
 
     signatures = []
     for accession, name, text in cur:
+        # TODO: remove after DB is updated
         #format citations coming from signatures
         if text and re.search(r'PMID', text):
             regex_replacements = [(r']',']]'),('PMID:\s*','[cite:'),(r', \[', '], [')]
