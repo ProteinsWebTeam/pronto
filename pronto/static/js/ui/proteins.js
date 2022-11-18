@@ -22,11 +22,21 @@ export function genProtHeader(protein) {
             &mdash;
             <a target="_blank" href="${genLink(protein.accession, protein.is_reviewed)}">${protein.is_reviewed ? 'reviewed' : 'unreviewed'}<i class="external icon"></i></a>
             &mdash;
+    `;
+    if (protein.has_alphafold) {
+        html += `
+            <a target="_blank" href="${protein.has_alphafold}">Alphafold<i class="external icon"></i></a> 
+            &mdash;
+        `;
+    }
+    html +=`
             Organism: <em>${protein.organism.name}</em>
             &mdash;
             Length: ${protein.length} AA
             ${protein.is_spurious ? '&mdash; <span class="ui red text"><i class="warning icon"></i >Spurious protein</span>' : ''}
     `;
+
+
 
     if (protein.md5 !== undefined && protein.count !== undefined) {
         const url = new URL(location.pathname, location.origin);

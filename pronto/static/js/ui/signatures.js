@@ -135,10 +135,22 @@ async function getProteins(accession, url, getMatches) {
             <td class="nowrap">
                 <a target="_blank" href="${genLink(protein.accession, protein.is_reviewed)}"><i class="${!protein.is_reviewed ? 'outline' : ''} star icon"></i>${protein.accession}<i class="external icon"></i></a>
                 ${protein.is_spurious ? '<span class="ui red text"> <i class="warning icon"></i ></span>' : ''}
-            </td>
+            </td>`;
+        if (protein.has_alphafold) {
+            html += `
+                <td class="nowrap">
+                    <a target="_blank" href="${protein.has_alphafold}">Alphafold<i class="external icon"></i></a> 
+                </td>
+            `;
+        }
+        else {
+            html += `
+                <td></td>
+            `;
+        }
+        html += `
             <td>${protein.identifier}</td>
             <td>${protein.name}</td>
-            
         `;
 
         if (getMatches) {
