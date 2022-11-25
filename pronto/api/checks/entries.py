@@ -356,22 +356,27 @@ def ck_no_children(cur: Cursor) -> Err:
 
 
 def ck_child_matches(cur: Cursor, pg_url: str, exceptions: DoS) -> Err:
+    # Get PRINTS accessions
+    cur.execute("SELECT METHOD_AC FROM INTERPRO.METHOD WHERE DBCODE = 'F'")
+    prints_signatures = {acc for acc, in cur.fetchall()}
 
     cur.execute(
-    """
+        """
         SELECT E2E.PARENT_AC, E2MP.METHOD_AC, E2E.ENTRY_AC, E2M.METHOD_AC
         FROM INTERPRO.ENTRY2ENTRY E2E
         JOIN INTERPRO.ENTRY2METHOD E2M ON E2E.ENTRY_AC = E2M.ENTRY_AC
         JOIN INTERPRO.ENTRY2METHOD E2MP ON E2E.PARENT_AC = E2MP.ENTRY_AC
-        WHERE E2MP.METHOD_AC NOT LIKE 'PR%' AND E2M.METHOD_AC NOT LIKE 'PR%'
         ORDER BY E2E.PARENT_AC
-    """
+        """
     )
 
-    entries = dict()
-    
+    entries = {}
     for row in cur:
         parent_ac, p_sign, child_ac, c_sign = row
+
+        if p_sign in prints_signatures or c_sign in prints_signatures:
+            continue
+
         try:
             entries[parent_ac]["p_sign"].add(p_sign)
             entries[parent_ac][child_ac].add(c_sign)
@@ -384,19 +389,15 @@ def ck_child_matches(cur: Cursor, pg_url: str, exceptions: DoS) -> Err:
             entries[parent_ac][child_ac].add(c_sign)
 
     errors = []
-
     pg_con = connect_pg(pg_url)
     pg_cur = pg_con.cursor()
-
     for parent_ac, info in entries.items():
         all_sign = set()
         for item in info.values():
             all_sign = all_sign.union(item)
         
         signatures, comparisons = get_comparisons(pg_cur, tuple(all_sign))
-
-
-        no_overlap = dict()
+        no_overlap = {}
 
         for sign1, coloc in comparisons.items():
             if sign1 in list(info["p_sign"]):
@@ -413,10 +414,17 @@ def ck_child_matches(cur: Cursor, pg_url: str, exceptions: DoS) -> Err:
             for child_ac, list_sign in info.items():
                 count = 0
                 for sign in list_sign:
-                    #if the child signature is found having no overlap, verify it doesn't match any of the parent signatures
+                    """
+                    If the child signature is found having no overlap, 
+                    verify it doesn't match any of the parent signatures
+                    """
                     if sign in no_overlap and len(no_overlap[sign]) == len(info["p_sign"]): 
-                        count +=1
-                # if none the child signatures are found matching the parent signatures, report an error
+                        count += 1
+
+                """
+                If none the child signatures are found matching 
+                the parent signatures, report an error
+                """
                 if count == len(list_sign) and child_ac not in entry_exceptions:
                     errors.append((parent_ac, child_ac))
 
