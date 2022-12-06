@@ -66,6 +66,29 @@ function postRendering() {
             selector.add(elem.dataset.addId).render();
         });
     }
+
+    const tables = document.querySelectorAll('table');
+    let i = null;
+    let paused = false;
+    tables.forEach((table, j) => {
+        table.addEventListener('scroll', (event) => {
+            if (!paused && (i=== null || i === j)) {
+                i = j;
+                const sl = event.target.scrollLeft;
+                window.requestAnimationFrame(() => {
+                    tables.forEach((otherTable, k) => {
+                        if (k !== i) {
+                            otherTable.scrollLeft = sl;
+                        }
+                    });
+
+                    i = null;
+                    paused = false;
+                });
+                paused = true;
+            }
+        });
+    });
 }
 
 function getProteins(signatureAccessions) {
