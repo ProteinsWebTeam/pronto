@@ -1,5 +1,5 @@
 import { setClass } from "./utils.js";
-import { fetchProtein, genLink, renderMatches } from "./proteins.js";
+import { fetchProtein, genLink, renderMatches, hasAlphaFold } from "./proteins.js";
 import * as pagination from "./pagination.js";
 import * as dimmer from "./dimmer.js";
 
@@ -135,19 +135,20 @@ async function getProteins(accession, url, getMatches) {
             <td class="nowrap">
                 <a target="_blank" href="${genLink(protein.accession, protein.is_reviewed)}"><i class="${!protein.is_reviewed ? 'outline' : ''} star icon"></i>${protein.accession}<i class="external icon"></i></a>
                 ${protein.is_spurious ? '<span class="ui red text"> <i class="warning icon"></i ></span>' : ''}
-            </td>`;
-        if (protein.has_alphafold) {
-            html += `
-                <td class="nowrap">
-                    <a target="_blank" href="${protein.has_alphafold}">Alphafold<i class="external icon"></i></a> 
-                </td>
+            </td>
+            <td class="nowrap" id="alphafold_link_${protein.accession}" ></td>
             `;
-        }
-        else {
-            html += `
-                <td></td>
-            `;
-        }
+        hasAlphaFold(protein.accession).then(hasAF => {
+            if (hasAF) {
+                requestAnimationFrame(() => {
+                    const link = document.getElementById(`alphafold_link_${protein.accession}`);
+                    link.innerHTML = `
+                        <a target="_blank" href="https://alphafold.ebi.ac.uk/entry/${protein.accession}">Alphafold<i class="external icon"></i></a> 
+                    `;
+                })
+            }
+        });
+
         html += `
             <td>${protein.identifier}</td>
             <td>${protein.name}</td>

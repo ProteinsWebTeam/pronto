@@ -14,6 +14,20 @@ export function fetchProtein(proteinAccession, matches) {
         .then(protein => protein);
 }
 
+export async function hasAlphaFold(accession) {
+    let api_url = `https://alphafold.ebi.ac.uk:443/api/prediction/${accession}`;
+    console.log(api_url);
+    const response = await fetch(api_url);
+    // console.log(response);
+    if (response.status === 200) {
+        console.log("200", response.status);
+        return true
+    }
+    console.log(response.status);
+    return false
+    // return has_af;
+}
+
 export function genProtHeader(protein) {
     let html = `
         ${protein.name}
@@ -22,13 +36,20 @@ export function genProtHeader(protein) {
             &mdash;
             <a target="_blank" href="${genLink(protein.accession, protein.is_reviewed)}">${protein.is_reviewed ? 'reviewed' : 'unreviewed'}<i class="external icon"></i></a>
             &mdash;
+            <span id="alphafold_link_${protein.accession}" ></span>
     `;
-    if (protein.has_alphafold) {
-        html += `
-            <a target="_blank" href="${protein.has_alphafold}">Alphafold<i class="external icon"></i></a> 
-            &mdash;
-        `;
-    }
+    hasAlphaFold(protein.accession).then(hasAF => {
+        if (hasAF) {
+            requestAnimationFrame(() => {
+                const link = document.getElementById(`alphafold_link_${protein.accession}`);
+                link.innerHTML = `
+                <a target="_blank" href="https://alphafold.ebi.ac.uk/entry/${protein.accession}">Alphafold<i class="external icon"></i></a> 
+                &mdash;
+            `;
+            })
+        }
+    });
+
     html +=`
             Organism: <em>${protein.organism.name}</em>
             &mdash;

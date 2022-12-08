@@ -56,10 +56,6 @@ def get_protein(protein_acc):
         con.close()
         return jsonify({}), 404
 
-    has_alphafold = False
-    if row[4]:
-        has_alphafold = utils.has_alphafold(row[0])
-
     protein = {
         "accession": row[0],
         "identifier": row[1],
@@ -69,7 +65,6 @@ def get_protein(protein_acc):
         "organism": {"name": row[6], "lineage": []},
         "name": row[7],
         "is_spurious": is_spurious,
-        "has_alphafold": has_alphafold,
         "signatures": []
     }
     taxon_id = row[5]

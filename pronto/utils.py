@@ -2,7 +2,6 @@ import gzip
 import json
 import re
 import uuid
-import requests
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from typing import Callable, List, Optional
@@ -491,17 +490,3 @@ def predict_relationship(a: int, b: int, intersection: int) -> tuple:
     elif containment_b >= 0.75:
         return containment_b, "parent"  # A parent of B
     return 0, "none"
-
-def has_alphafold(protein: str):
-    api_url=f"https://alphafold.ebi.ac.uk:443/api/prediction/{protein}"
-    url = f"https://alphafold.ebi.ac.uk/entry/{protein}"
-
-    res = requests.get(api_url)
-    text = res.text
-
-    data = json.loads(text)
-    if len(data) != 0:
-        return url
-
-    #AF doesn't exist
-    return False
