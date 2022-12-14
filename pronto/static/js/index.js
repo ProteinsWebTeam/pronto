@@ -747,8 +747,8 @@ async function getInterProScanAnalyses(progressBar, numSequences) {
     results
         .filter((x) => x.name !== 'SignalP')
         .forEach((x) => {
-            if (!sequenceCounts.includes(x.sequences)) {
-                sequenceCounts.push(x.sequences);
+            if (!sequenceCounts.includes(x.proteins.count)) {
+                sequenceCounts.push(x.proteins.count);
             }
         });
 
@@ -758,6 +758,7 @@ async function getInterProScanAnalyses(progressBar, numSequences) {
             .querySelector(':scope > .content > .ui.info.message > strong')
             .innerHTML = sequenceCounts[0].toLocaleString();
     } else {
+        // TODO: show warning that not all stats use the same number of sequences
         progressBar
             .parentNode
             .querySelector(':scope > .content > .ui.info.message > strong')

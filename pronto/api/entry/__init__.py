@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+import re
 
 import cx_Oracle
 from flask import Blueprint, jsonify, request
@@ -128,6 +128,16 @@ def update_entry(accession):
                            "30 characters."
             }
         }), 400
+    elif re.search(r"\s{2,}", entry_name):
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Multiple space detected",
+                "message": "Entry names cannot contain multiple consecutive "
+                           "spaces."
+            }
+        }), 400
+
     errors = set()
     for char in entry_name:
         if not char.isascii():
