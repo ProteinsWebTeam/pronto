@@ -277,6 +277,20 @@ def get_unintegrated_signatures(db_name):
             ),
             400,
         )
+    
+    sort_filter = request.args.get("sort", "sign-asc")
+    if sort_filter not in ("sign-bef", "sign-asc", "sign-desc", "prot-bef", "prot-asc", "prot-desc"):
+        return (
+            jsonify(
+                {
+                    "error": {
+                        "title": "Bad Request (invalid sorting parameter)",
+                        f"message": "Accepted values are: " "sign-bef sign-asc, sign-desc, prot-bef, prot-asc, prot-desc",
+                    }
+                }
+            ),
+            400,
+        )
 
     try:
         integ_filter = request.args["target"]
@@ -529,6 +543,7 @@ def get_unintegrated_signatures(db_name):
                 results.append(query)
 
     results.sort(key=_sort_results)
+    results=sort_columns(results, sort_filter)
 
     num_results = len(results)
     results = results[(page - 1) * page_size : page * page_size]
@@ -549,6 +564,17 @@ def get_unintegrated_signatures(db_name):
             },
         }
     )
+
+def sort_columns(s, sort_filter):
+    if sort_filter == "sign-asc":
+        s.sort(key=lambda item: item["accession"])
+    elif sort_filter == "sign-desc":
+        s.sort(key=lambda item: item["accession"], reverse=True)
+    elif sort_filter == "prot-asc":
+        s.sort(key=lambda item: item["proteins"])
+    elif sort_filter == "prot-desc":
+        s.sort(key=lambda item: item["proteins"], reverse=True)
+    return s
 
 
 def _sort_target(s):

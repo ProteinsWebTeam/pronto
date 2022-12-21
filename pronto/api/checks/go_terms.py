@@ -102,6 +102,8 @@ def ck_interpro2go(cur: Cursor) -> Err:
             FROM INTERPRO.ENTRY2METHOD
     """
     )
+    # JOIN INTERPRO.ENTRY E ON E2M.ENTRY_AC=E.ENTRY_AC
+    #         AND E.CHECKED='Y'
     return [(acc, None) for acc, in cur]
 
 

@@ -158,4 +158,70 @@ document.addEventListener('DOMContentLoaded', () => {
                     modals.error(object.error.title, object.error.message);
             });
     });
+
+    const sort_prot = document.querySelectorAll(".prot.button.icon.sort");
+    sort_prot.forEach(node => {
+        node.addEventListener("click", e => {
+            const value = e.currentTarget.dataset.mydata;
+            const key = "sort";
+            document.getElementById("sort-sign-bef").style.display = 'inline';
+            document.getElementById("sort-sign-up").style.display = 'none';
+            document.getElementById("sort-sign-down").style.display = 'none';
+            if (value === "prot-asc") {
+                document.getElementById("sort-prot-bef").style.display = 'none';
+                document.getElementById("sort-prot-down").style.display = 'inline';
+            }
+            else if (value === "prot-desc") {
+                document.getElementById("sort-prot-down").style.display = 'none';
+                document.getElementById("sort-prot-up").style.display = 'inline';
+            }
+            else {
+                document.getElementById("sort-prot-bef").style.display = 'inline';
+                document.getElementById("sort-prot-up").style.display = 'none';
+            }
+            console.log(value);
+            const url = new URL(location.href);
+
+            if (value)
+                url.searchParams.set(key, value);
+            else if (url.searchParams.has(key))
+                url.searchParams.delete(key);
+
+            history.replaceState(null, document.title, url.toString());
+            getSignatures();
+        });
+    });
+
+    const sort_sign = document.querySelectorAll(".sign.button.icon.sort");
+    sort_sign.forEach(node => {
+        node.addEventListener("click", e => {
+            const value = e.currentTarget.dataset.mysign;
+            const key = "sort";
+            document.getElementById("sort-prot-bef").style.display = 'inline';
+            document.getElementById("sort-prot-up").style.display = 'none';
+            document.getElementById("sort-prot-down").style.display = 'none';
+            if (value === "sign-asc") {
+                document.getElementById("sort-sign-bef").style.display = 'none';
+                document.getElementById("sort-sign-down").style.display = 'inline';
+            }
+            else if (value === "sign-desc") {
+                document.getElementById("sort-sign-down").style.display = 'none';
+                document.getElementById("sort-sign-up").style.display = 'inline';
+            }
+            else {
+                document.getElementById("sort-sign-bef").style.display = 'inline';
+                document.getElementById("sort-sign-up").style.display = 'none';
+            }
+            console.log(value);
+            const url = new URL(location.href);
+
+            if (value)
+                url.searchParams.set(key, value);
+            else if (url.searchParams.has(key))
+                url.searchParams.delete(key);
+
+            history.replaceState(null, document.title, url.toString());
+            getSignatures();
+        });
+    });
 });
