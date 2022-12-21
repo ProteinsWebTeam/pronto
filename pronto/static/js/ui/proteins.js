@@ -14,6 +14,11 @@ export function fetchProtein(proteinAccession, matches) {
         .then(protein => protein);
 }
 
+export async function hasAlphaFold(accession) {
+    const response = await fetch(`https://alphafold.ebi.ac.uk/api/prediction/${accession}`);
+    return response.status === 200;
+}
+
 export function genProtHeader(protein) {
     let html = `
         ${protein.name}
@@ -22,6 +27,30 @@ export function genProtHeader(protein) {
             &mdash;
             <a target="_blank" href="${genLink(protein.accession, protein.is_reviewed)}">${protein.is_reviewed ? 'reviewed' : 'unreviewed'}<i class="external icon"></i></a>
             &mdash;
+            <span data-alphafold="${protein.accession}"></span>
+    `;
+
+    hasAlphaFold(protein.accession).then((hasAF) => {
+        if (hasAF) {
+            const wait = (ms) => {
+                setTimeout(() => {
+                    const span = document.querySelector(`[data-alphafold="${protein.accession}"]`);
+                    if (span !== null) {
+                        span.innerHTML = `
+                            <a target="_blank" href="https://alphafold.ebi.ac.uk/entry/${protein.accession}">Alphafold<i class="external icon"></i></a> 
+                            &mdash;
+                        `;
+                    } else {
+                        wait(500);
+                    }
+                }, ms);
+            };
+
+            wait(0);
+        }
+    });
+
+    html +=`
             Organism: <em>${protein.organism.name}</em>
             &mdash;
             Length: ${protein.length} AA

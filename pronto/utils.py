@@ -490,4 +490,3 @@ def predict_relationship(a: int, b: int, intersection: int) -> tuple:
     elif containment_b >= 0.75:
         return containment_b, "parent"  # A parent of B
     return 0, "none"
-
