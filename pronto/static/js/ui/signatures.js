@@ -107,6 +107,27 @@ export function showProteinsModal(accession, params, getMatches) {
     })
 }
 
+function updateAlphaFoldLink(accession) {
+    hasAlphaFold(accession).then((hasAF) => {
+        if (hasAF) {
+            const wait = (ms) => {
+                setTimeout(() => {
+                    const td = document.querySelector(`[data-alphafold="${accession}"]`);
+                    if (td !== null) {
+                        td.innerHTML = `
+                            <a target="_blank" href="https://alphafold.ebi.ac.uk/entry/${accession}">Alphafold<i class="external icon"></i></a>
+                        `;
+                    } else {
+                        wait(500);
+                    }
+                }, ms);
+            };
+
+            wait(0);
+        }
+    });
+}
+
 async function getProteins(accession, url, getMatches) {
     dimmer.on();
     const response = await fetch(url);
@@ -136,18 +157,8 @@ async function getProteins(accession, url, getMatches) {
                 <a target="_blank" href="${genLink(protein.accession, protein.is_reviewed)}"><i class="${!protein.is_reviewed ? 'outline' : ''} star icon"></i>${protein.accession}<i class="external icon"></i></a>
                 ${protein.is_spurious ? '<span class="ui red text"> <i class="warning icon"></i ></span>' : ''}
             </td>
-            <td class="nowrap" id="alphafold_link_${protein.accession}" ></td>
+            <td class="collapsing" data-alphafold="${protein.accession}"></td>
             `;
-        hasAlphaFold(protein.accession).then(hasAF => {
-            if (hasAF) {
-                requestAnimationFrame(() => {
-                    const link = document.getElementById(`alphafold_link_${protein.accession}`);
-                    link.innerHTML = `
-                        <a target="_blank" href="https://alphafold.ebi.ac.uk/entry/${protein.accession}">Alphafold<i class="external icon"></i></a> 
-                    `;
-                })
-            }
-        });
 
         html += `
             <td>${protein.identifier}</td>
@@ -168,6 +179,8 @@ async function getProteins(accession, url, getMatches) {
             `;
         } else
             html += `<td colspan="2"><em>${protein.organism.name}</em></td></tr>`;
+
+        updateAlphaFoldLink(protein.accession);
     }
 
     const modal = document.getElementById('proteins-modal');

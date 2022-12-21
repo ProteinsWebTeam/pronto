@@ -15,17 +15,8 @@ export function fetchProtein(proteinAccession, matches) {
 }
 
 export async function hasAlphaFold(accession) {
-    let api_url = `https://alphafold.ebi.ac.uk:443/api/prediction/${accession}`;
-    console.log(api_url);
-    const response = await fetch(api_url);
-    // console.log(response);
-    if (response.status === 200) {
-        console.log("200", response.status);
-        return true
-    }
-    console.log(response.status);
-    return false
-    // return has_af;
+    const response = await fetch(`https://alphafold.ebi.ac.uk/api/prediction/${accession}`);
+    return response.status === 200;
 }
 
 export function genProtHeader(protein) {
@@ -36,17 +27,26 @@ export function genProtHeader(protein) {
             &mdash;
             <a target="_blank" href="${genLink(protein.accession, protein.is_reviewed)}">${protein.is_reviewed ? 'reviewed' : 'unreviewed'}<i class="external icon"></i></a>
             &mdash;
-            <span id="alphafold_link_${protein.accession}" ></span>
+            <span data-alphafold="${protein.accession}"></span>
     `;
-    hasAlphaFold(protein.accession).then(hasAF => {
+
+    hasAlphaFold(protein.accession).then((hasAF) => {
         if (hasAF) {
-            requestAnimationFrame(() => {
-                const link = document.getElementById(`alphafold_link_${protein.accession}`);
-                link.innerHTML = `
-                <a target="_blank" href="https://alphafold.ebi.ac.uk/entry/${protein.accession}">Alphafold<i class="external icon"></i></a> 
-                &mdash;
-            `;
-            })
+            const wait = (ms) => {
+                setTimeout(() => {
+                    const span = document.querySelector(`[data-alphafold="${protein.accession}"]`);
+                    if (span !== null) {
+                        span.innerHTML = `
+                            <a target="_blank" href="https://alphafold.ebi.ac.uk/entry/${protein.accession}">Alphafold<i class="external icon"></i></a> 
+                            &mdash;
+                        `;
+                    } else {
+                        wait(500);
+                    }
+                }, ms);
+            };
+
+            wait(0);
         }
     });
 
@@ -56,8 +56,6 @@ export function genProtHeader(protein) {
             Length: ${protein.length} AA
             ${protein.is_spurious ? '&mdash; <span class="ui red text"><i class="warning icon"></i >Spurious protein</span>' : ''}
     `;
-
-
 
     if (protein.md5 !== undefined && protein.count !== undefined) {
         const url = new URL(location.pathname, location.origin);
