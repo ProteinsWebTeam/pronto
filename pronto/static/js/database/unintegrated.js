@@ -159,66 +159,44 @@ document.addEventListener('DOMContentLoaded', () => {
             });
     });
 
-    const sort_prot = document.querySelectorAll(".prot.button.icon.sort");
-    sort_prot.forEach(node => {
+    const col_headers = document.querySelectorAll('th[data-sort-by]');
+    col_headers.forEach(node => {
         node.addEventListener("click", e => {
-            const value = e.currentTarget.dataset.mydata;
-            const key = "sort";
-            document.getElementById("sort-sign-bef").style.display = 'inline';
-            document.getElementById("sort-sign-up").style.display = 'none';
-            document.getElementById("sort-sign-down").style.display = 'none';
-            if (value === "prot-asc") {
-                document.getElementById("sort-prot-bef").style.display = 'none';
-                document.getElementById("sort-prot-down").style.display = 'inline';
-            }
-            else if (value === "prot-desc") {
-                document.getElementById("sort-prot-down").style.display = 'none';
-                document.getElementById("sort-prot-up").style.display = 'inline';
+            const sortBy = node.getAttribute("data-sort-by");
+            var sortOrder = node.getAttribute("data-sort-order")
+            const url = new URL(location.href);
+            var otherEl = "";
+
+            if (sortBy === "accession")
+                otherEl = "proteins"
+            else
+                otherEl = "accession"
+
+            if (sortOrder === "asc") {
+                node.setAttribute("data-sort-order", "desc");
+                document.getElementById(`${sortBy}-btn`).className = "button icon sort up";
+                sortOrder = "desc";
             }
             else {
-                document.getElementById("sort-prot-bef").style.display = 'inline';
-                document.getElementById("sort-prot-up").style.display = 'none';
+                node.setAttribute("data-sort-order", "asc");
+                document.getElementById(`${sortBy}-btn`).className = "button icon sort down";
+                sortOrder = "asc";
             }
-            console.log(value);
-            const url = new URL(location.href);
+            document.getElementById(`${otherEl}-btn`).className = "button icon sort before";
+            document.getElementById(otherEl).setAttribute("data-sort-order", "none");
 
-            if (value)
-                url.searchParams.set(key, value);
-            else if (url.searchParams.has(key))
-                url.searchParams.delete(key);
+            const keySort = "sort-by";
+            const keyOrder = "sort-order";
 
-            history.replaceState(null, document.title, url.toString());
-            getSignatures();
-        });
-    });
+            if (sortBy)
+                url.searchParams.set(keySort, sortBy);
+            else if (url.searchParams.has(keySort))
+                url.searchParams.delete(keySort);
 
-    const sort_sign = document.querySelectorAll(".sign.button.icon.sort");
-    sort_sign.forEach(node => {
-        node.addEventListener("click", e => {
-            const value = e.currentTarget.dataset.mysign;
-            const key = "sort";
-            document.getElementById("sort-prot-bef").style.display = 'inline';
-            document.getElementById("sort-prot-up").style.display = 'none';
-            document.getElementById("sort-prot-down").style.display = 'none';
-            if (value === "sign-asc") {
-                document.getElementById("sort-sign-bef").style.display = 'none';
-                document.getElementById("sort-sign-down").style.display = 'inline';
-            }
-            else if (value === "sign-desc") {
-                document.getElementById("sort-sign-down").style.display = 'none';
-                document.getElementById("sort-sign-up").style.display = 'inline';
-            }
-            else {
-                document.getElementById("sort-sign-bef").style.display = 'inline';
-                document.getElementById("sort-sign-up").style.display = 'none';
-            }
-            console.log(value);
-            const url = new URL(location.href);
-
-            if (value)
-                url.searchParams.set(key, value);
-            else if (url.searchParams.has(key))
-                url.searchParams.delete(key);
+            if (sortOrder)
+                url.searchParams.set(keyOrder, sortOrder);
+            else if (url.searchParams.has(keyOrder))
+                url.searchParams.delete(keyOrder);
 
             history.replaceState(null, document.title, url.toString());
             getSignatures();
