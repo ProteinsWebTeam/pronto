@@ -271,7 +271,7 @@ def get_unintegrated_signatures(db_name):
                 {
                     "error": {
                         "title": "Bad Request (invalid relationship parameter)",
-                        f"message": "Accepted values are: " "similar, parent, child, none.",
+                        f"message": "Accepted values are: similar, parent, child, none.",
                     }
                 }
             ),
@@ -285,7 +285,7 @@ def get_unintegrated_signatures(db_name):
                 {
                     "error": {
                         "title": "Bad Request (invalid sorting parameter)",
-                        f"message": "Accepted values are: " "accession, proteins",
+                        f"message": "Accepted values are: accession, proteins",
                     }
                 }
             ),

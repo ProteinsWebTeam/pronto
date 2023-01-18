@@ -68,7 +68,7 @@ function getSignatures() {
                         if (i) html += '<tr>';
 
                         html += `<td class="nowrap">
-                                <span class="ui empty circular label" style="background-color: ${target.database.color};" data-content="${target.database.name}" data-position="left center" data-variation="tiny"></span>
+                                <span class="ui empty circular label" style="background-color: ${target.database.color};" data-content="${target.database.name}" data-position="left center" data-letiation="tiny"></span>
                                 <a href="/signature/${target.accession}/">${target.accession}</a>
                              </td>
                              <td class="right aligned">${target.proteins.toLocaleString()}</td>
@@ -159,31 +159,31 @@ document.addEventListener('DOMContentLoaded', () => {
             });
     });
 
-    const col_headers = document.querySelectorAll('th[data-sort-by]');
-    col_headers.forEach(node => {
+    const colHeaders = document.querySelectorAll('th[data-sort-by]');
+    colHeaders.forEach(node => {
         node.addEventListener("click", e => {
-            const sortBy = node.getAttribute("data-sort-by");
-            var sortOrder = node.getAttribute("data-sort-order")
-            const url = new URL(location.href);
-            var otherEl = "";
+            const sortBy = node.dataset.sortBy;
+            let sortOrder = node.dataset.sortOrder;
 
-            if (sortBy === "accession")
-                otherEl = "proteins"
-            else
-                otherEl = "accession"
+            const url = new URL(location.href);
 
             if (sortOrder === "asc") {
                 node.setAttribute("data-sort-order", "desc");
-                document.getElementById(`${sortBy}-btn`).className = "button icon sort up";
+                node.querySelector("i").className = "button icon sort down";
                 sortOrder = "desc";
             }
             else {
                 node.setAttribute("data-sort-order", "asc");
-                document.getElementById(`${sortBy}-btn`).className = "button icon sort down";
+                node.querySelector("i").className = "button icon sort up";
                 sortOrder = "asc";
             }
-            document.getElementById(`${otherEl}-btn`).className = "button icon sort before";
-            document.getElementById(otherEl).setAttribute("data-sort-order", "none");
+
+            colHeaders.forEach(otherNode => {
+                if (otherNode !== node) {
+                    otherNode.setAttribute("data-sort-order", "none");
+                    otherNode.querySelector("i").className = "button icon sort before";
+                }
+            });
 
             const keySort = "sort-by";
             const keyOrder = "sort-order";
