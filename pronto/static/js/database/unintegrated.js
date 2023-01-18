@@ -181,7 +181,7 @@ document.addEventListener('DOMContentLoaded', () => {
             colHeaders.forEach(otherNode => {
                 if (otherNode !== node) {
                     otherNode.setAttribute("data-sort-order", "none");
-                    otherNode.querySelector("i").className = "button icon sort before";
+                    otherNode.querySelector("i").className = "button icon sort";
                 }
             });
 
