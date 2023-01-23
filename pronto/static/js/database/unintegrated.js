@@ -68,7 +68,11 @@ function getSignatures() {
                         if (i) html += '<tr>';
 
                         html += `<td class="nowrap">
-                                <span class="ui empty circular label" style="background-color: ${target.database.color};" data-content="${target.database.name}" data-position="left center" data-letiation="tiny"></span>
+                                <span class="ui empty circular label" 
+                                      style="background-color: ${target.database.color};" 
+                                      data-content="${target.database.name}" 
+                                      data-position="left center" 
+                                      data-variation="tiny"></span>
                                 <a href="/signature/${target.accession}/">${target.accession}</a>
                              </td>
                              <td class="right aligned">${target.proteins.toLocaleString()}</td>
