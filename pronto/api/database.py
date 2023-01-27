@@ -271,7 +271,35 @@ def get_unintegrated_signatures(db_name):
                 {
                     "error": {
                         "title": "Bad Request (invalid relationship parameter)",
-                        f"message": "Accepted values are: " "similar, parent, child, none.",
+                        f"message": "Accepted values are: similar, parent, child, none.",
+                    }
+                }
+            ),
+            400,
+        )
+    
+    sort_col = request.args.get("sort-by", "accession")
+    if sort_col not in ("accession", "proteins"):
+        return (
+            jsonify(
+                {
+                    "error": {
+                        "title": "Bad Request (invalid sorting parameter)",
+                        f"message": "Accepted values are: accession, proteins",
+                    }
+                }
+            ),
+            400,
+        )
+    
+    sort_order = request.args.get("sort-order", "asc")
+    if sort_order not in ("asc", "desc"):
+        return (
+            jsonify(
+                {
+                    "error": {
+                        "title": "Bad Request (invalid sorting parameter)",
+                        f"message": "Accepted values are: " "asc, desc",
                     }
                 }
             ),
@@ -528,7 +556,7 @@ def get_unintegrated_signatures(db_name):
             if query["targets"]:
                 results.append(query)
 
-    results.sort(key=_sort_results)
+    results.sort(key=lambda x: x[sort_col], reverse=sort_order == "desc")
 
     num_results = len(results)
     results = results[(page - 1) * page_size : page * page_size]

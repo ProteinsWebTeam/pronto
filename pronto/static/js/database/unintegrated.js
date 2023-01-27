@@ -68,7 +68,11 @@ function getSignatures() {
                         if (i) html += '<tr>';
 
                         html += `<td class="nowrap">
-                                <span class="ui empty circular label" style="background-color: ${target.database.color};" data-content="${target.database.name}" data-position="left center" data-variation="tiny"></span>
+                                <span class="ui empty circular label" 
+                                      style="background-color: ${target.database.color};" 
+                                      data-content="${target.database.name}" 
+                                      data-position="left center" 
+                                      data-variation="tiny"></span>
                                 <a href="/signature/${target.accession}/">${target.accession}</a>
                              </td>
                              <td class="right aligned">${target.proteins.toLocaleString()}</td>
@@ -157,5 +161,49 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else
                     modals.error(object.error.title, object.error.message);
             });
+    });
+
+    const colHeaders = document.querySelectorAll('th[data-sort-by]');
+    colHeaders.forEach(node => {
+        node.addEventListener("click", e => {
+            const sortBy = node.dataset.sortBy;
+            let sortOrder = node.dataset.sortOrder;
+
+            const url = new URL(location.href);
+
+            if (sortOrder === "asc") {
+                node.setAttribute("data-sort-order", "desc");
+                node.querySelector("i").className = "button icon sort down";
+                sortOrder = "desc";
+            }
+            else {
+                node.setAttribute("data-sort-order", "asc");
+                node.querySelector("i").className = "button icon sort up";
+                sortOrder = "asc";
+            }
+
+            colHeaders.forEach(otherNode => {
+                if (otherNode !== node) {
+                    otherNode.setAttribute("data-sort-order", "none");
+                    otherNode.querySelector("i").className = "button icon sort";
+                }
+            });
+
+            const keySort = "sort-by";
+            const keyOrder = "sort-order";
+
+            if (sortBy)
+                url.searchParams.set(keySort, sortBy);
+            else if (url.searchParams.has(keySort))
+                url.searchParams.delete(keySort);
+
+            if (sortOrder)
+                url.searchParams.set(keyOrder, sortOrder);
+            else if (url.searchParams.has(keyOrder))
+                url.searchParams.delete(keyOrder);
+
+            history.replaceState(null, document.title, url.toString());
+            getSignatures();
+        });
     });
 });
