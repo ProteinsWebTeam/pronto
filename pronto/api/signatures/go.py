@@ -21,7 +21,7 @@ def get_go_terms(accessions):
             }
         }), 400
 
-    con = utils.connect_pg()
+    con = utils.connect_pg()    
     with con.cursor() as cur:
         in_stmt = ','.join("%s" for _ in accessions)
         params = accessions + accessions
@@ -70,19 +70,23 @@ def get_go_terms(accessions):
             try:
                 s = term["signatures"][signature_acc]
             except KeyError:
-                s = term["signatures"][signature_acc] = [set(), set()]
+                s = term["signatures"][signature_acc] = [set(), set(), set()]
 
             s[0].add(row[4])  # protein
             if row[5] == "PMID":
                 s[1].add(row[6])  # Pubmed reference
+    
+    params_pthr2go = list(aspects) if aspects and aspects != _ASPECTS else []
+    terms = get_go2panther(accessions, terms, con, aspects_stmt, params_pthr2go)
 
     con.close()
 
     for term in terms.values():
-        for signature_acc, (proteins, refs) in term["signatures"].items():
+        for signature_acc, (proteins, refs, pthr2go) in term["signatures"].items():
             term["signatures"][signature_acc] = {
                 "proteins": len(proteins),
-                "references": len(refs)
+                "references": len(refs),
+                "panthergo": len(pthr2go)
             }
 
     return jsonify({
@@ -95,3 +99,62 @@ def get_go_terms(accessions):
 def _sort_term(term):
     max_prots = max(s["proteins"] for s in term["signatures"].values())
     return -max_prots, term["id"]
+
+def get_go2panther(accessions, terms, pg_con, aspects_stmt, params):
+    accessions = '|'.join(accessions)
+
+    pg_cur = pg_con.cursor()
+    con = utils.connect_oracle()
+    cur = con.cursor()
+    cur.execute(
+    f"""
+        SELECT DISTINCT METHOD_AC, GO_ID
+        FROM INTERPRO.PANTHER2GO
+        WHERE regexp_like (METHOD_AC, '^({accessions})')
+    """
+    )
+
+    for row in cur:
+        term_id = row[1]
+        pth_fam = row[0].split(':')[0]
+
+        try:
+            term = terms[term_id]
+        except KeyError:
+            term = terms[term_id] = get_go_details(term_id, pg_cur, aspects_stmt, params)
+        
+        try:
+            s = term["signatures"][pth_fam]
+        except KeyError:
+            s = term["signatures"][pth_fam] = [set(), set(), set()]
+
+        s[2].add(row[0])
+
+    cur.close()
+    con.close()
+
+    pg_cur.close()
+
+    return terms
+
+def get_go_details(term_id, pg_cur, aspects_stmt, params):
+    godetails = {}
+
+    pg_cur.execute(
+            f"""
+            SELECT t.id, t.name, t.category
+            FROM term t
+            WHERE t.id = '{term_id}'
+            {aspects_stmt}  
+            """, (params)
+        )
+    for row in pg_cur:
+        go_id = row[0]
+        godetails = {
+                "id":go_id, 
+                "name": row[1], 
+                "aspect": row[2], 
+                "signatures": {}
+            }
+
+    return godetails

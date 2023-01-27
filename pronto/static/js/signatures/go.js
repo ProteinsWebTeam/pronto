@@ -21,22 +21,38 @@ function getGoTerms(accessions) {
         .then(response => response.json())
         .then((data,) => {
             const sig2ipr = new Map(Object.entries(data.integrated));
+            const isPanther = new RegExp('^PTHR');
+
             const genCell = (acc,) => {
+                let span = "2";
+                if (isPanther.test(acc))
+                    span = "3"
                 if (sig2ipr.has(acc))
-                    return `<th class="center aligned" colspan="2"><span data-tooltip="${sig2ipr.get(acc)}" data-inverted=""><i class="star icon"></i>${acc}</span></th>`;
+                    return `<th class="center aligned" colspan="${span}" ><span data-tooltip="${sig2ipr.get(acc)}" data-inverted=""><i class="star icon"></i>${acc}</span></th>`;
                 else
-                    return `<th class="center aligned" colspan="2"><i class="star outline icon"></i>${acc}</th>`;
+                    return `<th class="center aligned" colspan="${span}"><i class="star outline icon"></i>${acc}</th>`;
             };
 
             let html = `<thead>
                         <tr>
-                        <th>${data.results.length.toLocaleString()} terms</th>
-                        <th class="collapsing center aligned"><button class="ui primary small fluid compact icon button"><i class="sitemap icon"></i></button></th>
+                        <th rowspan="3">${data.results.length.toLocaleString()} terms</th>
+                        <th class="collapsing center aligned" rowspan="3"><button class="ui primary small fluid compact icon button"><i class="sitemap icon"></i></button></th>
                         ${accessions.map(genCell).join('')}
                         </tr>
-                        </thead>`;
+                        <tr>`;
+
+            for (let i = 0; i < accessions.length; i++) {
+                html += `
+                        <th class="ignored collapsing center aligned">UNI</th>
+                        <th class="collapsing center aligned">REF</th>`;
+                if (isPanther.test(accessions[i]))
+                    html += `<th class="collapsing center aligned">PTHR</th>`;
+
+            }
+            html += `</tr></thead>`;
 
             html += '<tbody>';
+
             for (const term of data.results) {
                 html += `<tr>
                             <td>
@@ -52,9 +68,12 @@ function getGoTerms(accessions) {
                 for (const acc of accessions) {
                     if (term.signatures.hasOwnProperty(acc)) {
                         const signature = term.signatures[acc];
-                        html += `<td class="collapsing center aligned">
-                                    <a href="#!" data-signature="${acc}" data-term="${term.id}">${signature['proteins'].toLocaleString()}</a>
-                                 </td>`;
+                        if (signature['proteins'] > 0) {
+                            html += `<td class="collapsing center aligned">
+                                        <a href="#!" data-signature="${acc}" data-term="${term.id}">${signature['proteins'].toLocaleString()}</a>
+                                    </td>`;
+                        } else
+                            html += '<td class="collapsing"></td>';
 
                         if (signature.references > 0) {
                             html += `<td class="collapsing center aligned">
@@ -63,8 +82,20 @@ function getGoTerms(accessions) {
                         } else
                             html += '<td class="collapsing"></td>';
 
-                    } else
+                        if (signature['panthergo'] > 0) {
+                            html += `<td class="collapsing center aligned">
+                                            <span data-signature="${acc}" data-term="${term.id}">${signature['panthergo'].toLocaleString()}</span>
+                                        </td>`;
+                        } else if (isPanther.test(acc))
+                            html += '<td class="collapsing"></td>';
+
+                    } else {
                         html += '<td class="collapsing"></td><td class="collapsing"></td>';
+
+                        if (isPanther.test(acc)) {
+                            html += '<td class="collapsing"></td>';
+                        }
+                    }
                 }
                 html += '</tr>';
             }

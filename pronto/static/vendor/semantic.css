@@ -47879,6 +47879,12 @@ Floated Menu / Item
      box-shadow: -0.1em -0.2em 0 0.1em #FFFFFF;
      -moz-transform: scale(1);
  }
+ .ui.definition.table>thead:not(.full-width)>tr>th:first-child.ignored {
+     background: rgba(0, 0, 0, 0.03);
+     border-left: 1px solid rgba(34, 36, 38, 0.1);
+     font-weight: bold;
+     color: rgba(0, 0, 0, 0.95);
+ }
  
  .ui.definition.table>tfoot:not(.full-width)>tr>th:first-child {
      pointer-events: none;
@@ -47890,7 +47896,6 @@ Floated Menu / Item
      -moz-transform: scale(1);
  }
  /* Highlight Defining Column */
- 
  .ui.definition.table>tr>td:first-child:not(.ignored),
  .ui.definition.table>tbody>tr>td:first-child:not(.ignored),
  .ui.definition.table>tfoot>tr>td:first-child:not(.ignored),
@@ -47908,7 +47913,7 @@ Floated Menu / Item
  }
  /* Fix 2nd Column */
  
- .ui.definition.table>thead:not(.full-width)>tr>th:nth-child(2) {
+ .ui.>tr>th:nth-child(2) {
      border-left: 1px solid rgba(34, 36, 38, 0.15);
  }
  
@@ -48398,6 +48403,7 @@ Floated Menu / Item
      width: 1px;
      white-space: nowrap;
  }
+
  /*--------------
        Fixed
   ---------------*/
