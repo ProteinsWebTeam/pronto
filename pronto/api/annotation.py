@@ -61,8 +61,8 @@ class Annotation(object):
             elif tag == "</p>":
                 in_paragraph = False
             elif in_paragraph:
-                self.error = ("f{tag} elements are not allowed "
-                              "inside a paragraph.")
+                self.error = (f"{tag} elements are not allowed "
+                              f"inside a paragraph.")
                 return False
 
         # Find list items outside list
@@ -89,8 +89,8 @@ class Annotation(object):
             elif tag == "<ol>":
                 if lists and not is_open:
                     # Can only start a nested list inside a list element
-                    self.error =  ("Nested <ol> element must be contained "
-                                   "in a parent <li> element.")
+                    self.error = ("Nested <ol> element must be contained "
+                                  "in a parent <li> element.")
                     return False
                 else:
                     lists.append("ol")
