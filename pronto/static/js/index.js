@@ -805,7 +805,7 @@ function plotJobTimeChart() {
     }
 
     if (orderBy === 'time')
-        seriesData.sort((a, b) => a.y - b.y );
+        seriesData.sort((a, b) => b.y - a.y );
     else
         seriesData.sort((a, b) => a.name.localeCompare(b.name) );
 
