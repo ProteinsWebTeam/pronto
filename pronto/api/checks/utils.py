@@ -22,6 +22,13 @@ Types of exceptions:
   - None:       no exception allowed 
 """
 CHECKS = {
+    "begin_uppercase": {
+        "name": "Begin with uppercase",
+        "description": "CABs must start with an uppercase letter",
+        "label": "Invalid CAB start",
+        "terms": False,
+        "exceptions": 'g'
+    },
     "abbreviation": {
         "name": "Abbreviations",
         "description": "Abbreviations forbidden in entry names, short names, "
