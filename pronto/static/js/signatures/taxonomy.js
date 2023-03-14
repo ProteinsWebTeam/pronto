@@ -1,7 +1,7 @@
 import * as dimmer from "../ui/dimmer.js";
 import {updateHeader} from "../ui/header.js";
 import {selector, showProteinsModal} from "../ui/signatures.js";
-
+import { backToTop } from "../ui/backtotop.js";
 
 function getTaxonCounts(accessions, taxonID) {
     return fetch(`/api/signatures/${accessions.join('/')}/taxon/${taxonID}`)
@@ -148,6 +148,7 @@ document.addEventListener('DOMContentLoaded', () => {
     selector.render().tab("taxonomy");
 
     updateHeader();
+    backToTop();
 
     for (const tab of document.querySelectorAll('[data-rank]')) {
         tab.addEventListener('click', e => {

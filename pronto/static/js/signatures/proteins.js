@@ -2,6 +2,7 @@ import * as dimmer from "../ui/dimmer.js";
 import {updateHeader} from "../ui/header.js";
 import {selector} from "../ui/signatures.js";
 import {setClass} from "../ui/utils.js";
+import { backToTop } from "../ui/backtotop.js";
 import * as pagination from "../ui/pagination.js";
 import {fetchProtein, genProtHeader, renderMatches} from "../ui/proteins.js";
 
@@ -368,5 +369,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
     updateHeader();
+    backToTop();
     getProteins(accessions);
 });

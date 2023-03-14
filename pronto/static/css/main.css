@@ -105,3 +105,10 @@ code.negative {
     font-weight: 300;
     overflow-wrap: break-word;
 }
+/* back to top button */
+#top-btn {
+    display: none;
+    position: fixed;
+    bottom: 20px;
+    right: 30px;
+}

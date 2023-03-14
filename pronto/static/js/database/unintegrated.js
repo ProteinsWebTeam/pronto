@@ -5,6 +5,7 @@ import * as dimmer from '../ui/dimmer.js'
 import * as modals from '../ui/modals.js'
 import * as pagination from '../ui/pagination.js'
 import { renderConfidence } from "../ui/signatures.js";
+import { backToTop } from "../ui/backtotop.js";
 
 
 function renderEntry(entry) {
@@ -122,6 +123,7 @@ function getSignatures() {
 
 document.addEventListener('DOMContentLoaded', () => {
     updateHeader();
+    backToTop();
     getSignatures();
 
     $('.message .close')

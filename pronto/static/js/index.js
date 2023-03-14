@@ -4,6 +4,7 @@ import { renderTaskList, updateHeader } from "./ui/header.js"
 import { setClass, escape, copy2clipboard } from "./ui/utils.js";
 import { waitForTask } from "./tasks.js";
 import * as modal from "./ui/modals.js";
+import { backToTop } from "./ui/backtotop.js";
 
 async function getMemberDatabaseUpdates() {
     const response = await fetch('/api/databases/updates/')
@@ -958,6 +959,7 @@ function plotJobMemoryChart() {
 
 document.addEventListener('DOMContentLoaded', () => {
     updateHeader();
+    backToTop();
     const match = location.href.match(/\/#\/(.+)$/);
 
     // Init tabs
