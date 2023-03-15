@@ -15,6 +15,7 @@ LoS = List[str]
 Err = List[Tuple[str, Optional[str]]]
 LoT = List[Tuple[str, str]]
 
+
 def ck_begin_uppercase(cabs: LoT, exceptions: DoS) -> Err:
     prog = re.compile(r"^<p>[a-z]")
     prog2 = re.compile(r"^[a-z]")
