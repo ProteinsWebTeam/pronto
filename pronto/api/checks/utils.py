@@ -24,8 +24,8 @@ Types of exceptions:
 CHECKS = {
     "begin_uppercase": {
         "name": "Begin with uppercase",
-        "description": "CABs must start with an uppercase letter",
-        "label": "Invalid CAB start",
+        "description": "Entry annotations must start with an uppercase letter",
+        "label": "First letter lowercase",
         "terms": False,
         "exceptions": 'g'
     },
