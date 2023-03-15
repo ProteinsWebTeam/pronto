@@ -17,15 +17,15 @@ LoT = List[Tuple[str, str]]
 
 
 def ck_begin_uppercase(cabs: LoT, exceptions: DoS) -> Err:
-    prog = re.compile(r"^<p>[a-z]")
-    prog2 = re.compile(r"^[a-z]")
+    prog = re.compile(r"^\s*(?:<p>)?\s*([a-z])")
 
     errors = []
     for ann_id, text in cabs:
-        for match in prog.findall(text):
-            errors.append((ann_id, match))
-        for match in prog2.findall(text):
-            errors.append((ann_id, match))
+        match = prog.match(text)
+        if match:
+            start = match.start(1)
+            error = text[start:start+11]
+            errors.append((ann_id, error))
 
     return [
         (ann_id, error)
