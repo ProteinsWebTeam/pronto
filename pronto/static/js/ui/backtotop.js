@@ -14,15 +14,13 @@ export function backToTop() {
     document.body.appendChild(button);
 
     // When the user scrolls down 100px from the top of the document, show the button
-    window.onscroll = function () { scrollFunction() };
-};
-
-
-function scrollFunction() {
-    if (document.body.scrollTop > 100 || document.documentElement.scrollTop > 100) {
-        document.getElementById("top-btn").style.display = "block";
-    } else {
-        document.getElementById("top-btn").style.display = "none";
-    }
+    window.onscroll = () => {
+        // When the user scrolls down 100px from the top of the document, show the button
+        if (document.body.scrollTop > 100 || document.documentElement.scrollTop > 100) {
+            document.getElementById("top-btn").style.display = "block";
+        } else {
+            document.getElementById("top-btn").style.display = "none";
+        }
+    };
 }
 
