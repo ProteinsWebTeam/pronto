@@ -1,7 +1,7 @@
 import * as dimmer from "../ui/dimmer.js";
 import {updateHeader} from "../ui/header.js";
 import {selector, showProteinsModal} from "../ui/signatures.js";
-
+import { backToTop } from "../ui/backtotop.js";
 
 function getAspectCode(aspect) {
     switch (aspect) {
@@ -176,5 +176,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     updateHeader();
+    backToTop();
     getGoTerms(accessions);
 });

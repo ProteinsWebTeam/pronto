@@ -16,6 +16,23 @@ Err = List[Tuple[str, Optional[str]]]
 LoT = List[Tuple[str, str]]
 
 
+def ck_begin_uppercase(cabs: LoT, exceptions: DoS) -> Err:
+    prog = re.compile(r"^\s*(?:<p>)?\s*([a-z])")
+
+    errors = []
+    for ann_id, text in cabs:
+        match = prog.match(text)
+        if match:
+            start = match.start(1)
+            error = text[start:start+11]
+            errors.append((ann_id, error))
+
+    return [
+        (ann_id, error)
+        for (ann_id, error) in errors
+        if ann_id not in exceptions or error not in exceptions[ann_id]
+    ]
+
 def ck_abbreviations(cabs: LoT, terms: LoS, exceptions: DoS) -> Err:
     prog1 = re.compile(r"\d+\s{2,}kDa")
     prog2 = re.compile(r"\b[cn][\-\s]termin(?:al|us)", flags=re.I)
@@ -227,6 +244,10 @@ def check(cur: Cursor):
     exceptions = load_exceptions(cur, "abbreviation", "ANN_ID", "TERM")
     for item in ck_abbreviations(cabs, terms, exceptions):
         yield "abbreviation", item
+    
+    exceptions = load_exceptions(cur, "begin_uppercase", "ANN_ID", "TERM")
+    for item in ck_begin_uppercase(cabs, exceptions):
+        yield "begin_uppercase", item
 
     for item in ck_length(cabs):
         yield "cab_length", item

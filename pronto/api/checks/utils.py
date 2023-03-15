@@ -22,6 +22,13 @@ Types of exceptions:
   - None:       no exception allowed 
 """
 CHECKS = {
+    "begin_uppercase": {
+        "name": "Begin with uppercase",
+        "description": "Entry annotations must start with an uppercase letter",
+        "label": "First letter lowercase",
+        "terms": False,
+        "exceptions": 'g'
+    },
     "abbreviation": {
         "name": "Abbreviations",
         "description": "Abbreviations forbidden in entry names, short names, "
