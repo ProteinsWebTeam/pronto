@@ -713,32 +713,64 @@ def update_annotation(ann_id):
             else:
                 entries[entry_ac] = annotations[_ann_id]
 
-        to_move = []
-        to_insert = []
+        # Find publications currently in ENTRY2PUB
+        cur.execute(
+            """
+            SELECT ENTRY_AC, PUB_ID
+            FROM INTERPRO.ENTRY2PUB
+            WHERE ENTRY_AC IN (
+                SELECT DISTINCT ENTRY_AC
+                FROM INTERPRO.ENTRY2COMMON
+                WHERE ANN_ID = :1            
+            )
+            """,
+            [ann_id]
+        )
+        in_entry2pub = set(cur.fetchall())
+
+        # Find publications currently in SUPPLEMENTARY_REF
+        cur.execute(
+            """
+            SELECT ENTRY_AC, PUB_ID
+            FROM INTERPRO.SUPPLEMENTARY_REF
+            WHERE ENTRY_AC IN (
+                SELECT DISTINCT ENTRY_AC
+                FROM INTERPRO.ENTRY2COMMON
+                WHERE ANN_ID = :1            
+            )
+            """,
+            [ann_id]
+        )
+        in_suppl_ref = set(cur.fetchall())
+
+        to_move = set()
+        to_insert = set()
         for entry_ac, references in entries.items():
             for pub_id in old_references:
                 if pub_id not in references:
                     # old reference not in any annotation: move to suppl. refs
-                    to_move.append((entry_ac, pub_id))
+                    to_move.add((entry_ac, pub_id))
 
             for pub_id in new_references:
                 if pub_id not in references:
                     # new reference not in ENTRY2PUB yet
-                    to_insert.append((entry_ac, pub_id))
+                    to_insert.add((entry_ac, pub_id))
 
         try:
             cur.executemany(
                 """
                 DELETE FROM INTERPRO.ENTRY2PUB
                 WHERE ENTRY_AC = :1 AND PUB_ID = :2
-                """, to_move
+                """,
+                list(to_move)
             )
 
             cur.executemany(
                 """
                 INSERT INTO INTERPRO.SUPPLEMENTARY_REF
                 VALUES (:1, :2)
-                """, to_move
+                """,
+                list(to_move - in_suppl_ref)
             )
         except DatabaseError as exc:
             cur.close()
@@ -751,7 +783,7 @@ def update_annotation(ann_id):
                 }
             }), 500
 
-        for entry_ac, pub_id in to_insert:
+        for entry_ac, pub_id in to_insert - in_entry2pub:
             try:
                 cur.execute(
                     """
