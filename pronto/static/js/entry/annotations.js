@@ -420,22 +420,11 @@ const annotationEditor = {
         let segment;
 
         const rePub = /\[cite:(PUB\d+)\]/gi;
-        const mainRefs = [];
         let arr;
         while ((arr = rePub.exec(text)) !== null) {
             const pubID = arr[1];
-            if (references.has(pubID)) {
-                let i = mainRefs.indexOf(pubID);
-                if (i === -1) {
-                    // First occurence of the reference in any annotation
-                    mainRefs.push(pubID);
-                    i = mainRefs.length;
-                } else
-                    i++;
-
-                const pub = references.get(pubID);
-                text = text.replace(arr[0], `[cite:${pub.pmid}]`);
-            }
+            const pub = references.get(pubID);
+            text = text.replace(arr[0], `[cite:${pub.pmid}]`);
         }
 
         if (this.element === element)
