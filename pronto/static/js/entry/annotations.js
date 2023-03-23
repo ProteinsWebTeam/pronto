@@ -261,7 +261,7 @@ export function refresh(accession) {
                     const action = e.currentTarget.dataset.action;
                     const annotation = annotations.get(annID);
                     if (action === 'edit')
-                        annotationEditor.open(annID, annotation.text);
+                        annotationEditor.open(annID, annotation.text, references);
                     else if (action === 'movedown')
                         annotationEditor.reorder(accession, annID, 'down');
                     else if (action === 'moveup')
@@ -415,9 +415,28 @@ const annotationEditor = {
         this.textareaText = null;
         this.textFormatted = null;
     },
-    open: function (annID, text) {
+    open: function (annID, text, references) {
         const element = document.getElementById(annID);
         let segment;
+
+        const rePub = /\[cite:(PUB\d+)\]/gi;
+        const mainRefs = [];
+        let arr;
+        while ((arr = rePub.exec(text)) !== null) {
+            const pubID = arr[1];
+            if (references.has(pubID)) {
+                let i = mainRefs.indexOf(pubID);
+                if (i === -1) {
+                    // First occurence of the reference in any annotation
+                    mainRefs.push(pubID);
+                    i = mainRefs.length;
+                } else
+                    i++;
+
+                const pub = references.get(pubID);
+                text = text.replace(arr[0], `[cite:${pub.pmid}]`);
+            }
+        }
 
         if (this.element === element)
             return;  // Current annotation is being edited: carry on
@@ -478,6 +497,7 @@ const annotationEditor = {
         `;
 
         const textarea = this.element.querySelector('.segment textarea');
+
         textarea.value = text;
         // If the annotation contains weird characters, they may be reformatted, so we read back from textarea
         this.textareaText = textarea.value;
