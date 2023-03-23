@@ -23,11 +23,11 @@ SIGNATURES = [
     r"SFLD[FGS]\d{4,}",     # SFLD
     r"SM\d{4,}",            # SMART
     r"SSF\d{4,}",           # SUPERFAMILY
-    r"TIGR\d{4,}",          # TIGRFAMs
+    r"NF\d{6}",             # NCBIfam
+    r"TIGR\d{4,}",          # NCBIfam
     r"cd\d{4,}",            # CDD
     r"sd\d{4,}"             # CDD
 ]
-
 
 XREFS = {
     "CATHGENE3D": "http://www.cathdb.info/superfamily/{}",
@@ -47,7 +47,7 @@ XREFS = {
     "SSF": "http://supfam.org/SUPERFAMILY/cgi-bin/scop.cgi?ipid={}",
     "SUPERFAMILY": "http://supfam.org/SUPERFAMILY/cgi-bin/scop.cgi?ipid={}",
     "SWISSPROT": "https://www.uniprot.org/uniprotkb/{}/entry",
-    "TIGRFAMS": "https://www.ncbi.nlm.nih.gov/genome/annotation_prok/evidence/{}/"
+    "NCBIFAM": "https://www.ncbi.nlm.nih.gov/genome/annotation_prok/evidence/{}/"
 }
 
 
@@ -388,12 +388,12 @@ class Superfamily:
         return self.home + '/cgi-bin/scop.cgi?ipid=' + acc
 
 
-class Tigrfams:
-    home = "https://www.ncbi.nlm.nih.gov/genome/annotation_prok/tigrfams/"
+class NCBIfam:
+    home = "https://www.ncbi.nlm.nih.gov/protfam/"
     color = '#a04867'
 
     def gen_link(self, acc: str):
-        return f"https://www.ncbi.nlm.nih.gov/genome/annotation_prok/evidence/{acc}/"
+        return XREFS["NCBIFAM"].format(acc)
 
 
 def get_database_obj(key: str):
@@ -405,6 +405,7 @@ def get_database_obj(key: str):
         "hamap": Hamap,
         "mobidblt": MobiDbLite,
         "mobidb lite": MobiDbLite,
+        "ncbifam": NCBIfam,
         "panther": Panther,
         "pfam": Pfam,
         "pirsf": Pirsf,
@@ -417,7 +418,6 @@ def get_database_obj(key: str):
         "smart": Smart,
         "ssf": Superfamily,
         "superfamily": Superfamily,
-        "tigrfams": Tigrfams,
     }
 
     try:
