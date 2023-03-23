@@ -29,7 +29,6 @@ SIGNATURES = [
     r"sd\d{4,}"             # CDD
 ]
 
-# Keys need to be in lower case!
 XREFS = {
     "CATHGENE3D": "http://www.cathdb.info/superfamily/{}",
     "CAZY": "http://www.cazy.org/fam/{}.html",
