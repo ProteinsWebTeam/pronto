@@ -486,7 +486,6 @@ const annotationEditor = {
         `;
 
         const textarea = this.element.querySelector('.segment textarea');
-
         textarea.value = text;
         // If the annotation contains weird characters, they may be reformatted, so we read back from textarea
         this.textareaText = textarea.value;
