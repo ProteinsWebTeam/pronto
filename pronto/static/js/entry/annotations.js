@@ -417,14 +417,14 @@ const annotationEditor = {
     },
     open: function (annID, text, references) {
         const element = document.getElementById(annID);
-        let segment;
-
         const rePub = /\[cite:(PUB\d+)\]/gi;
         let arr;
+        let segment;
+
         while ((arr = rePub.exec(text)) !== null) {
             const pubID = arr[1];
             const pub = references.get(pubID);
-            text = text.replace(arr[0], `[cite:${pub.pmid}]`);
+            text = text.replace(arr[0], `[cite:${pub.pmid}] `);
         }
 
         if (this.element === element)
