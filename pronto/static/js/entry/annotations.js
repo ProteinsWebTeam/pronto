@@ -151,7 +151,7 @@ export function refresh(accession) {
                         } else
                             i++;
 
-                        text = text.replace(arr[0], `<a data-ref href="#${pubID}">${i}</a>`);
+                        text = text.replaceAll(arr[0], `<a data-ref href="#${pubID}">${i}</a>`);
                     }
                 }
 
@@ -425,7 +425,7 @@ const annotationEditor = {
             const pubID = arr[1];
             const pub = references.get(pubID);
             console.log(arr[0], pub.pmid);
-            text = text.replace(arr[0], `[cite:${pub.pmid}]`);
+            text = text.replaceAll(arr[0], `[cite:${pub.pmid}]`);
         }
 
         if (this.element === element)
