@@ -125,7 +125,7 @@ export function refresh(accession) {
     return fetch(`/api/entry/${accession}/annotations/`)
         .then(response => response.json())
         .then(results => {
-            const rePub = /\[cite:(PUB\d+)\]/gi;
+            const rePub = /\[cite:(PUB\d+)\]/;
             const mainRefs = [];
             const annotations = new Map();
             const references = new Map(Object.entries(results.references));
@@ -415,15 +415,12 @@ const annotationEditor = {
     open: function (annID, text, references) {
         const element = document.getElementById(annID);
         const rePub = /\[cite:(PUB\d+)\]/;
-        let arr;
         let segment;
 
-        while ((arr = rePub.exec(text)) !== null) {
-            const pubID = arr[1];
+        text = text.replaceAll(rePub, (match, pubID) => {
             const pub = references.get(pubID);
-            console.log(arr[0], pub.pmid);
-            text = text.replaceAll(arr[0], `[cite:${pub.pmid}]`);
-        }
+            return `[cite:${pub.pmid}]`
+        })
 
         if (this.element === element)
             return;  // Current annotation is being edited: carry on
