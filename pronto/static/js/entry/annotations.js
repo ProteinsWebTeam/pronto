@@ -138,10 +138,7 @@ export function refresh(accession) {
 
                 annotations.set(annotation.id, {text: text, entries: annotation.num_entries});
 
-                // Search all references in the text
-                let arr;
-                while ((arr = rePub.exec(text)) !== null) {
-                    const pubID = arr[1];
+                text = text.replaceAll(rePub, (match, pubID) => {
                     if (references.has(pubID)) {
                         let i = mainRefs.indexOf(pubID);
                         if (i === -1) {
@@ -151,9 +148,9 @@ export function refresh(accession) {
                         } else
                             i++;
 
-                        text = text.replaceAll(arr[0], `<a data-ref href="#${pubID}">${i}</a>`);
+                        return `<a data-ref href="#${pubID}">${i}</a>`
                     }
-                }
+                })
 
                 // Replace cross-ref tags by links
                 for (const xref of annotation.cross_references) {
