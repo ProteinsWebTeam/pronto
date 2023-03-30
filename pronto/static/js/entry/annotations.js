@@ -125,7 +125,7 @@ export function refresh(accession) {
     return fetch(`/api/entry/${accession}/annotations/`)
         .then(response => response.json())
         .then(results => {
-            const rePub = /\[cite:(PUB\d+)\]/;
+            const rePub = /\[cite:(PUB\d+)\]/gi;
             const mainRefs = [];
             const annotations = new Map();
             const references = new Map(Object.entries(results.references));
@@ -414,7 +414,7 @@ const annotationEditor = {
     },
     open: function (annID, text, references) {
         const element = document.getElementById(annID);
-        const rePub = /\[cite:(PUB\d+)\]/;
+        const rePub = /\[cite:(PUB\d+)\]/gi;
         let segment;
 
         text = text.replaceAll(rePub, (match, pubID) => {
