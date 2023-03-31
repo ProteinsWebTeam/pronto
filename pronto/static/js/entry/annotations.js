@@ -151,8 +151,8 @@ export function refresh(accession) {
                         return `<a data-ref href="#${pubID}">${i}</a>`
                     }
                     
-                    return match
-                })
+                    return match;
+                });
 
                 // Replace cross-ref tags by links
                 for (const xref of annotation.cross_references) {
@@ -425,8 +425,8 @@ const annotationEditor = {
                 return `[cite:${pub.pmid}]`    
             }
             
-            return match
-        })
+            return match;
+        });
 
         if (this.element === element)
             return;  // Current annotation is being edited: carry on
