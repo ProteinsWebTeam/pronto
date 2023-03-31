@@ -420,8 +420,12 @@ const annotationEditor = {
         let segment;
 
         text = text.replaceAll(rePub, (match, pubID) => {
-            const pub = references.get(pubID);
-            return `[cite:${pub.pmid}]`
+            if (references.has(pubID)) {
+                const pub = references.get(pubID);
+                return `[cite:${pub.pmid}]`    
+            }
+            
+            return match; 
         })
 
         if (this.element === element)
