@@ -33,6 +33,7 @@ def ck_begin_uppercase(cabs: LoT, exceptions: DoS) -> Err:
         if ann_id not in exceptions or error not in exceptions[ann_id]
     ]
 
+
 def ck_abbreviations(cabs: LoT, terms: LoS, exceptions: DoS) -> Err:
     prog1 = re.compile(r"\d+\s{2,}kDa")
     prog2 = re.compile(r"\b[cn][\-\s]termin(?:al|us)", flags=re.I)
