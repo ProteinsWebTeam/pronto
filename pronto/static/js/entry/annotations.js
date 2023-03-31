@@ -150,6 +150,8 @@ export function refresh(accession) {
 
                         return `<a data-ref href="#${pubID}">${i}</a>`
                     }
+                    
+                    return match;                    
                 })
 
                 // Replace cross-ref tags by links
