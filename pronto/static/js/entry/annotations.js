@@ -151,7 +151,7 @@ export function refresh(accession) {
                         return `<a data-ref href="#${pubID}">${i}</a>`
                     }
                     
-                    return match;                    
+                    return match
                 })
 
                 // Replace cross-ref tags by links
@@ -425,7 +425,7 @@ const annotationEditor = {
                 return `[cite:${pub.pmid}]`    
             }
             
-            return match; 
+            return match
         })
 
         if (this.element === element)
