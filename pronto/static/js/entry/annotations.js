@@ -138,10 +138,7 @@ export function refresh(accession) {
 
                 annotations.set(annotation.id, {text: text, entries: annotation.num_entries});
 
-                // Search all references in the text
-                let arr;
-                while ((arr = rePub.exec(text)) !== null) {
-                    const pubID = arr[1];
+                text = text.replaceAll(rePub, (match, pubID) => {
                     if (references.has(pubID)) {
                         let i = mainRefs.indexOf(pubID);
                         if (i === -1) {
@@ -151,9 +148,11 @@ export function refresh(accession) {
                         } else
                             i++;
 
-                        text = text.replace(arr[0], `<a data-ref href="#${pubID}">${i}</a>`);
+                        return `<a data-ref href="#${pubID}">${i}</a>`
                     }
-                }
+                    
+                    return match;
+                });
 
                 // Replace cross-ref tags by links
                 for (const xref of annotation.cross_references) {
@@ -261,7 +260,7 @@ export function refresh(accession) {
                     const action = e.currentTarget.dataset.action;
                     const annotation = annotations.get(annID);
                     if (action === 'edit')
-                        annotationEditor.open(annID, annotation.text);
+                        annotationEditor.open(annID, annotation.text, references);
                     else if (action === 'movedown')
                         annotationEditor.reorder(accession, annID, 'down');
                     else if (action === 'moveup')
@@ -415,9 +414,19 @@ const annotationEditor = {
         this.textareaText = null;
         this.textFormatted = null;
     },
-    open: function (annID, text) {
+    open: function (annID, text, references) {
         const element = document.getElementById(annID);
+        const rePub = /\[cite:(PUB\d+)\]/gi;
         let segment;
+
+        text = text.replaceAll(rePub, (match, pubID) => {
+            if (references.has(pubID)) {
+                const pub = references.get(pubID);
+                return `[cite:${pub.pmid}]`    
+            }
+            
+            return match;
+        });
 
         if (this.element === element)
             return;  // Current annotation is being edited: carry on
