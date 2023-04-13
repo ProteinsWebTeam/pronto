@@ -28,7 +28,7 @@ function getGoTerms(accessions) {
                 if (isPanther.test(acc))
                     span = "3"
                 if (sig2ipr.has(acc))
-                    return `<th class="center aligned" colspan="${span}" ><span data-tooltip="${sig2ipr.get(acc)}" data-inverted=""><i class="star icon"></i>${acc}</span></th>`;
+                    return `<th class="center aligned" colspan="${span}"><span data-tooltip="${sig2ipr.get(acc)}" data-inverted=""><i class="star icon"></i>${acc}</span></th>`;
                 else
                     return `<th class="center aligned" colspan="${span}"><i class="star outline icon"></i>${acc}</th>`;
             };
@@ -82,10 +82,10 @@ function getGoTerms(accessions) {
                         } else
                             html += '<td class="collapsing"></td>';
 
-                        if (signature['panthergo'] > 0) {
+                        if (signature.panthergo > 0) {
                             html += `<td class="collapsing center aligned">
-                                            <span data-signature="${acc}" data-term="${term.id}">${signature['panthergo'].toLocaleString()}</span>
-                                        </td>`;
+                                        <a href="#!" data-signature="${acc}" data-term="${term.id}" class="pthr">${signature.panthergo.toLocaleString()}</a>
+                                     </td>`;
                         } else if (isPanther.test(acc))
                             html += '<td class="collapsing"></td>';
 
@@ -107,7 +107,7 @@ function getGoTerms(accessions) {
                 input.checked = data.aspects.includes(input.value);
             }
 
-            for (const elem of table.querySelectorAll('[data-signature]:not(.label)')) {
+            for (const elem of table.querySelectorAll('[data-signature]:not(.label):not(.pthr)')) {
                 elem.addEventListener('click', e => {
                     const acc = e.currentTarget.dataset.signature;
                     const termID = e.currentTarget.dataset.term;
@@ -163,6 +163,40 @@ function getGoTerms(accessions) {
 
                 });
             }
+
+            // Get PANTHER subfamilies references
+            for (const elem of table.querySelectorAll('.pthr')) {
+                elem.addEventListener('click', (e,) => {
+                    const acc = e.currentTarget.dataset.signature;
+                    const term = e.currentTarget.dataset.term;
+                    const url = new URL(`/api/signature/${acc}/go/${term}/subfam`, location.origin);
+
+                    dimmer.on();
+                    fetch(url.toString())
+                        .then(response => response.json())
+                        .then(object => {
+                            let html = '';
+                            for (const subfam in object.results) {
+                                html += `<li class="item">
+                                           <div class="header">
+                                             <a target="_blank" href="//www.pantherdb.org/panther/family.do?clsAccession=${subfam}">${subfam}<i class="external icon"></i>: </a>
+                                             <span>matching ${object.results[subfam].length}/${object.count} proteins</span>
+                                           </div>
+                                         </li>`;
+                            }
+
+                            const modal = document.getElementById('panther-modal');
+                            modal.querySelector('.ui.header').innerHTML = `PANTHER subfamilies: ${acc}/${term}`;
+                            modal.querySelector('.content ul').innerHTML = html;
+                            modal.querySelector('.actions a').setAttribute('href', `//www.ebi.ac.uk/QuickGO/term/${term}`);
+                            $(modal).modal('show');
+                            dimmer.off();
+                        });
+
+                });
+            }
+
+
 
             dimmer.off();
         });

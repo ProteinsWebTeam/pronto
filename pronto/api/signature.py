@@ -283,6 +283,54 @@ def get_term_citations(accession, term_id):
         "results": results
     })
 
+@bp.route("/<accession>/go/<term_id>/subfam")
+def get_panther_go_subfam(accession, term_id):
+
+    pg_con = utils.connect_pg()
+    with pg_con.cursor() as pg_cur:
+    
+        sql = """
+            SELECT DISTINCT model_acc, protein_acc
+            FROM interpro.signature2protein
+            WHERE signature_acc = %s
+        """
+        pg_cur.execute(sql, (accession,))
+        matches = {}
+        count_prot = 0
+        for row in pg_cur.fetchall():
+            count_prot+=1
+            try:
+                matches[row[0]].append(row[1])
+            except KeyError:
+                matches[row[0]] = [row[1]]
+
+        subfams_list = "','".join(subfam for subfam in matches.keys())
+
+    pg_con.close()
+
+    con = utils.connect_oracle()
+    cur = con.cursor()
+    cur.execute(
+    f""" 
+        SELECT DISTINCT P.METHOD_AC
+        FROM INTERPRO.PANTHER2GO P
+        WHERE P.METHOD_AC in ('{subfams_list}') AND GO_ID=:1
+    """,(term_id,)
+    )
+
+    subfam_list_filtered = {}
+    for row in cur:
+        subfam_list_filtered[row[0]]=matches[row[0]]        
+
+    cur.close()
+    con.close()
+
+    return jsonify({
+        "count": count_prot,
+        "results": subfam_list_filtered
+    })
+    
+
 
 @bp.route("/<accession>/predictions/")
 def get_signature_predictions(accession):

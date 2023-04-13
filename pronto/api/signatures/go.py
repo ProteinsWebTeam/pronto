@@ -101,17 +101,29 @@ def _sort_term(term):
     return -max_prots, term["id"]
 
 def get_go2panther(accessions, terms, pg_con, aspects_stmt, params):
-    accessions = '|'.join(accessions)
 
     pg_cur = pg_con.cursor()
+    acc = "','".join(accessions)
+    acc = f"'{acc}'"
+    
+    pg_cur.execute(
+        f"""
+        SELECT DISTINCT s2p.model_acc
+        FROM interpro.signature2protein s2p
+        WHERE s2p.signature_acc in ({acc})
+        AND s2p.signature_acc like 'PTHR%'
+        """
+    )
+    subfams =  "','".join(row[0] for row in pg_cur.fetchall())
+
     con = utils.connect_oracle()
     cur = con.cursor()
     cur.execute(
     f"""
         SELECT DISTINCT METHOD_AC, GO_ID
         FROM INTERPRO.PANTHER2GO
-        WHERE regexp_like (METHOD_AC, '^({accessions})')
-    """
+        WHERE METHOD_AC IN ('{subfams}')
+        """
     )
 
     for row in cur:
