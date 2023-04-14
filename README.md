@@ -42,14 +42,12 @@ Format for connection strings: `<user>/<password>@<host>:<port>/<schema>`.
 
 ### Generate secret key
 
-Open a Python terminal and run:
+Run the following command, then copy the printed string 
+and paste it into the config file.
 
-```python
-import os
-os.urandom(16).hex()
+```sh
+python -c "import os; print(os.urandom(16).hex())"
 ```
-
-Copy the string and paste it into the config file.
 
 ## Usage
 
