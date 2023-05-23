@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from cx_Oracle import DatabaseError
+from oracledb import DatabaseError
 from flask import Blueprint, jsonify, request
 
 from pronto import auth, utils

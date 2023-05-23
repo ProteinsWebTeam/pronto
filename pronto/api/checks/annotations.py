@@ -4,7 +4,7 @@ from typing import Dict, List, Optional, Set, Tuple
 from urllib.error import URLError
 from urllib.request import urlopen
 
-from cx_Oracle import Cursor
+from oracledb import Cursor
 
 from pronto.utils import SIGNATURES
 from .utils import load_exceptions, load_global_exceptions, load_terms

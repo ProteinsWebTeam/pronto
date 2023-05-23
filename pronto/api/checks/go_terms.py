@@ -2,8 +2,8 @@
 
 from typing import Dict, List, Optional, Set, Tuple
 
-from cx_Oracle import Cursor
-import cx_Oracle
+from oracledb import Cursor
+import oracledb
 
 from .utils import load_terms
 
@@ -110,7 +110,7 @@ def check(ora_cur: Cursor,  ora_goa_url: str):
     for item in ck_forbidden_go(ora_cur, terms):
         yield "generic_go", item
 
-    con_goa = cx_Oracle.connect(ora_goa_url)
+    con_goa = oracledb.connect(ora_goa_url)
     goa_cur = con_goa.cursor()
 
     for item in ck_secondary_go(ora_cur, goa_cur):

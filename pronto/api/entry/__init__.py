@@ -1,6 +1,6 @@
 import re
 
-import cx_Oracle
+import oracledb
 from flask import Blueprint, jsonify, request
 
 bp = Blueprint("api.entry", __name__, url_prefix="/api/entry")
@@ -286,7 +286,7 @@ def update_entry(accession):
             WHERE ENTRY_AC = :5
             """, (*params, accession)
         )
-    except cx_Oracle.DatabaseError as exc:
+    except oracledb.DatabaseError as exc:
         return jsonify({
             "status": False,
             "error": {
@@ -348,7 +348,7 @@ def delete_entry(accession):
 
 
 def _delete_entry(url: str, accession: str):
-    con = cx_Oracle.connect(url)
+    con = oracledb.connect(url)
     cur = con.cursor()
     try:
         cur.execute(
@@ -357,7 +357,7 @@ def _delete_entry(url: str, accession: str):
             WHERE ENTRY_AC = :1
             """, (accession,)
         )
-    except cx_Oracle.DatabaseError as exc:
+    except oracledb.DatabaseError as exc:
         raise exc
     else:
         con.commit()
@@ -525,7 +525,7 @@ def create_entry():
                 WHERE ENTRY_AC = :1 AND METHOD_AC = :2
                 """, to_unintegrate
             )
-        except cx_Oracle.DatabaseError as exc:
+        except oracledb.DatabaseError as exc:
             cur.close()
             con.close()
             return jsonify({
@@ -577,7 +577,7 @@ def create_entry():
             }
         }), 400
 
-    entry_var = cur.var(cx_Oracle.STRING)
+    entry_var = cur.var(oracledb.STRING)
     try:
         cur.execute(
             """
@@ -595,7 +595,7 @@ def create_entry():
             VALUES (:1, :2, 'MAN')
             """, [(entry_acc, s_acc) for s_acc in entry_signatures]
         )
-    except cx_Oracle.DatabaseError as exc:
+    except oracledb.DatabaseError as exc:
         return jsonify({
             "status": False,
             "error": {

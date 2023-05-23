@@ -1,6 +1,6 @@
 import re
 
-import cx_Oracle
+import oracledb
 from flask import Blueprint, jsonify, request
 
 from pronto import auth, utils
@@ -10,7 +10,7 @@ bp = Blueprint("api.taxonomy", __name__, url_prefix="/api/taxon")
 
 def _process_taxon(ora_url: str, pg_url: str, taxon_id: int, taxon_name: str,
                    left_num: int, right_num: int, lower_nodes: bool = False):
-    con = cx_Oracle.connect(ora_url)
+    con = oracledb.connect(ora_url)
     cur = con.cursor()
     cur.execute(
         """

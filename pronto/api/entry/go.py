@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from flask import jsonify
-from cx_Oracle import DatabaseError
+from oracledb import DatabaseError
 
 from pronto import auth, utils
 from . import bp

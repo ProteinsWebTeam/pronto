@@ -2,7 +2,7 @@
 
 import re
 
-from cx_Oracle import DatabaseError
+from oracledb import DatabaseError
 from flask import jsonify, request
 
 from pronto import auth, utils

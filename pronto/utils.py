@@ -6,7 +6,7 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from typing import Callable, List, Optional
 
-import cx_Oracle
+import oracledb
 import MySQLdb
 import psycopg2
 from flask import current_app
@@ -68,7 +68,7 @@ class Executor:
 
         result_obj = gzip.compress(json.dumps(result).encode("utf-8"))
 
-        con = cx_Oracle.connect(url)
+        con = oracledb.connect(url)
         cur = con.cursor()
         cur.execute(
             """
@@ -169,7 +169,7 @@ class Executor:
         task_id = uuid.uuid1().hex
 
         # Insert task in database
-        con = cx_Oracle.connect(url)
+        con = oracledb.connect(url)
         cur = con.cursor()
         cur.execute(
             """
@@ -193,14 +193,14 @@ class Executor:
 executor = Executor()
 
 
-def connect_oracle() -> cx_Oracle.Connection:
-    return cx_Oracle.connect(current_app.config["ORACLE_IP"])
+def connect_oracle() -> oracledb.Connection:
+    return oracledb.connect(current_app.config["ORACLE_IP"])
 
 
-def connect_oracle_auth(user: dict) -> cx_Oracle.Connection:
+def connect_oracle_auth(user: dict) -> oracledb.Connection:
     # input format:  app_user/app_passwd@[host:port]/service
     dsn = current_app.config["ORACLE_IP"].rsplit('@', 1)[-1]
-    return cx_Oracle.connect(user["dbuser"], user["password"], dsn)
+    return oracledb.connect(user["dbuser"], user["password"], dsn)
 
 
 def get_oracle_url(user: dict) -> str:

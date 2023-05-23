@@ -1,7 +1,7 @@
 import re
 from typing import Dict, List, Optional, Set, Tuple
 
-from cx_Oracle import Cursor
+from oracledb import Cursor
 
 from pronto.utils import connect_pg, SIGNATURES
 from pronto.api.signatures.matrices import get_comparisons

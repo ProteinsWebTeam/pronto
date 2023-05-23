@@ -1,6 +1,6 @@
 import re
 
-import cx_Oracle
+import oracledb
 from flask import Blueprint, jsonify, request
 
 from pronto import auth, utils
@@ -10,7 +10,7 @@ bp = Blueprint("api.proteome", __name__, url_prefix="/api/proteome")
 
 def _process_proteome(ora_url: str, pg_url: str, proteome_id: str,
                       proteome_name: str):
-    con = cx_Oracle.connect(ora_url)
+    con = oracledb.connect(ora_url)
     cur = con.cursor()
     cur.execute(
         """

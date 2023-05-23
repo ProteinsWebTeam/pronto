@@ -3,7 +3,7 @@
 import uuid
 from typing import Tuple
 
-import cx_Oracle
+import oracledb
 from flask import Blueprint, jsonify, request
 
 bp = Blueprint("api.checks", __name__, url_prefix="/api/checks")
@@ -122,7 +122,7 @@ def submit_checks():
 def run_checks(ora_url: str, pg_url: str, ora_goa_url: str):
     run_id = uuid.uuid1().hex
 
-    con = cx_Oracle.connect(ora_url)
+    con = oracledb.connect(ora_url)
     cur = con.cursor()
 
     counts = {}
@@ -404,12 +404,12 @@ def add_term():
             VALUES (:1, :2, SYSDATE, USER)
             """, (ck_type, ck_term)
         )
-    except cx_Oracle.IntegrityError:
+    except oracledb.IntegrityError:
         # Silencing error (term already in table)
         return jsonify({
             "status": True
         }), 200
-    except cx_Oracle.DatabaseError as exc:
+    except oracledb.DatabaseError as exc:
         return jsonify({
             "status": False,
             "error": {
@@ -466,7 +466,7 @@ def delete_term():
             WHERE CHECK_TYPE = :1 AND TERM = :2
             """, (ck_type, ck_term)
         )
-    except cx_Oracle.DatabaseError as exc:
+    except oracledb.DatabaseError as exc:
         return jsonify({
             "status": False,
             "error": {
@@ -561,7 +561,7 @@ def delete_exception():
             WHERE ID = :1
             """, (exception_id,)
         )
-    except cx_Oracle.DatabaseError as exc:
+    except oracledb.DatabaseError as exc:
         return jsonify({
             "status": False,
             "error": {
@@ -579,7 +579,7 @@ def delete_exception():
         con.close()
 
 
-def is_annotation(cur: cx_Oracle.Cursor, s: str) -> bool:
+def is_annotation(cur: oracledb.Cursor, s: str) -> bool:
     cur.execute(
         """
         SELECT COUNT(*)
@@ -591,7 +591,7 @@ def is_annotation(cur: cx_Oracle.Cursor, s: str) -> bool:
     return cnt != 0
 
 
-def is_entry(cur: cx_Oracle.Cursor, s: str) -> bool:
+def is_entry(cur: oracledb.Cursor, s: str) -> bool:
     cur.execute(
         """
         SELECT COUNT(*)
@@ -710,10 +710,10 @@ def insert_exception(cur, ck_type, value1, value2) -> Tuple[dict, int]:
             )
             """, params
         )
-    except cx_Oracle.IntegrityError:
+    except oracledb.IntegrityError:
         # Silencing error (term already in table)
         return {"status": True}, 200
-    except cx_Oracle.DatabaseError as exc:
+    except oracledb.DatabaseError as exc:
         return {
                    "status": False,
                    "error": {

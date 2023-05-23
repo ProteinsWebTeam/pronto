@@ -6,7 +6,7 @@ from typing import Optional, Sequence, Set, Union
 from xml.dom.minidom import parseString
 from xml.parsers.expat import ExpatError
 
-from cx_Oracle import Cursor, DatabaseError, STRING
+from oracledb import Cursor, DatabaseError, STRING
 from flask import Blueprint, jsonify, request
 
 from pronto import auth, utils
