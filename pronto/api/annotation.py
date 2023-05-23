@@ -961,11 +961,10 @@ def get_citations(cur: Cursor, pmids: Sequence[Union[int, str]]) -> dict:
             ON C.JOURNAL_ISSUE_ID = I.ID
           LEFT JOIN CDB.CV_JOURNALS@LITPUB J
             ON I.JOURNAL_ID = J.ID
-          LEFT OUTER JOIN CDB.FULLTEXT_URL@LITPUB U
+          LEFT OUTER JOIN CDB.FULLTEXT_URL_MEDLINE@LITPUB U
             ON (
                 C.EXTERNAL_ID = U.EXTERNAL_ID AND
-                UPPER(U.DOCUMENT_STYLE) ='DOI' AND
-                UPPER(U.SOURCE) = 'MED'
+                UPPER(U.SITE) = 'DOI'
             )
           LEFT OUTER JOIN CDB.AUTHORS@LITPUB A
             ON (
