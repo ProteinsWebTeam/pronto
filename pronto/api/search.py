@@ -5,7 +5,7 @@ from flask import Blueprint, jsonify, request
 from pronto import utils
 
 
-bp = Blueprint("api.search", __name__, url_prefix="/api/search")
+bp = Blueprint("apisearch", __name__, url_prefix="/api/search")
 
 
 @bp.route("/")

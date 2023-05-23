@@ -6,7 +6,7 @@ from typing import Tuple
 import oracledb
 from flask import Blueprint, jsonify, request
 
-bp = Blueprint("api.checks", __name__, url_prefix="/api/checks")
+bp = Blueprint("apichecks", __name__, url_prefix="/api/checks")
 
 from .annotations import check as check_annotations
 from .entries import check as check_entries

@@ -5,7 +5,7 @@ from flask import Blueprint, jsonify, request
 from pronto import utils
 
 
-bp = Blueprint("api.interproscan", __name__, url_prefix="/api/interproscan")
+bp = Blueprint("apiinterproscan", __name__, url_prefix="/api/interproscan")
 
 
 """

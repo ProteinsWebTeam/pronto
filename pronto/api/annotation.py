@@ -12,7 +12,7 @@ from flask import Blueprint, jsonify, request
 from pronto import auth, utils
 from pronto.api.checks.utils import load_global_exceptions
 
-bp = Blueprint("api.annotation", __name__, url_prefix="/api/annotation")
+bp = Blueprint("apiannotation", __name__, url_prefix="/api/annotation")
 
 
 class Annotation(object):

@@ -5,7 +5,7 @@ from flask import Blueprint, jsonify, request
 
 from pronto import auth, utils
 
-bp = Blueprint("api.proteome", __name__, url_prefix="/api/proteome")
+bp = Blueprint("apiproteome", __name__, url_prefix="/api/proteome")
 
 
 def _process_proteome(ora_url: str, pg_url: str, proteome_id: str,

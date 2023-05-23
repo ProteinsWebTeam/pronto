@@ -5,7 +5,7 @@ from flask import Blueprint, jsonify, request
 
 from pronto import auth, utils
 
-bp = Blueprint("api.taxonomy", __name__, url_prefix="/api/taxon")
+bp = Blueprint("apitaxonomy", __name__, url_prefix="/api/taxon")
 
 
 def _process_taxon(ora_url: str, pg_url: str, taxon_id: int, taxon_name: str,

@@ -3,7 +3,7 @@ import re
 import oracledb
 from flask import Blueprint, jsonify, request
 
-bp = Blueprint("api.entry", __name__, url_prefix="/api/entry")
+bp = Blueprint("apientry", __name__, url_prefix="/api/entry")
 
 from pronto import auth, utils
 from . import annotations
