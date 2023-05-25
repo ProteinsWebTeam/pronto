@@ -35,8 +35,8 @@ function getGoTerms(accessions) {
 
             let html = `<thead>
                         <tr>
-                        <th rowspan="3">${data.results.length.toLocaleString()} terms</th>
-                        <th class="collapsing center aligned" rowspan="3"><button class="ui primary small fluid compact icon button"><i class="sitemap icon"></i></button></th>
+                        <th rowspan="2">${data.results.length.toLocaleString()} terms</th>
+                        <th class="collapsing center aligned" rowspan="2"><button class="ui primary small fluid compact icon button"><i class="sitemap icon"></i></button></th>
                         ${accessions.map(genCell).join('')}
                         </tr>
                         <tr>`;
