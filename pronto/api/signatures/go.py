@@ -106,7 +106,7 @@ def get_go2panther(accessions, terms, pg_con, aspects_stmt, params):
     pg_cur = pg_con.cursor()
     acc = "','".join(accessions)
     acc = f"'{acc}'"
-    
+
     pg_cur.execute(
         f"""
         SELECT DISTINCT s2p.model_acc
@@ -136,12 +136,13 @@ def get_go2panther(accessions, terms, pg_con, aspects_stmt, params):
         except KeyError:
             term = terms[term_id] = get_go_details(term_id, pg_cur, aspects_stmt, params)
         
-        try:
-            s = term["signatures"][pth_fam]
-        except KeyError:
-            s = term["signatures"][pth_fam] = [set(), set(), set()]
+        if term:
+            try:
+                s = term["signatures"][pth_fam]
+            except KeyError:
+                s = term["signatures"][pth_fam] = [set(), set(), set()]
 
-        s[2].add(row[0])
+            s[2].add(row[0])
 
     cur.close()
     con.close()
