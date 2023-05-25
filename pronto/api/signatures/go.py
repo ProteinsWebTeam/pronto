@@ -100,6 +100,7 @@ def _sort_term(term):
     max_prots = max(s["proteins"] for s in term["signatures"].values())
     return -max_prots, term["id"]
 
+
 def get_go2panther(accessions, terms, pg_con, aspects_stmt, params):
 
     pg_cur = pg_con.cursor()
