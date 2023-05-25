@@ -178,9 +178,9 @@ function getGoTerms(accessions) {
                             let html = '';
                             for (const subfam in object.results) {
                                 html += `<li class="item">
-                                           <div class="header">
-                                             <a target="_blank" href="//www.pantherdb.org/panther/family.do?clsAccession=${subfam}">${subfam}<i class="external icon"></i>: </a>
-                                             <span>matching ${object.results[subfam].length}/${object.count} proteins</span>
+                                           <div>
+                                             <a target="_blank" href="//www.pantherdb.org/panther/family.do?clsAccession=${subfam}">${subfam}<i class="external icon"></i></a>
+                                             <span>: ${object.results[subfam].length}/${object.count} proteins</span>
                                            </div>
                                          </li>`;
                             }

@@ -111,7 +111,7 @@ def get_go2panther(accessions, terms, pg_con, aspects_stmt, params):
         SELECT DISTINCT s2p.model_acc
         FROM interpro.signature2protein s2p
         WHERE s2p.signature_acc in ({acc})
-        AND s2p.signature_acc like 'PTHR%'
+        AND s2p.model_acc IS NOT NULL
         """
     )
     subfams =  "','".join(row[0] for row in pg_cur.fetchall())
