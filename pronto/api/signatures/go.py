@@ -76,8 +76,8 @@ def get_go_terms(accessions):
             if row[5] == "PMID":
                 s[1].add(row[6])  # Pubmed reference
     
-    params_pthr2go = list(aspects) if aspects and aspects != _ASPECTS else []
-    terms = get_go2panther(accessions, terms, con, aspects_stmt, params_pthr2go)
+        params_pthr2go = list(aspects) if aspects and aspects != _ASPECTS else []
+        terms = get_go2panther(accessions, terms, cur, aspects_stmt, params_pthr2go)
 
     con.close()
 
@@ -101,9 +101,8 @@ def _sort_term(term):
     return -max_prots, term["id"]
 
 
-def get_go2panther(accessions, terms, pg_con, aspects_stmt, params):
+def get_go2panther(accessions, terms, pg_cur, aspects_stmt, params):
 
-    pg_cur = pg_con.cursor()
     acc = "','".join(accessions)
     acc = f"'{acc}'"
 
@@ -146,8 +145,6 @@ def get_go2panther(accessions, terms, pg_con, aspects_stmt, params):
 
     cur.close()
     con.close()
-
-    pg_cur.close()
 
     return terms
 
