@@ -48746,7 +48746,7 @@ Floated Menu / Item
   box-shadow: none;
 }
 
-.ui.table > thead > tr > th {
+.ui.table>thead>tr>th {
   cursor: auto;
   background: #F9FAFB;
   text-align: inherit;
@@ -49309,6 +49309,12 @@ Floated Menu / Item
   -moz-transform: scale(1);
 }
 
+#first-ignored {
+  border-left: 1px solid rgba(34, 36, 38, 0.1);
+  background: #F9FAFB;
+  color: rgba(0, 0, 0, 0.87);
+  font-weight: bold;
+}
 .ui.definition.table > tfoot:not(.full-width) > tr > th:first-child {
   pointer-events: none;
   background: #FFFFFF;

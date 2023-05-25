@@ -43,7 +43,7 @@ function getGoTerms(accessions) {
 
             for (let i = 0; i < accessions.length; i++) {
                 html += `
-                        <th class="ignored collapsing center aligned">UNI</th>
+                        <th class="collapsing center aligned" id="first-ignored">UNI</th>
                         <th class="collapsing center aligned">REF</th>`;
                 if (isPanther.test(accessions[i]))
                     html += `<th class="collapsing center aligned">PTHR</th>`;
