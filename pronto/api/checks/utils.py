@@ -311,7 +311,7 @@ def load_exceptions(cur, check_type: str, key_col: str, val_col: str) -> DoS:
     return exceptions
 
 
-def load_global_exceptions(cur, check_type: str) -> Set[str]:
+def load_global_exceptions(cur, check_type: str) -> set[str]:
     cur.execute(
         """
         SELECT TERM
@@ -322,7 +322,7 @@ def load_global_exceptions(cur, check_type: str) -> Set[str]:
     return {term for term, in cur}
 
 
-def load_terms(cur, check_type: str) -> List[str]:
+def load_terms(cur, check_type: str) -> list[str]:
     cur.execute(
         """
         SELECT TERM
