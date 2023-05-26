@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import uuid
-from typing import Tuple
 
 import oracledb
 from flask import Blueprint, jsonify, request
@@ -603,7 +602,7 @@ def is_entry(cur: oracledb.Cursor, s: str) -> bool:
     return cnt != 0
 
 
-def insert_exception(cur, ck_type, value1, value2) -> Tuple[dict, int]:
+def insert_exception(cur, ck_type, value1, value2) -> tuple[dict, int]:
     if ck_type not in CHECKS:
         return {
                    "status": False,

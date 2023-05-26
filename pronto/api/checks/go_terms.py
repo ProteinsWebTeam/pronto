@@ -1,17 +1,15 @@
 # -*- coding: utf-8 -*-
 
-from typing import Dict, List, Optional, Set, Tuple
-
 from oracledb import Cursor
 import oracledb
 
 from .utils import load_terms
 
 
-DoS = Dict[str, Set[str]]
-LoS = List[str]
-Err = List[Tuple[str, Optional[str]]]
-LoT = List[Tuple[str, str]]
+DoS = dict[str, set[str]]
+LoS = list[str]
+Err = list[tuple[str, str | None]]
+LoT = list[tuple[str, str]]
 
 
 def ck_forbidden_go(ip_cur: Cursor, terms : LoS) -> Err:

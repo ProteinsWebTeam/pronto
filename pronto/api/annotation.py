@@ -2,7 +2,7 @@
 
 import re
 from datetime import datetime
-from typing import Optional, Sequence, Set, Union
+from typing import Sequence
 from xml.dom.minidom import parseString
 from xml.parsers.expat import ExpatError
 
@@ -141,7 +141,7 @@ class Annotation(object):
 
         return True
 
-    def validate_encoding(self, exceptions: Set[str]) -> bool:
+    def validate_encoding(self, exceptions: set[str]) -> bool:
         errors = []
         for i, line in enumerate(self.text.splitlines(keepends=False)):
             for j, char in enumerate(line):
@@ -279,7 +279,7 @@ class Annotation(object):
 
         return text
 
-    def get_references(self, text: Optional[str] = None) -> set:
+    def get_references(self, text: str | None = None) -> set:
         return {
             m.group(1)
             for m
@@ -943,7 +943,7 @@ def get_annotation_entries(ann_id):
     return jsonify(entries)
 
 
-def get_citations(cur: Cursor, pmids: Sequence[Union[int, str]]) -> dict:
+def get_citations(cur: Cursor, pmids: Sequence[int | str]) -> dict:
     keys = []
     params = []
     for i, pmid in enumerate(map(str, set(pmids))):
@@ -989,7 +989,7 @@ def get_citations(cur: Cursor, pmids: Sequence[Union[int, str]]) -> dict:
     return citations
 
 
-def insert_citations(cur: Cursor, citations: dict) -> Optional[int]:
+def insert_citations(cur: Cursor, citations: dict) -> int | None:
     for pmid, row in citations.items():
         """
         CITATION.TITLE: VARCHAR2(740)

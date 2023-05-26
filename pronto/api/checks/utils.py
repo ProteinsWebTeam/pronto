@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from typing import Dict, List, Set
-
-DoS = Dict[str, Set[str]]
+DoS = dict[str, set[str]]
 
 """
 Checks to perform

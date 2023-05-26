@@ -4,7 +4,6 @@ import re
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
-from typing import Callable, List, Optional
 
 import oracledb
 import MySQLdb
@@ -57,7 +56,7 @@ class Executor:
         self._submit = self._executor.submit
 
     @staticmethod
-    def _run_task(url: str, task_id: str, fn: Callable, *args, **kwargs):
+    def _run_task(url: str, task_id: str, fn: callable, *args, **kwargs):
         result = None
         try:
             result = fn(*args, **kwargs)
@@ -106,10 +105,10 @@ class Executor:
             "result": result
         }
 
-    def get_tasks(self, task_id: Optional[str] = None,
-                  task_name: Optional[str] = None,
-                  task_prefix: Optional[str] = None,
-                  seconds: int = 0, get_result: bool = True) -> List[dict]:
+    def get_tasks(self, task_id: str | None = None,
+                  task_name: str | None = None,
+                  task_prefix: str | None = None,
+                  seconds: int = 0, get_result: bool = True) -> list[dict]:
         columns = ["T.ID", "T.NAME AS TASK_NAME", "U.NAME AS USER_NAME",
                    "T.STARTED", "T.FINISHED", "T.STATUS"]
         if get_result:
@@ -150,7 +149,7 @@ class Executor:
         return tasks
 
     def submit(self, url: str, name: str,
-               fn: Callable, *args, **kwargs) -> dict:
+               fn: callable, *args, **kwargs) -> dict:
         """
 
         :param url: Oracle connection string/URL
@@ -216,7 +215,7 @@ def get_oracle_goa_url() -> str:
     return current_app.config["ORACLE_GOA"]
 
 
-def connect_pg(url: Optional[str]=None):
+def connect_pg(url: str | None=None):
     if url is None:
         url = get_pg_url()
 
@@ -246,7 +245,7 @@ def connect_mysql():
     )
 
 
-def split_path(path: str) -> List[str]:
+def split_path(path: str) -> list[str]:
     items = []
     for item in map(str.strip, path.split('/')):
         if item and item not in items:
@@ -434,7 +433,7 @@ class Prediction:
     similarity: float = field(init=False)
     containment_a: float = field(init=False)
     containment_b: float = field(init=False)
-    relationship: Optional[str] = field(init=False)
+    relationship: str | None = field(init=False)
 
     def __post_init__(self):
         try:
