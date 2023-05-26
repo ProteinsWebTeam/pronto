@@ -6,7 +6,7 @@ from flask import Blueprint, jsonify, request
 from pronto import auth, utils
 
 
-bp = Blueprint("apisignature", __name__, url_prefix="/api/signature")
+bp = Blueprint("api_signature", __name__, url_prefix="/api/signature")
 
 
 @bp.route("/<accession>/")

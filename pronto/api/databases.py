@@ -3,7 +3,7 @@ from flask import Blueprint, jsonify
 from pronto import utils
 
 
-bp = Blueprint("apidatabases", __name__, url_prefix="/api/databases")
+bp = Blueprint("api_databases", __name__, url_prefix="/api/databases")
 
 
 @bp.route("/")

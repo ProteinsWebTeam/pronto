@@ -6,7 +6,7 @@ from flask import Blueprint, jsonify, request
 
 from pronto import utils
 
-bp = Blueprint("apisignatures", __name__, url_prefix="/api/signatures")
+bp = Blueprint("api_signatures", __name__, url_prefix="/api/signatures")
 
 
 def get_sig2interpro(accessions):
