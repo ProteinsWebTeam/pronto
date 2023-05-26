@@ -955,7 +955,7 @@ def get_citations(cur: Cursor, pmids: Sequence[Union[int, str]]) -> dict:
         SELECT 
           C.EXTERNAL_ID, I.VOLUME, I.ISSUE, I.PUBYEAR, C.TITLE, 
           C.PAGE_INFO, J.MEDLINE_ABBREVIATION, J.ISO_ABBREVIATION, 
-          A.AUTHORS, U.URL
+          A.AUTHORS, REGEXP_REPLACE(U.URL, '(^[[:space:]]*|[[:space:]]*$)')
         FROM CDB.CITATIONS@LITPUB C
           LEFT OUTER JOIN CDB.JOURNAL_ISSUES@LITPUB I
             ON C.JOURNAL_ISSUE_ID = I.ID
