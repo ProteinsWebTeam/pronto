@@ -283,6 +283,7 @@ def get_term_citations(accession, term_id):
         "results": results
     })
 
+
 @bp.route("/<accession>/go/<term_id>/subfam")
 def get_panther_go_subfam(accession, term_id):
 
