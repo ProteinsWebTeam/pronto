@@ -2,7 +2,6 @@
 
 import re
 from datetime import datetime
-from typing import Sequence
 from xml.dom.minidom import parseString
 from xml.parsers.expat import ExpatError
 
@@ -943,7 +942,7 @@ def get_annotation_entries(ann_id):
     return jsonify(entries)
 
 
-def get_citations(cur: Cursor, pmids: Sequence[int | str]) -> dict:
+def get_citations(cur: Cursor, pmids: list[int | str]) -> dict:
     keys = []
     params = []
     for i, pmid in enumerate(map(str, set(pmids))):
