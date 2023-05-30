@@ -24,9 +24,7 @@ function getGoTerms(accessions) {
             const isPanther = new RegExp('^PTHR');
 
             const genCell = (acc,) => {
-                let span = "2";
-                if (isPanther.test(acc))
-                    span = "3"
+                const span = isPanther.test(acc) ? 3 : 2;
                 if (sig2ipr.has(acc))
                     return `<th class="center aligned" colspan="${span}"><span data-tooltip="${sig2ipr.get(acc)}" data-inverted=""><i class="star icon"></i>${acc}</span></th>`;
                 else
