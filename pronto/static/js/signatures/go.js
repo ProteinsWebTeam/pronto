@@ -41,7 +41,7 @@ function getGoTerms(accessions) {
 
             for (let i = 0; i < accessions.length; i++) {
                 html += `
-                        <th class="collapsing center aligned" id="first-ignored">UNI</th>
+                        <th class="collapsing center aligned normal">UNI</th>
                         <th class="collapsing center aligned">REF</th>`;
                 if (isPanther.test(accessions[i]))
                     html += `<th class="collapsing center aligned">PTHR</th>`;
@@ -82,7 +82,7 @@ function getGoTerms(accessions) {
 
                         if (signature.panthergo > 0) {
                             html += `<td class="collapsing center aligned">
-                                        <a href="#!" data-signature="${acc}" data-term="${term.id}" class="pthr">${signature.panthergo.toLocaleString()}</a>
+                                        <a href="#!" data-signature="${acc}" data-term="${term.id}" data-panther="">${signature.panthergo.toLocaleString()}</a>
                                      </td>`;
                         } else if (isPanther.test(acc))
                             html += '<td class="collapsing"></td>';
@@ -105,7 +105,7 @@ function getGoTerms(accessions) {
                 input.checked = data.aspects.includes(input.value);
             }
 
-            for (const elem of table.querySelectorAll('[data-signature]:not(.label):not(.pthr)')) {
+            for (const elem of table.querySelectorAll('[data-signature]:not(.label):not([data-panther])')) {
                 elem.addEventListener('click', e => {
                     const acc = e.currentTarget.dataset.signature;
                     const termID = e.currentTarget.dataset.term;
@@ -163,7 +163,7 @@ function getGoTerms(accessions) {
             }
 
             // Get PANTHER subfamilies references
-            for (const elem of table.querySelectorAll('.pthr')) {
+            for (const elem of table.querySelectorAll('[data-signature][data-panther]')) {
                 elem.addEventListener('click', (e,) => {
                     const acc = e.currentTarget.dataset.signature;
                     const term = e.currentTarget.dataset.term;
@@ -174,14 +174,28 @@ function getGoTerms(accessions) {
                         .then(response => response.json())
                         .then(object => {
                             let html = '';
+                            html += `<table class="ui definition celled table">
+                                        <thead>
+                                            <tr>
+                                                <th class="normal">Accession</th>
+                                                <th>Proteins (subfamily)</th>
+                                                <th>Proteins (family)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>`;
+
                             for (const subfam in object.results) {
-                                html += `<li class="item">
-                                           <div>
-                                             <a target="_blank" href="//www.pantherdb.org/panther/family.do?clsAccession=${subfam}">${subfam}<i class="external icon"></i></a>
-                                             <span>: ${object.results[subfam].length}/${object.count} proteins</span>
-                                           </div>
-                                         </li>`;
+                                html += `<tr>
+                                            <td>
+                                            <a target="_blank" href="//www.pantherdb.org/panther/family.do?clsAccession=${subfam}">${subfam}<i class="external icon"></i></a>
+                                            </td>
+                                            <td>${object.results[subfam]}</td>
+                                            <td>${object.count}</td>
+                                         </tr>`;
                             }
+
+                            html += `</tbody>
+                                    </table>`;
 
                             const modal = document.getElementById('panther-modal');
                             modal.querySelector('.ui.header').innerHTML = `PANTHER subfamilies: ${acc}/${term}`;

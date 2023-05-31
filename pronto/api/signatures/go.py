@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from flask import jsonify, request
+from typing import Iterable
 
 from pronto import utils
 from . import bp, get_sig2interpro
@@ -36,7 +37,7 @@ def get_go_terms(accessions):
         cur.execute(
             f"""
             SELECT t.id, t.name, t.category, sp.signature_acc, sp.protein_acc,
-                   pg.ref_db_code, pg.ref_db_id
+                   pg.ref_db_code, pg.ref_db_id, sp.model_acc
             FROM signature2protein sp
             INNER JOIN (
                 SELECT *
@@ -54,6 +55,7 @@ def get_go_terms(accessions):
         )
 
         terms = {}
+        subfams = []
         for row in cur:
             term_id = row[0]
             try:
@@ -75,9 +77,10 @@ def get_go_terms(accessions):
             s[0].add(row[4])  # protein
             if row[5] == "PMID":
                 s[1].add(row[6])  # Pubmed reference
+            if row[7] != None:
+                subfams.append(row[7])
     
-        params_pthr2go = list(aspects) if aspects and aspects != _ASPECTS else []
-        terms = get_go2panther(accessions, terms, cur, aspects_stmt, params_pthr2go)
+        terms = get_go2panther(subfams, terms, cur)
 
     con.close()
 
@@ -100,42 +103,39 @@ def _sort_term(term):
     max_prots = max(s["proteins"] for s in term["signatures"].values())
     return -max_prots, term["id"]
 
+def chunks(iterable: Iterable, n):
+    """Yield chunks of size n from iterable."""
 
-def get_go2panther(accessions, terms, pg_cur, aspects_stmt, params):
+    n = max(1, n)
+    return zip(*[iter(iterable)] * n)
 
-    acc = "','".join(accessions)
-    acc = f"'{acc}'"
 
-    pg_cur.execute(
-        f"""
-        SELECT DISTINCT s2p.model_acc
-        FROM interpro.signature2protein s2p
-        WHERE s2p.signature_acc in ({acc})
-        AND s2p.model_acc IS NOT NULL
-        """
-    )
-    subfams =  "','".join(row[0] for row in pg_cur.fetchall())
-
+def get_go2panther(subfams: list, terms: dict, pg_cur):
+    
     con = utils.connect_oracle()
     cur = con.cursor()
-    cur.execute(
-    f"""
-        SELECT DISTINCT METHOD_AC, GO_ID
-        FROM INTERPRO.PANTHER2GO
-        WHERE METHOD_AC IN ('{subfams}')
+    
+    go_terms = set()
+
+    for subfam_set in chunks(subfams, 1000):
+        cur.execute(
         """
-    )
+            SELECT DISTINCT METHOD_AC, GO_ID
+            FROM INTERPRO.PANTHER2GO
+            WHERE METHOD_AC IN ('{}')
+            """.format("','".join(map(str, subfam_set)))
+        )
 
-    for row in cur:
-        term_id = row[1]
-        pth_fam = row[0].split(':')[0]
+        for row in cur:
+            term_id = row[1]
+            pth_fam = row[0].split(':')[0]
 
-        try:
-            term = terms[term_id]
-        except KeyError:
-            term = terms[term_id] = get_go_details(term_id, pg_cur, aspects_stmt, params)
-        
-        if term:
+            try:
+                term = terms[term_id]
+            except KeyError:
+                term = terms[term_id] = {"id":term_id, "signatures":{}}
+                go_terms.add(term_id)
+
             try:
                 s = term["signatures"][pth_fam]
             except KeyError:
@@ -146,26 +146,28 @@ def get_go2panther(accessions, terms, pg_cur, aspects_stmt, params):
     cur.close()
     con.close()
 
+    for terms_chunk in chunks(list(go_terms), 100):
+        go_details = get_go_details(terms_chunk, pg_cur)
+        for go, details in go_details.items():
+            terms[go].update(details)
     return terms
 
-def get_go_details(term_id, pg_cur, aspects_stmt, params):
-    godetails = {}
+def get_go_details(term_set: list, pg_cur):
+    go_details = {}
 
     pg_cur.execute(
-            f"""
+        f"""
             SELECT t.id, t.name, t.category
             FROM term t
-            WHERE t.id = '{term_id}'
-            {aspects_stmt}  
-            """, (params)
+            WHERE t.id IN ({','.join('%s' for _ in term_set)})
+            """, term_set
         )
     for row in pg_cur:
         go_id = row[0]
-        godetails = {
-                "id":go_id, 
-                "name": row[1], 
-                "aspect": row[2], 
-                "signatures": {}
+        go_details[go_id] = {
+            "id":go_id,
+            "name": row[1],
+            "aspect": row[2],
             }
 
-    return godetails
+    return go_details
