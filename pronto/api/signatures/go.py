@@ -77,8 +77,9 @@ def get_go_terms(accessions):
             s[0].add(row[4])  # protein
             if row[5] == "PMID":
                 s[1].add(row[6])  # Pubmed reference
-            if row[7] != None:
-                subfams.append(row[7])
+
+            if row[7] is not None:
+                subfams.add(row[7])
     
         terms = get_go2panther(subfams, terms, cur)
 
