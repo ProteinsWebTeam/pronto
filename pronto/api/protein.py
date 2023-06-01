@@ -4,7 +4,6 @@ from flask import Blueprint, jsonify, make_response, request
 
 from pronto import utils
 
-
 bp = Blueprint("api.protein", __name__, url_prefix="/api/protein")
 
 
@@ -153,7 +152,7 @@ def get_protein(protein_acc):
             INNER JOIN INTERPRO.ENTRY E ON EM.ENTRY_AC = E.ENTRY_AC
             INNER JOIN INTERPRO.CV_ENTRY_TYPE ET ON E.ENTRY_TYPE = ET.CODE
             WHERE EM.METHOD_AC IN (
-                {','.join(':'+str(i+1) for i in range(len(params)))}
+                {','.join(':' + str(i + 1) for i in range(len(params)))}
             )
             """,
             params,
@@ -212,7 +211,7 @@ def get_sequence(protein_acc):
 
     fasta = f">{protein_acc}\n"
     for i in range(0, len(sequence), 60):
-        fasta += sequence[i : i + 60] + "\n"
+        fasta += sequence[i:i+60] + "\n"
 
     response = make_response(fasta, 200)
     response.mimetype = "text/plain"
