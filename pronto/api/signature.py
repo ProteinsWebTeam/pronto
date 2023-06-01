@@ -309,12 +309,16 @@ def get_panther_go_subfam(accession, term_id):
 
     con = utils.connect_oracle()
     cur = con.cursor()
+    binds = [":" + str(i+1) for i in range(len(matches))]
+    params = list(matches.keys()) + [term_id]
     cur.execute(
-    """ 
+        f""" 
         SELECT DISTINCT P.METHOD_AC
         FROM INTERPRO.PANTHER2GO P
-        WHERE P.METHOD_AC IN ('{}') AND GO_ID=:1
-    """.format("','".join(map(str, matches.keys()))), (term_id,)
+        WHERE P.METHOD_AC IN ({','.join(binds)}) 
+          AND GO_ID = :go_id
+        """,
+        params
     )
 
     subfam_list_filtered = {}
