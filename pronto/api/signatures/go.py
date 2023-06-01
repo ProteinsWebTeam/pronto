@@ -111,7 +111,7 @@ def chunks(iterable: Iterable, n):
     return zip(*[iter(iterable)] * n)
 
 
-def get_go2panther(subfams: list, terms: dict, pg_cur):
+def get_go2panther(subfams: set[str], terms: dict[str, dict], pg_cur):
     
     con = utils.connect_oracle()
     cur = con.cursor()
