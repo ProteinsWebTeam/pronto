@@ -321,16 +321,13 @@ def get_panther_go_subfam(accession, term_id):
         params
     )
 
-    subfam_list_filtered = {}
-    for row in cur:
-        subfam_list_filtered[row[0]] = matches[row[0]]        
-
+    results = {acc: matches[acc] for acc, in cur.fetchall()}
     cur.close()
     con.close()
 
     return jsonify({
         "count": count_prot,
-        "results": subfam_list_filtered
+        "results": results
     })
     
 
