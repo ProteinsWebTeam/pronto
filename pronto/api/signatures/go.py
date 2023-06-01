@@ -105,24 +105,21 @@ def _sort_term(term):
 
 
 def get_go2panther(subfams: set[str], terms: dict[str, dict], pg_cur):
-    
     con = utils.connect_oracle()
     cur = con.cursor()
     
     go_terms = set()
-
+    subfams = list(subfams)
     for i in range(0, len(subfams), 1000):
-        subfam_set = list(subfams)[i:i+1000]
-
-        binds = [":" + str(j+1) for j in range(len(subfam_set))]
-
+        subset = subfams[i:i+1000]
+        binds = [":" + str(j+1) for j in range(len(subset))]
         cur.execute(
             f"""
             SELECT DISTINCT METHOD_AC, GO_ID
             FROM INTERPRO.PANTHER2GO
             WHERE METHOD_AC IN ({','.join(binds)})
             """,
-            subfam_set
+            subset
         )
 
         for row in cur:
