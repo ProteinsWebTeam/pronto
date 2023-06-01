@@ -119,12 +119,14 @@ def get_go2panther(subfams: set[str], terms: dict[str, dict], pg_cur):
     go_terms = set()
 
     for subfam_set in chunks(subfams, 1000):
+        binds = [":" + str(j+1) for j in range(len(subset))]
         cur.execute(
-        """
+            f"""
             SELECT DISTINCT METHOD_AC, GO_ID
             FROM INTERPRO.PANTHER2GO
-            WHERE METHOD_AC IN ('{}')
-            """.format("','".join(map(str, subfam_set)))
+            WHERE METHOD_AC IN ({','.join(binds)})
+            """,
+            subset
         )
 
         for row in cur:
