@@ -147,10 +147,13 @@ def get_go2panther(subfams: set[str], terms: dict[str, dict], pg_cur):
     cur.close()
     con.close()
 
-    for terms_chunk in chunks(list(go_terms), 100):
-        go_details = get_go_details(terms_chunk, pg_cur)
-        for go, details in go_details.items():
-            terms[go].update(details)
+    go_terms = list(go_terms)
+    for i in range(0, len(go_terms), 100):
+        subset = go_terms[i:i+100]
+
+        for term in get_go_details(subset, pg_cur):
+            terms[term["id"]].update(term)
+
     return terms
 
 def get_go_details(term_ids: list[str], pg_cur) -> list[dict]:
