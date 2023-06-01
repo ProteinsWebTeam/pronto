@@ -55,7 +55,7 @@ def get_go_terms(accessions):
         )
 
         terms = {}
-        subfams = []
+        subfams = set()
         for row in cur:
             term_id = row[0]
             try:
