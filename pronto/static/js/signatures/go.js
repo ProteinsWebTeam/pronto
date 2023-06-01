@@ -189,8 +189,8 @@ function getGoTerms(accessions) {
                                             <td>
                                             <a target="_blank" href="//www.pantherdb.org/panther/family.do?clsAccession=${subfam}">${subfam}<i class="external icon"></i></a>
                                             </td>
-                                            <td>${object.results[subfam]}</td>
-                                            <td>${object.count}</td>
+                                            <td>${object.results[subfam].toLocaleString()}</td>
+                                            <td>${object.count.toLocaleString()}</td>
                                          </tr>`;
                             }
 
