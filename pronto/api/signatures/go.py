@@ -153,22 +153,21 @@ def get_go2panther(subfams: set[str], terms: dict[str, dict], pg_cur):
             terms[go].update(details)
     return terms
 
-def get_go_details(term_set: list, pg_cur):
-    go_details = {}
+def get_go_details(term_ids: list[str], pg_cur) -> list[dict]:
+    details = []
 
+    binds = ["%s" for _ in term_ids]
     pg_cur.execute(
         f"""
-            SELECT t.id, t.name, t.category
-            FROM term t
-            WHERE t.id IN ({','.join('%s' for _ in term_set)})
-            """, term_set
-        )
-    for row in pg_cur:
-        go_id = row[0]
-        go_details[go_id] = {
-            "id":go_id,
-            "name": row[1],
-            "aspect": row[2],
-            }
+        SELECT t.id, t.name, t.category
+        FROM term t
+        WHERE t.id IN ({','.join(binds)})
+        """,
+        term_ids
+    )
 
-    return go_details
+    columns = ("id", "name", "aspect")
+    for row in pg_cur.fetchall():
+        details.append(dict(zip(columns, row)))
+
+    return details
