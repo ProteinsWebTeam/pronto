@@ -134,7 +134,7 @@ def get_go2panther(subfams: set[str], terms: dict[str, dict], pg_cur):
             try:
                 term = terms[term_id]
             except KeyError:
-                term = terms[term_id] = {"id":term_id, "signatures":{}}
+                term = terms[term_id] = {"id": term_id, "signatures": {}}
                 go_terms.add(term_id)
 
             try:
