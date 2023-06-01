@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 from flask import jsonify, request
-from typing import Iterable
 
 from pronto import utils
 from . import bp, get_sig2interpro
@@ -80,7 +79,7 @@ def get_go_terms(accessions):
 
             if row[7] is not None:
                 subfams.add(row[7])
-    
+
         terms = get_go2panther(subfams, terms, cur)
 
     con.close()
@@ -104,12 +103,6 @@ def _sort_term(term):
     max_prots = max(s["proteins"] for s in term["signatures"].values())
     return -max_prots, term["id"]
 
-def chunks(iterable: Iterable, n):
-    """Yield chunks of size n from iterable."""
-
-    n = max(1, n)
-    return zip(*[iter(iterable)] * n)
-
 
 def get_go2panther(subfams: set[str], terms: dict[str, dict], pg_cur):
     
@@ -118,15 +111,18 @@ def get_go2panther(subfams: set[str], terms: dict[str, dict], pg_cur):
     
     go_terms = set()
 
-    for subfam_set in chunks(subfams, 1000):
-        binds = [":" + str(j+1) for j in range(len(subset))]
+    for i in range(0, len(subfams), 1000):
+        subfam_set = list(subfams)[i:i+1000]
+
+        binds = [":" + str(j+1) for j in range(len(subfam_set))]
+
         cur.execute(
             f"""
             SELECT DISTINCT METHOD_AC, GO_ID
             FROM INTERPRO.PANTHER2GO
             WHERE METHOD_AC IN ({','.join(binds)})
             """,
-            subset
+            subfam_set
         )
 
         for row in cur:
