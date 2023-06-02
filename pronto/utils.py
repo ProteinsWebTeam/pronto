@@ -2,6 +2,7 @@ import gzip
 import json
 import re
 import uuid
+from typing import Callable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 
@@ -56,7 +57,7 @@ class Executor:
         self._submit = self._executor.submit
 
     @staticmethod
-    def _run_task(url: str, task_id: str, fn: callable, *args, **kwargs):
+    def _run_task(url: str, task_id: str, fn: Callable, *args, **kwargs):
         result = None
         try:
             result = fn(*args, **kwargs)
