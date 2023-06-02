@@ -149,7 +149,7 @@ class Executor:
         return tasks
 
     def submit(self, url: str, name: str,
-               fn: callable, *args, **kwargs) -> dict:
+               fn: Callable, *args, **kwargs) -> dict:
         """
 
         :param url: Oracle connection string/URL
