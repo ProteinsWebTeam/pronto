@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 
 import oracledb
 import MySQLdb
-import psycopg2
+import psycopg
 from flask import current_app
 
 
@@ -222,7 +222,7 @@ def connect_pg(url: str | None = None):
         url = get_pg_url()
 
     m = re.match(r'([^/]+)/([^@]+)@([^:]+):(\d+)/(\w+)', url)
-    return psycopg2.connect(
+    return psycopg.connect(
         user=m.group(1),
         password=m.group(2),
         host=m.group(3),
