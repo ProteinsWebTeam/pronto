@@ -173,7 +173,9 @@ def ck_retracted(cur: Cursor, entries: LoT) -> Err:
         FROM CDB.CITATIONS@LITPUB C
         INNER JOIN CDB.CITATION_PUBLICATIONTYPES@LITPUB C2T
             ON C.ID = C2T.CITATION_ID
-        WHERE C2T.PUBLICATION_TYPE_ID = 140      
+        INNER JOIN CDB.CV_PUBLICATION_TYPES@LITPUB CV
+            ON C2T.PUBLICATION_TYPE_ID = CV.ID
+        WHERE CV.NAME = 'Retracted Publication'
         """
     )
     retracted = {row[0] for row in cur}
