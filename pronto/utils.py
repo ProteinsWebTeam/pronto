@@ -217,7 +217,7 @@ def get_oracle_goa_url() -> str:
     return current_app.config["ORACLE_GOA"]
 
 
-def connect_pg(url: str | None=None):
+def connect_pg(url: str | None = None):
     if url is None:
         url = get_pg_url()
 
