@@ -199,7 +199,9 @@ def connect_oracle() -> oracledb.Connection:
 def connect_oracle_auth(user: dict) -> oracledb.Connection:
     # input format:  app_user/app_passwd@[host:port]/service
     dsn = current_app.config["ORACLE_IP"].rsplit('@', 1)[-1]
-    return oracledb.connect(user=user["dbuser"], password=user["password"], dsn=dsn)
+    return oracledb.connect(user=user["dbuser"], 
+                            password=user["password"], 
+                            dsn=dsn)
 
 
 def get_oracle_url(user: dict) -> str:
