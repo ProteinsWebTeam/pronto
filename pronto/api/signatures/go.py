@@ -1,5 +1,4 @@
-# -*- coding: utf-8 -*-
-
+from typing import Dict, List, Set
 from flask import jsonify, request
 
 from pronto import utils
@@ -104,7 +103,7 @@ def _sort_term(term):
     return -max_prots, term["id"]
 
 
-def get_go2panther(subfams: set[str], terms: dict[str, dict], pg_cur):
+def get_go2panther(subfams: Set[str], terms: Dict[str, dict], pg_cur):
     con = utils.connect_oracle()
     cur = con.cursor()
     
@@ -151,7 +150,8 @@ def get_go2panther(subfams: set[str], terms: dict[str, dict], pg_cur):
 
     return terms
 
-def get_go_details(term_ids: list[str], pg_cur) -> list[dict]:
+
+def get_go_details(term_ids: List[str], pg_cur) -> List[dict]:
     details = []
 
     binds = ["%s" for _ in term_ids]
