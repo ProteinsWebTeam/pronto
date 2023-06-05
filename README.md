@@ -19,13 +19,7 @@ Deploy the code locally:
 ```bash
 git clone https://github.com/ProteinsWebTeam/pronto.git
 cd pronto
-pip install -r requirements.txt 
-```
-
-When deploying the code for production, also run:
-
-```bash
-python setup.py install
+pip install .
 ```
 
 ## Configuration
