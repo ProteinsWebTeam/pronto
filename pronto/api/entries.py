@@ -8,7 +8,7 @@ from pronto import auth, utils
 from pronto.api.database import get_latest_freeze
 
 
-bp = Blueprint("api.entries", __name__, url_prefix="/api/entries")
+bp = Blueprint("api_entries", __name__, url_prefix="/api/entries")
 
 
 @bp.route("/counts/")

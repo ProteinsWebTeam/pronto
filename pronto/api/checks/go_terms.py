@@ -1,17 +1,15 @@
 # -*- coding: utf-8 -*-
 
-from typing import Dict, List, Optional, Set, Tuple
-
-from cx_Oracle import Cursor
-import cx_Oracle
+from oracledb import Cursor
+import oracledb
 
 from .utils import load_terms
 
 
-DoS = Dict[str, Set[str]]
-LoS = List[str]
-Err = List[Tuple[str, Optional[str]]]
-LoT = List[Tuple[str, str]]
+DoS = dict[str, set[str]]
+LoS = list[str]
+Err = list[tuple[str, str | None]]
+LoT = list[tuple[str, str]]
 
 
 def ck_forbidden_go(ip_cur: Cursor, terms : LoS) -> Err:
@@ -110,7 +108,7 @@ def check(ora_cur: Cursor,  ora_goa_url: str):
     for item in ck_forbidden_go(ora_cur, terms):
         yield "generic_go", item
 
-    con_goa = cx_Oracle.connect(ora_goa_url)
+    con_goa = oracledb.connect(ora_goa_url)
     goa_cur = con_goa.cursor()
 
     for item in ck_secondary_go(ora_cur, goa_cur):

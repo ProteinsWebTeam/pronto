@@ -1,16 +1,15 @@
 import re
-from typing import Dict, List, Optional, Set, Tuple
 
-from cx_Oracle import Cursor
+from oracledb import Cursor
 
 from pronto.utils import connect_pg, SIGNATURES
 from pronto.api.signatures.matrices import get_comparisons
 from .utils import load_exceptions, load_global_exceptions, load_terms
 
-DoS = Dict[str, Set[str]]
-LoS = List[str]
-Err = List[Tuple[str, Optional[str]]]
-LoT = List[Tuple[str, str, str]]
+DoS = dict[str, set[str]]
+LoS = list[str]
+Err = list[tuple[str, str | None]]
+LoT = list[tuple[str, str, str]]
 
 
 def ck_abbreviations(entries: LoT, terms: LoS, exceptions: DoS) -> Err:
@@ -70,7 +69,7 @@ def ck_double_quote(entries: LoT) -> Err:
     return [(acc, None) for acc, name, short_name in entries if '"' in name]
 
 
-def ck_encoding(entries: LoT, exceptions: Set[str]) -> Err:
+def ck_encoding(entries: LoT, exceptions: set[str]) -> Err:
     errors = []
     for acc, name, short_name in entries:
         for char in name:
@@ -83,7 +82,7 @@ def ck_encoding(entries: LoT, exceptions: Set[str]) -> Err:
     return errors
 
 
-def ck_gene_symbol(entries: LoT, exceptions: Set[str]) -> Err:
+def ck_gene_symbol(entries: LoT, exceptions: set[str]) -> Err:
     prog1 = re.compile(r"\b[a-z]{3}[A-Z]\b")
     prog2 = re.compile(r"(?:^|_)([a-z]{3}[A-Z])\b")
 
@@ -153,7 +152,7 @@ def ck_match_counts(ora_cur: Cursor, pg_url: str) -> Err:
     return [(e_acc, s_acc) for e_acc, s_acc in ora_cur if s_acc in no_hits]
 
 
-def ck_letter_case(entries: LoT, exceptions: Tuple[str]) -> Err:
+def ck_letter_case(entries: LoT, exceptions: tuple[str]) -> Err:
     prog = re.compile("[a-z]")
     errors = []
     for acc, name, short_name in entries:
@@ -436,7 +435,7 @@ def ck_child_matches(cur: Cursor, pg_url: str, exceptions: DoS) -> Err:
     return errors
 
 
-def ck_underscore(entries: LoT, exceptions: Set[str]) -> Err:
+def ck_underscore(entries: LoT, exceptions: set[str]) -> Err:
     prog1 = re.compile(r"\w*_\w*")
     prog2 = re.compile(r"_(?:binding|bd|related|rel|like)(?![a-zA-Z])")
 

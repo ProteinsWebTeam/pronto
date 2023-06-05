@@ -1,19 +1,18 @@
 import re
 import time
-from typing import Dict, List, Optional, Set, Tuple
 from urllib.error import URLError
 from urllib.request import urlopen
 
-from cx_Oracle import Cursor
+from oracledb import Cursor
 
 from pronto.utils import SIGNATURES
 from .utils import load_exceptions, load_global_exceptions, load_terms
 
 
-DoS = Dict[str, Set[str]]
-LoS = List[str]
-Err = List[Tuple[str, Optional[str]]]
-LoT = List[Tuple[str, str]]
+DoS = dict[str, set[str]]
+LoS = list[str]
+Err = list[tuple[str, str | None]]
+LoT = list[tuple[str, str]]
 
 
 def ck_begin_uppercase(cabs: LoT, exceptions: DoS) -> Err:
@@ -75,7 +74,7 @@ def ck_citations(cabs: LoT, terms: LoS, exceptions: DoS) -> Err:
     return errors
 
 
-def ck_encoding(cabs: LoT, exceptions: Set[str]) -> Err:
+def ck_encoding(cabs: LoT, exceptions: set[str]) -> Err:
     errors = []
     for ann_id, text in cabs:
         for char in text:

@@ -2,13 +2,13 @@ import gzip
 import json
 import re
 import uuid
+from typing import Callable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
-from typing import Callable, List, Optional
 
-import cx_Oracle
+import oracledb
 import MySQLdb
-import psycopg2
+import psycopg
 from flask import current_app
 
 
@@ -68,7 +68,7 @@ class Executor:
 
         result_obj = gzip.compress(json.dumps(result).encode("utf-8"))
 
-        con = cx_Oracle.connect(url)
+        con = oracledb.connect(url)
         cur = con.cursor()
         cur.execute(
             """
@@ -106,10 +106,10 @@ class Executor:
             "result": result
         }
 
-    def get_tasks(self, task_id: Optional[str] = None,
-                  task_name: Optional[str] = None,
-                  task_prefix: Optional[str] = None,
-                  seconds: int = 0, get_result: bool = True) -> List[dict]:
+    def get_tasks(self, task_id: str | None = None,
+                  task_name: str | None = None,
+                  task_prefix: str | None = None,
+                  seconds: int = 0, get_result: bool = True) -> list[dict]:
         columns = ["T.ID", "T.NAME AS TASK_NAME", "U.NAME AS USER_NAME",
                    "T.STARTED", "T.FINISHED", "T.STATUS"]
         if get_result:
@@ -169,7 +169,7 @@ class Executor:
         task_id = uuid.uuid1().hex
 
         # Insert task in database
-        con = cx_Oracle.connect(url)
+        con = oracledb.connect(url)
         cur = con.cursor()
         cur.execute(
             """
@@ -193,14 +193,16 @@ class Executor:
 executor = Executor()
 
 
-def connect_oracle() -> cx_Oracle.Connection:
-    return cx_Oracle.connect(current_app.config["ORACLE_IP"])
+def connect_oracle() -> oracledb.Connection:
+    return oracledb.connect(current_app.config["ORACLE_IP"])
 
 
-def connect_oracle_auth(user: dict) -> cx_Oracle.Connection:
+def connect_oracle_auth(user: dict) -> oracledb.Connection:
     # input format:  app_user/app_passwd@[host:port]/service
     dsn = current_app.config["ORACLE_IP"].rsplit('@', 1)[-1]
-    return cx_Oracle.connect(user["dbuser"], user["password"], dsn)
+    return oracledb.connect(user=user["dbuser"], 
+                            password=user["password"], 
+                            dsn=dsn)
 
 
 def get_oracle_url(user: dict) -> str:
@@ -216,12 +218,12 @@ def get_oracle_goa_url() -> str:
     return current_app.config["ORACLE_GOA"]
 
 
-def connect_pg(url: Optional[str]=None):
+def connect_pg(url: str | None = None):
     if url is None:
         url = get_pg_url()
 
     m = re.match(r'([^/]+)/([^@]+)@([^:]+):(\d+)/(\w+)', url)
-    return psycopg2.connect(
+    return psycopg.connect(
         user=m.group(1),
         password=m.group(2),
         host=m.group(3),
@@ -246,7 +248,7 @@ def connect_mysql():
     )
 
 
-def split_path(path: str) -> List[str]:
+def split_path(path: str) -> list[str]:
     items = []
     for item in map(str.strip, path.split('/')):
         if item and item not in items:
@@ -434,7 +436,7 @@ class Prediction:
     similarity: float = field(init=False)
     containment_a: float = field(init=False)
     containment_b: float = field(init=False)
-    relationship: Optional[str] = field(init=False)
+    relationship: str | None = field(init=False)
 
     def __post_init__(self):
         try:

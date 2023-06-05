@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 
-from cx_Oracle import DatabaseError
+from oracledb import DatabaseError
 from flask import Blueprint, jsonify, request
 
 from pronto import auth, utils
 
 
-bp = Blueprint("api.signature", __name__, url_prefix="/api/signature")
+bp = Blueprint("api_signature", __name__, url_prefix="/api/signature")
 
 
 @bp.route("/<accession>/")

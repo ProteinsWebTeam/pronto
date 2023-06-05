@@ -8,7 +8,7 @@ from flask import Blueprint, jsonify, request
 from pronto import utils
 
 
-bp = Blueprint("api.database", __name__, url_prefix="/api/database")
+bp = Blueprint("api_database", __name__, url_prefix="/api/database")
 
 
 def get_latest_freeze(cur):

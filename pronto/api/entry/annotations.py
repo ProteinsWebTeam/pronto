@@ -3,7 +3,7 @@
 import re
 
 from flask import jsonify
-from cx_Oracle import Cursor, DatabaseError
+from oracledb import Cursor, DatabaseError
 
 from pronto import auth, utils
 from . import bp
