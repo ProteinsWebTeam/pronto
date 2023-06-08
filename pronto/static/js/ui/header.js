@@ -91,10 +91,24 @@ export function updateHeader(signatureAcc) {
                         fetch(`/api/signature/${acc}/`)
                             .then(response => {
                                 if (!response.ok)
-                                    throw Error(response.status.toString());
+                                    throw new Error(
+                                        'Signature not found',
+                                        {
+                                            cause: `<strong>${acc}</strong> does not match any member database signature accession or name.`
+                                        }
+                                    );
                                 return response.json();
                             })
                             .then(signature => {
+                                if (signature.entry !== null) {
+                                    throw new Error(
+                                        'Signature already integrated',
+                                        {
+                                            cause: `<strong>${signature.accession}</strong> is already integrated in <a href="/entry/${signature.entry.accession}/">${signature.entry.accession}</a>.`
+                                        }
+                                    );
+                                }
+
                                 // Clear form (signature linked)
                                 $(this).form('clear');
 
@@ -120,12 +134,6 @@ export function updateHeader(signatureAcc) {
                                         $(infoForm).form('set value', 'type', typeCode);
                                 }
 
-                                const renderEntry = (entry,) => {
-                                    if (entry !== null)
-                                        return `<a href="/entry/${entry.accession}/">${entry.accession}</a>`;
-                                    return 'N/A';
-                                };
-
                                 signatures.set(signature.accession, signature);
                                 let html = '';
                                 for (const s of signatures.values()) {
@@ -137,8 +145,7 @@ export function updateHeader(signatureAcc) {
                                         <td>${s.name !== null ? s.name : ''}</td>
                                         <td>${s.description !== null ? s.description : ''}</td>
                                         <td class="right aligned">${s.proteins.total.toLocaleString()}</td>
-                                        <td>${renderEntry(s.entry)}</td>
-                                        <td class="collapsing"><i data-accession="${s.accession}" class="unlink fitted button icon"></i></td>
+                                        <td class="collapsing"><i data-accession="${s.accession}" class="trash fitted button icon"></i></td>
                                         </tr>
                                     `;
                                 }
@@ -162,8 +169,8 @@ export function updateHeader(signatureAcc) {
 
                                 toggleErrorMessage(errMsg, null);
                             })
-                            .catch(() => {
-                                toggleErrorMessage(errMsg, { title: 'Signature not found', message: `<strong>${acc}</strong> does not match any member database signature accession or name.` });
+                            .catch((error) => {
+                                toggleErrorMessage(errMsg, { title: error.message, message:  error.cause});
                             });
                     }
                 });

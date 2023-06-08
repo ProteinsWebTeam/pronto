@@ -38,7 +38,12 @@ def get_signature(accession):
     con.close()
 
     if not row:
-        return jsonify(), 404
+        return jsonify({
+            "error": {
+                "title": "Signature not found",
+                "message": "Entry names cannot be longer than 100 characters."
+            }
+        }), 404
 
     db = utils.get_database_obj(row[8])
     result = {

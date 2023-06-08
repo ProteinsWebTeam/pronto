@@ -465,7 +465,8 @@ def create_entry():
                 GROUP BY ENTRY_AC
             ) X ON E.ENTRY_AC = X.ENTRY_AC
             WHERE M.METHOD_AC IN ({','.join(stmt)})
-            """, tuple(entry_signatures)
+            """,
+            list(entry_signatures)
         )
         existing_signatures = {}
         for row in cur:
@@ -502,20 +503,35 @@ def create_entry():
                                f"{', '.join(sorted(not_found))}."
                 }
             }), 400
-        elif invalid:
+        # June 2023: curators no longer want it to be possible to transfer
+        #            integrated signature to a new entry
+        elif invalid or to_unintegrate:
             cur.close()
             con.close()
+            invalid += [signature_acc for (entry_acc, signature_acc)
+                        in to_unintegrate]
             return jsonify({
                 "status": False,
                 "error": {
-                    "title": "Cannot unintegrate signature(s)",
-                    "message": f"One or more signatures are integrated "
-                               f"in checked entries that only have "
-                               f"one signature: {', '.join(invalid)}. "
-                               f"Checked entries cannot be left "
-                               f"with no signatures."
+                    "title": "Integrated signature(s)",
+                    "message": f"The following signatures are already "
+                               f"integrated: {', '.join(sorted(invalid))}."
                 }
             }), 409
+        # elif invalid:
+        #     cur.close()
+        #     con.close()
+        #     return jsonify({
+        #         "status": False,
+        #         "error": {
+        #             "title": "Cannot unintegrate signature(s)",
+        #             "message": f"One or more signatures are integrated "
+        #                        f"in checked entries that only have "
+        #                        f"one signature: {', '.join(invalid)}. "
+        #                        f"Checked entries cannot be left "
+        #                        f"with no signatures."
+        #         }
+        #     }), 409
 
         # Unintegrate signatures
         try:
