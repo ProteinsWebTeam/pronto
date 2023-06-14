@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/semantic.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/single_dom.css') }}">
+    <title>Single domain view</title>
+</head>
+
+<body>
+
+    <script async src="https://ga.jspm.io/npm:es-module-shims@1.6.2/dist/es-module-shims.js"></script>
+
+    <script type="importmap">
+  {
+  "imports": {
+    "@nightingale-elements/nightingale-new-core": "https://cdn.jsdelivr.net/npm/@nightingale-elements/nightingale-new-core@4.2.1/dist/index.js",
+    "@nightingale-elements/nightingale-manager": "https://cdn.jsdelivr.net/npm/@nightingale-elements/nightingale-manager@4.2.1/dist/index.js",
+    "@nightingale-elements/nightingale-navigation": "https://cdn.jsdelivr.net/npm/@nightingale-elements/nightingale-navigation@4.2.1/dist/index.js",
+    "@nightingale-elements/nightingale-sequence": "https://cdn.jsdelivr.net/npm/@nightingale-elements/nightingale-sequence@4.2.1/dist/index.js",
+    "@nightingale-elements/nightingale-track": "https://cdn.jsdelivr.net/npm/@nightingale-elements/nightingale-track@4.2.1/dist/index.js",
+    "@nightingale-elements/nightingale-interpro-track": "https://cdn.jsdelivr.net/npm/@nightingale-elements/nightingale-interpro-track@4.2.1/dist/index.js"
+        }
+    }
+
+    </script>
+    <script defer type="module"
+        src="https://cdn.jsdelivr.net/npm/@nightingale-elements/nightingale-new-core@4.2.1/dist/index.js"></script>
+    <script defer type="module"
+        src="https://cdn.jsdelivr.net/npm/@nightingale-elements/nightingale-manager@4.2.1/dist/index.js"></script>
+    <script defer type="module"
+        src="https://cdn.jsdelivr.net/npm/@nightingale-elements/nightingale-navigation@4.2.1/dist/index.js"></script>
+    <script defer type="module"
+        src="https://cdn.jsdelivr.net/npm/@nightingale-elements/nightingale-sequence@4.2.1/dist/index.js"></script>
+    <script defer type="module"
+        src="https://cdn.jsdelivr.net/npm/@nightingale-elements/nightingale-track@4.2.1/dist/index.js"></script>
+    <script defer type="module"
+        src="https://cdn.jsdelivr.net/npm/@nightingale-elements/nightingale-interpro-track@4.2.1/dist/index.js"></script>
+
+    <h1>Single domain viewer</h1>
+    <h2>Search a protein:</h2>
+    <div class="ui single dom">
+        <form class="ui action input" action="/search-prot/" method="get" role="search" autocomplete="off">
+
+            <input name="q" placeholder="Enter a protein accession" type="text" value="">
+            <button class="ui basic icon button single">
+                <i class="search icon"></i>
+            </button>
+        </form>
+    </div>
+    <div id="seq-viewer" style="display:none">
+        <p>
+            <span class="ui red text"><i class="warning icon"></i>This view takes into account the signatures
+                type, not the InterPro entry type, hence selected domains might differ from the public website
+                view.</span>
+        </p>
+        <section class="feature-viewer">
+            <nightingale-manager>
+                <div>
+                    <nightingale-navigation id="navigation" height="50" show-highlight>
+                    </nightingale-navigation>
+                </div>
+                <div>
+                    <nightingale-sequence id="sequence" height="20"></nightingale-sequence>
+                </div>
+                <div style="line-height: 0">
+                    <nightingale-interpro-track id="track" height="30" highlight-event="onmouseover"
+                        shape="roundRectangle" show-label use-ctrl-to-zoom>
+                    </nightingale-interpro-track>
+                </div>
+
+            </nightingale-manager>
+        </section>
+    </div>
+    <div id="not-found" style="display:none">
+        <p>No data found</p>
+    </div>
+
+    <script type="module" src="{{ url_for('static', filename='js/single_dom.js') }}"></script>
+</body>
+
+</html>

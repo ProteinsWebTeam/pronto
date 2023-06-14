@@ -103,6 +103,10 @@ def taxon():
 def proteome():
     return render_template("proteome.html")
 
+@app.route("/single_dom/")
+def single_dom():
+    return render_template("single_dom.html")
+
 for bp in api.blueprints:
     app.register_blueprint(bp)
 

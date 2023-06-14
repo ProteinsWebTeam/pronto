@@ -14,13 +14,14 @@ from . import signature
 from . import signatures
 from . import taxon
 from . import proteome
+from . import single_dom
 
 
 bp = Blueprint("api", __name__,  url_prefix="/api")
 
 blueprints = [bp, annotation.bp, checks.bp, database.bp, databases.bp,
               entries.bp, entry.bp, interproscan.bp, protein.bp, search.bp,
-              signature.bp, signatures.bp, taxon.bp, proteome.bp]
+              signature.bp, signatures.bp, taxon.bp, proteome.bp, single_dom.bp]
 
 
 @bp.route("/")
