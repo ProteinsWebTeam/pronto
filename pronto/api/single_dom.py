@@ -192,7 +192,7 @@ def output_list(base_url: str):
             member = item["metadata"]["source_database"]
             short_name = item["extra_fields"]["short_name"]
 
-            if type != "site" and type != "family" and member in member_db:
+            if type != "family" and member in member_db:
                 for dom in item["proteins"][0]["entry_protein_locations"]:
                     for frag in dom["fragments"]:
                         start = frag["start"]
