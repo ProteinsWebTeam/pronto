@@ -277,6 +277,34 @@ class Annotation(object):
         text = re.sub(pattern, self._wrap_aft, text, flags=re.S)
 
         return text
+    
+    def delete_white_space(self, text) -> str:
+        pattern_beg = r"(<(?:p|ul|ol|li)>)( +)"
+        for item in re.finditer(pattern_beg, text):
+            text = re.sub(item.group(0), item.group(1), text)
+
+        pattern_end = r"( +)(</(?:p|ul|ol|li)>)"
+        for item in re.finditer(pattern_end, text):
+            text = re.sub(item.group(0), item.group(2), text)
+
+        return text
+
+    def add_paragraph_tags(self, text) -> str:
+        pattern_beg = r"(<(?:p|ul|ol|li)>)"
+
+        if not re.search(pattern_beg, self.text):
+            paragraphs = self.text.split("\n")
+            if len(paragraphs) == 1:
+                text = f"<p>{paragraphs[0].strip()}</p>"
+            else:
+                text = ""
+                for block in paragraphs:
+                    if block:
+                        block = block.strip()
+                        text += f"<p>{block}</p>\n\n"
+
+        text = text.strip()
+        return text
 
     def get_references(self, text: str | None = None) -> set:
         return {
@@ -356,6 +384,8 @@ def create_annotation():
                f"on {datetime.now():%Y-%m-%d %H:%M:%S}")
 
     text = ann.wrap()
+    text = ann.delete_white_space(text)
+    text = ann.add_paragraph_tags(text)
     ann_id = cur.var(STRING)
     try:
         cur.execute(
@@ -813,13 +843,16 @@ def update_annotation(ann_id):
                 f"on {datetime.now():%Y-%m-%d %H:%M:%S}")
 
     try:
+        text = ann.wrap()
+        text = ann.delete_white_space(text)
+        text = ann.add_paragraph_tags(text)
         cur.execute(
             """
             UPDATE INTERPRO.COMMON_ANNOTATION
             SET TEXT = :1, COMMENTS = :2
             WHERE ANN_ID = :3
             """,
-            (ann.wrap(), comment, ann_id)
+            (text, comment, ann_id)
         )
     except DatabaseError as exc:
         return jsonify({
