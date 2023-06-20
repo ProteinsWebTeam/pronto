@@ -16,7 +16,7 @@ LoT = list[tuple[str, str]]
 
 
 def ck_begin_uppercase(cabs: LoT, exceptions: DoS) -> Err:
-    prog = re.compile(r"^\s*(?:<p>)?\s*([a-z][A-Za-z]+)\s+")
+    prog = re.compile(r"^\s*(?:<p>)?\s*([a-z][A-Za-z]*)\b")
 
     errors = []
     for ann_id, text in cabs:
