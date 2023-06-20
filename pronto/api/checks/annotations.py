@@ -16,14 +16,13 @@ LoT = list[tuple[str, str]]
 
 
 def ck_begin_uppercase(cabs: LoT, exceptions: DoS) -> Err:
-    prog = re.compile(r"^\s*(?:<p>)?\s*([a-z])")
+    prog = re.compile(r"^\s*(?:<p>)?\s*([a-z][A-Za-z]*)\b")
 
     errors = []
     for ann_id, text in cabs:
         match = prog.match(text)
         if match:
-            start = match.start(1)
-            error = text[start:start+11]
+            error = match.group(1)
             errors.append((ann_id, error))
 
     return [
@@ -66,9 +65,9 @@ def ck_citations(cabs: LoT, terms: LoS, exceptions: DoS) -> Err:
 
     errors = []
     for ann_id, text in cabs:
-        ann_excpetions = exceptions.get(ann_id, set())
+        ann_exceptions = exceptions.get(ann_id, set())
         for match in prog.findall(text):
-            if match not in ann_excpetions:
+            if match not in ann_exceptions:
                 errors.append((ann_id, match))
 
     return errors

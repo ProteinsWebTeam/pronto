@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import re
 from datetime import datetime
 from xml.dom.minidom import parseString
@@ -259,24 +257,42 @@ class Annotation(object):
         else:
             return tag
 
-    def wrap(self) -> str:
-        # Wrap text before first block (re.S: dot '.' also matches new lines)
-        pattern = r"^(.*?)(<(?:p|pre|ul|ol)>)"
-        text = re.sub(pattern, self._wrap_bef, self.text, flags=re.S)
+    def wrap(self):
+        text = self.text
+        if re.search(r"(<(?:p|ul|ol|li)>)", text):
+            # Wrap text before first block
+            # (re.S: dot '.' also matches new lines)
+            pattern = r"^(.*?)(<(?:p|pre|ul|ol)>)"
+            text = re.sub(pattern, self._wrap_bef, text, flags=re.S)
 
-        # Wrap text between two blocks
-        pattern = r"(</(?:p|pre|ul|ol)>)(.*?)(<(?:p|pre|ul|ol)>)"
-        text = re.sub(pattern, self._wrap_mid, text, flags=re.S)
+            # Wrap text between two blocks
+            pattern = r"(</(?:p|pre|ul|ol)>)(.*?)(<(?:p|pre|ul|ol)>)"
+            text = re.sub(pattern, self._wrap_mid, text, flags=re.S)
 
-        """
-        Wrap trailing text, i.e. after last block
-        Use a negative-lookahead to ensure the closing tag is the last one,
-        i.e. not followed by an opening tag  
-        """
-        pattern = r"(</(?:p|pre|ul|ol)>)(?!.*<(?:p|pre|ul|ol)>)(.*?)$"
-        text = re.sub(pattern, self._wrap_aft, text, flags=re.S)
+            """
+            Wrap trailing text, i.e. after last block
+            Use a negative-lookahead to ensure the closing tag is the last one,
+            i.e. not followed by an opening tag  
+            """
+            pattern = r"(</(?:p|pre|ul|ol)>)(?!.*<(?:p|pre|ul|ol)>)(.*?)$"
+            text = re.sub(pattern, self._wrap_aft, text, flags=re.S)
+        else:
+            paragraphs = text.split("\n")
+            text = ""
+            for i, block in enumerate(paragraphs):
+                block = block.strip()
+                if not block:
+                    continue
+                elif text:
+                    text += f"\n\n"
 
-        return text
+                text += f"<p>{block}</p>"
+
+        self.text = text
+    
+    def strip(self):
+        text = re.sub(r"(<(?:p|ul|ol|li)>)\s+", r"\1", self.text)
+        self.text = re.sub(r"\s+(</(?:p|ul|ol|li)>)", r"\1", text)
 
     def get_references(self, text: str | None = None) -> set:
         return {
@@ -355,7 +371,8 @@ def create_annotation():
     comment = (f"Created by {user['name'].split()[0]} "
                f"on {datetime.now():%Y-%m-%d %H:%M:%S}")
 
-    text = ann.wrap()
+    ann.strip()
+    ann.wrap()
     ann_id = cur.var(STRING)
     try:
         cur.execute(
@@ -363,7 +380,7 @@ def create_annotation():
             INSERT INTO INTERPRO.COMMON_ANNOTATION (ANN_ID, TEXT, COMMENTS)
             VALUES (INTERPRO.NEW_ANN_ID(), :1, :2)
             RETURNING ANN_ID INTO :3
-            """, (text, comment, ann_id)
+            """, (ann.text, comment, ann_id)
         )
     except DatabaseError as exc:
         error, = exc.args
@@ -812,6 +829,8 @@ def update_annotation(ann_id):
     comment += (f" updated by {user['name'].split()[0]} "
                 f"on {datetime.now():%Y-%m-%d %H:%M:%S}")
 
+    ann.strip()
+    ann.wrap()
     try:
         cur.execute(
             """
@@ -819,7 +838,7 @@ def update_annotation(ann_id):
             SET TEXT = :1, COMMENTS = :2
             WHERE ANN_ID = :3
             """,
-            (ann.wrap(), comment, ann_id)
+            (ann.text, comment, ann_id)
         )
     except DatabaseError as exc:
         return jsonify({

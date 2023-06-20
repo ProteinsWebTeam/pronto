@@ -24,8 +24,8 @@ CHECKS = {
         "name": "Begin with uppercase",
         "description": "Entry annotations must start with an uppercase letter",
         "label": "First letter lowercase",
-        "terms": False,
-        "exceptions": 'g'
+        "terms": True,
+        "exceptions": 't'
     },
     "abbreviation": {
         "name": "Abbreviations",
