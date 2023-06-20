@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import re
 from datetime import datetime
 from xml.dom.minidom import parseString
@@ -259,46 +257,42 @@ class Annotation(object):
         else:
             return tag
 
-    def wrap(self) -> str:
-        # Wrap text before first block (re.S: dot '.' also matches new lines)
-        pattern = r"^(.*?)(<(?:p|pre|ul|ol)>)"
-        text = re.sub(pattern, self._wrap_bef, self.text, flags=re.S)
+    def wrap(self):
+        text = self.text
+        if re.search(r"(<(?:p|ul|ol|li)>)", text):
+            # Wrap text before first block
+            # (re.S: dot '.' also matches new lines)
+            pattern = r"^(.*?)(<(?:p|pre|ul|ol)>)"
+            text = re.sub(pattern, self._wrap_bef, text, flags=re.S)
 
-        # Wrap text between two blocks
-        pattern = r"(</(?:p|pre|ul|ol)>)(.*?)(<(?:p|pre|ul|ol)>)"
-        text = re.sub(pattern, self._wrap_mid, text, flags=re.S)
+            # Wrap text between two blocks
+            pattern = r"(</(?:p|pre|ul|ol)>)(.*?)(<(?:p|pre|ul|ol)>)"
+            text = re.sub(pattern, self._wrap_mid, text, flags=re.S)
 
-        """
-        Wrap trailing text, i.e. after last block
-        Use a negative-lookahead to ensure the closing tag is the last one,
-        i.e. not followed by an opening tag  
-        """
-        pattern = r"(</(?:p|pre|ul|ol)>)(?!.*<(?:p|pre|ul|ol)>)(.*?)$"
-        text = re.sub(pattern, self._wrap_aft, text, flags=re.S)
+            """
+            Wrap trailing text, i.e. after last block
+            Use a negative-lookahead to ensure the closing tag is the last one,
+            i.e. not followed by an opening tag  
+            """
+            pattern = r"(</(?:p|pre|ul|ol)>)(?!.*<(?:p|pre|ul|ol)>)(.*?)$"
+            text = re.sub(pattern, self._wrap_aft, text, flags=re.S)
+        else:
+            paragraphs = text.split("\n")
+            text = ""
+            for i, block in enumerate(paragraphs):
+                block = block.strip()
+                if not block:
+                    continue
+                elif text:
+                    text += f"\n\n"
 
-        return text
+                text += f"<p>{block}</p>"
+
+        self.text = text
     
-    def delete_white_space(self):
+    def strip(self):
         text = re.sub(r"(<(?:p|ul|ol|li)>)\s+", r"\1", self.text)
         self.text = re.sub(r"\s+(</(?:p|ul|ol|li)>)", r"\1", text)
-
-    def add_paragraph_tags(self) -> str:
-        pattern_beg = r"(<(?:p|ul|ol|li)>)"
-        
-        if re.search(pattern_beg, self.text):
-            text = self.wrap()
-        else:
-            paragraphs = self.text.split("\n")
-            if len(paragraphs) == 1:
-                text = f"<p>{paragraphs[0].strip()}</p>"
-            else:
-                text = ""
-                for block in paragraphs:
-                    if block:
-                        block = block.strip()
-                        text += f"<p>{block}</p>\n\n"
-
-        self.text = text.strip()
 
     def get_references(self, text: str | None = None) -> set:
         return {
@@ -377,8 +371,8 @@ def create_annotation():
     comment = (f"Created by {user['name'].split()[0]} "
                f"on {datetime.now():%Y-%m-%d %H:%M:%S}")
 
-    ann.delete_white_space()
-    ann.add_paragraph_tags()
+    ann.strip()
+    ann.wrap()
     ann_id = cur.var(STRING)
     try:
         cur.execute(
@@ -835,9 +829,9 @@ def update_annotation(ann_id):
     comment += (f" updated by {user['name'].split()[0]} "
                 f"on {datetime.now():%Y-%m-%d %H:%M:%S}")
 
+    ann.strip()
+    ann.wrap()
     try:
-        ann.delete_white_space()
-        ann.add_paragraph_tags()
         cur.execute(
             """
             UPDATE INTERPRO.COMMON_ANNOTATION
