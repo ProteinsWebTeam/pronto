@@ -278,21 +278,16 @@ class Annotation(object):
 
         return text
     
-    def delete_white_space(self, text) -> str:
-        pattern_beg = r"(<(?:p|ul|ol|li)>)( +)"
-        for item in re.finditer(pattern_beg, text):
-            text = re.sub(item.group(0), item.group(1), text)
+    def delete_white_space(self):
+        text = re.sub(r"(<(?:p|ul|ol|li)>)\s+", r"\1", self.text)
+        self.text = re.sub(r"\s+(</(?:p|ul|ol|li)>)", r"\1", text)
 
-        pattern_end = r"( +)(</(?:p|ul|ol|li)>)"
-        for item in re.finditer(pattern_end, text):
-            text = re.sub(item.group(0), item.group(2), text)
-
-        return text
-
-    def add_paragraph_tags(self, text) -> str:
+    def add_paragraph_tags(self) -> str:
         pattern_beg = r"(<(?:p|ul|ol|li)>)"
-
-        if not re.search(pattern_beg, self.text):
+        
+        if re.search(pattern_beg, self.text):
+            text = self.wrap()
+        else:
             paragraphs = self.text.split("\n")
             if len(paragraphs) == 1:
                 text = f"<p>{paragraphs[0].strip()}</p>"
@@ -303,8 +298,7 @@ class Annotation(object):
                         block = block.strip()
                         text += f"<p>{block}</p>\n\n"
 
-        text = text.strip()
-        return text
+        self.text = text.strip()
 
     def get_references(self, text: str | None = None) -> set:
         return {
@@ -383,9 +377,8 @@ def create_annotation():
     comment = (f"Created by {user['name'].split()[0]} "
                f"on {datetime.now():%Y-%m-%d %H:%M:%S}")
 
-    text = ann.wrap()
-    text = ann.delete_white_space(text)
-    text = ann.add_paragraph_tags(text)
+    ann.delete_white_space()
+    ann.add_paragraph_tags()
     ann_id = cur.var(STRING)
     try:
         cur.execute(
@@ -393,7 +386,7 @@ def create_annotation():
             INSERT INTO INTERPRO.COMMON_ANNOTATION (ANN_ID, TEXT, COMMENTS)
             VALUES (INTERPRO.NEW_ANN_ID(), :1, :2)
             RETURNING ANN_ID INTO :3
-            """, (text, comment, ann_id)
+            """, (ann.text, comment, ann_id)
         )
     except DatabaseError as exc:
         error, = exc.args
@@ -843,16 +836,15 @@ def update_annotation(ann_id):
                 f"on {datetime.now():%Y-%m-%d %H:%M:%S}")
 
     try:
-        text = ann.wrap()
-        text = ann.delete_white_space(text)
-        text = ann.add_paragraph_tags(text)
+        ann.delete_white_space()
+        ann.add_paragraph_tags()
         cur.execute(
             """
             UPDATE INTERPRO.COMMON_ANNOTATION
             SET TEXT = :1, COMMENTS = :2
             WHERE ANN_ID = :3
             """,
-            (text, comment, ann_id)
+            (ann.text, comment, ann_id)
         )
     except DatabaseError as exc:
         return jsonify({
