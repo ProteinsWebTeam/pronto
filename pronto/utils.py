@@ -335,14 +335,11 @@ class Pirsf:
 
 
 class Prints:
-    home = 'http://www.bioinf.manchester.ac.uk/dbbrowser/PRINTS'
+    home = 'https://www.ebi.ac.uk/interpro/entry/prints/'
     color = '#59a0d5'
 
-    def gen_link(self, acc: str):
-        return (f"http://www.bioinf.manchester.ac.uk/cgi-bin/dbbrowser/"
-                f"sprint/searchprintss.cgi?prints_accn={acc}&"
-                f"display_opts=Prints&category=None&"
-                f"queryform=false&regexpr=off")
+    def gen_link(self, acc: str) -> str:
+        return f"{self.home}{acc}"
 
 
 class PrositePatterms:
