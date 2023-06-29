@@ -401,6 +401,7 @@ function renderRecentEntries(entries) {
         count += 1;
         html += `
             <tr>
+            <td>${count}</td>
             <td>
                 <span class="ui circular mini label type ${entry.type}">${entry.type}</span>
                 <a href="/entry/${entry.accession}/">${entry.accession}</a>
@@ -526,7 +527,7 @@ async function getUncheckedEntries() {
 
             let numComments = entry.comments.entry + entry.comments.signatures;
             if (numComments > 0)
-                html += `<a href="/entry/${entry.accession}/" class="ui small basic label"><i class="comments icon"></i> ${numComments}</a>`;
+                html += `<a data-accession="${entry.accession}" class="ui small basic label"><i class="comments icon"></i> ${numComments}</a>`;
 
             html += '</td></tr>';
         }
@@ -536,6 +537,74 @@ async function getUncheckedEntries() {
 
         tab.querySelector('tbody').innerHTML = html;
         tab.querySelector('thead > tr:first-child > th:first-child').innerHTML = `${entries.length} entries`;
+
+        initPopups(tab);
+    };
+
+    const initPopups = (root) => {
+        $(root.querySelectorAll('a.label[data-accession]'))
+            .popup({
+                exclusive: true,
+                hoverable: true,
+                html: '<i class="notched circle loading icon"></i> Loading&hellip;',
+                position: 'left center',
+                variation: 'small basic custom',
+                onShow: function (elem) {
+                    const popup = this;
+                    const acc = elem.dataset.accession;
+                    const content = {
+                        entry_comments: '',
+                        signatures_comments: '',
+                    }
+                    const updatePopup = (source, html) => {
+                        content[source] = html;
+                        popup.html(`
+                        <div class="ui small comments">
+                        ${content.entry_comments}
+                        ${content.signatures_comments}
+                        </div>`);
+
+                    }
+                    fetch(`/api/entry/${acc}/comments/`)
+                        .then(response => response.json())
+                        .then(payload => {
+                            let html = '';
+                            for (let item of payload.results) {
+                                if (!item.status)
+                                    continue;
+
+                                html += `
+                                    <div class="comment">
+                                        <a class="signature">${item.accession}</a>
+                                        <a class="author">${item.author}</a>
+                                        <div class="metadata"><span class="date">${item.date}</span></div>
+                                        <div class="text">${item.text}</div>
+                                    </div>
+                                `;
+                            }
+                            updatePopup('entry_comments', html)
+                        });
+                    fetch(`/api/entry/${acc}/sign/comments/`)
+                        .then(response => response.json())
+                        .then(payload => {
+                            let html = '';
+                            for (let item of payload.results) {
+                                if (!item.status)
+                                    continue;
+
+                                html += `
+                                    <div class="comment">
+                                        <a class="signature">${item.accession}</a>
+                                        <a class="author">${item.author}</a>
+                                        <div class="metadata"><span class="date">${item.date}</span></div>
+                                        <div class="text">${item.text}</div>
+                                    </div>
+                                `;
+                            }
+                            updatePopup('signatures_comments', html);
+                        });
+                }
+            });
     };
 
     for (const elem of tab.querySelectorAll('input[type="radio"][name="database"]')) {
@@ -577,7 +646,7 @@ async function getSanityCheck() {
     const object = await response.json();
     const tab = document.querySelector('.tab[data-tab="checks"]');
     if (response.status === 404) {
-        tab.querySelector('tbody').innerHTML = '<tr><td colspan="4" class="center aligned">No sanity check report available</td></tr>';
+        tab.querySelector('tbody').innerHTML = '<tr><td colspan="5" class="center aligned">No sanity check report available</td></tr>';
         document.querySelector('.item[data-tab="checks"] .label').innerHTML = '0';
         return;
     }
@@ -589,11 +658,14 @@ async function getSanityCheck() {
     let html = '';
     let numUnresolved = 0;
     if (object.errors.length > 0) {
+        let count = 0
         for (const error of object.errors) {
+            count += 1
             const acc = error.annotation !== null ? error.annotation : error.entry;
             html += `
                 <tr>
-                <td class="left marked ${error.resolution.date === null ? 'red' : 'green'}">
+                <td class="left marked ${error.resolution.date === null ? 'red' : 'green'}">${count}</td>
+                <td>
                     <a target="_blank" href="/search/?q=${acc}">${acc}</a>
                 </td>
             `;

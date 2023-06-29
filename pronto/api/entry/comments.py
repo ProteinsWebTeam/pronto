@@ -41,6 +41,7 @@ def get_entry_comments(accession):
             "date": row[2].strftime("%Y-%m-%d %H:%M:%S"),
             "status": row[3] == "Y",
             "author": row[4],
+            "accession": accession,
         } for row in cur
     ]
     cur.close()
@@ -56,6 +57,52 @@ def get_entry_comments(accession):
         "count": n_comments,
         "results": comments
     })
+
+@bp.route("/<accession>/sign/comments/")
+def get_entry_signatures_comments(accession):
+    try:
+        n = int(request.args["max"])
+    except (KeyError, ValueError):
+        n = 0
+
+    con = utils.connect_oracle()
+    cur = con.cursor()
+    cur.execute(
+        """
+        SELECT C.ID, C.VALUE, C.CREATED_ON, C.STATUS, U.NAME, C.METHOD_AC
+        FROM INTERPRO.METHOD_COMMENT C
+        INNER JOIN INTERPRO.PRONTO_USER U 
+          ON C.USERNAME = U.USERNAME
+        INNER JOIN INTERPRO.ENTRY2METHOD E2M ON E2M.METHOD_AC=C.METHOD_AC
+        WHERE E2M.ENTRY_AC = :1
+        ORDER BY C.CREATED_ON DESC
+        """, (accession,)
+    )
+
+    comments = [
+        {
+            "id": row[0],
+            "text": row[1],
+            "date": row[2].strftime("%Y-%m-%d %H:%M:%S"),
+            "status": row[3] == "Y",
+            "author": row[4],
+            "accession": row[5],
+        } for row in cur
+    ]
+    cur.close()
+    n_comments = len(comments)
+
+    if n:
+        comments = comments[:n]
+
+    for c in comments:
+        c["text"] = re.sub(r"#(\d+)", hashrepl, c["text"])
+
+    return jsonify({
+        "count": n_comments,
+        "results": comments
+    })
+
 
 
 @bp.route("/<accession>/comment/", methods=["PUT"])
