@@ -1,6 +1,7 @@
 import { waitForTask } from "./tasks.js";
 import { renderTaskList, updateHeader } from "./ui/header.js";
 import { setClass } from "./ui/utils.js";
+import {initPopups, createPopup} from "./ui/comments.js";
 import * as dimmer from "./ui/dimmer.js";
 
 async function getProteomes() {
@@ -20,11 +21,11 @@ async function getProteomes() {
 
     for (let item of items) {
         const endTime = strptime(item.end_time).toLocaleString('en-GB', {
-                day: 'numeric',
-                year: 'numeric',
-                month: 'long',
-                hour: 'numeric',
-                minute: 'numeric'
+            day: 'numeric',
+            year: 'numeric',
+            month: 'long',
+            hour: 'numeric',
+            minute: 'numeric'
         });
         html += `
             <div class="item">
@@ -167,12 +168,12 @@ function renderResults(task) {
         ${data.name}
         <div class="sub header">
             Date: ${startTime.toLocaleString('en-GB', {
-                day: 'numeric',
-                year: 'numeric',
-                month: 'long',
-                hour: 'numeric',
-                minute: 'numeric'
-            })}
+        day: 'numeric',
+        year: 'numeric',
+        month: 'long',
+        hour: 'numeric',
+        minute: 'numeric'
+    })}
         </div>  
     `;
 
@@ -327,41 +328,12 @@ function renderResults(task) {
         </div>
     `;
 
-    const initPopups = (root) => {
-        $(root.querySelectorAll('a.label[data-accession]'))
-            .popup({
-                exclusive: true,
-                hoverable: true,
-                html: '<i class="notched circle loading icon"></i> Loading&hellip;',
-                position: 'left center',
-                variation: 'small basic custom',
-                onShow: function (elem) {
-                    const popup = this;
-                    const acc = elem.dataset.accession;
-                    fetch(`/api/signature/${acc}/comments/`)
-                        .then(response => response.json())
-                        .then(payload => {
-                            let html = '<div class="ui small comments">';
-                            for (let item of payload.results) {
-                                if (!item.status)
-                                    continue;
-
-                                html += `
-                                    <div class="comment">
-                                        <a class="author">${item.author}</a>
-                                        <div class="metadata"><span class="date">${item.date}</span></div>
-                                        <div class="text">${item.text}</div>
-                                    </div>
-                                `;
-                            }
-                            popup.html(html + '</div>');
-                        });
-                }
-            });
-    };
-
     resultsElem.querySelector('.sixteen.wide.column').innerHTML = html;
-    initPopups(resultsElem);
+    initPopups({
+        element: resultsElem,
+        buildUrl: (accession) => `/api/signature/${accession}/comments/`,
+        createPopup: createPopup
+    });
 
     for (let elem of resultsElem.querySelectorAll('a[data-database]')) {
         elem.addEventListener('click', event => {
@@ -372,7 +344,11 @@ function renderResults(task) {
             dbName = value !== null && value.length !== 0 ? value : null;
             const tbody = resultsElem.querySelector('tbody');
             tbody.innerHTML = genTableBody();
-            initPopups(tbody);
+            initPopups({
+                element: tbody,
+                buildUrl: (accession) => `/api/signature/${accession}/comments/`,
+                createPopup: createPopup
+            });
         });
     }
 }

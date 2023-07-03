@@ -1,7 +1,7 @@
 import {updateHeader} from "../ui/header.js";
 import * as dimmer from "../ui/dimmer.js";
 import {createDisabled} from "../ui/checkbox.js";
-import {initSignaturePopups} from "../ui/comments.js";
+import {initPopups, createPopup} from "../ui/comments.js";
 import {render} from "../ui/pagination.js";
 
 function renderEntry(entry) {
@@ -77,7 +77,12 @@ async function refresh() {
     $('[data-content]').popup();
 
     // Comment pop-ups
-    initSignaturePopups(elem, 'right center');
+    initPopups({
+        element: elem,
+        position: 'right center',
+        buildUrl: (accession) => `/api/signature/${accession}/comments/`,
+        createPopup: createPopup
+    });
 
     render(
         elem.querySelector('table'),
