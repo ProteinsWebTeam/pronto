@@ -970,35 +970,32 @@ def get_citations(cur: Cursor, pmids: list[int | str]) -> dict:
 
     cur.execute(
         f"""
-        SELECT VOLUME, ISSUE, YEAR, TITLE, RAWPAGES, MEDLINE_JOURNAL, ISO_JOURNAL, AUTHORS, DOI_URL, EXTERNAL_ID
+        SELECT 
+            EXTERNAL_ID, VOLUME, ISSUE, PUBYEAR, TITLE, PAGE_INFO, 
+            MEDLINE_ABBREVIATION, ISO_ABBREVIATION, AUTHORS, URL
         FROM (
             SELECT
-                C.EXTERNAL_ID AS EXTERNAL_ID, I.VOLUME AS VOLUME, I.ISSUE AS ISSUE,
-                I.PUBYEAR AS YEAR, C.TITLE AS TITLE, C.PAGE_INFO AS RAWPAGES,
-                J.MEDLINE_ABBREVIATION AS MEDLINE_JOURNAL, J.ISO_ABBREVIATION AS ISO_JOURNAL,
-                A.AUTHORS AS AUTHORS, U.URL AS DOI_URL,
+                C.EXTERNAL_ID, I.VOLUME, I.ISSUE, I.PUBYEAR, C.TITLE,
+                C.PAGE_INFO, J.MEDLINE_ABBREVIATION, J.ISO_ABBREVIATION,
+                A.AUTHORS, U.URL,
                 ROW_NUMBER() OVER (
-                      PARTITION BY C.EXTERNAL_ID
-                      ORDER BY U.DATE_UPDATED DESC
-                  ) R
+                    PARTITION BY C.EXTERNAL_ID
+                    ORDER BY U.DATE_UPDATED DESC
+                ) R
             FROM CDB.CITATIONS@LITPUB C
             LEFT OUTER JOIN CDB.JOURNAL_ISSUES@LITPUB I
                 ON C.JOURNAL_ISSUE_ID = I.ID
             LEFT JOIN CDB.CV_JOURNALS@LITPUB J
                 ON I.JOURNAL_ID = J.ID
             LEFT OUTER JOIN CDB.FULLTEXT_URL_MEDLINE@LITPUB U
-                ON (
-                    C.EXTERNAL_ID = U.EXTERNAL_ID AND
-                    UPPER(U.SITE) = 'DOI'
-                )
+                ON (C.EXTERNAL_ID = U.EXTERNAL_ID AND UPPER(U.SITE) = 'DOI')
             LEFT OUTER JOIN CDB.AUTHORS@LITPUB A
-                ON (
-                    C.ID = A.CITATION_ID AND
-                    A.HAS_SPECIAL_CHARS = 'N'
-                )
+                ON (C.ID = A.CITATION_ID AND A.HAS_SPECIAL_CHARS = 'N')
             WHERE C.EXTERNAL_ID IN ({','.join(keys)})
-        ) WHERE R = 1
-        """, params
+        ) 
+        WHERE R = 1
+        """,
+        params
     )
 
     citations = {}
