@@ -97,6 +97,10 @@ function renderFeatures(proteinLength, features, multiLine = false, labelLink = 
             y += matchHeight * 3;
         }
 
+        html += `<line x1="1" y1="${Math.floor(y+(matchHeight/2))}" 
+                       x2="${rectWidth}" y2="${Math.floor(y+(matchHeight/2))}" 
+                       stroke="#888" stroke-width="1px"/>`;
+
         for (const fragments of feature.matches) {
             html += '<g class="match">';
 
