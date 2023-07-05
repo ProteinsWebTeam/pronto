@@ -765,39 +765,27 @@ def update_annotation(ann_id):
             for pub_id in old_references:
                 if pub_id not in references:
                     # old reference not in any annotation: move to suppl. refs
-                    to_move.add((entry_ac, pub_id))
+                    cur.execute(
+                        """
+                        DELETE FROM INTERPRO.ENTRY2PUB
+                        WHERE ENTRY_AC = :1 AND PUB_ID = :2
+                        """,
+                        [entry_ac, pub_id]
+                    )
+
+                    if (entry_ac, pub_id) not in in_suppl_ref:
+                        cur.execute(
+                            """
+                            INSERT INTO INTERPRO.SUPPLEMENTARY_REF
+                            VALUES (:1, :2)
+                            """,
+                            [entry_ac, pub_id]
+                        )
 
             for pub_id in new_references:
                 if pub_id not in references:
                     # new reference not in ENTRY2PUB yet
                     to_insert.add((entry_ac, pub_id))
-
-        try:
-            cur.executemany(
-                """
-                DELETE FROM INTERPRO.ENTRY2PUB
-                WHERE ENTRY_AC = :1 AND PUB_ID = :2
-                """,
-                list(to_move)
-            )
-
-            cur.executemany(
-                """
-                INSERT INTO INTERPRO.SUPPLEMENTARY_REF
-                VALUES (:1, :2)
-                """,
-                list(to_move - in_suppl_ref)
-            )
-        except DatabaseError as exc:
-            cur.close()
-            con.close()
-            return jsonify({
-                "status": False,
-                "error": {
-                    "title": "Database error",
-                    "message": str(exc)
-                }
-            }), 500
 
         for entry_ac, pub_id in to_insert - in_entry2pub:
             try:
@@ -821,7 +809,7 @@ def update_annotation(ann_id):
                 return jsonify({
                     "status": False,
                     "error": {
-                        "title": "Database error",
+                        "title": "Database error 3",
                         "message": str(exc)
                     }
                 }), 500
@@ -844,7 +832,7 @@ def update_annotation(ann_id):
         return jsonify({
             "status": False,
             "error": {
-                "title": "Database error",
+                "title": "Database error 4",
                 "message": str(exc)
             }
         }), 500
