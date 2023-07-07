@@ -533,25 +533,27 @@ def create_entry():
         #         }
         #     }), 409
 
-        # Unintegrate signatures
-        try:
-            cur.executemany(
-                """
-                DELETE FROM INTERPRO.ENTRY2METHOD
-                WHERE ENTRY_AC = :1 AND METHOD_AC = :2
-                """, to_unintegrate
-            )
-        except oracledb.DatabaseError as exc:
-            cur.close()
-            con.close()
-            return jsonify({
-                "status": False,
-                "error": {
-                    "title": "Database error",
-                    "message": f"Signature(s) could not be unintegrated: "
-                               f"{exc}."
-                }
-            }), 500
+        if to_unintegrate:
+            # Unintegrate signatures
+            try:
+                cur.executemany(
+                    """
+                    DELETE FROM INTERPRO.ENTRY2METHOD
+                    WHERE ENTRY_AC = :1 AND METHOD_AC = :2
+                    """,
+                    to_unintegrate
+                )
+            except oracledb.DatabaseError as exc:
+                cur.close()
+                con.close()
+                return jsonify({
+                    "status": False,
+                    "error": {
+                        "title": "Database error",
+                        "message": f"Signature(s) could not be unintegrated: "
+                                   f"{exc}."
+                    }
+                }), 500
 
     cur.execute(
         """
