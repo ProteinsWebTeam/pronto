@@ -5,6 +5,7 @@ import { setClass, escape, copy2clipboard } from "./ui/utils.js";
 import { waitForTask } from "./tasks.js";
 import * as modal from "./ui/modals.js";
 import { backToTop } from "./ui/backtotop.js";
+import { initPopups, createPopup } from './ui/comments.js';
 
 async function getMemberDatabaseUpdates() {
     const response = await fetch('/api/databases/updates/')
@@ -415,7 +416,7 @@ function renderRecentEntries(entries) {
 
         let numComments = entry.comments.entry + entry.comments.signatures;
         if (numComments > 0)
-            html += `<a href="/entry/${entry.accession}/" class="ui small basic label"><i class="comments icon"></i> ${numComments}</a>`;
+            html += `<a data-accession="${entry.accession}" class="ui small basic label"><i class="comments icon"></i> ${numComments}</a>`;
 
         html += '</td></tr>';
     }
@@ -425,6 +426,12 @@ function renderRecentEntries(entries) {
 
     tab.querySelector('thead th:first-child').innerHTML = `${count.toLocaleString()} entr${count === 1 ? 'y' : 'ies'}`;
     tab.querySelector('tbody').innerHTML = html;
+
+    initPopups({
+        element: tab,
+        buildUrl: (accession) => `/api/entry/${accession}/comments/?signatures`,
+        createPopup: createPopup
+    });
 }
 
 async function getRecentEntries() {
@@ -538,74 +545,13 @@ async function getUncheckedEntries() {
         tab.querySelector('tbody').innerHTML = html;
         tab.querySelector('thead > tr:first-child > th:first-child').innerHTML = `${entries.length} entries`;
 
-        initPopups(tab);
+        initPopups({
+            element: tab,
+            buildUrl: (accession) => `/api/entry/${accession}/comments/?signatures`,
+            createPopup: createPopup
+        });
     };
 
-    const initPopups = (root) => {
-        $(root.querySelectorAll('a.label[data-accession]'))
-            .popup({
-                exclusive: true,
-                hoverable: true,
-                html: '<i class="notched circle loading icon"></i> Loading&hellip;',
-                position: 'left center',
-                variation: 'small basic custom',
-                onShow: function (elem) {
-                    const popup = this;
-                    const acc = elem.dataset.accession;
-                    const content = {
-                        entry_comments: '',
-                        signatures_comments: '',
-                    }
-                    const updatePopup = (source, html) => {
-                        content[source] = html;
-                        popup.html(`
-                        <div class="ui small comments">
-                        ${content.entry_comments}
-                        ${content.signatures_comments}
-                        </div>`);
-
-                    }
-                    fetch(`/api/entry/${acc}/comments/`)
-                        .then(response => response.json())
-                        .then(payload => {
-                            let html = '';
-                            for (let item of payload.results) {
-                                if (!item.status)
-                                    continue;
-
-                                html += `
-                                    <div class="comment">
-                                        <a class="signature">${item.accession}</a>
-                                        <a class="author">${item.author}</a>
-                                        <div class="metadata"><span class="date">${item.date}</span></div>
-                                        <div class="text">${item.text}</div>
-                                    </div>
-                                `;
-                            }
-                            updatePopup('entry_comments', html)
-                        });
-                    fetch(`/api/entry/${acc}/sign/comments/`)
-                        .then(response => response.json())
-                        .then(payload => {
-                            let html = '';
-                            for (let item of payload.results) {
-                                if (!item.status)
-                                    continue;
-
-                                html += `
-                                    <div class="comment">
-                                        <a class="signature">${item.accession}</a>
-                                        <a class="author">${item.author}</a>
-                                        <div class="metadata"><span class="date">${item.date}</span></div>
-                                        <div class="text">${item.text}</div>
-                                    </div>
-                                `;
-                            }
-                            updatePopup('signatures_comments', html);
-                        });
-                }
-            });
-    };
 
     for (const elem of tab.querySelectorAll('input[type="radio"][name="database"]')) {
         elem.addEventListener('change', (e,) => {

@@ -46,6 +46,7 @@ export function createPopup(payload) {
 
         html += `
             <div class="comment">
+                <a class="signature">${item.accession}</a>
                 <a class="author">${item.author}</a>
                 <div class="metadata"><span class="date">${item.date}</span></div>
                 <div class="text">${item.text}</div>

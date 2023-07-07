@@ -139,6 +139,7 @@ def get_signature_comments(accession):
             "date": row[2].strftime("%d %B %Y at %H:%M"),
             "status": row[3] == "Y",
             "author": row[4],
+            "accession": accession,
         } for row in cur
     ]
     cur.close()
