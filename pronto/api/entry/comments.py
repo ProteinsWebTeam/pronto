@@ -62,16 +62,14 @@ def get_entry_comments(accession):
             """, (accession,)
         )
         for row in cur:
-            comments.append(
-            {
+            comments.append({
                 "id": row[0],
                 "text": row[1],
                 "date": row[2].strftime("%Y-%m-%d %H:%M:%S"),
                 "status": row[3] == "Y",
                 "author": row[4],
                 "accession": row[5],
-            }
-            )
+            })
     
         
     cur.close()
