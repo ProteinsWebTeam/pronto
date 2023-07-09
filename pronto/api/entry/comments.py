@@ -71,8 +71,8 @@ def get_entry_comments(accession):
                 "accession": row[5],
             })
     
-        
     cur.close()
+    con.close()
     n_comments = len(comments)
 
     if n:
