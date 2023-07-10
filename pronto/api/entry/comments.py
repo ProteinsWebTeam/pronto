@@ -26,11 +26,10 @@ def get_entry_comments(accession):
 
     con = utils.connect_oracle()
     cur = con.cursor()
-    comments = []
 
     cur.execute(
             """
-            SELECT C.ID, C.VALUE, C.CREATED_ON, C.STATUS, U.NAME, C.ENTRY_AC
+            SELECT C.ID, C.VALUE, C.CREATED_ON, C.STATUS, U.NAME
             FROM INTERPRO.ENTRY_COMMENT C
             INNER JOIN INTERPRO.PRONTO_USER U ON C.USERNAME = U.USERNAME
             WHERE C.ENTRY_AC = :1
@@ -45,7 +44,7 @@ def get_entry_comments(accession):
             "date": row[2].strftime("%Y-%m-%d %H:%M:%S"),
             "status": row[3] == "Y",
             "author": row[4],
-            "accession": row[5],
+            "accession": accession,
         } for row in cur
     ]
 
