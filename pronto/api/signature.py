@@ -136,7 +136,7 @@ def get_signature_comments(accession):
         {
             "id": row[0],
             "text": row[1],
-            "date": row[2].strftime("%d %B %Y at %H:%M"),
+            "date": row[2].strftime("%d %b %Y at %H:%M"),
             "status": row[3] == "Y",
             "author": row[4],
             "accession": accession,

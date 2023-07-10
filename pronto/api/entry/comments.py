@@ -41,7 +41,7 @@ def get_entry_comments(accession):
         {
             "id": row[0],
             "text": row[1],
-            "date": row[2].strftime("%Y-%m-%d %H:%M:%S"),
+            "date": row[2].strftime("%d %b %Y at %H:%M"),
             "status": row[3] == "Y",
             "author": row[4],
             "accession": accession,
@@ -64,7 +64,7 @@ def get_entry_comments(accession):
             comments.append({
                 "id": row[0],
                 "text": row[1],
-                "date": row[2].strftime("%Y-%m-%d %H:%M:%S"),
+                "date": row[2].strftime("%d %b %Y at %H:%M"),
                 "status": row[3] == "Y",
                 "author": row[4],
                 "accession": row[5],
