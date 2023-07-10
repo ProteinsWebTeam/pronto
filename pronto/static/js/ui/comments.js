@@ -38,18 +38,21 @@ export function initPopups({element, position, buildUrl, createPopup}) {
         });
 }
 
+function genEntryOrSignatureLink(accession) {
+    const endpoint = /^IPR\d{6}$/.test(accession) ? 'entry' : 'signature';
+    return `<a href="/${endpoint}/${accession}/">${accession}</a>`;
+}
+
 export function createPopup(payload) {
     let html = '<div class="ui small comments">';
     for (let item of payload.results) {
         if (!item.status)
             continue;
 
-        const regex = /^IPR/;
         html += `
             <div class="comment">
-                From <a class="signature" href="/${(regex.test(item.accession) ? 'entry' : 'signature')}/${item.accession}">${item.accession}</a>
-                added by <a class="author">${item.author}</a>
-                on <div class="metadata"><span class="date">${item.date}</span></div>
+                <span class="author">${item.author} on ${genEntryOrSignatureLink(item.accession)}</span>
+                <div class="metadata"><span class="date">${item.date}</span></div>
                 <div class="text">${item.text}</div>
             </div>
         `;
