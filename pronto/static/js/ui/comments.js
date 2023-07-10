@@ -44,11 +44,12 @@ export function createPopup(payload) {
         if (!item.status)
             continue;
 
+        const regex = /^IPR/;
         html += `
             <div class="comment">
-                <a class="signature">${item.accession}</a>
-                <a class="author">${item.author}</a>
-                <div class="metadata"><span class="date">${item.date}</span></div>
+                From <a class="signature" href="/${(regex.test(item.accession) ? 'entry' : 'signature')}/${item.accession}">${item.accession}</a>
+                added by <a class="author">${item.author}</a>
+                on <div class="metadata"><span class="date">${item.date}</span></div>
                 <div class="text">${item.text}</div>
             </div>
         `;
