@@ -17,7 +17,7 @@ export function postSignatureComment(accession, text) {
     return postComment('signature', accession, text);
 }
 
-export function initSignaturePopups(element, position) {
+export function initPopups({element, position, buildUrl, createPopup}) {
     $(element.querySelectorAll('a.label[data-accession]'))
         .popup({
             exclusive: true,
@@ -28,26 +28,36 @@ export function initSignaturePopups(element, position) {
             onShow: function (elem) {
                 const popup = this;
                 const acc = elem.dataset.accession;
-                fetch(`/api/signature/${acc}/comments/`)
+                const url = buildUrl(acc);
+                fetch(url)
                     .then(response => response.json())
                     .then(payload => {
-                        let html = '<div class="ui small comments">';
-                        for (let item of payload.results) {
-                            if (!item.status)
-                                continue;
-
-                            html += `
-                                    <div class="comment">
-                                        <a class="author">${item.author}</a>
-                                        <div class="metadata"><span class="date">${item.date}</span></div>
-                                        <div class="text">${item.text}</div>
-                                    </div>
-                                `;
-                        }
-                        popup.html(html + '</div>');
+                        popup.html(createPopup(payload));
                     });
             }
         });
+}
+
+function genEntryOrSignatureLink(accession) {
+    const endpoint = /^IPR\d{6}$/.test(accession) ? 'entry' : 'signature';
+    return `<a href="/${endpoint}/${accession}/">${accession}</a>`;
+}
+
+export function createPopup(payload) {
+    let html = '<div class="ui small comments">';
+    for (let item of payload.results) {
+        if (!item.status)
+            continue;
+
+        html += `
+            <div class="comment">
+                <span class="author">${item.author} on ${genEntryOrSignatureLink(item.accession)}</span>
+                <div class="metadata"><span class="date">${item.date}</span></div>
+                <div class="text">${item.text}</div>
+            </div>
+        `;
+    }
+    return html + '</div>';
 }
 
 function getComments(type, accession, max, div, callback) {

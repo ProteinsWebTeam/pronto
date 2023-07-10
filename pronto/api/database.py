@@ -206,7 +206,7 @@ def get_integrated_signatures(db_name):
                 "latest_comment": {
                     "text": comment_text,
                     "author": comment_author,
-                    "date": comment_date.strftime("%d %B %Y at %H:%M"),
+                    "date": comment_date.strftime("%d %b %Y at %H:%M"),
                 }
                 if comment_text
                 else None,
@@ -367,13 +367,17 @@ def get_unintegrated_signatures(db_name):
     comments = {}
     for row in cur:
         try:
-            comments[row[0]].append(
-                {"text": row[1], "author": row[2], "date": row[3].strftime("%d %B %Y at %H:%M"),}
-            )
+            comments[row[0]].append({
+                "text": row[1],
+                "author": row[2],
+                "date": row[3].strftime("%d %b %Y at %H:%M"),
+            })
         except KeyError:
-            comments[row[0]] = [
-                {"text": row[1], "author": row[2], "date": row[3].strftime("%d %B %Y at %H:%M"),}
-            ]
+            comments[row[0]] = [{
+                "text": row[1],
+                "author": row[2],
+                "date": row[3].strftime("%d %b %Y at %H:%M"),
+            }]
     cur.execute(
         """
         SELECT EM.METHOD_AC, E.ENTRY_AC, E.NAME, E.ENTRY_TYPE, E.CHECKED

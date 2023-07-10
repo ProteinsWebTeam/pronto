@@ -1,5 +1,5 @@
 import {waitForTask} from "./tasks.js";
-import {initSignaturePopups} from "./ui/comments.js";
+import {initPopups, createPopup} from "./ui/comments.js";
 import {renderTaskList, updateHeader} from "./ui/header.js";
 import {setClass} from "./ui/utils.js";
 import * as dimmer from "./ui/dimmer.js";
@@ -311,7 +311,11 @@ function renderResults(task) {
     `;
 
     resultsElem.querySelector('.sixteen.wide.column').innerHTML = html;
-    initSignaturePopups(resultsElem);
+    initPopups({
+        element: resultsElem,
+        buildUrl: (accession) => `/api/signature/${accession}/comments/`,
+        createPopup: createPopup
+    });
 
     for (let elem of resultsElem.querySelectorAll('a[data-database]')) {
         elem.addEventListener('click', event => {
@@ -322,7 +326,11 @@ function renderResults(task) {
             dbName = value !== null && value.length !== 0 ? value : null;
             const tbody = resultsElem.querySelector('tbody');
             tbody.innerHTML = genTableBody();
-            initSignaturePopups(tbody);
+            initPopups({
+                element: tbody,
+                buildUrl: (accession) => `/api/signature/${accession}/comments/`,
+                createPopup: createPopup
+            });
         });
     }
 }

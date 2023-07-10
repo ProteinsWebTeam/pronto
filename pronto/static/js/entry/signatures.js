@@ -1,4 +1,5 @@
 import * as modals from "../ui/modals.js";
+import { initPopups, createPopup } from '../ui/comments.js';
 
 export function integrate(entryAcc, signatureAcc, confirmed) {
     const options = {
@@ -83,7 +84,7 @@ export function refresh(accession) {
                     `;
 
                     if (signature.comments > 0)
-                        html += `<span class="ui small basic label"><i class="comments icon"></i> ${signature.comments}</span>`;
+                        html += `<a data-accession="${signature.accession}" class="ui small basic label"><i class="comments icon"></i> ${signature.comments}</a>`;
 
                     html += `</td><td class="collapsing"><i data-accession="${signature.accession}" class="unlink fitted button icon"></i></td></tr>`;
                 }
@@ -109,5 +110,11 @@ export function refresh(accession) {
                     unintegrate(accession, i.dataset.accession, i.closest('tr').dataset.unirule !== '0');
                 });
             }
+
+            initPopups({
+                element: tbody,
+                buildUrl: (accession) => `/api/signature/${accession}/comments/`,
+                createPopup: createPopup
+            });
         });
 }

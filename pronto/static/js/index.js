@@ -5,6 +5,7 @@ import { setClass, escape, copy2clipboard } from "./ui/utils.js";
 import { waitForTask } from "./tasks.js";
 import * as modal from "./ui/modals.js";
 import { backToTop } from "./ui/backtotop.js";
+import { initPopups, createPopup } from './ui/comments.js';
 
 async function getMemberDatabaseUpdates() {
     const response = await fetch('/api/databases/updates/')
@@ -401,6 +402,7 @@ function renderRecentEntries(entries) {
         count += 1;
         html += `
             <tr>
+            <td>${count}</td>
             <td>
                 <span class="ui circular mini label type ${entry.type}">${entry.type}</span>
                 <a href="/entry/${entry.accession}/">${entry.accession}</a>
@@ -414,7 +416,7 @@ function renderRecentEntries(entries) {
 
         let numComments = entry.comments.entry + entry.comments.signatures;
         if (numComments > 0)
-            html += `<a href="/entry/${entry.accession}/" class="ui small basic label"><i class="comments icon"></i> ${numComments}</a>`;
+            html += `<a data-accession="${entry.accession}" class="ui small basic label"><i class="comments icon"></i> ${numComments}</a>`;
 
         html += '</td></tr>';
     }
@@ -424,6 +426,12 @@ function renderRecentEntries(entries) {
 
     tab.querySelector('thead th:first-child').innerHTML = `${count.toLocaleString()} entr${count === 1 ? 'y' : 'ies'}`;
     tab.querySelector('tbody').innerHTML = html;
+
+    initPopups({
+        element: tab,
+        buildUrl: (accession) => `/api/entry/${accession}/comments/?signatures`,
+        createPopup: createPopup
+    });
 }
 
 async function getRecentEntries() {
@@ -526,7 +534,7 @@ async function getUncheckedEntries() {
 
             let numComments = entry.comments.entry + entry.comments.signatures;
             if (numComments > 0)
-                html += `<a href="/entry/${entry.accession}/" class="ui small basic label"><i class="comments icon"></i> ${numComments}</a>`;
+                html += `<a data-accession="${entry.accession}" class="ui small basic label"><i class="comments icon"></i> ${numComments}</a>`;
 
             html += '</td></tr>';
         }
@@ -536,7 +544,14 @@ async function getUncheckedEntries() {
 
         tab.querySelector('tbody').innerHTML = html;
         tab.querySelector('thead > tr:first-child > th:first-child').innerHTML = `${entries.length} entries`;
+
+        initPopups({
+            element: tab,
+            buildUrl: (accession) => `/api/entry/${accession}/comments/?signatures`,
+            createPopup: createPopup
+        });
     };
+
 
     for (const elem of tab.querySelectorAll('input[type="radio"][name="database"]')) {
         elem.addEventListener('change', (e,) => {
@@ -577,7 +592,7 @@ async function getSanityCheck() {
     const object = await response.json();
     const tab = document.querySelector('.tab[data-tab="checks"]');
     if (response.status === 404) {
-        tab.querySelector('tbody').innerHTML = '<tr><td colspan="4" class="center aligned">No sanity check report available</td></tr>';
+        tab.querySelector('tbody').innerHTML = '<tr><td colspan="5" class="center aligned">No sanity check report available</td></tr>';
         document.querySelector('.item[data-tab="checks"] .label').innerHTML = '0';
         return;
     }
@@ -589,11 +604,14 @@ async function getSanityCheck() {
     let html = '';
     let numUnresolved = 0;
     if (object.errors.length > 0) {
+        let count = 0
         for (const error of object.errors) {
+            count += 1
             const acc = error.annotation !== null ? error.annotation : error.entry;
             html += `
                 <tr>
-                <td class="left marked ${error.resolution.date === null ? 'red' : 'green'}">
+                <td class="left marked ${error.resolution.date === null ? 'red' : 'green'}">${count}</td>
+                <td>
                     <a target="_blank" href="/search/?q=${acc}">${acc}</a>
                 </td>
             `;
