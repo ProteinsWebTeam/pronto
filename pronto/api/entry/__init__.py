@@ -401,15 +401,6 @@ def create_entry():
                            "one signature."
             }
         }), 400
-    elif entry_type == 'U':
-        # Unknown type is not allowed
-        return jsonify({
-            "status": False,
-            "error": {
-                "title": "Invalid type",
-                "message": "InterPro entries cannot be of type Unknown."
-            }
-        }), 400
 
     if len(entry_name) > 100:
         return jsonify({
