@@ -263,6 +263,115 @@ async function getCitationsStats() {
     document.getElementById('stats-citations').innerHTML = total.toLocaleString();
 }
 
+async function getRecentActivity(days, max) {
+    const seconds = (days || 7) * 24 * 3600;
+    const response = await fetch(`/api/activity/?s=${seconds}`);
+    const data = await response.json();
+
+    const actions = new Map([
+        ['I', ['plus', 'created']],
+        ['U', ['pencil alternate', 'edited']],
+        ['D', ['trash alternate', 'deleted']]
+    ]);
+
+    const createAbstractLink = (annId) => {
+        return `<a href="/search/?q=${annId}">${annId}</a>`;
+    };
+    const createEntryLink = (accession) => {
+        return `<a href="/entry/${accession}/">${accession}</a>`;
+    };
+    const createSignatureLink = (accession) => {
+        return `<a href="/signature/${accession}/">${accession}</a>`;
+    };
+
+    const dateReg = /^(\d+ [a-z]+) \d+ at \d+:\d+$/i;
+    let html = '';
+    let n = 0;
+    for (const event of data) {
+        if (!actions.has(event.action))
+            continue
+
+        let [icon, action] = actions.get(event.action);
+        const user = event.user.split(' ')[0];
+
+        let target = null;
+        if (event.type === 'CA') {
+            if (action === 'deleted')
+                target = event.primary_id
+        }
+        switch (event.type) {
+            case 'CA':
+                if (action === 'deleted')
+                    target = event.primary_id;
+                else
+                    target = createAbstractLink(event.primary_id);
+                break;
+            case 'E2C':
+                if (action === 'created') {
+                    action = 'added';
+                    target = `${createAbstractLink(event.secondary_id)} to ${createEntryLink(event.primary_id)}`;
+                } else if (action === 'deleted') {
+                    target = `${createAbstractLink(event.secondary_id)} from ${createEntryLink(event.primary_id)}`;
+                } else {
+                    action = 're-ordered';
+                    target = `${createAbstractLink(event.secondary_id)} in ${createEntryLink(event.primary_id)}`;
+                }
+                break;
+            case 'E2E':
+                if (action === 'created') {
+                    action = 'added';
+                    target = `${createEntryLink(event.primary_id)} to ${createAbstractLink(event.secondary_id)}`;
+                } else if (action === 'deleted') {
+                    action = 'unlinked';
+                    target = `${createEntryLink(event.primary_id)} and ${createAbstractLink(event.secondary_id)}`;
+                }
+                break;
+            case 'E2M':
+                if (action === 'created') {
+                    action = 'integrated';
+                    target = `${createSignatureLink(event.secondary_id)} in ${createEntryLink(event.primary_id)}`;
+                } else if (action === 'deleted') {
+                    action = 'unintegrated';
+                    target = `${createSignatureLink(event.secondary_id)} from ${createEntryLink(event.primary_id)}`;
+                }
+                break;
+            case 'E':
+                target = action === 'deleted' ? event.primary_id : createEntryLink(event.primary_id);
+                break;
+            case 'I2G':
+                if (action === 'created') {
+                    action = 'added';
+                    target = `${event.secondary_id} to ${createEntryLink(event.primary_id)}`;
+                } else if (action === 'deleted') {
+                    target = `${event.secondary_id} from ${createEntryLink(event.primary_id)}`;
+                }
+                break;
+        }
+
+        if (target === null)
+            continue;
+
+        html += `
+            <div class="event">
+                <div class="label">
+                    <i class="${icon} icon"></i>
+                </div>
+                <div class="content">
+                    <div class="date">
+                        ${event.timestamp}
+                    </div>                
+                    ${user} ${action} ${target}
+                </div>
+            </div>
+        `;
+
+        if (max && ++n === max)
+            break;
+    }
+
+    document.getElementById('activity').innerHTML = html;
+}
+
 async function getQuartelyStats() {
     const response = await fetch('/api/entries/stats/');
     const data = await response.json();
@@ -1034,7 +1143,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 getIntegrationStats(),
                 getInterPro2GoStats(),
                 getCitationsStats(),
-                getQuartelyStats()
+                getQuartelyStats(),
+                getRecentActivity(7, 0)
             ]).then(() => {
                 setClass(button, 'hidden', true);
                 setClass(button.parentNode.querySelector(':scope > .content'), 'hidden', false);

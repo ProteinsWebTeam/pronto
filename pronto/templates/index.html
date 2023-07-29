@@ -1,17 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
 
-<head>
-    <meta charset="UTF-8">
-    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/semantic.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
-    <title>Pronto</title>
-</head>
+    <head>
+        <meta charset="UTF-8">
+        <link rel="stylesheet" href="{{ url_for('static', filename='vendor/semantic.css') }}">
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
+        <title>Pronto</title>
+    </head>
 
-<body>
+    <body>
 
-{% include 'header.html' %}
+        {% include 'header.html' %}
 
 <div class="ui container">
     <div class="ui basic segment">
@@ -189,119 +189,128 @@
                     </div>
                 </div>
 
-                <h4>Number of entries created per year</h4>
-                <p>Only currently existing and checked entries are considered.</p>
-                <div id="chart-entries"></div>
+                                <h4>Number of entries created per year</h4>
+                                <p>Only currently existing and checked entries are considered.</p>
+                                <div id="chart-entries"></div>
 
-                <h4>Number of signatures integrated and unintegrated per week</h4>
-                <p>
-                    If a signature has been integrated (or unintegrated) more than once during the same week, only
-                    one integration (or unintegration) is considered. Integration counts do not reflect whether a
-                    signature has been unintegrated or deleted since, and whether
-                    the entry was checked at the time of integration.
-                </p>
-                <div id="chart-integrated"></div>
+                                <h4>Number of signatures integrated and unintegrated per week</h4>
+                                <p>
+                                    If a signature has been integrated (or unintegrated) more than once during the same week, only
+                                    one integration (or unintegration) is considered. Integration counts do not reflect whether a
+                                    signature has been unintegrated or deleted since, and whether
+                                    the entry was checked at the time of integration.
+                                </p>
+                                <div id="chart-integrated"></div>
 
-                <div class="ui equal width grid">
-                    <div class="column">
-                        <h4>Number of GO terms by checked entry</h4>
-                        <div id="chart-interpro2go"></div>
-                    </div>
-                    <div class="column">
-                        <h4>Number of citations by checked entry</h4>
-                        <div id="chart-citations"></div>
+                                <div class="ui equal width grid">
+                                    <div class="column">
+                                        <h4>Number of GO terms by checked entry</h4>
+                                        <div id="chart-interpro2go"></div>
+                                    </div>
+                                    <div class="column">
+                                        <h4>Number of citations by checked entry</h4>
+                                        <div id="chart-citations"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="four wide column">
+                                <h4>Latest member database updates</h4>
+                                <table id="table-updates" class="ui single line compact table">
+                                    <tbody></tbody>
+                                </table>
+
+                                <h4>Recent activity</h4>
+                                <div id="activity" class="ui feed"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
+                <div class="ui tab basic segment" data-tab="interproscan">
+                    <button class="fluid ui primary button">Load data</button>
 
+                    <div class="ui hidden progress">
+                        <div class="bar">
+                            <div class="progress"></div>
+                        </div>
+                        <div class="label">Fetching stats</div>
+                    </div>
 
+                    <div class="hidden content">
+                        <div class="ui info message">
+                            The charts below presents benchmarks for InterProScan jobs
+                            run against the <strong></strong> latest sequences in UniParc.
+                        </div>
+
+                        <h4>Compute time by contributing database</h4>
+                        <div class="ui form">
+                            <div class="inline fields">
+                                <label>Measurement:</label>
+                                <div class="field">
+                                    <div class="ui radio checkbox">
+                                        <input type="radio" name="data-type" value="runtime" checked="checked">
+                                        <label>Run time</label>
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <div class="ui radio checkbox">
+                                        <input type="radio" name="data-type" value="cputime">
+                                        <label>CPU time</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="inline fields">
+                                <label>Chart type:</label>
+                                <div class="field">
+                                    <div class="ui radio checkbox">
+                                        <input type="radio" name="chart-type" value="columns" checked="checked">
+                                        <label>Columns</label>
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <div class="ui radio checkbox">
+                                        <input type="radio" name="chart-type" value="pie">
+                                        <label>Pie</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="inline fields">
+                                <label>Order:</label>
+                                <div class="field">
+                                    <div class="ui radio checkbox">
+                                        <input type="radio" name="order-type" value="name">
+                                        <label>Name</label>
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <div class="ui radio checkbox">
+                                        <input type="radio" name="order-type" value="time" checked="checked">
+                                        <label>Time</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="chart-jobs-time"></div>
+
+                        <h4>Memory usage by contributing database</h4>
+                        <div id="chart-jobs-memory"></div>
+                    </div>
+                </div>
             </div>
         </div>
-        <div class="ui tab basic segment" data-tab="interproscan">
-            <button class="fluid ui primary button">Load data</button>
 
-            <div class="ui hidden progress">
-                <div class="bar">
-                    <div class="progress"></div>
-                </div>
-                <div class="label">Fetching stats</div>
-            </div>
-
-            <div class="hidden content">
-                <div class="ui info message">
-                    The charts below presents benchmarks for InterProScan jobs
-                    run against the <strong></strong> latest sequences in UniParc.
-                </div>
-
-                <h4>Compute time by contributing database</h4>
-                <div class="ui form">
-                    <div class="inline fields">
-                        <label>Measurement:</label>
-                        <div class="field">
-                            <div class="ui radio checkbox">
-                                <input type="radio" name="data-type" value="runtime" checked="checked">
-                                <label>Run time</label>
-                            </div>
-                        </div>
-                        <div class="field">
-                            <div class="ui radio checkbox">
-                                <input type="radio" name="data-type" value="cputime">
-                                <label>CPU time</label>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="inline fields">
-                        <label>Chart type:</label>
-                        <div class="field">
-                            <div class="ui radio checkbox">
-                                <input type="radio" name="chart-type" value="columns" checked="checked">
-                                <label>Columns</label>
-                            </div>
-                        </div>
-                        <div class="field">
-                            <div class="ui radio checkbox">
-                                <input type="radio" name="chart-type" value="pie">
-                                <label>Pie</label>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="inline fields">
-                        <label>Order:</label>
-                        <div class="field">
-                            <div class="ui radio checkbox">
-                                <input type="radio" name="order-type" value="name">
-                                <label>Name</label>
-                            </div>
-                        </div>
-                        <div class="field">
-                            <div class="ui radio checkbox">
-                                <input type="radio" name="order-type" value="time" checked="checked">
-                                <label>Time</label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div id="chart-jobs-time"></div>
-
-                <h4>Memory usage by contributing database</h4>
-                <div id="chart-jobs-memory"></div>
+        <div id="welcome" class="ui active page dimmer">
+            <div class="content">
+                <h2 class="ui inverted icon header">
+                    <i class="smile outline icon"></i> Welcome!
+                </h2>
             </div>
         </div>
-    </div>
-</div>
 
-<div id="welcome" class="ui active page dimmer">
-    <div class="content">
-        <h2 class="ui inverted icon header">
-            <i class="smile outline icon"></i> Welcome!
-        </h2>
-    </div>
-</div>
-
-<script src="{{ url_for('static', filename='vendor/jquery.min.js') }}"></script>
-<script src="{{ url_for('static', filename='vendor/semantic.js') }}"></script>
-<script src="{{ url_for('static', filename='vendor/highcharts.js') }}"></script>
-<script src="{{ url_for('static', filename='vendor/highcharts-more.js') }}"></script>
-<script src="{{ url_for('static', filename='js/index.js') }}" type="module"></script>
-</body>
+        <script src="{{ url_for('static', filename='vendor/jquery.min.js') }}"></script>
+        <script src="{{ url_for('static', filename='vendor/semantic.js') }}"></script>
+        <script src="{{ url_for('static', filename='vendor/highcharts.js') }}"></script>
+        <script src="{{ url_for('static', filename='vendor/highcharts-more.js') }}"></script>
+        <script src="{{ url_for('static', filename='js/index.js') }}" type="module"></script>
+    </body>
 
 </html>
