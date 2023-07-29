@@ -57,7 +57,7 @@ def get_activity():
     cur = con.cursor()
     cur.execute(
         f"""
-        SELECT A.TYPE, A.PRIMARY_ID, A.SECONDARY_ID, NVL(U.NAME, A.DBUSER), 
+        SELECT A.TYPE, A.PRIMARY_ID, A.SECONDARY_ID, U.NAME, 
                A.ACTION, A.TIMESTAMP
         FROM (
             SELECT 'CA' AS TYPE, ANN_ID AS PRIMARY_ID, NULL AS SECONDARY_ID, 
@@ -79,7 +79,7 @@ def get_activity():
             SELECT 'I2G', ENTRY_AC, GO_ID, DBUSER, ACTION, TIMESTAMP
             FROM INTERPRO.INTERPRO2GO_AUDIT
         ) A
-        LEFT OUTER JOIN INTERPRO.PRONTO_USER U ON A.DBUSER = U.DB_USER
+        INNER JOIN INTERPRO.PRONTO_USER U ON A.DBUSER = U.DB_USER
         WHERE A.TIMESTAMP >= SYSDATE - INTERVAL '{seconds}' SECOND
         ORDER BY A.TIMESTAMP DESC
         """
@@ -93,7 +93,7 @@ def get_activity():
             "secondary_id": id2,
             "action": action,
             "user": user,
-            "timestamp": ts.strftime("%d %b %Y at %H:%M")
+            "timestamp": ts.strftime("%a %d %b at %H:%M")
         })
 
     cur.close()
