@@ -92,6 +92,7 @@ def get_activity():
             "primary_id": id1,
             "secondary_id": id2,
             "action": action,
+            "user": user,
             "timestamp": ts.strftime("%d %b %Y at %H:%M")
         })
 
