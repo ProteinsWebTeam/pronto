@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import json
 import re
 
@@ -192,12 +190,16 @@ def get_integrated_signatures(db_name):
             {
                 "accession": acc,
                 "type": {
-                    "code": [k for k, v in code2type.items() if v == type_name][0],
+                    "code": [k for k, v in code2type.items()
+                             if v == type_name][0],
                     "name": type_name.replace("_", " "),
                 },
                 "entry": {
                     "accession": entry_acc,
-                    "type": {"code": type_code, "name": entry_type_name.replace("_", " ")},
+                    "type": {
+                        "code": type_code,
+                        "name": entry_type_name.replace("_", " ")
+                    },
                     "checked": is_checked,
                 }
                 if entry_acc
@@ -271,7 +273,8 @@ def get_unintegrated_signatures(db_name):
                 {
                     "error": {
                         "title": "Bad Request (invalid relationship parameter)",
-                        f"message": "Accepted values are: similar, parent, child, none.",
+                        "message": "Accepted values are: similar, parent, "
+                                   "child, none.",
                     }
                 }
             ),
@@ -285,7 +288,7 @@ def get_unintegrated_signatures(db_name):
                 {
                     "error": {
                         "title": "Bad Request (invalid sorting parameter)",
-                        f"message": "Accepted values are: accession, proteins",
+                        "message": "Accepted values are: accession, proteins",
                     }
                 }
             ),
@@ -299,7 +302,7 @@ def get_unintegrated_signatures(db_name):
                 {
                     "error": {
                         "title": "Bad Request (invalid sorting parameter)",
-                        f"message": "Accepted values are: " "asc, desc",
+                        "message": "Accepted values are: " "asc, desc",
                     }
                 }
             ),
@@ -317,7 +320,8 @@ def get_unintegrated_signatures(db_name):
                     {
                         "error": {
                             "title": "Bad Request (invalid target parameter)",
-                            f"message": "Accepted values are: " "integrated, unintegrated.",
+                            "message": "Accepted values are: "
+                                       "integrated, unintegrated.",
                         }
                     }
                 ),
@@ -334,7 +338,7 @@ def get_unintegrated_signatures(db_name):
                 {
                     "error": {
                         "title": "Bad Request (invalid commented parameter)",
-                        f"message": "An integer is expected",
+                        "message": "An integer is expected",
                     }
                 }
             ),
@@ -524,7 +528,7 @@ def get_unintegrated_signatures(db_name):
     results = []
     for q_acc, (q_type, q_proteins, q_residues) in db_unintegrated.items():
         if no_panther_sf and pthr_sf.match(q_acc):
-            # We are not interested in PANTHER sub-families
+            # We are not interested in PANTHER subfamilies
             continue
 
         # q_comments = num_comments.get(q_acc, 0)
