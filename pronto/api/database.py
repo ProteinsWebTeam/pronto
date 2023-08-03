@@ -1,5 +1,4 @@
 import json
-import re
 import uuid
 
 from flask import Blueprint, jsonify, request
@@ -332,7 +331,6 @@ def get_unintegrated_signatures(db_name):
         )
 
     no_same_db = "nosamedb" in request.args
-    no_panther_sf = "nopanthersf" in request.args
 
     con = utils.connect_oracle()
     cur = con.cursor()
@@ -437,7 +435,6 @@ def get_unintegrated_signatures(db_name):
 
     queries = {}
     blacklist = set()
-    pthr_sf = re.compile(r"PTHR\d+:SF\d+")
     while rows := cur.fetchmany(1000000):
         for row in rows:
             q_acc = row[0]
@@ -559,9 +556,6 @@ def get_unintegrated_signatures(db_name):
     results = []
     for q_acc, (q_type, q_proteins, q_residues) in db_unintegrated.items():
         if q_acc in blacklist:
-            continue
-        elif no_panther_sf and pthr_sf.match(q_acc):
-            # We are not interested in PANTHER subfamilies
             continue
 
         q_comments = num_comments.get(q_acc, 0)
