@@ -433,14 +433,12 @@ def get_unintegrated_signatures(db_name):
             WHERE s1.database_id = %s
         """
 
-    print("start")
     cur.execute(sql, [db_identifier])
 
     queries = {}
     blacklist = set()
     pthr_sf = re.compile(r"PTHR\d+:SF\d+")
     while rows := cur.fetchmany(1000000):
-        print(len(rows))
         for row in rows:
             q_acc = row[0]
 
