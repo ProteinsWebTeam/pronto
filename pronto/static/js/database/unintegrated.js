@@ -49,51 +49,64 @@ function getSignatures() {
             let html = '';
             if (object.count > 0) {
                 for (const signature of object.results) {
-                    html += `<tr data-id="${signature.accession}">
-                         <td rowspan="${signature.targets.length}"><a href="/signature/${signature.accession}/">${signature.accession}</a></td>
-                         <td rowspan="${signature.targets.length}" class="right aligned">${signature.proteins.toLocaleString()}</td>
-                         <td rowspan="${signature.targets.length}" class="ui comments"><div class="comment"><div class="content">`;
+
+                    html += `
+                        <tr data-id="${signature.accession}">
+                        <td rowspan="${signature.targets.length || 1}">
+                            <a href="/signature/${signature.accession}/">${signature.accession}</a>
+                        </td>
+                        <td rowspan="${signature.targets.length || 1}" class="right aligned">
+                            ${signature.proteins.toLocaleString()}
+                        </td>
+                        <td rowspan="${signature.targets.length || 1}">
+                    `;
+
                     if (signature.comments > 0) {
                         html += `
-                                <a class="author">${signature.latest_comment.author}</a>
-                                <div class="metadata"><span class="date">${signature.latest_comment.date}</span></div>
-                                <div class="text">${renderCommentText(signature.latest_comment.text)}</div>
-                            `;
+                            <a class="ui small basic label">
+                                <i class="comments icon"></i> ${signature.comments}
+                            </a>`;
                     }
-                    html += '<div class="actions"><a class="reply">Leave a comment</a></div></div></div></td>';
 
+                    html += `</td>`;
 
-                    for (let i = 0; i < signature.targets.length; ++i) {
-                        const target = signature.targets[i];
+                    if (signature.targets.length) {
+                        signature.targets.forEach((target, i) => {
+                            if (i)
+                                html += '<tr>';
 
-                        if (i) html += '<tr>';
-
-                        html += `<td class="nowrap">
-                                <span class="ui empty circular label" 
-                                      style="background-color: ${target.database.color};" 
-                                      data-content="${target.database.name}" 
-                                      data-position="left center" 
-                                      data-variation="tiny"></span>
-                                <a href="/signature/${target.accession}/">${target.accession}</a>
-                             </td>
-                             <td class="right aligned">${target.proteins.toLocaleString()}</td>
-                             <td class="right aligned">${target.collocations.toLocaleString()}</td>
-                             <td class="right aligned">${target.overlaps.toLocaleString()}</td>
-                             <td class="center aligned nowrap">${renderConfidence(target)}</td>
-                             ${renderEntry(target.entry)}
-                             </tr>`;
+                            html += `
+                                <td class="nowrap">
+                                    <span class="ui empty circular label" 
+                                          style="background-color: ${target.database.color};" 
+                                          data-content="${target.database.name}" 
+                                          data-position="left center" 
+                                          data-variation="tiny"></span>
+                                    <a href="/signature/${target.accession}/">${target.accession}</a>
+                                 </td>
+                                 <td class="right aligned">${target.proteins.toLocaleString()}</td>
+                                 <td class="right aligned">${target.collocations.toLocaleString()}</td>
+                                 <td class="right aligned">${target.overlaps.toLocaleString()}</td>
+                                 <td class="capitalize">${target.relationship}</td>
+                                 <td class="center aligned nowrap">${renderConfidence(target, true)}</td>
+                                 ${renderEntry(target.entry)}
+                                </tr>
+                            `;
+                        });
+                    } else {
+                        html += '<td colspan="8"></td></tr>'
                     }
                 }
             } else {
-                html = '<tr><td class="center aligned" colspan="9">No matching signatures found</td></tr>'
+                html = '<tr><td class="center aligned" colspan="11">No matching signatures found</td></tr>'
             }
 
             const table = document.getElementById('results');
             const cell = table.querySelector('thead tr:first-child th:first-child');
             if (object.count > 1)
-                cell.innerHTML = `${object.count} unintegrated signatures`;
+                cell.innerHTML = `${object.count.toLocaleString()} signatures`;
             else
-                cell.innerHTML = `${object.count} unintegrated signature`;
+                cell.innerHTML = `${object.count} signature`;
 
             table.querySelector('tbody').innerHTML = html;
 
@@ -107,7 +120,7 @@ function getSignatures() {
                     getSignatures();
                 });
 
-            for (const elem of document.querySelectorAll('.comment .reply')) {
+            for (const elem of document.querySelectorAll('a.small.basic.label')) {
                 elem.addEventListener('click', e => {
                     const accession = e.target.closest('tr').getAttribute('data-id');
                     const div = document.querySelector('.ui.sticky .ui.comments');
@@ -143,6 +156,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 url.searchParams.set(key, value);
             else if (url.searchParams.has(key))
                 url.searchParams.delete(key);
+
+            url.searchParams.delete('page');
+            url.searchParams.delete('page_size');
 
             history.replaceState(null, document.title, url.toString());
             getSignatures();

@@ -112,3 +112,15 @@ code.negative {
     bottom: 20px;
     right: 30px;
 }
+
+.flexblox {
+    display: flex;
+}
+.flex {
+    display: block;
+    flex: 1 1 auto;
+    padding: .25rem;
+}
+.flex.collapsing {
+    flex-grow: 0;
+}

@@ -74,9 +74,15 @@ export const selector = {
     }
 };
 
-export function renderConfidence(signature) {
-    if (signature.relationship === null)
+export function renderConfidence(signature, force) {
+    if (signature.relationship === null) {
+        if (force) {
+            return `<i class="star outline fitted icon"></i>
+                    <i class="star outline fitted icon"></i>
+                    <i class="star outline fitted icon">`;
+        }
         return '';
+    }
 
     let html = '<i class="star fitted icon"></i>';
     if (signature.relationship === signature.residues.relationship) {

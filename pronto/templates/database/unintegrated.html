@@ -1,167 +1,188 @@
 <!DOCTYPE html>
 <html lang="en">
 
-<head>
-    <meta charset="UTF-8">
-    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/semantic.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
-    <title>Pronto</title>
-    <style>
-        .ui.form>.inline.fields {
-            margin-bottom: .5em;
-        }
-        
-        .ui.form>.inline.fields>label {
-            min-width: 200px;
-        }
-    </style>
-</head>
+    <head>
+        <meta charset="UTF-8">
+        <link rel="stylesheet" href="{{ url_for('static', filename='vendor/semantic.css') }}">
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+        <title>Pronto</title>
+        <style>
+            .ui.form>.inline.fields {
+                margin-bottom: .5em;
+            }
 
-<body>
+            .ui.form>.inline.fields>label {
+                min-width: 200px;
+            }
 
-    {% include 'header.html' %}
+            .capitalize {
+                text-transform: capitalize;
+            }
+        </style>
+    </head>
 
-    <div class="ui container">
-        <div class="ui basic segment">
-            <h1 class="ui header"></h1>
-            <div class="ui form">
-                <div class="inline fields">
-                    <label>Predicted relationship</label>
-                    <div class="field">
-                        <div class="ui radio checkbox">
-                            <input id="relationship-similar" class="hidden" type="radio" name="relationship" value="similar" checked>
-                            <label for="relationship-similar">Similar</label>
-                        </div>
-                    </div>
-                    <div class="field">
-                        <div class="ui radio checkbox">
-                            <input id="relationship-parent" class="hidden" type="radio" name="relationship" value="parent">
-                            <label for="relationship-parent">Parent</label>
-                        </div>
-                    </div>
-                    <div class="field">
-                        <div class="ui radio checkbox">
-                            <input id="relationship-child" class="hidden" type="radio" name="relationship" value="child">
-                            <label for="relationship-child">Child</label>
-                        </div>
-                    </div>
-                    <!--<div class="field">
-                    <div class="ui radio checkbox">
-                        <input id="relationship-none" class="hidden" type="radio" name="relationship" value="none">
-                        <label for="relationship-none">None</label>
-                    </div>
-                </div>-->
-                </div>
-                <div class="inline fields">
-                    <label>Integration status</label>
-                    <div class="field">
-                        <div class="ui radio checkbox">
-                            <input id="target-none" class="hidden" type="radio" name="target" value="">
-                            <label for="target-none">Any</label>
-                        </div>
-                    </div>
-                    <div class="field">
-                        <div class="ui radio checkbox">
-                            <input id="target-integrated" class="hidden" type="radio" name="target" value="integrated" checked="checked">
-                            <label for="target-integrated">Integrated</label>
-                        </div>
-                    </div>
-                    <div class="field">
-                        <div class="ui radio checkbox">
-                            <input id="target-unintegrated" class="hidden" type="radio" name="target" value="unintegrated">
-                            <label for="target-unintegrated">Unintegrated</label>
-                        </div>
-                    </div>
-                </div>
-                <div class="inline fields">
-                    <label>Commented</label>
-                    <div class="field">
-                        <div class="ui radio checkbox">
-                            <input id="commented-any" class="hidden" type="radio" name="commented" value="" checked="checked">
-                            <label for="commented-any">Any</label>
-                        </div>
-                    </div>
-                    <div class="field">
-                        <div class="ui radio checkbox">
-                            <input id="commented-yes" class="hidden" type="radio" name="commented" value="1">
-                            <label for="commented-yes">Yes</label>
-                        </div>
-                    </div>
-                    <div class="field">
-                        <div class="ui radio checkbox">
-                            <input id="commented-no" class="hidden" type="radio" name="commented" value="0">
-                            <label for="commented-no">No</label>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="ui grid">
-                <div class="thirteen wide column">
-                    <div class="ui warning message">
-                        <i class="close icon"></i>
-                        <div class="header">Checkboxes are read-only</div>
-                        <p>To check or uncheck an entry, please visit the entry page.</p>
-                    </div>
-                    <table id="results" class="ui very compact celled structured table">
-                        <thead>
-                            <tr>
-                                <th colspan="3" class="center aligned"></th>
-                                <th colspan="5" class="center aligned">Prediction</th>
-                                <th rowspan="2" colspan="2" class="center aligned">Entry</th>
-                            </tr>
-                            <tr>
-                                <th class="nowrap" data-sort-by="accession" data-sort-order="asc">
-                                    Accession
-                                    <i class="button icon sort up"></i>
-                                </th>
-                                <th class="nowrap" data-sort-by="proteins" data-sort-order="none">
-                                    Proteins
-                                    <i class="button icon sort"></i>
-                                </th>
-                                <th>Comments</th>
-                                <th>Accession</th>
-                                <th>Proteins</th>
-                                <th>Collocations</th>
-                                <th>Overlaps</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                        <tfoot>
-                            <tr>
-                                <th colspan="10">
-                                    <div class="ui right floated pagination menu"></div>
-                                </th>
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
+    <body>
 
-                <div class="three wide column">
-                    <div class="ui hidden sticky">
+        {% include 'header.html' %}
 
-                        <div class="ui vertical segment comments">
-                            <h3 class="ui dividing header">
-                                <i class="comments icon"></i>Comments
-                                <div class="sub header"></div>
-                            </h3>
-                            <div class="comments-content"></div>
-                            <form class="ui reply form">
-                                <div class="field">
-                                    <textarea placeholder="Write comment&hellip;"></textarea>
+        <div class="ui container">
+            <div class="ui basic segment">
+                <h1 class="ui header"></h1>
+                <div class="flexblox">
+                    <div class="ui form flex collapsing">
+                        <div class="inline fields">
+                            <label>Predicted relationship</label>
+                            <div class="field">
+                                <div class="ui radio checkbox">
+                                    <input id="relationship-similar" class="hidden" type="radio" name="relationship" value="similar" checked="checked">
+                                    <label for="relationship-similar">Similar</label>
                                 </div>
-                                <button class="ui blue labeled icon button"><i class="icon edit"></i> Add comment</button>
-                            </form>
+                            </div>
+                            <div class="field">
+                                <div class="ui radio checkbox">
+                                    <input id="relationship-parent" class="hidden" type="radio" name="relationship" value="parent">
+                                    <label for="relationship-parent">Parent</label>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <div class="ui radio checkbox">
+                                    <input id="relationship-child" class="hidden" type="radio" name="relationship" value="child">
+                                    <label for="relationship-child">Child</label>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <div class="ui radio checkbox">
+                                    <input id="relationship-none" class="hidden" type="radio" name="relationship" value="none">
+                                    <label for="relationship-none">None</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="inline fields">
+                            <label>Integration status</label>
+                            <div class="field">
+                                <div class="ui radio checkbox">
+                                    <input id="target-none" class="hidden" type="radio" name="target" value="" checked="checked">
+                                    <label for="target-none">Any</label>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <div class="ui radio checkbox">
+                                    <input id="target-integrated" class="hidden" type="radio" name="target" value="integrated">
+                                    <label for="target-integrated">Integrated</label>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <div class="ui radio checkbox">
+                                    <input id="target-unintegrated" class="hidden" type="radio" name="target" value="unintegrated">
+                                    <label for="target-unintegrated">Unintegrated</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="inline fields">
+                            <label>Commented</label>
+                            <div class="field">
+                                <div class="ui radio checkbox">
+                                    <input id="commented-any" class="hidden" type="radio" name="commented" value="" checked="checked">
+                                    <label for="commented-any">Any</label>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <div class="ui radio checkbox">
+                                    <input id="commented-yes" class="hidden" type="radio" name="commented" value="1">
+                                    <label for="commented-yes">Yes</label>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <div class="ui radio checkbox">
+                                    <input id="commented-no" class="hidden" type="radio" name="commented" value="0">
+                                    <label for="commented-no">No</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex">
+                        <div class="ui info message">
+                            <i class="close icon"></i>
+                            <div class="header">About the <em>None</em> option</div>
+                            <p>
+                                The <em>Similar</em>, <em>Parent</em> and <em>Child</em> options identify signatures
+                                that are similar to other signatures, with the aim of integrating them together.
+                                The <em>None</em> option identifies signatures that have little or no similarity
+                                to other signatures. This is useful if you want to integrate signatures that annotate
+                                proteins not covered by InterPro entries. However, this option is computationally
+                                intensive, and results may take over a minute to appear.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="ui grid">
+                    <div class="thirteen wide column">
+                        <div class="ui warning message">
+                            <i class="close icon"></i>
+                            <div class="header">Checkboxes are read-only</div>
+                            <p>To check or uncheck an entry, please visit the entry page.</p>
+                        </div>
+                        <table id="results" class="ui very compact celled structured table">
+                            <thead>
+                                <tr>
+                                    <th colspan="3" class="center aligned"></th>
+                                    <th colspan="6" class="center aligned">Targets</th>
+                                    <th rowspan="2" colspan="2" class="center aligned">Entry</th>
+                                </tr>
+                                <tr>
+                                    <th class="nowrap"> <!-- data-sort-by="accession" data-sort-order="none" -->
+                                        Accession
+                                        <!--<i class="button icon sort"></i>-->
+                                    </th>
+                                    <th class="nowrap"> <!-- data-sort-by="proteins" data-sort-order="none"> -->
+                                        Proteins
+                                        <!--<i class="button icon sort"></i>-->
+                                    </th>
+                                    <th class="collapsing">Comments</th>
+                                    <th>Accession</th>
+                                    <th>Proteins</th>
+                                    <th>Collocations</th>
+                                    <th>Overlaps</th>
+                                    <th colspan="2">Prediction</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                            <tfoot>
+                                <tr>
+                                    <th colspan="11">
+                                        <div class="ui right floated pagination menu"></div>
+                                    </th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+
+                    <div class="three wide column">
+                        <div class="ui hidden sticky">
+
+                            <div class="ui vertical segment comments">
+                                <h3 class="ui dividing header">
+                                    <i class="comments icon"></i>Comments
+                                    <div class="sub header"></div>
+                                </h3>
+                                <div class="comments-content"></div>
+                                <form class="ui reply form">
+                                    <div class="field">
+                                        <textarea placeholder="Write comment&hellip;"></textarea>
+                                    </div>
+                                    <button class="ui blue labeled icon button"><i class="icon edit"></i> Add comment</button>
+                                </form>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <script src="{{ url_for('static', filename='vendor/jquery.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='vendor/semantic.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/database/unintegrated.js') }}" type="module"></script>
-</body>
+        <script src="{{ url_for('static', filename='vendor/jquery.min.js') }}"></script>
+        <script src="{{ url_for('static', filename='vendor/semantic.js') }}"></script>
+        <script src="{{ url_for('static', filename='js/database/unintegrated.js') }}" type="module"></script>
+    </body>
 
 </html>
