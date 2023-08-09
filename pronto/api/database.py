@@ -1,7 +1,5 @@
 import json
-import uuid
 
-import psycopg
 from flask import Blueprint, jsonify, request
 
 from pronto import utils
