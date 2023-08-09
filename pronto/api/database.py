@@ -273,8 +273,6 @@ def get_unintegrated(db_name):
             400
         )
 
-    sort_col = sort_col.replace("-", "_")
-
     sort_order = request.args.get("sort-order", "asc")
     if sort_order not in ("asc", "desc"):
         return (
@@ -287,7 +285,18 @@ def get_unintegrated(db_name):
             400,
         )
 
-    prediction_filter = "with-predictions" in request.args
+    try:
+        prediction_filter = int(request.args.get("with-predictions", "0")) != 0
+    except ValueError:
+        return (
+            jsonify({
+                "error": {
+                    "title": "Bad Request (invalid with-predictions parameter)",
+                    "message": "An integer is expected",
+                }
+            }),
+            400
+        )
 
     try:
         comment_filter = int(request.args["commented"]) != 0
@@ -502,10 +511,8 @@ def get_unintegrated(db_name):
 
         results.append(query)
 
-    results.sort(key=lambda x: x[sort_col], reverse=sort_order == "desc")
-
-    if comment_filter is not None:
-        comment_filter = "1" if comment_filter else "0"
+    results.sort(key=lambda x: x[sort_col.replace("-", "_")],
+                 reverse=sort_order == "desc")
 
     return jsonify({
         "page_info": {"page": page, "page_size": page_size},
@@ -513,9 +520,12 @@ def get_unintegrated(db_name):
         "count": len(results),
         "database": {"name": db_full_name, "version": db_version},
         "parameters": {
-            "commented": comment_filter,
-            "with-predictions": prediction_filter,
-            "min-sl-dom-ratio": min_sd_ratio
+            "commented": (str(comment_filter)
+                          if comment_filter is not None else None),
+            "with-predictions": "1" if prediction_filter else "0",
+            "min-sl-dom-ratio": str(min_sd_ratio),
+            "sort-by": sort_col,
+            "sort-order": sort_order
         },
     })
 

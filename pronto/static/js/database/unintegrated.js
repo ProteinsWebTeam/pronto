@@ -35,8 +35,21 @@ function getSignatures() {
             document.querySelector('h1.ui.header').innerHTML = title;
             document.title = `${title} | Pronto `;
 
+            let sortBy = null;
+            let sortOrder = null;
             for (const [key, value] of Object.entries(object.parameters)) {
-                document.querySelector(`input[name="${key}"][value="${value ? value : ''}"]`).checked = true;
+                if (key === "sort-by") {
+                    sortBy = value;
+                    continue;
+                } else if (key === "sort-order") {
+                    sortOrder = value;
+                    continue;
+                }
+
+                const inputs = document.querySelectorAll(`input[name="${key}"]`);
+                for (const node of inputs) {
+                    node.checked = node.value === (value !== null ? value : "");
+                }
             }
 
             let html = '';
@@ -121,6 +134,18 @@ function getSignatures() {
                     const div = document.querySelector('.ui.sticky .ui.comments');
                     comments.getSignatureComments(accession, 2, div);
                 });
+            }
+
+            if (sortBy !== null && sortOrder !== null) {
+                for (const th of table.querySelectorAll('th[data-sort-by]')) {
+                    if (th.dataset.sortBy === sortBy) {
+                        th.dataset.sortOrder = sortOrder;
+                        th.querySelector("i").className = `button icon sort ${sortOrder === "asc" ? "up" : "down"}`;
+                    } else {
+                        th.dataset.sortOrder = "";
+                        th.querySelector("i").className = "button icon sort";
+                    }
+                }
             }
 
             // Tooltips
@@ -222,4 +247,23 @@ document.addEventListener('DOMContentLoaded', () => {
             getSignatures();
         });
     });
+
+    let sortCol = null;
+    let sortOrder = null;
+    for (const [key, value] of [...new URLSearchParams(location.search).entries()]) {
+        if (key === 'sort-by') {
+            sortCol = value;
+            continue
+        } else if (key === 'sort-order') {
+            sortOrder = value;
+            continue;
+        }
+
+        // const inputs = document.querySelectorAll(`input[name="${key}"]`);
+        // for (const node of inputs){
+        //     if (node.type === "radio" || node.type === "checkbox") {
+        //         node.checked = node.value === value;
+        //     }
+        // }
+    }
 });
