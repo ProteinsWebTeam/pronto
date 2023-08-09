@@ -520,8 +520,8 @@ def get_unintegrated(db_name):
         "count": len(results),
         "database": {"name": db_full_name, "version": db_version},
         "parameters": {
-            "commented": (str(comment_filter)
-                          if comment_filter is not None else None),
+            "commented": (None if comment_filter is None else
+                          ("1" if comment_filter else "0")),
             "with-predictions": "1" if prediction_filter else "0",
             "min-sl-dom-ratio": str(min_sd_ratio),
             "sort-by": sort_col,
