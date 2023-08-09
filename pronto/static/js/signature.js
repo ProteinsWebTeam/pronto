@@ -215,7 +215,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     </tr>               
                     <tr>
                         <td>Swiss-Prot proteins</td>
-                        <td class="right aligned">${result.proteins.reviewed.toLocaleString()}</td>
+                        <td class="right aligned">${result.proteins.reviewed.total.toLocaleString()}</td>
+                    </tr>
+                    <tr>
+                        <td>Complete Swiss-Prot proteins</td>
+                        <td class="right aligned">${result.proteins.reviewed.complete.toLocaleString()}</td>
                     </tr>
                 </tbody>
             `;

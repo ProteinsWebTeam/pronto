@@ -24,6 +24,7 @@ def get_signature(accession):
           s.num_sequences,
           s.num_complete_sequences,
           s.num_reviewed_sequences,
+          s.num_complete_reviewed_sequences,
           d.name,
           d.name_long,
           d.version
@@ -45,7 +46,7 @@ def get_signature(accession):
             }
         }), 404
 
-    db = utils.get_database_obj(row[8])
+    db = utils.get_database_obj(row[9])
     result = {
         "accession": row[0],
         "name": row[1],
@@ -55,14 +56,17 @@ def get_signature(accession):
         "proteins": {
             "total": row[5],
             "complete": row[6],
-            "reviewed": row[7]
+            "reviewed": {
+                "total": row[7],
+                "complete": row[8]
+            }
         },
         "database": {
-            "name": row[9],
+            "name": row[10],
             "home": db.home,
             "link": db.gen_link(accession),
             "color": db.color,
-            "version": row[10]
+            "version": row[11]
         },
         "entry": None
     }
