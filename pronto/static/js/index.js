@@ -462,7 +462,7 @@ function getDatabases() {
                     unint = (database.signatures.total - database.signatures.integrated).toLocaleString();
                 } else {
                     total = `<a href="/database/${database.id}/">${database.signatures.total.toLocaleString()}</a>`;
-                    unint = `<a href="/database/${database.id}/unintegrated/">${(database.signatures.total - database.signatures.integrated).toLocaleString()}</a>`;
+                    unint = `<a href="/database/${database.id}/unintegrated/?sort-by=single-domain-proteins&sort-order=desc">${(database.signatures.total - database.signatures.integrated).toLocaleString()}</a>`;
 
                     // series.push({
                     //     name: database.name,
