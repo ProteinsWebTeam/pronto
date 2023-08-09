@@ -19,7 +19,6 @@ function renderEntry(entry) {
     
         </td>
         <td class="collapsing">${checkbox.createDisabled(entry.checked)}</td>`;
-    // <a>(${entry.name})</a>
 }
 
 function getSignatures() {
@@ -40,25 +39,13 @@ function getSignatures() {
                 document.querySelector(`input[name="${key}"][value="${value ? value : ''}"]`).checked = true;
             }
 
-            const renderCommentText = (text) => {
-                if (text.length < 30)
-                    return text;
-                return text.substr(0, 30) + '&hellip;';
-            };
-
             let html = '';
             if (object.count > 0) {
                 for (const signature of object.results) {
-
                     html += `
                         <tr data-id="${signature.accession}">
-                        <td rowspan="${signature.targets.length || 1}">
+                        <td class="collapsing" rowspan="${signature.targets.length || 1}">
                             <a href="/signature/${signature.accession}/">${signature.accession}</a>
-                        </td>
-                        <td rowspan="${signature.targets.length || 1}" class="right aligned">
-                            ${signature.proteins.toLocaleString()}
-                        </td>
-                        <td rowspan="${signature.targets.length || 1}">
                     `;
 
                     if (signature.comments > 0) {
@@ -68,7 +55,15 @@ function getSignatures() {
                             </a>`;
                     }
 
-                    html += `</td>`;
+                    html += `
+                        </td>
+                        <td rowspan="${signature.targets.length || 1}" class="right aligned">
+                            ${signature.proteins.toLocaleString()}
+                        </td>
+                        <td rowspan="${signature.targets.length || 1}" class="right aligned">
+                            ${signature.single_domain_proteins.toLocaleString()}
+                        </td>                        
+                    `;
 
                     if (signature.targets.length) {
                         signature.targets.forEach((target, i) => {
@@ -94,7 +89,7 @@ function getSignatures() {
                             `;
                         });
                     } else {
-                        html += '<td colspan="8"></td></tr>'
+                        html += '<td class="disabled" colspan="8"></td></tr>'
                     }
                 }
             } else {
@@ -135,9 +130,9 @@ function getSignatures() {
 
 
 document.addEventListener('DOMContentLoaded', () => {
-    updateHeader();
-    backToTop();
+    updateHeader()
     getSignatures();
+    backToTop();
 
     $('.message .close')
         .on('click', function() {
@@ -146,15 +141,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 .transition('fade');
         });
 
-    for (const input of document.querySelectorAll('input[type="radio"]')) {
+    for (const input of document.querySelectorAll('.ui.form input')) {
         input.addEventListener('change', (e, ) => {
+            const type = e.currentTarget.type;
             const key = e.currentTarget.name;
             const value = e.currentTarget.value;
+            const checked = e.currentTarget.checked;
             const url = new URL(location.href);
 
-            if (value)
+            if (type === "radio" || (type === "checkbox" && checked))
                 url.searchParams.set(key, value);
-            else if (url.searchParams.has(key))
+            else
                 url.searchParams.delete(key);
 
             url.searchParams.delete('page');
@@ -165,21 +162,22 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    document.querySelector('.ui.comments form button').addEventListener('click', e => {
-        e.preventDefault();
-        const form = e.target.closest('form');
-        const accession = form.getAttribute('data-id');
-        const textarea = form.querySelector('textarea');
+    document.querySelector('.ui.comments form button')
+        .addEventListener('click', e => {
+            e.preventDefault();
+            const form = e.target.closest('form');
+            const accession = form.getAttribute('data-id');
+            const textarea = form.querySelector('textarea');
 
-        comments.postSignatureComment(accession, textarea.value.trim())
-            .then(object => {
-                if (object.status) {
-                    comments.getSignatureComments(accession, 2, e.target.closest(".ui.comments"));
-                    getSignatures();
-                } else
-                    modals.error(object.error.title, object.error.message);
-            });
-    });
+            comments.postSignatureComment(accession, textarea.value.trim())
+                .then(object => {
+                    if (object.status) {
+                        comments.getSignatureComments(accession, 2, e.target.closest(".ui.comments"));
+                        getSignatures();
+                    } else
+                        modals.error(object.error.title, object.error.message);
+                });
+        });
 
     const colHeaders = document.querySelectorAll('th[data-sort-by]');
     colHeaders.forEach(node => {
@@ -190,19 +188,19 @@ document.addEventListener('DOMContentLoaded', () => {
             const url = new URL(location.href);
 
             if (sortOrder === "asc") {
-                node.setAttribute("data-sort-order", "desc");
                 node.querySelector("i").className = "button icon sort down";
                 sortOrder = "desc";
             }
             else {
-                node.setAttribute("data-sort-order", "asc");
                 node.querySelector("i").className = "button icon sort up";
                 sortOrder = "asc";
             }
 
+            node.dataset.sortOrder = sortOrder;
+
             colHeaders.forEach(otherNode => {
                 if (otherNode !== node) {
-                    otherNode.setAttribute("data-sort-order", "none");
+                    otherNode.dataset.sortOrder = '';
                     otherNode.querySelector("i").className = "button icon sort";
                 }
             });
