@@ -222,7 +222,26 @@ def integrate_signature(e_acc, s_acc):
             """
             INSERT INTO INTERPRO.ENTRY2METHOD (ENTRY_AC, METHOD_AC, EVIDENCE) 
             VALUES (:1, :2, 'MAN')
-            """, (e_acc, s_acc)
+            """,
+            [e_acc, s_acc]
+        )
+
+        cur.execute(
+            """
+            INSERT INTO INTERPRO.SUPPLEMENTARY_REF (ENTRY_AC, PUB_ID)
+            SELECT :entryacc, PUB_ID
+            FROM INTERPRO.METHOD2PUB
+            WHERE METHOD_AC = :methodacc
+            AND PUB_ID NOT IN (
+                SELECT PUB_ID
+                FROM INTERPRO.ENTRY2PUB
+                WHERE ENTRY_AC = :entryacc
+                UNION
+                SELECT PUB_ID
+                FROM INTERPRO.SUPPLEMENTARY_REF
+                WHERE ENTRY_AC = :entryacc                
+            )
+            """, entryacc=e_acc, methodacc=s_acc
         )
     except DatabaseError as exc:
         return jsonify({

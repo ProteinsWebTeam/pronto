@@ -392,7 +392,7 @@ def create_entry():
         }), 400
 
     entry_signatures = set(request.json.get("signatures", []))
-    if not signatures:
+    if not entry_signatures:
         return jsonify({
             "status": False,
             "error": {
@@ -440,118 +440,118 @@ def create_entry():
 
     con = utils.connect_oracle_auth(user)
     cur = con.cursor()
-    if entry_signatures:
-        stmt = [':'+str(i+1) for i in range(len(entry_signatures))]
-        cur.execute(
-            f"""
-            SELECT M.METHOD_AC, E.ENTRY_AC, E.CHECKED, X.CNT
-            FROM INTERPRO.METHOD M
-            LEFT OUTER JOIN INTERPRO.ENTRY2METHOD EM
-              ON M.METHOD_AC = EM.METHOD_AC 
-            LEFT OUTER JOIN INTERPRO.ENTRY E
-              ON EM.ENTRY_AC = E.ENTRY_AC
-            LEFT OUTER JOIN (
-                SELECT ENTRY_AC, COUNT(*) AS CNT
-                FROM INTERPRO.ENTRY2METHOD
-                GROUP BY ENTRY_AC
-            ) X ON E.ENTRY_AC = X.ENTRY_AC
-            WHERE M.METHOD_AC IN ({','.join(stmt)})
-            """,
-            list(entry_signatures)
+    stmt = [':'+str(i+1) for i in range(len(entry_signatures))]
+    cur.execute(
+        f"""
+        SELECT M.METHOD_AC, E.ENTRY_AC, E.CHECKED, X.CNT
+        FROM INTERPRO.METHOD M
+        LEFT OUTER JOIN INTERPRO.ENTRY2METHOD EM
+          ON M.METHOD_AC = EM.METHOD_AC 
+        LEFT OUTER JOIN INTERPRO.ENTRY E
+          ON EM.ENTRY_AC = E.ENTRY_AC
+        LEFT OUTER JOIN (
+            SELECT ENTRY_AC, COUNT(*) AS CNT
+            FROM INTERPRO.ENTRY2METHOD
+            GROUP BY ENTRY_AC
+        ) X ON E.ENTRY_AC = X.ENTRY_AC
+        WHERE M.METHOD_AC IN ({','.join(stmt)})
+        """,
+        list(entry_signatures)
+    )
+    existing_signatures = {}
+    for row in cur:
+        existing_signatures[row[0]] = (
+            row[1],
+            row[2] == 'Y',
+            row[3]
         )
-        existing_signatures = {}
-        for row in cur:
-            existing_signatures[row[0]] = (
-                row[1],
-                row[2] == 'Y',
-                row[3]
+
+    to_unintegrate = []
+    not_found = []
+    invalid = []
+    for signature_acc in entry_signatures:
+        try:
+            entry_acc, is_checked, cnt = existing_signatures[signature_acc]
+        except KeyError:
+            not_found.append(signature_acc)
+        else:
+            if entry_acc is not None:
+                if is_checked and cnt == 1:
+                    invalid.append(signature_acc)
+                else:
+                    to_unintegrate.append((entry_acc, signature_acc))
+
+    if not_found:
+        cur.close()
+        con.close()
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Invalid signature(s)",
+                "message": f"One or more parameters are not valid "
+                           f"member database signatures "
+                           f"{', '.join(sorted(not_found))}."
+            }
+        }), 400
+    # June 2023: curators no longer want it to be possible to transfer
+    #            integrated signature to a new entry
+    elif invalid or to_unintegrate:
+        cur.close()
+        con.close()
+        invalid += [signature_acc for (entry_acc, signature_acc)
+                    in to_unintegrate]
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Integrated signature(s)",
+                "message": f"The following signatures are already "
+                           f"integrated: {', '.join(sorted(invalid))}."
+            }
+        }), 409
+    # elif invalid:
+    #     cur.close()
+    #     con.close()
+    #     return jsonify({
+    #         "status": False,
+    #         "error": {
+    #             "title": "Cannot unintegrate signature(s)",
+    #             "message": f"One or more signatures are integrated "
+    #                        f"in checked entries that only have "
+    #                        f"one signature: {', '.join(invalid)}. "
+    #                        f"Checked entries cannot be left "
+    #                        f"with no signatures."
+    #         }
+    #     }), 409
+
+    if to_unintegrate:
+        # Unintegrate signatures
+        try:
+            cur.executemany(
+                """
+                DELETE FROM INTERPRO.ENTRY2METHOD
+                WHERE ENTRY_AC = :1 AND METHOD_AC = :2
+                """,
+                to_unintegrate
             )
-
-        to_unintegrate = []
-        not_found = []
-        invalid = []
-        for signature_acc in entry_signatures:
-            try:
-                entry_acc, is_checked, cnt = existing_signatures[signature_acc]
-            except KeyError:
-                not_found.append(signature_acc)
-            else:
-                if entry_acc is not None:
-                    if is_checked and cnt == 1:
-                        invalid.append(signature_acc)
-                    else:
-                        to_unintegrate.append((entry_acc, signature_acc))
-
-        if not_found:
+        except oracledb.DatabaseError as exc:
             cur.close()
             con.close()
             return jsonify({
                 "status": False,
                 "error": {
-                    "title": "Invalid signature(s)",
-                    "message": f"One or more parameters are not valid "
-                               f"member database signatures "
-                               f"{', '.join(sorted(not_found))}."
+                    "title": "Database error",
+                    "message": f"Signature(s) could not be unintegrated: "
+                               f"{exc}."
                 }
-            }), 400
-        # June 2023: curators no longer want it to be possible to transfer
-        #            integrated signature to a new entry
-        elif invalid or to_unintegrate:
-            cur.close()
-            con.close()
-            invalid += [signature_acc for (entry_acc, signature_acc)
-                        in to_unintegrate]
-            return jsonify({
-                "status": False,
-                "error": {
-                    "title": "Integrated signature(s)",
-                    "message": f"The following signatures are already "
-                               f"integrated: {', '.join(sorted(invalid))}."
-                }
-            }), 409
-        # elif invalid:
-        #     cur.close()
-        #     con.close()
-        #     return jsonify({
-        #         "status": False,
-        #         "error": {
-        #             "title": "Cannot unintegrate signature(s)",
-        #             "message": f"One or more signatures are integrated "
-        #                        f"in checked entries that only have "
-        #                        f"one signature: {', '.join(invalid)}. "
-        #                        f"Checked entries cannot be left "
-        #                        f"with no signatures."
-        #         }
-        #     }), 409
-
-        if to_unintegrate:
-            # Unintegrate signatures
-            try:
-                cur.executemany(
-                    """
-                    DELETE FROM INTERPRO.ENTRY2METHOD
-                    WHERE ENTRY_AC = :1 AND METHOD_AC = :2
-                    """,
-                    to_unintegrate
-                )
-            except oracledb.DatabaseError as exc:
-                cur.close()
-                con.close()
-                return jsonify({
-                    "status": False,
-                    "error": {
-                        "title": "Database error",
-                        "message": f"Signature(s) could not be unintegrated: "
-                                   f"{exc}."
-                    }
-                }), 500
+            }), 500
 
     cur.execute(
         """
         SELECT ENTRY_AC
         FROM INTERPRO.ENTRY
         WHERE UPPER(NAME) = :1
-        """, (entry_name.upper(),)
+        """,
+        [entry_name.upper()]
     )
     row = cur.fetchone()
     if row:
@@ -566,12 +566,24 @@ def create_entry():
             }
         }), 400
 
+    # Get signatures references
+    cur.execute(
+        f"""
+        SELECT DISTINCT PUB_ID
+        FROM INTERPRO.METHOD2PUB
+        WHERE METHOD_AC IN ({','.join(stmt)})
+        """,
+        list(entry_signatures)
+    )
+    new_references = [pub_id for pub_id, in cur.fetchall()]
+
     cur.execute(
         """
         SELECT ENTRY_AC
         FROM INTERPRO.ENTRY
         WHERE UPPER(SHORT_NAME) = :1
-        """, (entry_short_name.upper(),)
+        """,
+        [entry_short_name.upper()]
     )
     row = cur.fetchone()
     if row:
@@ -594,7 +606,7 @@ def create_entry():
             VALUES (INTERPRO.NEW_ENTRY_AC(), :1, :2, :3)
             RETURNING ENTRY_AC INTO :4
             """,
-            (entry_type, entry_name, entry_short_name, entry_var)
+            [entry_type, entry_name, entry_short_name, entry_var]
         )
 
         entry_acc = entry_var.getvalue()[0]
@@ -602,7 +614,16 @@ def create_entry():
             """
             INSERT INTO INTERPRO.ENTRY2METHOD (ENTRY_AC, METHOD_AC, EVIDENCE) 
             VALUES (:1, :2, 'MAN')
-            """, [(entry_acc, s_acc) for s_acc in entry_signatures]
+            """,
+            [(entry_acc, s_acc) for s_acc in entry_signatures]
+        )
+
+        cur.executemany(
+            """
+            INSERT INTO INTERPRO.SUPPLEMENTARY_REF (ENTRY_AC, PUB_ID)
+            VALUES (:1, :2)
+            """,
+            [(entry_acc, pub_id) for pub_id in new_references]
         )
     except oracledb.DatabaseError as exc:
         return jsonify({

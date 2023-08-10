@@ -1,5 +1,6 @@
 import * as modals from "../ui/modals.js";
 import { initPopups, createPopup } from '../ui/comments.js';
+import {refresh as refreshReferences} from "./references.js";
 
 export function integrate(entryAcc, signatureAcc, confirmed) {
     const options = {
@@ -29,7 +30,12 @@ export function integrate(entryAcc, signatureAcc, confirmed) {
                 )
             } else {
                 $('#signatures .ui.form').form('clear');
-                refresh(entryAcc).then(() => {$('.ui.sticky').sticky();});
+                Promise.all([
+                    refresh(entryAcc),
+                    refreshReferences(entryAcc)
+                ]).then(() => {
+                    $('.ui.sticky').sticky();
+                });
             }
         });
 }
