@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import re
 
 from oracledb import DatabaseError
@@ -29,7 +27,8 @@ def get_signatures(accession):
         LEFT OUTER JOIN INTERPRO.METHOD_UNIRULE MU
             ON MU.METHOD_AC = EM.METHOD_AC
         WHERE EM.ENTRY_AC = :1
-        """, (accession,)
+        """,
+        [accession]
     )
     integrated = {row[0]: row[1:] for row in cur}
 
@@ -51,7 +50,8 @@ def get_signatures(accession):
             ON s.database_id = d.id
             WHERE s.accession IN ({','.join('%s' for _ in accessions)})
             ORDER BY accession
-            """, accessions
+            """,
+            accessions
         )
 
         for row in cur:
@@ -102,7 +102,8 @@ def integrate_signature(e_acc, s_acc):
         SELECT num_sequences
         FROM interpro.signature
         WHERE accession = %s
-        """, (s_acc,)
+        """,
+        [s_acc]
     )
     row = cur.fetchone()
     cur.close()
@@ -137,7 +138,8 @@ def integrate_signature(e_acc, s_acc):
         LEFT OUTER JOIN INTERPRO.ENTRY E 
           ON EM.ENTRY_AC = E.ENTRY_AC
         WHERE M.METHOD_AC = :1
-        """, (s_acc,)
+        """,
+        [s_acc]
     )
     row = cur.fetchone()
     if not row:
@@ -171,7 +173,8 @@ def integrate_signature(e_acc, s_acc):
             SELECT COUNT(*)
             FROM INTERPRO.ENTRY2METHOD
             WHERE ENTRY_AC = :1
-            """, (from_entry,)
+            """,
+            [from_entry]
         )
         num_signatures, = cur.fetchone()
         if is_checked and num_signatures == 1:
@@ -258,7 +261,8 @@ def unintegrate_signature(e_acc, s_acc):
         SELECT CHECKED
         FROM INTERPRO.ENTRY
         WHERE ENTRY_AC = :1
-        """, (e_acc,)
+        """,
+        [e_acc]
     )
     row = cur.fetchone()
     if not row:
@@ -278,7 +282,8 @@ def unintegrate_signature(e_acc, s_acc):
         SELECT COUNT(*)
         FROM INTERPRO.ENTRY2METHOD
         WHERE ENTRY_AC = :1 AND METHOD_AC != :2
-        """, (e_acc, s_acc)
+        """,
+        [e_acc, s_acc]
     )
     other_signatures, = cur.fetchone()
     if is_checked and not other_signatures:
@@ -301,7 +306,7 @@ def unintegrate_signature(e_acc, s_acc):
             WHERE ENTRY_AC = :1 
             AND METHOD_AC = :2
             """,
-            (e_acc, s_acc)
+            [e_acc, s_acc]
         )
     except DatabaseError as exc:
         return jsonify({
@@ -331,7 +336,8 @@ def get_signatures_annotations(accession):
         SELECT METHOD_AC 
         FROM INTERPRO.ENTRY2METHOD 
         WHERE ENTRY_AC = :1
-        """, (accession,)
+        """,
+        [accession]
     )
     signatures = [acc for acc, in cur]
     cur.close()
@@ -345,17 +351,12 @@ def get_signatures_annotations(accession):
         FROM interpro.signature
         WHERE accession IN ({','.join('%s' for _ in signatures)})
         ORDER BY accession
-        """, signatures
+        """,
+        signatures
     )
 
     signatures = []
-    for accession, name, text in cur:
-        # TODO: remove after DB is updated
-        #format citations coming from signatures
-        if text and re.search(r'PMID', text):
-            regex_replacements = [(r']',']]'),('PMID:\s*','[cite:'),(r', \[', '], [')]
-            for old, new in regex_replacements:
-                text=re.sub(old, new, text)
+    for accession, name, text in cur.fetchall():
         signatures.append({
             "accession": accession,
             "name": name,
