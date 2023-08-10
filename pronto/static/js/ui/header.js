@@ -114,10 +114,14 @@ export function updateHeader(signatureAcc) {
 
                                 // Use signature's info
                                 const values = $(infoForm).form('get values');
-                                if (values.name.length === 0)
+                                if (values.name.length === 0) {
                                     $(infoForm).form('set value', 'name', signature.description);
-                                if (values.short_name.length === 0)
+                                    setCharsCountdown(infoForm.querySelector('input[name="name"]'));
+                                }
+                                if (values.short_name.length === 0) {
                                     $(infoForm).form('set value', 'short_name', signature.name !== null ? signature.name : '');
+                                    setCharsCountdown(infoForm.querySelector('input[name="short_name"]'));
+                                }
                                 if (values.type.length === 0) {
                                     /*
                                         API returns signature full type (e.g. Domain, Family, etc.)
@@ -153,7 +157,7 @@ export function updateHeader(signatureAcc) {
                                 const tbody = modal.querySelector('tbody');
                                 tbody.innerHTML = html
 
-                                // Event lister to unlink signature
+                                // Event listener to unlink signature
                                 for (const elem of tbody.querySelectorAll('[data-accession]')) {
                                     elem.addEventListener('click', (e,) => {
                                         const key = e.currentTarget.dataset.accession;
