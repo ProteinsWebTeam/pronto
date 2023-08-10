@@ -1,7 +1,4 @@
-# -*- coding: utf-8 -*-
-
 import json
-import re
 
 from flask import Blueprint, jsonify, request
 
@@ -39,7 +36,7 @@ def get_latest_freeze(cur):
 
 
 @bp.route("/<db_name>/signatures/")
-def get_integrated_signatures(db_name):
+def get_signatures(db_name):
     try:
         page = int(request.args["page"])
     except (KeyError, ValueError):
@@ -81,13 +78,14 @@ def get_integrated_signatures(db_name):
         FROM database
         WHERE name = %s
         """,
-        (db_name,),
+        [db_name]
     )
     row = cur.fetchone()
     if not row:
         cur.close()
         con.close()
         return jsonify({"results": [], "count": 0, "database": None}), 404
+
     db_identifier, db_full_name, db_version = row
 
     sql = """
@@ -147,7 +145,7 @@ def get_integrated_signatures(db_name):
         WHERE LOWER(D.DBSHORT) = :1
 
         """,
-        (db_name,),
+        [db_name]
     )
     ora_signatures = {row[0]: row[1:] for row in cur}
     cur.close()
@@ -188,30 +186,28 @@ def get_integrated_signatures(db_name):
         elif filter_type is False and type_name == entry_type_name:
             continue
 
-        results.append(
-            {
-                "accession": acc,
+        results.append({
+            "accession": acc,
+            "type": {
+                "code": [k for k, v in code2type.items()
+                         if v == type_name][0],
+                "name": type_name.replace("_", " "),
+            },
+            "entry": {
+                "accession": entry_acc,
                 "type": {
-                    "code": [k for k, v in code2type.items() if v == type_name][0],
-                    "name": type_name.replace("_", " "),
+                    "code": type_code,
+                    "name": entry_type_name.replace("_", " ")
                 },
-                "entry": {
-                    "accession": entry_acc,
-                    "type": {"code": type_code, "name": entry_type_name.replace("_", " ")},
-                    "checked": is_checked,
-                }
-                if entry_acc
-                else None,
-                "proteins": {"then": 0, "now": cnt},
-                "latest_comment": {
-                    "text": comment_text,
-                    "author": comment_author,
-                    "date": comment_date.strftime("%d %b %Y at %H:%M"),
-                }
-                if comment_text
-                else None,
-            }
-        )
+                "checked": is_checked,
+            } if entry_acc else None,
+            "proteins": {"then": 0, "now": cnt},
+            "latest_comment": {
+                "text": comment_text,
+                "author": comment_author,
+                "date": comment_date.strftime("%d %b %Y at %H:%M"),
+            } if comment_text else None,
+        })
 
     num_results = len(results)
     results = results[(page - 1) * page_size : page * page_size]
@@ -242,18 +238,16 @@ def get_integrated_signatures(db_name):
             acc = res["accession"]
             res["proteins"]["then"] = counts.get(acc, 0)
 
-    return jsonify(
-        {
-            "page_info": {"page": page, "page_size": page_size},
-            "results": results,
-            "count": num_results,
-            "database": {"name": db_full_name, "version": db_version},
-        }
-    )
+    return jsonify({
+        "page_info": {"page": page, "page_size": page_size},
+        "results": results,
+        "count": num_results,
+        "database": {"name": db_full_name, "version": db_version},
+    })
 
 
 @bp.route("/<db_name>/unintegrated/")
-def get_unintegrated_signatures(db_name):
+def get_unintegrated(db_name):
     try:
         page = int(request.args["page"])
     except (KeyError, ValueError):
@@ -264,65 +258,43 @@ def get_unintegrated_signatures(db_name):
     except (KeyError, ValueError):
         page_size = 20
 
-    rel_filter = request.args.get("relationship", "similar")
-    if rel_filter not in ("similar", "parent", "child", "none"):
-        return (
-            jsonify(
-                {
-                    "error": {
-                        "title": "Bad Request (invalid relationship parameter)",
-                        f"message": "Accepted values are: similar, parent, child, none.",
-                    }
-                }
-            ),
-            400,
-        )
-    
     sort_col = request.args.get("sort-by", "accession")
-    if sort_col not in ("accession", "proteins"):
+    if sort_col not in ("accession", "proteins", "single-domain-proteins"):
         return (
-            jsonify(
-                {
-                    "error": {
-                        "title": "Bad Request (invalid sorting parameter)",
-                        f"message": "Accepted values are: accession, proteins",
-                    }
+            jsonify({
+                "error": {
+                    "title": "Bad Request (invalid sorting parameter)",
+                    "message": "Accepted values are: accession, proteins, "
+                               "single-domain-proteins",
                 }
-            ),
-            400,
+            }),
+            400
         )
-    
+
     sort_order = request.args.get("sort-order", "asc")
     if sort_order not in ("asc", "desc"):
         return (
-            jsonify(
-                {
-                    "error": {
-                        "title": "Bad Request (invalid sorting parameter)",
-                        f"message": "Accepted values are: " "asc, desc",
-                    }
+            jsonify({
+                "error": {
+                    "title": "Bad Request (invalid sorting direction)",
+                    "message": "Accepted values are: asc, desc",
                 }
-            ),
+            }),
             400,
         )
 
     try:
-        integ_filter = request.args["target"]
-    except KeyError:
-        integ_filter = None
-    else:
-        if integ_filter not in ("integrated", "unintegrated"):
-            return (
-                jsonify(
-                    {
-                        "error": {
-                            "title": "Bad Request (invalid target parameter)",
-                            f"message": "Accepted values are: " "integrated, unintegrated.",
-                        }
-                    }
-                ),
-                400,
-            )
+        prediction_filter = int(request.args.get("with-predictions", "0")) != 0
+    except ValueError:
+        return (
+            jsonify({
+                "error": {
+                    "title": "Bad Request (invalid with-predictions parameter)",
+                    "message": "An integer is expected",
+                }
+            }),
+            400
+        )
 
     try:
         comment_filter = int(request.args["commented"]) != 0
@@ -330,54 +302,54 @@ def get_unintegrated_signatures(db_name):
         comment_filter = None
     except ValueError:
         return (
-            jsonify(
-                {
-                    "error": {
-                        "title": "Bad Request (invalid commented parameter)",
-                        f"message": "An integer is expected",
-                    }
+            jsonify({
+                "error": {
+                    "title": "Bad Request (invalid commented parameter)",
+                    "message": "An integer is expected",
                 }
-            ),
-            400,
+            }),
+            400
         )
 
-    no_same_db = "nosamedb" in request.args
-    no_panther_sf = "nopanthersf" in request.args
+    try:
+        min_sd_ratio = int(request.args["min-sl-dom-ratio"])
+    except KeyError:
+        min_sd_ratio = 0
+    except ValueError:
+        return (
+            jsonify({
+                "error": {
+                    "title": "Bad Request (invalid min-sl-dom-ratio parameter)",
+                    "message": "An integer between 0 and 100 is expected",
+                }
+            }),
+            400
+        )
+
+    if not 0 <= min_sd_ratio <= 100:
+        return (
+            jsonify({
+                "error": {
+                    "title": "Bad Request (invalid min-sl-dom-ratio parameter)",
+                    "message": "An integer between 0 and 100 is expected",
+                }
+            }),
+            400
+        )
 
     con = utils.connect_oracle()
     cur = con.cursor()
 
     cur.execute(
         """
-        SELECT 
-            C.METHOD_AC, 
-            C.VALUE, 
-            P.NAME, 
-            C.CREATED_ON, 
-            ROW_NUMBER() OVER ( 
-            PARTITION BY METHOD_AC  
-            ORDER BY C.CREATED_ON DESC 
-            ) R 
-            FROM INTERPRO.METHOD_COMMENT C 
-            INNER JOIN INTERPRO.PRONTO_USER P  
-            ON C.USERNAME = P.USERNAME 
-            WHERE C.STATUS='Y' 
+        SELECT METHOD_AC, COUNT(*)
+        FROM INTERPRO.METHOD_COMMENT
+        WHERE STATUS = 'Y'
+        GROUP BY METHOD_AC
         """
     )
-    comments = {}
-    for row in cur:
-        try:
-            comments[row[0]].append({
-                "text": row[1],
-                "author": row[2],
-                "date": row[3].strftime("%d %b %Y at %H:%M"),
-            })
-        except KeyError:
-            comments[row[0]] = [{
-                "text": row[1],
-                "author": row[2],
-                "date": row[3].strftime("%d %b %Y at %H:%M"),
-            }]
+    num_comments = dict(cur.fetchall())
+
     cur.execute(
         """
         SELECT EM.METHOD_AC, E.ENTRY_AC, E.NAME, E.ENTRY_TYPE, E.CHECKED
@@ -386,13 +358,14 @@ def get_unintegrated_signatures(db_name):
         """
     )
     integrated = {}
-    for row in cur:
+    for row in cur.fetchall():
         integrated[row[0]] = {
             "accession": row[1],
             "name": row[2],
             "type": row[3],
             "checked": row[4] == "Y",
         }
+
     cur.close()
     con.close()
 
@@ -404,192 +377,157 @@ def get_unintegrated_signatures(db_name):
         FROM database
         WHERE name = %s
         """,
-        (db_name,),
+        [db_name]
     )
     row = cur.fetchone()
     if not row:
         cur.close()
         con.close()
         return jsonify({"results": [], "count": 0, "database": None}), 404
-    db_identifier, db_full_name, db_version = row
 
+    db_identifier, db_full_name, db_version = row
     cur.execute(
         """
-        SELECT accession, type, num_complete_sequences, num_residues
+        SELECT accession, type, num_complete_sequences, 
+               num_complete_single_domain_sequences, num_residues
         FROM signature
         WHERE database_id = %s
         """,
-        (db_identifier,),
+        [db_identifier]
     )
-    db_unintegrated = {}
-    for accession, _type, num_proteins, num_residues in cur:
-        if accession not in integrated:
-            db_unintegrated[accession] = (_type, num_proteins, num_residues)
 
-    cur.execute(
-        """
-        SELECT s1.accession, s2.accession, s2.type, s2.num_complete_sequences, 
-               s2.num_residues, d.name, d.name_long, 
-               p.num_collocations, p.num_protein_overlaps, 
-               p.num_residue_overlaps
-        FROM interpro.signature s1
-        INNER JOIN interpro.prediction p ON s1.accession = p.signature_acc_1
-        INNER JOIN interpro.signature s2 ON p.signature_acc_2 = s2.accession
-        INNER JOIN interpro.database d ON s2.database_id = d.id
-        WHERE s1.database_id = %s
-        """,
-        (db_identifier,),
-    )
+    unintegrated = {}
+    _min_sd_ratio = min_sd_ratio / 100
+    for acc, _type, n_prots, n_sd_prots, n_res in cur.fetchall():
+        if acc not in integrated and (n_prots == 0 or
+                                      n_sd_prots / n_prots >= _min_sd_ratio):
+            unintegrated[acc] = (_type, n_prots, n_sd_prots, n_res)
+
     queries = {}
-    blacklist = set()
-    pthr_sf = re.compile(r"PTHR\d+:SF\d+")
-    for row in cur:
-        q_acc = row[0]
-        try:
-            q_type, q_proteins, q_residues = db_unintegrated[q_acc]
-        except KeyError:
-            continue
-
-        t_acc = row[1]
-        t_type = row[2]
-        t_proteins = row[3]
-        t_residues = row[4]
-        t_db_key = row[5]
-        t_db_name = row[6]
-        collocations = row[7]
-        protein_overlaps = row[8]
-        residue_overlaps = row[9]
-
-        t_entry = integrated.get(t_acc)
-        if t_entry:
-            if integ_filter == "unintegrated":
-                continue  # we want unintegrated targets only: skip
-        elif integ_filter == "integrated":
-            continue  # we want integrated targets only: skip
-
-        if no_same_db and db_name == t_db_key:
+    if prediction_filter:
+        cur.execute(
             """
-            We don't want two signatures from the same member DB 
-            to be in the same entry: ignore this target and, 
-            if it's integrated, all signatures integrated in the same entry
-            """
-            if t_entry:
-                # We'll ignore all signatures integrated in this entry
-                blacklist.add(t_entry["accession"])
-            continue
+            SELECT s1.accession, s2.accession, s2.type, 
+                   s2.num_complete_sequences, s2.num_residues, s2.database_id, 
+                   d.name, d.name_long, p.num_collocations, 
+                   p.num_protein_overlaps, p.num_residue_overlaps
+            FROM interpro.signature s1
+            INNER JOIN interpro.prediction p 
+                ON s1.accession = p.signature_acc_1
+            INNER JOIN interpro.signature s2 
+                ON p.signature_acc_2 = s2.accession
+            INNER JOIN interpro.database d 
+                ON s2.database_id = d.id
+            WHERE s1.database_id = %s
+            """,
+            [db_identifier]
+        )
 
-        q_is_hs = q_type == "Homologous_superfamily"
-        t_is_hs = t_type == "Homologous_superfamily"
-        if q_is_hs != t_is_hs:
-            continue  # Invalid type pair (HS can only be together)
+        for row in cur.fetchall():
+            q_acc = row[0]
 
-        p = utils.Prediction(q_proteins, t_proteins, protein_overlaps)
-        if p.relationship != rel_filter:
-            continue  # not the relationship we're after
+            try:
+                q_type, q_proteins, _, q_residues = unintegrated[q_acc]
+            except KeyError:
+                continue
 
-        pr = utils.Prediction(q_residues, t_residues, residue_overlaps)
+            t_acc = row[1]
+            t_type = row[2]
+            t_proteins = row[3]
+            t_residues = row[4]
+            t_db_id = row[5]
+            t_db_key = row[6]
+            t_db_name = row[7]
+            collocations = row[8]
+            protein_overlaps = row[9]
+            residue_overlaps = row[10]
 
-        try:
-            q = queries[q_acc]
-        except KeyError:
-            q = queries[q_acc] = []
-        finally:
-            q.append(
-                {
-                    # Target signature
-                    "accession": t_acc,
-                    "database": {
-                        "name": t_db_name,
-                        "color": utils.get_database_obj(t_db_key).color,
-                    },
-                    "entry": t_entry,
-                    "proteins": t_proteins,
-                    # Comparison query/target
-                    "collocations": collocations,
-                    "overlaps": protein_overlaps,
-                    "similarity": p.similarity,
-                    "containment": p.containment,
-                    "relationship": p.relationship,
-                    "residues": {
-                        "similarity": pr.similarity,
-                        "containment": pr.containment,
-                        "relationship": pr.relationship,
-                    },
-                }
-            )
+            t_entry = integrated.get(t_acc)
+
+            if not check_types(q_type, t_type):
+                # Invalid type pair (HS can only be together)
+                continue
+
+            p = utils.Prediction(q_proteins, t_proteins, protein_overlaps)
+            if not p.relationship:
+                continue
+
+            pr = utils.Prediction(q_residues, t_residues, residue_overlaps)
+
+            try:
+                q = queries[q_acc]
+            except KeyError:
+                q = queries[q_acc] = []
+
+            q.append({
+                # Target signature
+                "accession": t_acc,
+                "database": {
+                    "name": t_db_name,
+                    "color": utils.get_database_obj(t_db_key).color,
+                },
+                "entry": t_entry,
+                "proteins": t_proteins,
+                # Comparison query/target
+                "collocations": collocations,
+                "overlaps": protein_overlaps,
+                "similarity": p.similarity,
+                "containment": p.containment,
+                "relationship": p.relationship,
+                "residues": {
+                    "similarity": pr.similarity,
+                    "containment": pr.containment,
+                    "relationship": pr.relationship,
+                },
+            })
 
     cur.close()
     con.close()
 
     results = []
-    for q_acc, (q_type, q_proteins, q_residues) in db_unintegrated.items():
-        if no_panther_sf and pthr_sf.match(q_acc):
-            # We are not interested in PANTHER sub-families
-            continue
-
-        # q_comments = num_comments.get(q_acc, 0)
-        q_comments = len(comments[q_acc]) if comments.get(q_acc) else 0
-        if comment_filter is None:
-            pass
-        elif comment_filter:
-            if not q_comments:
+    for q_acc, obj in unintegrated.items():
+        q_comments = num_comments.get(q_acc, 0)
+        if comment_filter is not None:
+            if comment_filter:
+                if not q_comments:
+                    continue
+            elif q_comments:
                 continue
-        elif q_comments:
-            continue
 
-        last_comment = comments[q_acc][0] if comments.get(q_acc) else {}
-
+        _, q_proteins, q_single_dom_proteins, _ = obj
         query = {
             "accession": q_acc,
             "proteins": q_proteins,
+            "single_domain_proteins": q_single_dom_proteins,
             "comments": q_comments,
-            "latest_comment": last_comment,
             "targets": [],
         }
 
-        try:
-            targets = queries[q_acc]
-        except KeyError:
-            if rel_filter == "none":
-                results.append(query)
-        else:
-            for t in sorted(targets, key=_sort_target):
-                if not t["entry"] or t["entry"]["accession"] not in blacklist:
-                    query["targets"].append(t)
+        targets = queries.get(q_acc, [])
+        for t in sorted(targets, key=lambda x: x["accession"]):
+            query["targets"].append(t)
 
-            if query["targets"]:
-                results.append(query)
+        results.append(query)
 
-    results.sort(key=lambda x: x[sort_col], reverse=sort_order == "desc")
+    results.sort(key=lambda x: x[sort_col.replace("-", "_")],
+                 reverse=sort_order == "desc")
 
-    num_results = len(results)
-    results = results[(page - 1) * page_size : page * page_size]
-
-    if comment_filter is not None:
-        comment_filter = "1" if comment_filter else "0"
-
-    return jsonify(
-        {
-            "page_info": {"page": page, "page_size": page_size},
-            "results": results,
-            "count": num_results,
-            "database": {"name": db_full_name, "version": db_version},
-            "parameters": {
-                "relationship": rel_filter,
-                "target": integ_filter,
-                "commented": comment_filter,
-            },
-        }
-    )
+    return jsonify({
+        "page_info": {"page": page, "page_size": page_size},
+        "results": results[(page - 1) * page_size:page * page_size],
+        "count": len(results),
+        "database": {"name": db_full_name, "version": db_version},
+        "parameters": {
+            "commented": (None if comment_filter is None else
+                          ("1" if comment_filter else "0")),
+            "with-predictions": "1" if prediction_filter else "0",
+            "min-sl-dom-ratio": str(min_sd_ratio),
+            "sort-by": sort_col,
+            "sort-order": sort_order
+        },
+    })
 
 
-def _sort_target(s):
-    if s["relationship"] == "similar":
-        return -s["residues"]["similarity"]
-    return -s["residues"]["containment"]
-
-
-def _sort_results(s):
-    if s["targets"]:
-        return _sort_target(s["targets"][0])
-    return s["accession"]
+def check_types(type1: str, type2: str) -> bool:
+    hs = "Homologous_superfamily"
+    return (type1 == hs) == (type2 == hs)

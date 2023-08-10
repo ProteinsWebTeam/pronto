@@ -19,7 +19,6 @@ function renderEntry(entry) {
     
         </td>
         <td class="collapsing">${checkbox.createDisabled(entry.checked)}</td>`;
-    // <a>(${entry.name})</a>
 }
 
 function getSignatures() {
@@ -36,64 +35,86 @@ function getSignatures() {
             document.querySelector('h1.ui.header').innerHTML = title;
             document.title = `${title} | Pronto `;
 
+            let sortBy = null;
+            let sortOrder = null;
             for (const [key, value] of Object.entries(object.parameters)) {
-                document.querySelector(`input[name="${key}"][value="${value ? value : ''}"]`).checked = true;
-            }
+                if (key === "sort-by") {
+                    sortBy = value;
+                    continue;
+                } else if (key === "sort-order") {
+                    sortOrder = value;
+                    continue;
+                }
 
-            const renderCommentText = (text) => {
-                if (text.length < 30)
-                    return text;
-                return text.substr(0, 30) + '&hellip;';
-            };
+                const inputs = document.querySelectorAll(`input[name="${key}"]`);
+                for (const node of inputs) {
+                    node.checked = node.value === (value !== null ? value : "");
+                }
+            }
 
             let html = '';
             if (object.count > 0) {
                 for (const signature of object.results) {
-                    html += `<tr data-id="${signature.accession}">
-                         <td rowspan="${signature.targets.length}"><a href="/signature/${signature.accession}/">${signature.accession}</a></td>
-                         <td rowspan="${signature.targets.length}" class="right aligned">${signature.proteins.toLocaleString()}</td>
-                         <td rowspan="${signature.targets.length}" class="ui comments"><div class="comment"><div class="content">`;
+                    html += `
+                        <tr data-id="${signature.accession}">
+                        <td class="collapsing" rowspan="${signature.targets.length || 1}">
+                            <a href="/signature/${signature.accession}/">${signature.accession}</a>
+                    `;
+
                     if (signature.comments > 0) {
                         html += `
-                                <a class="author">${signature.latest_comment.author}</a>
-                                <div class="metadata"><span class="date">${signature.latest_comment.date}</span></div>
-                                <div class="text">${renderCommentText(signature.latest_comment.text)}</div>
-                            `;
+                            <a class="ui small basic label">
+                                <i class="comments icon"></i> ${signature.comments}
+                            </a>`;
                     }
-                    html += '<div class="actions"><a class="reply">Leave a comment</a></div></div></div></td>';
 
+                    html += `
+                        </td>
+                        <td rowspan="${signature.targets.length || 1}" class="right aligned">
+                            ${signature.proteins.toLocaleString()}
+                        </td>
+                        <td rowspan="${signature.targets.length || 1}" class="right aligned">
+                            ${signature.single_domain_proteins.toLocaleString()}
+                        </td>                        
+                    `;
 
-                    for (let i = 0; i < signature.targets.length; ++i) {
-                        const target = signature.targets[i];
+                    if (signature.targets.length) {
+                        signature.targets.forEach((target, i) => {
+                            if (i)
+                                html += '<tr>';
 
-                        if (i) html += '<tr>';
-
-                        html += `<td class="nowrap">
-                                <span class="ui empty circular label" 
-                                      style="background-color: ${target.database.color};" 
-                                      data-content="${target.database.name}" 
-                                      data-position="left center" 
-                                      data-variation="tiny"></span>
-                                <a href="/signature/${target.accession}/">${target.accession}</a>
-                             </td>
-                             <td class="right aligned">${target.proteins.toLocaleString()}</td>
-                             <td class="right aligned">${target.collocations.toLocaleString()}</td>
-                             <td class="right aligned">${target.overlaps.toLocaleString()}</td>
-                             <td class="center aligned nowrap">${renderConfidence(target)}</td>
-                             ${renderEntry(target.entry)}
-                             </tr>`;
+                            html += `
+                                <td class="nowrap">
+                                    <span class="ui empty circular label" 
+                                          style="background-color: ${target.database.color};" 
+                                          data-content="${target.database.name}" 
+                                          data-position="left center" 
+                                          data-variation="tiny"></span>
+                                    <a href="/signature/${target.accession}/">${target.accession}</a>
+                                 </td>
+                                 <td class="right aligned">${target.proteins.toLocaleString()}</td>
+                                 <td class="right aligned">${target.collocations.toLocaleString()}</td>
+                                 <td class="right aligned">${target.overlaps.toLocaleString()}</td>
+                                 <td class="capitalize">${target.relationship}</td>
+                                 <td class="center aligned nowrap">${renderConfidence(target, true)}</td>
+                                 ${renderEntry(target.entry)}
+                                </tr>
+                            `;
+                        });
+                    } else {
+                        html += '<td class="disabled" colspan="8"></td></tr>'
                     }
                 }
             } else {
-                html = '<tr><td class="center aligned" colspan="9">No matching signatures found</td></tr>'
+                html = '<tr><td class="center aligned" colspan="11">No matching signatures found</td></tr>'
             }
 
             const table = document.getElementById('results');
             const cell = table.querySelector('thead tr:first-child th:first-child');
             if (object.count > 1)
-                cell.innerHTML = `${object.count} unintegrated signatures`;
+                cell.innerHTML = `${object.count.toLocaleString()} signatures`;
             else
-                cell.innerHTML = `${object.count} unintegrated signature`;
+                cell.innerHTML = `${object.count} signature`;
 
             table.querySelector('tbody').innerHTML = html;
 
@@ -107,12 +128,24 @@ function getSignatures() {
                     getSignatures();
                 });
 
-            for (const elem of document.querySelectorAll('.comment .reply')) {
+            for (const elem of document.querySelectorAll('a.small.basic.label')) {
                 elem.addEventListener('click', e => {
                     const accession = e.target.closest('tr').getAttribute('data-id');
                     const div = document.querySelector('.ui.sticky .ui.comments');
                     comments.getSignatureComments(accession, 2, div);
                 });
+            }
+
+            if (sortBy !== null && sortOrder !== null) {
+                for (const th of table.querySelectorAll('th[data-sort-by]')) {
+                    if (th.dataset.sortBy === sortBy) {
+                        th.dataset.sortOrder = sortOrder;
+                        th.querySelector("i").className = `button icon sort ${sortOrder === "asc" ? "up" : "down"}`;
+                    } else {
+                        th.dataset.sortOrder = "";
+                        th.querySelector("i").className = "button icon sort";
+                    }
+                }
             }
 
             // Tooltips
@@ -122,9 +155,9 @@ function getSignatures() {
 
 
 document.addEventListener('DOMContentLoaded', () => {
-    updateHeader();
-    backToTop();
+    updateHeader()
     getSignatures();
+    backToTop();
 
     $('.message .close')
         .on('click', function() {
@@ -133,37 +166,43 @@ document.addEventListener('DOMContentLoaded', () => {
                 .transition('fade');
         });
 
-    for (const input of document.querySelectorAll('input[type="radio"]')) {
+    for (const input of document.querySelectorAll('.ui.form input')) {
         input.addEventListener('change', (e, ) => {
+            const type = e.currentTarget.type;
             const key = e.currentTarget.name;
             const value = e.currentTarget.value;
+            const checked = e.currentTarget.checked;
             const url = new URL(location.href);
 
-            if (value)
+            if (type === "radio" || (type === "checkbox" && checked))
                 url.searchParams.set(key, value);
-            else if (url.searchParams.has(key))
+            else
                 url.searchParams.delete(key);
+
+            url.searchParams.delete('page');
+            url.searchParams.delete('page_size');
 
             history.replaceState(null, document.title, url.toString());
             getSignatures();
         });
     }
 
-    document.querySelector('.ui.comments form button').addEventListener('click', e => {
-        e.preventDefault();
-        const form = e.target.closest('form');
-        const accession = form.getAttribute('data-id');
-        const textarea = form.querySelector('textarea');
+    document.querySelector('.ui.comments form button')
+        .addEventListener('click', e => {
+            e.preventDefault();
+            const form = e.target.closest('form');
+            const accession = form.getAttribute('data-id');
+            const textarea = form.querySelector('textarea');
 
-        comments.postSignatureComment(accession, textarea.value.trim())
-            .then(object => {
-                if (object.status) {
-                    comments.getSignatureComments(accession, 2, e.target.closest(".ui.comments"));
-                    getSignatures();
-                } else
-                    modals.error(object.error.title, object.error.message);
-            });
-    });
+            comments.postSignatureComment(accession, textarea.value.trim())
+                .then(object => {
+                    if (object.status) {
+                        comments.getSignatureComments(accession, 2, e.target.closest(".ui.comments"));
+                        getSignatures();
+                    } else
+                        modals.error(object.error.title, object.error.message);
+                });
+        });
 
     const colHeaders = document.querySelectorAll('th[data-sort-by]');
     colHeaders.forEach(node => {
@@ -174,19 +213,19 @@ document.addEventListener('DOMContentLoaded', () => {
             const url = new URL(location.href);
 
             if (sortOrder === "asc") {
-                node.setAttribute("data-sort-order", "desc");
                 node.querySelector("i").className = "button icon sort down";
                 sortOrder = "desc";
             }
             else {
-                node.setAttribute("data-sort-order", "asc");
                 node.querySelector("i").className = "button icon sort up";
                 sortOrder = "asc";
             }
 
+            node.dataset.sortOrder = sortOrder;
+
             colHeaders.forEach(otherNode => {
                 if (otherNode !== node) {
-                    otherNode.setAttribute("data-sort-order", "none");
+                    otherNode.dataset.sortOrder = '';
                     otherNode.querySelector("i").className = "button icon sort";
                 }
             });
@@ -208,4 +247,23 @@ document.addEventListener('DOMContentLoaded', () => {
             getSignatures();
         });
     });
+
+    let sortCol = null;
+    let sortOrder = null;
+    for (const [key, value] of [...new URLSearchParams(location.search).entries()]) {
+        if (key === 'sort-by') {
+            sortCol = value;
+            continue
+        } else if (key === 'sort-order') {
+            sortOrder = value;
+            continue;
+        }
+
+        // const inputs = document.querySelectorAll(`input[name="${key}"]`);
+        // for (const node of inputs){
+        //     if (node.type === "radio" || node.type === "checkbox") {
+        //         node.checked = node.value === value;
+        //     }
+        // }
+    }
 });

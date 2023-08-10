@@ -341,7 +341,6 @@ def get_panther_go_subfam(accession, term_id):
     })
     
 
-
 @bp.route("/<accession>/predictions/")
 def get_signature_predictions(accession):
     all_collocations = "all" in request.args
@@ -466,6 +465,9 @@ def get_signature_predictions(accession):
         residue_overlaps = row[7]
 
         p = utils.Prediction(q_proteins, t_proteins, protein_overlaps)
+        if p.relationship is None and not all_collocations:
+            continue
+
         pr = utils.Prediction(q_residues, t_residues, residue_overlaps)
 
         try:

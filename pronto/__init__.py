@@ -103,6 +103,7 @@ def taxon():
 def proteome():
     return render_template("proteome.html")
 
+
 for bp in api.blueprints:
     app.register_blueprint(bp)
 
