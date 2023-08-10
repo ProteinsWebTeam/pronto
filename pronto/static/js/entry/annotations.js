@@ -3,12 +3,45 @@ import * as dimmer from "../ui/dimmer.js";
 import * as modals from "../ui/modals.js"
 import {setClass, toggleErrorMessage} from "../ui/utils.js";
 
-export function create(accession, text) {
+async function getSignature(accession) {
+    const response = await fetch(`/api/signature/${accession}/`);
+    if (response.ok)
+        return await response.json();
+    return null;
+}
+
+export async function create(accession, text) {
     const modal = document.getElementById('new-annotation');
     const msg = modal.querySelector('.message');
 
-    if (text !== undefined && text !== null)
+    if (text !== undefined && text !== null) {
+        const pfams = new Map();
+        const promises = [];
+        for (const [_, pfamAcc] of [...text.matchAll(/\bPfam:(PF\d+)\b/gi)]) {
+            if (!pfams.has(pfamAcc)) {
+                pfams.set(pfamAcc, null);
+                promises.push(getSignature(pfamAcc));
+            }
+        }
+
+        const results = await Promise.all(promises);
+        for (const object of results) {
+            if (object !== null) {
+                pfams.set(object.accession, object?.entry?.accession);
+            }
+        }
+
+        const replacer = (match, pfamAcc, offset, string) => {
+            const interproAcc = pfams.get(pfamAcc);
+            if (interproAcc !== undefined && interproAcc !== null)
+                return `[interpro:${interproAcc}]`;
+            return match;
+        };
+
+        text = text.replaceAll(/\bPfam:(PF\d+)\b/gi, replacer);
+        text = text.replaceAll(/\bswiss:([a-z0-9]+)\d+\b/gi, "[swissprot:$1]");
         modal.querySelector('textarea').value = text;
+    }
 
     $(modal)
         .modal({
@@ -81,16 +114,16 @@ export function getSignaturesAnnotations(accession) {
                     if (signature.text !== null) {
                         signatureAnnotations.set(signature.accession, signature.text);
                         html += `
-                                <div class="ui attached segment">
-                                ${escape(signature.text)}
+                            <div class="ui attached segment">
+                            ${escape(signature.text)}
+                            </div>
+                            <div class="ui bottom attached borderless mini menu">
+                                <span class="item message"></span>
+                                <div class="right item">
+                                <button data-id="${signature.accession}" class="ui primary button">Use</button>
                                 </div>
-                                <div class="ui bottom attached borderless mini menu">
-                                    <span class="item message"></span>
-                                    <div class="right item">
-                                    <button data-id="${signature.accession}" class="ui primary button">Use</button>
-                                    </div>
-                                </div>
-                            `;
+                            </div>
+                        `;
                     } else
                         html += '<div class="ui bottom attached secondary segment">No annotation.</div>';
                 }
