@@ -507,7 +507,8 @@ def get_unintegrated(db_name):
         for t in sorted(targets, key=lambda x: x["accession"]):
             query["targets"].append(t)
 
-        results.append(query)
+        if query["targets"] or not prediction_filter:
+            results.append(query)
 
     results.sort(key=lambda x: x[sort_col.replace("-", "_")],
                  reverse=sort_order == "desc")
