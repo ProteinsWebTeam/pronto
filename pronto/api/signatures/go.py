@@ -84,7 +84,8 @@ def get_go_terms(accessions):
     con.close()
 
     for term in terms.values():
-        for signature_acc, (proteins, refs, pthr2go) in term["signatures"].items():
+        for signature_acc, obj in term["signatures"].items():
+            proteins, refs, pthr2go = obj
             term["signatures"][signature_acc] = {
                 "proteins": len(proteins),
                 "references": len(refs),
