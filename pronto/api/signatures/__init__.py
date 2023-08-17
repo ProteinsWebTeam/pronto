@@ -31,6 +31,7 @@ from . import descriptions
 from . import go
 from . import matrices
 from . import proteins
+from . import structures
 from . import taxonomy
 
 
