@@ -115,22 +115,22 @@ export function showProteinsModal(accession, params, getMatches) {
 
 function updateAlphaFoldLink(accession) {
     hasAlphaFold(accession).then((hasAF) => {
-        if (hasAF) {
-            const wait = (ms) => {
-                setTimeout(() => {
-                    const td = document.querySelector(`[data-alphafold="${accession}"]`);
-                    if (td !== null) {
-                        td.innerHTML = `
-                            <a target="_blank" href="https://alphafold.ebi.ac.uk/entry/${accession}">Alphafold<i class="external icon"></i></a>
-                        `;
-                    } else {
-                        wait(500);
-                    }
-                }, ms);
-            };
+        const wait = (ms) => {
+            setTimeout(() => {
+                const td = document.querySelector(`[data-alphafold="${accession}"]`);
+                if (td === null)
+                    wait(500);
+                else if (hasAF) {
+                    td.innerHTML = `
+                        <a target="_blank" href="https://alphafold.ebi.ac.uk/entry/${accession}">Alphafold<i class="external icon"></i></a>
+                    `;
+                } else {
+                    td.innerHTML = 'No AlphaFold';
+                }
+            }, ms);
+        };
 
-            wait(0);
-        }
+        wait(0);
     });
 }
 
