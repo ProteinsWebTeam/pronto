@@ -57,4 +57,5 @@ def get_structures(accessions):
 
 def _hash(protein):
     max_structs = max(len(s) for s in protein["signatures"].values())
-    return -max_structs, protein["identifier"]
+    i = 0 if protein["is_reviewed"] else 1
+    return -max_structs, i, protein["identifier"]
