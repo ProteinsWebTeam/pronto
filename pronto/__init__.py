@@ -90,6 +90,11 @@ def proteins(accessions):
     return render_template("signatures/proteins.html")
 
 
+@app.route("/signatures/<path:accessions>/structures/")
+def structures(accessions):
+    return render_template("signatures/structures.html")
+
+
 @app.route("/signatures/<path:accessions>/taxonomy/<rank>/")
 def sig_taxonomy(accessions, rank):
     return render_template("signatures/taxonomy.html")
