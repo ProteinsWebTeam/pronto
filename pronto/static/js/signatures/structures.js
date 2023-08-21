@@ -44,7 +44,7 @@ async function getStructures(accessions) {
     html += '<tbody>';
     for (const protein of payload.results) {
         let className = protein.is_reviewed ? "star" : "star outline";
-        html += `<tr><td><i class="${className} icon"></i>${protein.identifier}</td>`;
+        html += `<tr><td><i class="${className} icon"></i>${protein.accession} (${protein.identifier})</td>`;
         for (const acc of accessions) {
             const structures = protein.signatures[acc]?.length;
             if (structures !== undefined)
