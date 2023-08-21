@@ -90,16 +90,24 @@ async function showStructures(identifiers, page, pageSize) {
     for (const pdbId of items) {
         const pdbInfo = results.get(pdbId);
         if (pdbInfo === undefined)
-            body += '<tr><td colspan="3">Missing</td></tr>';
+            body += '<tr><td colspan="4">Missing</td></tr>';
         else {
             const methods = pdbInfo.experimental_method;
             const rowspan = methods.length || 1;
 
             body += `
                 <tr>
+                    <td rowspan="${rowspan}">
+                        ${pdbId}
+                    </td>
                     <td rowspan="${rowspan}" class="nowrap">
                         <a target="_blank" href="https://www.ebi.ac.uk/pdbe/entry/pdb/${pdbId}">
-                            ${pdbId}
+                            PDBe
+                            <i class="external icon"></i>
+                        </a>
+                        &nbsp;&middot;&nbsp;
+                        <a target="_blank" href="https://www.rcsb.org/structure/${pdbId}">
+                            RCSB PDB
                             <i class="external icon"></i>
                         </a>
                     </td>
