@@ -846,7 +846,7 @@ async function runSanityChecks() {
     renderTaskList();
 }
 
-async function getInterProScanAnalyses(progressBar, numSequences) {
+async function getInterProScanAnalyses(progressBar, fromUpi, toUpi, numSequences) {
     const response = await fetch('/api/interproscan/');
     const analyses = await response.json();
     const activeAnalyses = analyses.filter((x) => x.active);
@@ -868,7 +868,7 @@ async function getInterProScanAnalyses(progressBar, numSequences) {
         return Promise.all(promises.map(increment));
     };
 
-    const promises = activeAnalyses.map((x) => getInterProScanAnalysis(x.name, x.version, numSequences));
+    const promises = activeAnalyses.map((x) => getInterProScanAnalysis(x.name, x.version, fromUpi, toUpi, numSequences));
     const results = await trackProgress(promises);
 
     const sequenceCounts = [];
@@ -897,8 +897,15 @@ async function getInterProScanAnalyses(progressBar, numSequences) {
     sessionStorage.setItem('jobs', JSON.stringify(results));
 }
 
-async function getInterProScanAnalysis(name, version, numSequences) {
-    const response = await fetch(`/api/interproscan/${name}/${version}/?sequences=${numSequences}`);
+async function getInterProScanAnalysis(name, version, fromUpi, toUpi, numSequences) {
+    const params = new URLSearchParams({sequences: numSequences});
+    if (fromUpi) {
+        params.set("from", fromUpi);
+        if (toUpi)
+            params.set("to", toUpi);
+    }
+
+    const response = await fetch(`/api/interproscan/${name}/${version}/?${params.toString()}`);
     return await response.json();
 }
 
@@ -1165,6 +1172,16 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelector('.tab[data-tab="interproscan"] > .button')
         .addEventListener('click', e => {
             const button = e.currentTarget;
+            let fromUpi = button.dataset.from;
+            let toUpi = button.dataset.to;
+            const numSequences = Number.parseInt(button.dataset.sequences);
+
+            if (fromUpi === undefined || fromUpi.length === 0)
+                fromUpi = null;
+
+            if (toUpi === undefined || toUpi.length === 0)
+                toUpi = null;
+
             const segment = button.parentNode;
             segment.removeChild(button);
 
@@ -1172,7 +1189,7 @@ document.addEventListener('DOMContentLoaded', () => {
             setClass(progressBar, 'hidden', false);
 
             const content = segment.querySelector(':scope > .content');
-            getInterProScanAnalyses(progressBar, 10000000)
+            getInterProScanAnalyses(progressBar, fromUpi, toUpi, numSequences)
                 .then(() => {
                     setTimeout(() => {
                         segment.removeChild(progressBar);
