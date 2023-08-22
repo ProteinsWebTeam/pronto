@@ -272,7 +272,7 @@ def get_recent_entries():
           GROUP BY EM.ENTRY_AC
         ) MC ON E.ENTRY_AC = MC.ENTRY_AC
         WHERE A.TIMESTAMP >= :1
-        ORDER BY A.TIMESTAMP DESC
+        ORDER BY E.ENTRY_AC DESC
         """,
         (date,),
     )
