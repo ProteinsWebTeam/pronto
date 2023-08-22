@@ -618,13 +618,14 @@ def create_entry():
             [(entry_acc, s_acc) for s_acc in entry_signatures]
         )
 
-        cur.executemany(
-            """
-            INSERT INTO INTERPRO.SUPPLEMENTARY_REF (ENTRY_AC, PUB_ID)
-            VALUES (:1, :2)
-            """,
-            [(entry_acc, pub_id) for pub_id in new_references]
-        )
+        if new_references:
+            cur.executemany(
+                """
+                INSERT INTO INTERPRO.SUPPLEMENTARY_REF (ENTRY_AC, PUB_ID)
+                VALUES (:1, :2)
+                """,
+                [(entry_acc, pub_id) for pub_id in new_references]
+            )
     except oracledb.DatabaseError as exc:
         return jsonify({
             "status": False,
