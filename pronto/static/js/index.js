@@ -496,7 +496,8 @@ function getDatabases() {
 function renderRecentEntries(entries) {
     const tab = document.querySelector('.tab[data-tab="news"]');
     const authorFilter = tab.querySelector('input[name="entries-author"]:checked').value;
-    const uncheckedOnly = tab.querySelector('input[name="entries-unchecked"]').checked
+    const uncheckedOnly = tab.querySelector('input[name="entries-unchecked"]').checked;
+    const noCommentOnly = tab.querySelector('input[name="entries-nocomment"]').checked;
 
     let html = '';
     let count = 0;
@@ -508,6 +509,10 @@ function renderRecentEntries(entries) {
         else if (authorFilter === 'others' && entry.user.by_me)
             continue
 
+        let numComments = entry.comments.entry + entry.comments.signatures;
+        if (noCommentOnly && numComments > 0)
+            continue;
+
         count += 1;
         html += `
             <tr>
@@ -517,13 +522,14 @@ function renderRecentEntries(entries) {
                 <a href="/entry/${entry.accession}/">${entry.accession}</a>
             </td>
             <td>${entry.short_name}</td>
+            <td>${entry.signatures}</td>
             <td>${checkbox.createDisabled(entry.checked)}</td>
             <td>${entry.date}</td>
             <td>${entry.user.name}</td>
             <td>
         `;
 
-        let numComments = entry.comments.entry + entry.comments.signatures;
+
         if (numComments > 0)
             html += `<a data-accession="${entry.accession}" class="ui small basic label"><i class="comments icon"></i> ${numComments}</a>`;
 
@@ -531,7 +537,7 @@ function renderRecentEntries(entries) {
     }
 
     if (html.length === 0)
-        html = '<tr><td colspan="5" class="center aligned">No entries found</td></tr>';
+        html = '<tr><td colspan="6" class="center aligned">No entries found</td></tr>';
 
     tab.querySelector('thead th:first-child').innerHTML = `${count.toLocaleString()} entr${count === 1 ? 'y' : 'ies'}`;
     tab.querySelector('tbody').innerHTML = html;

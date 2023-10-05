@@ -244,7 +244,7 @@ def get_recent_entries():
         """
         SELECT
           E.ENTRY_AC, E.ENTRY_TYPE, E.SHORT_NAME, A.TIMESTAMP, A.DBUSER,
-          NVL(U.NAME, A.DBUSER), E.CHECKED, NVL(EC.CNT, 0), NVL(MC.CNT, 0)
+          NVL(U.NAME, A.DBUSER), E.CHECKED, NVL(EC.CNT, 0), NVL(MC.CNT, 0), SIGN.SI
         FROM INTERPRO.ENTRY E
         INNER JOIN (
           -- First audit event
@@ -271,6 +271,12 @@ def get_recent_entries():
           WHERE MC.STATUS = 'Y'
           GROUP BY EM.ENTRY_AC
         ) MC ON E.ENTRY_AC = MC.ENTRY_AC
+        JOIN (
+            SELECT ENTRY_AC, 
+            LISTAGG(METHOD_AC, ', ') WITHIN GROUP (ORDER BY METHOD_AC) si
+            FROM INTERPRO.ENTRY2METHOD E2M
+            GROUP BY ENTRY_AC
+        ) SIGN ON SIGN.ENTRY_AC=E.ENTRY_AC
         WHERE A.TIMESTAMP >= :1
         ORDER BY E.ENTRY_AC DESC
         """,
@@ -286,6 +292,7 @@ def get_recent_entries():
                 "accession": row[0],
                 "type": row[1],
                 "short_name": row[2],
+                "signatures": row[9],
                 "date": row[3].strftime("%d %b %Y"),
                 "user": {
                     "name": user_name,
