@@ -273,10 +273,10 @@ def get_recent_entries():
           GROUP BY EM.ENTRY_AC
         ) MC ON E.ENTRY_AC = MC.ENTRY_AC
         JOIN (
-            SELECT ENTRY_AC, 
-            LISTAGG(METHOD_AC, ', ') WITHIN GROUP (ORDER BY METHOD_AC) si
-            FROM INTERPRO.ENTRY2METHOD E2M
-            GROUP BY ENTRY_AC
+          SELECT ENTRY_AC, 
+          LISTAGG(METHOD_AC, ', ') WITHIN GROUP (ORDER BY METHOD_AC) si
+          FROM INTERPRO.ENTRY2METHOD E2M
+          GROUP BY ENTRY_AC
         ) SIGN ON SIGN.ENTRY_AC=E.ENTRY_AC
         WHERE A.TIMESTAMP >= :1
         ORDER BY E.ENTRY_AC DESC
