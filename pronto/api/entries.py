@@ -244,7 +244,8 @@ def get_recent_entries():
         """
         SELECT
           E.ENTRY_AC, E.ENTRY_TYPE, E.SHORT_NAME, A.TIMESTAMP, A.DBUSER,
-          NVL(U.NAME, A.DBUSER), E.CHECKED, NVL(EC.CNT, 0), NVL(MC.CNT, 0), SIGN.SI
+          NVL(U.NAME, A.DBUSER), E.CHECKED, NVL(EC.CNT, 0), NVL(MC.CNT, 0), 
+          SIGN.SI
         FROM INTERPRO.ENTRY E
         INNER JOIN (
           -- First audit event
