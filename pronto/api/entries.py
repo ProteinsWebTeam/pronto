@@ -272,9 +272,9 @@ def get_recent_entries():
           WHERE MC.STATUS = 'Y'
           GROUP BY EM.ENTRY_AC
         ) MC ON E.ENTRY_AC = MC.ENTRY_AC
-        JOIN (
+        LEFT OUTER JOIN (
           SELECT ENTRY_AC, 
-          LISTAGG(METHOD_AC, ', ') WITHIN GROUP (ORDER BY METHOD_AC) si
+          LISTAGG(METHOD_AC, ',') WITHIN GROUP (ORDER BY METHOD_AC) si
           FROM INTERPRO.ENTRY2METHOD E2M
           GROUP BY ENTRY_AC
         ) SIGN ON SIGN.ENTRY_AC=E.ENTRY_AC
@@ -293,7 +293,7 @@ def get_recent_entries():
                 "accession": row[0],
                 "type": row[1],
                 "short_name": row[2],
-                "signatures": row[9],
+                "signatures": row[9].split(',') if row[9] else None,
                 "date": row[3].strftime("%d %b %Y"),
                 "user": {
                     "name": user_name,
@@ -303,10 +303,14 @@ def get_recent_entries():
                 "comments": {"entry": row[7], "signatures": row[8]},
             }
         )
+    
+    curators = get_curators_list(date)
+
     cur.close()
     con.close()
 
-    return jsonify({"date": date.strftime("%d %B"), "results": entries})
+
+    return jsonify({"date": date.strftime("%d %B"), "results": entries, "authors": curators})
 
 
 @bp.route("/news/go/")
@@ -631,3 +635,24 @@ def get_quarterly_stats():
         )
 
     return jsonify(quarters)
+
+def get_curators_list(date):
+
+    con = utils.connect_oracle()
+    cur = con.cursor()
+    
+    cur.execute(
+        """
+        SELECT NAME
+        FROM INTERPRO.PRONTO_USER
+        WHERE LAST_ACTIVITY >= :1
+        """, (date,),
+    )
+
+    curators = [row for row in cur]
+
+    cur.close()
+    con.close()
+
+    return curators
+

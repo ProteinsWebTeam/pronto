@@ -495,7 +495,7 @@ function getDatabases() {
 
 function renderRecentEntries(entries) {
     const tab = document.querySelector('.tab[data-tab="news"]');
-    const authorFilter = tab.querySelector('input[name="entries-author"]:checked').value;
+    const authorFilter = tab.querySelector('#curators').selectedOptions[0];
     const uncheckedOnly = tab.querySelector('input[name="entries-unchecked"]').checked;
     const noCommentOnly = tab.querySelector('input[name="entries-nocomment"]').checked;
 
@@ -504,9 +504,8 @@ function renderRecentEntries(entries) {
     for (const entry of entries) {
         if (entry.checked && uncheckedOnly)
             continue;
-        else if (authorFilter === 'me' && !entry.user.by_me)
-            continue
-        else if (authorFilter === 'others' && entry.user.by_me)
+
+        if (authorFilter.value !== 'any' && entry.user.name !== authorFilter.value)
             continue
 
         let numComments = entry.comments.entry + entry.comments.signatures;
@@ -514,6 +513,14 @@ function renderRecentEntries(entries) {
             continue;
 
         count += 1;
+
+        var signatures = '';
+        if (entry.signatures) {
+            for (const signature of entry.signatures) {
+                signatures += `<a href="/signature/${signature}/">${signature}</a> `
+            }
+        }
+
         html += `
             <tr>
             <td>${count}</td>
@@ -522,7 +529,7 @@ function renderRecentEntries(entries) {
                 <a href="/entry/${entry.accession}/">${entry.accession}</a>
             </td>
             <td>${entry.short_name}</td>
-            <td>${entry.signatures}</td>
+            <td>${signatures}</td>
             <td>${checkbox.createDisabled(entry.checked)}</td>
             <td>${entry.date}</td>
             <td>${entry.user.name}</td>
@@ -564,6 +571,16 @@ async function getRecentEntries() {
 
     document.getElementById('news-summary').innerHTML = text;
     document.querySelector('.item[data-tab="news"] .label').innerHTML = data.results.length.toString();
+
+    //list of curators
+    var dynamicSelect = document.getElementById('curators');
+
+    for (const curator of data.authors) {
+        var newOption = document.createElement("option");
+        newOption.text = curator;
+        newOption.value = curator;
+        dynamicSelect.add(newOption);
+    }
 }
 
 async function getNumOfUncheckedEntries() {
@@ -1130,6 +1147,13 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data !== null) renderRecentEntries(JSON.parse(data));
         }
     });
+
+    //Init select curator in "Recent entries" tab
+    $('[data-tab="news"] #curators').
+        on('change', function () {
+            const data = sessionStorage.getItem('newEntries');
+            if (data !== null) renderRecentEntries(JSON.parse(data));
+        });
 
     // Run sanity checks
     document.querySelector('.tab[data-tab="checks"] .primary.button').addEventListener('click', e => runSanityChecks());
