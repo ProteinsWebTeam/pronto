@@ -243,9 +243,8 @@ def get_recent_entries():
     cur.execute(
         """
         SELECT
-          E.ENTRY_AC, E.ENTRY_TYPE, E.SHORT_NAME, A.TIMESTAMP, A.DBUSER,
-          NVL(U.NAME, A.DBUSER), E.CHECKED, NVL(EC.CNT, 0), NVL(MC.CNT, 0), 
-          SIGN.SI
+          E.ENTRY_AC, E.ENTRY_TYPE, E.SHORT_NAME, A.TIMESTAMP,NVL(U.NAME, A.DBUSER), 
+          E.CHECKED, NVL(EC.CNT, 0), NVL(MC.CNT, 0), SIGN.SI
         FROM INTERPRO.ENTRY E
         INNER JOIN (
           -- First audit event
@@ -284,33 +283,30 @@ def get_recent_entries():
         (date,),
     )
     entries = []
+    curators = set()
+
     for row in cur:
-        db_user = row[4]
-        user_name = row[5]
+        user_name = row[4]
+
+        curators.add(user_name)
 
         entries.append(
             {
                 "accession": row[0],
                 "type": row[1],
                 "short_name": row[2],
-                "signatures": row[9].split(',') if row[9] else None,
+                "signatures": row[8].split(',') if row[8] else None,
                 "date": row[3].strftime("%d %b %Y"),
-                "user": {
-                    "name": user_name,
-                    "by_me": user and user["dbuser"] == db_user
-                },
-                "checked": row[6] == "Y",
-                "comments": {"entry": row[7], "signatures": row[8]},
+                "user": user_name,
+                "checked": row[5] == "Y",
+                "comments": {"entry": row[6], "signatures": row[7]},
             }
         )
-    
-    curators = get_curators_list(date)
 
     cur.close()
     con.close()
 
-
-    return jsonify({"date": date.strftime("%d %B"), "results": entries, "authors": curators})
+    return jsonify({"date": date.strftime("%d %B"), "results": entries, "authors": list(curators), "current_user":user})
 
 
 @bp.route("/news/go/")
@@ -369,7 +365,8 @@ def get_recent_go_terms():
                     "short_name": row[1],
                     "type": row[2]
                 },
-                "term": terms[row[3]],
+                # "term": terms[row[3]],
+                "term": terms[row[3]] if row[3] in terms else '',
                 "date": row[4].strftime("%d %b %Y"),
                 "user": row[5],
             }
@@ -635,24 +632,3 @@ def get_quarterly_stats():
         )
 
     return jsonify(quarters)
-
-def get_curators_list(date):
-
-    con = utils.connect_oracle()
-    cur = con.cursor()
-    
-    cur.execute(
-        """
-        SELECT NAME
-        FROM INTERPRO.PRONTO_USER
-        WHERE LAST_ACTIVITY >= :1
-        """, (date,),
-    )
-
-    curators = [row for row in cur]
-
-    cur.close()
-    con.close()
-
-    return curators
-

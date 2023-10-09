@@ -505,7 +505,7 @@ function renderRecentEntries(entries) {
         if (entry.checked && uncheckedOnly)
             continue;
 
-        if (authorFilter.value !== 'any' && entry.user.name !== authorFilter.value)
+        if (authorFilter.value !== 'any' && entry.user !== authorFilter.value)
             continue
 
         let numComments = entry.comments.entry + entry.comments.signatures;
@@ -532,7 +532,7 @@ function renderRecentEntries(entries) {
             <td>${signatures}</td>
             <td>${checkbox.createDisabled(entry.checked)}</td>
             <td>${entry.date}</td>
-            <td>${entry.user.name}</td>
+            <td>${entry.user}</td>
             <td>
         `;
 
@@ -575,11 +575,18 @@ async function getRecentEntries() {
     //list of curators
     var dynamicSelect = document.getElementById('curators');
 
+    var newOption = document.createElement("option");
+    newOption.text = "Me";
+    newOption.value = data.current_user.name;
+    dynamicSelect.add(newOption);
+
     for (const curator of data.authors) {
-        var newOption = document.createElement("option");
-        newOption.text = curator;
-        newOption.value = curator;
-        dynamicSelect.add(newOption);
+        if (data.current_user.name !== curator[0]) {
+            newOption = document.createElement("option");
+            newOption.text = curator;
+            newOption.value = curator;
+            dynamicSelect.add(newOption);
+        }
     }
 }
 
