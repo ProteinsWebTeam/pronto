@@ -365,8 +365,7 @@ def get_recent_go_terms():
                     "short_name": row[1],
                     "type": row[2]
                 },
-                # "term": terms[row[3]],
-                "term": terms[row[3]] if row[3] in terms else '',
+                "term": terms[row[3]],
                 "date": row[4].strftime("%d %b %Y"),
                 "user": row[5],
             }
