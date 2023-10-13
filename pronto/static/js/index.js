@@ -575,14 +575,16 @@ async function getRecentEntries() {
     //list of curators
     var dynamicSelect = document.getElementById('curators');
 
-    var newOption = document.createElement("option");
-    newOption.text = "Me";
-    newOption.value = data.current_user.name;
-    dynamicSelect.add(newOption);
+    if (data.current_user !== null) {
+        var newOption = document.createElement("option");
+        newOption.text = "Me";
+        newOption.value = data.current_user.name;
+        dynamicSelect.add(newOption);
+    }
 
     for (const curator of data.authors) {
-        if (data.current_user.name !== curator[0]) {
-            newOption = document.createElement("option");
+        if (data.current_user !== null && data.current_user.name !== curator[0]) {
+            var newOption = document.createElement("option");
             newOption.text = curator;
             newOption.value = curator;
             dynamicSelect.add(newOption);
