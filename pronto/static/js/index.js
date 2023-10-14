@@ -1137,6 +1137,11 @@ document.addEventListener('DOMContentLoaded', () => {
     ])
         .then(() => {
             setClass(document.getElementById('welcome'), 'active', false);
+        })
+        .catch((error) => {
+            document.querySelector('#welcome h2').innerHTML = `
+                <i class="dizzy outline icon"></i> Something went wrong!
+            `;
         });
 
     document.querySelector('.tab[data-tab="statistics"] > .button')
