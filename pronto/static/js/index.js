@@ -514,13 +514,9 @@ function renderRecentEntries(entries) {
 
         count += 1;
 
-        let signatures = '';
-        if (entry.signatures) {
-            for (const signature of entry.signatures) {
-                signatures += `<a href="/signature/${signature}/">${signature}</a> `
-            }
-        }
-
+        const signatures = entry.signatures
+            .map((acc) => `<a href="/signature/${acc}/">${acc}</a>`)
+            .join(', ');
         html += `
             <tr>
             <td>${count}</td>
