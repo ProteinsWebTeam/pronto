@@ -495,20 +495,28 @@ function getDatabases() {
 
 function renderRecentEntries(entries) {
     const tab = document.querySelector('.tab[data-tab="news"]');
-    const authorFilter = tab.querySelector('input[name="entries-author"]:checked').value;
-    const uncheckedOnly = tab.querySelector('input[name="entries-unchecked"]').checked
+    const authorFilter = tab.querySelector('#curators').selectedOptions[0];
+    const uncheckedOnly = tab.querySelector('input[name="entries-unchecked"]').checked;
+    const noCommentOnly = tab.querySelector('input[name="entries-nocomment"]').checked;
 
     let html = '';
     let count = 0;
     for (const entry of entries) {
         if (entry.checked && uncheckedOnly)
             continue;
-        else if (authorFilter === 'me' && !entry.user.by_me)
-            continue
-        else if (authorFilter === 'others' && entry.user.by_me)
+
+        if (authorFilter.value !== 'any' && entry.user !== authorFilter.value)
             continue
 
+        let numComments = entry.comments.entry + entry.comments.signatures;
+        if (noCommentOnly && numComments > 0)
+            continue;
+
         count += 1;
+
+        const signatures = entry.signatures
+            .map((acc) => `<a href="/signature/${acc}/">${acc}</a>`)
+            .join(', ');
         html += `
             <tr>
             <td>${count}</td>
@@ -517,13 +525,13 @@ function renderRecentEntries(entries) {
                 <a href="/entry/${entry.accession}/">${entry.accession}</a>
             </td>
             <td>${entry.short_name}</td>
+            <td>${signatures}</td>
             <td>${checkbox.createDisabled(entry.checked)}</td>
             <td>${entry.date}</td>
-            <td>${entry.user.name}</td>
+            <td>${entry.user}</td>
             <td>
         `;
 
-        let numComments = entry.comments.entry + entry.comments.signatures;
         if (numComments > 0)
             html += `<a data-accession="${entry.accession}" class="ui small basic label"><i class="comments icon"></i> ${numComments}</a>`;
 
@@ -531,7 +539,7 @@ function renderRecentEntries(entries) {
     }
 
     if (html.length === 0)
-        html = '<tr><td colspan="5" class="center aligned">No entries found</td></tr>';
+        html = '<tr><td colspan="6" class="center aligned">No entries found</td></tr>';
 
     tab.querySelector('thead th:first-child').innerHTML = `${count.toLocaleString()} entr${count === 1 ? 'y' : 'ies'}`;
     tab.querySelector('tbody').innerHTML = html;
@@ -558,6 +566,17 @@ async function getRecentEntries() {
 
     document.getElementById('news-summary').innerHTML = text;
     document.querySelector('.item[data-tab="news"] .label').innerHTML = data.results.length.toString();
+
+    //list of curators
+    const dynamicSelect = document.getElementById('curators');
+    const curators = [...new Set(data.results.map((e => e.user)))].sort();
+
+    for (const curator of curators) {
+        let newOption = document.createElement("option");
+        newOption.text = curator;
+        newOption.value = curator;
+        dynamicSelect.add(newOption);
+    }
 }
 
 async function getNumOfUncheckedEntries() {
@@ -1124,6 +1143,13 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data !== null) renderRecentEntries(JSON.parse(data));
         }
     });
+
+    //Init select curator in "Recent entries" tab
+    $('[data-tab="news"] #curators').
+        on('change', function () {
+            const data = sessionStorage.getItem('newEntries');
+            if (data !== null) renderRecentEntries(JSON.parse(data));
+        });
 
     // Run sanity checks
     document.querySelector('.tab[data-tab="checks"] .primary.button').addEventListener('click', e => runSanityChecks());
