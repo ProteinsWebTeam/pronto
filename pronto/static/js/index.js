@@ -568,7 +568,7 @@ async function getRecentEntries() {
     document.querySelector('.item[data-tab="news"] .label').innerHTML = data.results.length.toString();
 
     //list of curators
-    var dynamicSelect = document.getElementById('curators');
+    const dynamicSelect = document.getElementById('curators');
     const curators = new Set(data.results.map((e => e.user)));
 
     for (const curator of curators) {
