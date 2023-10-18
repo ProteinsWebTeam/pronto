@@ -569,7 +569,7 @@ async function getRecentEntries() {
 
     //list of curators
     const dynamicSelect = document.getElementById('curators');
-    const curators = new Set(data.results.map((e => e.user)));
+    const curators = [...new Set(data.results.map((e => e.user)))].sort();
 
     for (const curator of curators) {
         let newOption = document.createElement("option");
