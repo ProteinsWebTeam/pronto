@@ -514,7 +514,7 @@ function renderRecentEntries(entries) {
 
         count += 1;
 
-        var signatures = '';
+        let signatures = '';
         if (entry.signatures) {
             for (const signature of entry.signatures) {
                 signatures += `<a href="/signature/${signature}/">${signature}</a> `
@@ -535,7 +535,6 @@ function renderRecentEntries(entries) {
             <td>${entry.user}</td>
             <td>
         `;
-
 
         if (numComments > 0)
             html += `<a data-accession="${entry.accession}" class="ui small basic label"><i class="comments icon"></i> ${numComments}</a>`;
@@ -574,21 +573,13 @@ async function getRecentEntries() {
 
     //list of curators
     var dynamicSelect = document.getElementById('curators');
+    const curators = new Set(data.results.map((e => e.user)));
 
-    if (data.current_user !== null) {
-        var newOption = document.createElement("option");
-        newOption.text = "Me";
-        newOption.value = data.current_user.name;
+    for (const curator of curators) {
+        let newOption = document.createElement("option");
+        newOption.text = curator;
+        newOption.value = curator;
         dynamicSelect.add(newOption);
-    }
-
-    for (const curator of data.authors) {
-        if (data.current_user !== null && data.current_user.name !== curator[0]) {
-            var newOption = document.createElement("option");
-            newOption.text = curator;
-            newOption.value = curator;
-            dynamicSelect.add(newOption);
-        }
     }
 }
 

@@ -243,8 +243,9 @@ def get_recent_entries():
     cur.execute(
         """
         SELECT
-          E.ENTRY_AC, E.ENTRY_TYPE, E.SHORT_NAME, A.TIMESTAMP,NVL(U.NAME, A.DBUSER), 
-          E.CHECKED, NVL(EC.CNT, 0), NVL(MC.CNT, 0), SIGN.SI
+          E.ENTRY_AC, E.ENTRY_TYPE, E.SHORT_NAME, A.TIMESTAMP, 
+          NVL(U.NAME, A.DBUSER), E.CHECKED, NVL(EC.CNT, 0), NVL(MC.CNT, 0), 
+          EM.ACCESSIONS
         FROM INTERPRO.ENTRY E
         INNER JOIN (
           -- First audit event
@@ -272,41 +273,35 @@ def get_recent_entries():
           GROUP BY EM.ENTRY_AC
         ) MC ON E.ENTRY_AC = MC.ENTRY_AC
         LEFT OUTER JOIN (
-          SELECT ENTRY_AC, 
-          LISTAGG(METHOD_AC, ',') WITHIN GROUP (ORDER BY METHOD_AC) si
+          SELECT ENTRY_AC, LISTAGG(METHOD_AC, ',') ACCESSIONS
           FROM INTERPRO.ENTRY2METHOD E2M
           GROUP BY ENTRY_AC
-        ) SIGN ON SIGN.ENTRY_AC=E.ENTRY_AC
+        ) EM ON E.ENTRY_AC = EM.ENTRY_AC
         WHERE A.TIMESTAMP >= :1
         ORDER BY E.ENTRY_AC DESC
         """,
         (date,),
     )
     entries = []
-    curators = set()
-
     for row in cur:
         user_name = row[4]
-
-        curators.add(user_name)
 
         entries.append(
             {
                 "accession": row[0],
                 "type": row[1],
                 "short_name": row[2],
-                "signatures": row[8].split(',') if row[8] else None,
+                "signatures": sorted(row[8].split(',')) if row[8] else [],
                 "date": row[3].strftime("%d %b %Y"),
                 "user": user_name,
                 "checked": row[5] == "Y",
                 "comments": {"entry": row[6], "signatures": row[7]},
             }
         )
-
     cur.close()
     con.close()
 
-    return jsonify({"date": date.strftime("%d %B"), "results": entries, "authors": list(curators), "current_user":user})
+    return jsonify({"date": date.strftime("%d %B"), "results": entries})
 
 
 @bp.route("/news/go/")
