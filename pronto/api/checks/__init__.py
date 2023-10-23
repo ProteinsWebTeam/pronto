@@ -159,13 +159,14 @@ def run_checks(ora_url: str, pg_url: str, ora_goa_url: str):
         """, (run_id,)
     )
 
-    cur.executemany(
-        """
-        INSERT INTO INTERPRO.SANITY_ERROR
-            (RUN_ID, ID, ANN_ID, ENTRY_AC, CHECK_TYPE, TERM, COUNT)
-        VALUES (:1, :2, :3, :4, :5, :6, :7)
-        """, errors
-    )
+    if errors:
+        cur.executemany(
+            """
+            INSERT INTO INTERPRO.SANITY_ERROR
+                (RUN_ID, ID, ANN_ID, ENTRY_AC, CHECK_TYPE, TERM, COUNT)
+            VALUES (:1, :2, :3, :4, :5, :6, :7)
+            """, errors
+        )
 
     cur.execute("DELETE FROM INTERPRO.SANITY_RUN WHERE ID != :1", (run_id,))
 
