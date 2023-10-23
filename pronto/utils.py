@@ -342,7 +342,7 @@ class Prints:
         return f"{self.home}{acc}"
 
 
-class PrositePatterms:
+class PrositePatterns:
     home = 'http://prosite.expasy.org'
     color = '#596dce'
 
@@ -411,8 +411,8 @@ def get_database_obj(key: str):
         "prints": Prints,
         "profile": PrositeProfiles,
         "prosite profiles": PrositeProfiles,
-        "prosite": PrositePatterms,
-        "prosite patterns": PrositePatterms,
+        "prosite": PrositePatterns,
+        "prosite patterns": PrositePatterns,
         "sfld": Sfld,
         "smart": Smart,
         "ssf": Superfamily,
