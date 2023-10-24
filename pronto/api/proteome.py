@@ -89,6 +89,11 @@ def _process_proteome(ora_url: str, pg_url: str, proteome_id: str,
     # Compute coverage (i.e. proteins with at least one integrated signature)
     num_int_proteins = num_int_reviewed = 0
     results = {}
+
+    re_antifam = re.compile(r"ANF\d+")
+    re_funfam = re.compile(r"G3DSA:([0-9.]+):FF:(\d+)")
+    re_subfam = re.compile(r"PTHR\d+:SF\d+")
+
     for protein_acc, prot_signatures in matches.items():
         is_reviewed = protein_acc in reviewed
 
@@ -98,9 +103,9 @@ def _process_proteome(ora_url: str, pg_url: str, proteome_id: str,
             if signature_acc in integrated:
                 is_integrated = True
                 break
-            elif (not re.match(r"PTHR\d+:SF\d+", signature_acc)
-                  and not re.match(r"ANF\d+", signature_acc)):
-                # Ignore PANTHER subfamilies and Antifam
+            elif (not re_antifam.fullmatch(signature_acc) and
+                  not re_funfam.fullmatch(signature_acc) and
+                  not re_subfam.fullmatch(signature_acc)):
                 unintegrated.append(signature_acc)
 
         if is_integrated:
@@ -169,12 +174,13 @@ def _get_proteome(proteome_id):
         SELECT name
         FROM interpro.proteome
         WHERE id = %s
-        """, (proteome_id,)
+        """,
+        [proteome_id]
     )
     row = cur.fetchone()
     cur.close()
     con.close()
-    return row
+    return row[0]
 
 
 @bp.route("/<proteome_id>/", methods=["PUT"])
@@ -263,7 +269,7 @@ def get_proteome(proteome_id):
     else:
         add_comments(task)
         return jsonify({
-            "status": True,
+            "status": task and task["result"] is not None,
             "id": proteome_id,
             "name": proteome_name,
             "task": task

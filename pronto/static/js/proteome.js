@@ -51,8 +51,8 @@ async function getProteome(proteomeId) {
     if (!result.status) {
         // Proteome does not exist
         message.innerHTML = `
-            <div class="header">${result.error.title}</div>
-            <p>${result.error.message}</p>
+            <div class="header">${result?.error?.title || 'Unexpected error'}</div>
+            <p>${result?.error?.message || 'An unexpected error occurred. Please contact developers.'}</p>
         `;
         message.className = 'ui error message';
         dimmer.off();
