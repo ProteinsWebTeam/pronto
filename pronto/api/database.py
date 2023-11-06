@@ -399,9 +399,13 @@ def get_unintegrated(db_name):
     unintegrated = {}
     _min_sd_ratio = min_sd_ratio / 100
     for acc, _type, n_prots, n_sd_prots, n_res in cur.fetchall():
-        if acc not in integrated and (n_prots == 0 or
-                                      n_sd_prots / n_prots >= _min_sd_ratio):
-            unintegrated[acc] = (_type, n_prots, n_sd_prots, n_res)
+        if acc in integrated:
+            continue
+        elif _min_sd_ratio and (n_prots == 0 or
+                                n_sd_prots / n_prots < _min_sd_ratio):
+            continue
+
+        unintegrated[acc] = (_type, n_prots, n_sd_prots, n_res)
 
     queries = {}
     if prediction_filter:
