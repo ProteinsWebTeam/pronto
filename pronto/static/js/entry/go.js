@@ -1,4 +1,5 @@
 import * as modals from "../ui/modals.js";
+import * as dimmer from "../ui/dimmer.js";
 
 function unlink(accession, termID) {
     modals.ask(
@@ -47,7 +48,7 @@ function render(accession, terms, divID) {
         `;
 
         if (term.taxon_constraints > 0) {
-            html += `&nbsp;<a target="_blank" href="https://www.ebi.ac.uk/QuickGO/term/${term.id}#termTaxonConstraints" class="ui tiny red label">Taxon constraints <span class="detail">${term.taxon_constraints}</span></a>`;
+            html += `&nbsp;<span class="ui tiny red label button" data-entry="${accession}" data-term="${term.id}" data-go="">Taxon constraints <span class="detail">${term.taxon_constraints}</span></span>`;
         }
 
         if (term.is_obsolete)
@@ -67,6 +68,41 @@ function render(accession, terms, divID) {
     for (const elem of div.querySelectorAll('[data-id]')) {
         elem.addEventListener('click', (e,) => {
             unlink(accession, e.currentTarget.dataset.id);
+        });
+    }
+    for (const elem of div.querySelectorAll('[data-entry][data-go]')) {
+        elem.addEventListener('click', (e,) => {
+            const acc = e.currentTarget.dataset.entry;
+            const term = e.currentTarget.dataset.term;
+            const url = new URL(`/api/entry/${acc}/go/${term}/`, location.origin);
+            dimmer.on();
+            fetch(url.toString(), { method: 'CONSTRAINT' })
+                .then(response => response.json())
+                .then(object => {
+                    let html = '';
+                    html += `<table class="ui definition celled table">
+                                        <thead>
+                                            <tr>
+                                                <th class="normal">Taxon</th>
+                                                <th>Constraint</th>
+                                                <th>Count</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>`;
+
+                    for (const taxon in object.results) {
+                        html += `<tr>
+                                <td>${object.results[taxon]['name'].toLocaleString()}</td>
+                                <td>${object.results[taxon]['relationship'].toLocaleString()}</td>
+                                <td>${object.results[taxon]['count_match'].toLocaleString()}/${object.results[taxon]['count_all'].toLocaleString()}</td>
+                                </tr>`;
+                    }
+                    const modal = document.getElementById('goconstraint-modal');
+                    modal.querySelector('.ui.header').innerHTML = `GO constraint: ${object.term_id}`;
+                    modal.querySelector('.content ul').innerHTML = html;
+                    $(modal).modal('show');
+                    dimmer.off();
+                });
         });
     }
 }

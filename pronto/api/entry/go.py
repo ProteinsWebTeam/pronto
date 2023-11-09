@@ -1,7 +1,13 @@
 # -*- coding: utf-8 -*-
-
+import sys
+import re
+import json
+import ssl
 from flask import jsonify
 from oracledb import DatabaseError
+from urllib import request
+from urllib.error import HTTPError
+from time import sleep
 
 from pronto import auth, utils
 from . import bp
@@ -178,3 +184,116 @@ def delete_term(accession, term_id):
     finally:
         cur.close()
         con.close()
+
+
+@bp.route("/<accession>/go/<term_id>/", methods=["CONSTRAINT"])
+def term_constraints(accession, term_id):
+    con = utils.connect_oracle()
+    cur = con.cursor()
+    cur.execute(
+        """
+        SELECT METHOD_AC FROM INTERPRO.ENTRY2METHOD
+        WHERE ENTRY_AC = :1
+        """, (accession,)
+    )
+
+    list_methods = [row[0] for row in cur]
+    constraints = get_go_constraint(term_id)
+    mapping = get_taxonomy_origins(list_methods, constraints)
+
+    cur.close()
+    con.close()
+
+    return jsonify({
+        "status": True,
+        "term_id": term_id,
+        "results": mapping
+    })
+
+
+def get_go_constraint(term_id):
+    term_id_url = term_id.replace(':', '%3A')
+
+    next = f"https://www.ebi.ac.uk/QuickGO/services/ontology/go/terms/{term_id_url}/constraints"
+    context = ssl._create_unverified_context()
+
+    attempts = 0
+    constraints_data = []
+
+    while next:
+        try:
+            req = request.Request(next, headers={"Accept": "application/json"})
+            res = request.urlopen(req, context=context)
+
+            if res.status == 408:
+                sleep(61)
+                continue
+            elif res.status == 204:
+                break
+            payload = json.loads(res.read().decode())
+            next = ""
+            attempts = 0
+        except HTTPError as e:
+            if e.code == 408:
+                sleep(61)
+                continue
+            else:
+                if attempts < 3:
+                    attempts += 1
+                    sleep(61)
+                    continue
+                else:
+                    sys.stderr.write("LAST URL: " + next)
+                    raise e
+
+        constraints_data = []
+        for value in payload["results"]:
+            constraints_data = value["taxonConstraints"]
+
+    constraints = dict()
+    for constraint in constraints_data:
+        try:
+            constraints[constraint['taxId']] = {'name': constraint['taxName'], 'relationship': constraint['relationship'].replace(
+                '_', ' '), 'count_match': 0, 'count_all': 0}
+        except KeyError:
+            constraints = {constraint['taxId']: {'name': constraint['taxName'], 'relationship': constraint['relationship'].replace(
+                '_', ' '), 'count_match': 0, 'count_all': 0}}
+
+    return constraints
+
+
+def get_taxonomy_origins(accessions, go_list):
+
+    con = utils.connect_pg()
+    cur = con.cursor()
+
+    params = tuple(accessions)
+
+    sql = f"""
+            SELECT sp.signature_acc, sp.protein_acc, t.lineage
+            FROM signature2protein sp
+            INNER JOIN protein p ON p.accession=sp.protein_acc
+            INNER JOIN taxon t on t.id = p.taxon_id
+            WHERE sp.signature_acc IN ({','.join('%s' for _ in accessions)})
+            AND p.is_fragment = 'f'
+            group by sp.signature_acc, sp.protein_acc, t.lineage
+    """
+
+    cur.execute(sql, params)
+
+    for row in cur:
+        lineage = row[2].strip('[').strip(']').split(', ')
+        for tax_id in go_list:
+            if re.search(',', tax_id):  # case of Prokaryota where tax_id = '2, 2157'
+                list_ids = tax_id.split(',')
+                for item in list_ids:
+                    if item in lineage:
+                        go_list[tax_id]['count_match'] += 1
+                        break
+            elif tax_id in lineage:
+                go_list[tax_id]['count_match'] += 1
+            go_list[tax_id]['count_all'] += 1
+    cur.close()
+    con.close()
+
+    return go_list
