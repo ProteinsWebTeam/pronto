@@ -366,7 +366,7 @@ def get_signatures_annotations(accession):
     cur = con.cursor()
     cur.execute(
         f"""
-        SELECT accession, name, abstract
+        SELECT accession, name, abstract, llm_summary
         FROM interpro.signature
         WHERE accession IN ({','.join('%s' for _ in signatures)})
         ORDER BY accession
@@ -375,11 +375,19 @@ def get_signatures_annotations(accession):
     )
 
     signatures = []
-    for accession, name, text in cur.fetchall():
+    for accession, name, abstract, llm_summary in cur.fetchall():
+        if abstract:
+            text = abstract
+            llm_generated = False
+        else:
+            text = llm_summary
+            llm_generated = True
+
         signatures.append({
             "accession": accession,
             "name": name,
-            "text": text
+            "text": text,
+            "llm_generated": llm_generated
         })
 
     cur.close()
