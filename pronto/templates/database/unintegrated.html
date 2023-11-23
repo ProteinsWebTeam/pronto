@@ -34,11 +34,23 @@
                 <h1 class="ui header"></h1>
                 <div class="ui form">
                     <div class="inline fields">
-                        <label>Predictions</label>
+                        <label>Predicted relationships</label>
                         <div class="field">
-                            <div class="ui checkbox">
-                                <input type="checkbox" name="with-predictions" value="1">
-                                <label>Display signatures with predicted relationships only</label>
+                            <div class="ui radio checkbox">
+                                <input id="no-integrated-relationship" class="hidden" type="radio" name="relationships" value="without-integrated" checked="checked">
+                                <label for="no-integrated-relationship">Without integrated signatures</label>
+                            </div>
+                        </div>                        
+                        <div class="field">
+                            <div class="ui radio checkbox">
+                                <input id="no-relationship" class="hidden" type="radio" name="relationships" value="without">
+                                <label for="no-relationship">Without</label>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <div class="ui radio checkbox">
+                                <input id="with-relationship" class="hidden" type="radio" name="relationships" value="with">
+                                <label for="with-relationship">With</label>
                             </div>
                         </div>
                     </div>

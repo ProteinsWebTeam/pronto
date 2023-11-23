@@ -31,7 +31,7 @@ def get_latest_freeze(cur):
         WHERE RN = 1
         """
     )
-    (date,) = cur.fetchone()
+    date, = cur.fetchone()
     return date
 
 
@@ -84,7 +84,11 @@ def get_signatures(db_name):
     if not row:
         cur.close()
         con.close()
-        return jsonify({"results": [], "count": 0, "database": None}), 404
+        return jsonify({
+            "results": [],
+            "count": 0,
+            "database": None
+        }), 404
 
     db_identifier, db_full_name, db_version = row
 
@@ -225,7 +229,7 @@ def get_signatures(db_name):
             FROM webfront_entry
             WHERE accession IN ({','.join('%s' for _ in accessions)})
             """,
-            accessions,
+            accessions
         )
 
         for row in cur:
@@ -280,17 +284,17 @@ def get_unintegrated(db_name):
                     "message": "Accepted values are: asc, desc",
                 }
             }),
-            400,
+            400
         )
 
-    try:
-        prediction_filter = int(request.args.get("with-predictions", "0")) != 0
-    except ValueError:
+    rel_filter = request.args.get("relationships", "without-integrated")
+    if rel_filter not in ("without", "without-integrated", "with"):
         return (
             jsonify({
                 "error": {
-                    "title": "Bad Request (invalid with-predictions parameter)",
-                    "message": "An integer is expected",
+                    "title": "Bad Request (invalid relationships parameter)",
+                    "message": "Accepted values are: without, "
+                               "without-integrated, with",
                 }
             }),
             400
@@ -339,7 +343,6 @@ def get_unintegrated(db_name):
 
     con = utils.connect_oracle()
     cur = con.cursor()
-
     cur.execute(
         """
         SELECT METHOD_AC, COUNT(*)
@@ -363,7 +366,7 @@ def get_unintegrated(db_name):
             "accession": row[1],
             "name": row[2],
             "type": row[3],
-            "checked": row[4] == "Y",
+            "checked": row[4] == "Y"
         }
 
     cur.close()
@@ -383,7 +386,11 @@ def get_unintegrated(db_name):
     if not row:
         cur.close()
         con.close()
-        return jsonify({"results": [], "count": 0, "database": None}), 404
+        return jsonify({
+            "results": [],
+            "count": 0,
+            "database": None
+        }), 404
 
     db_identifier, db_full_name, db_version = row
     cur.execute(
@@ -408,82 +415,80 @@ def get_unintegrated(db_name):
         unintegrated[acc] = (_type, n_prots, n_sd_prots, n_res)
 
     queries = {}
-    if prediction_filter:
-        cur.execute(
-            """
-            SELECT s1.accession, s2.accession, s2.type, 
-                   s2.num_complete_sequences, s2.num_residues, s2.database_id, 
-                   d.name, d.name_long, p.num_collocations, 
-                   p.num_protein_overlaps, p.num_residue_overlaps
-            FROM interpro.signature s1
-            INNER JOIN interpro.prediction p 
-                ON s1.accession = p.signature_acc_1
-            INNER JOIN interpro.signature s2 
-                ON p.signature_acc_2 = s2.accession
-            INNER JOIN interpro.database d 
-                ON s2.database_id = d.id
-            WHERE s1.database_id = %s
-            """,
-            [db_identifier]
-        )
+    cur.execute(
+        """
+        SELECT s1.accession, s2.accession, s2.type,
+               s2.num_complete_sequences, s2.num_residues, s2.database_id,
+               d.name, d.name_long, p.num_collocations,
+               p.num_protein_overlaps, p.num_residue_overlaps
+        FROM interpro.signature s1
+        INNER JOIN interpro.prediction p
+            ON s1.accession = p.signature_acc_1
+        INNER JOIN interpro.signature s2
+            ON p.signature_acc_2 = s2.accession
+        INNER JOIN interpro.database d
+            ON s2.database_id = d.id
+        WHERE s1.database_id = %s
+        """,
+        [db_identifier]
+    )
 
-        for row in cur.fetchall():
-            q_acc = row[0]
+    for row in cur.fetchall():
+        q_acc = row[0]
 
-            try:
-                q_type, q_proteins, _, q_residues = unintegrated[q_acc]
-            except KeyError:
-                continue
+        try:
+            q_type, q_proteins, _, q_residues = unintegrated[q_acc]
+        except KeyError:
+            continue
 
-            t_acc = row[1]
-            t_type = row[2]
-            t_proteins = row[3]
-            t_residues = row[4]
-            t_db_id = row[5]
-            t_db_key = row[6]
-            t_db_name = row[7]
-            collocations = row[8]
-            protein_overlaps = row[9]
-            residue_overlaps = row[10]
+        t_acc = row[1]
+        t_type = row[2]
+        t_proteins = row[3]
+        t_residues = row[4]
+        t_db_id = row[5]
+        t_db_key = row[6]
+        t_db_name = row[7]
+        collocations = row[8]
+        protein_overlaps = row[9]
+        residue_overlaps = row[10]
+        t_entry = integrated.get(t_acc)
 
-            t_entry = integrated.get(t_acc)
+        # if not check_types(q_type, t_type):
+        #     # Invalid type pair (HS can only be together)
+        #     continue
 
-            if not check_types(q_type, t_type):
-                # Invalid type pair (HS can only be together)
-                continue
+        p = utils.Prediction(q_proteins, t_proteins, protein_overlaps)
+        if not p.relationship:
+            continue
 
-            p = utils.Prediction(q_proteins, t_proteins, protein_overlaps)
-            if not p.relationship:
-                continue
+        pr = utils.Prediction(q_residues, t_residues, residue_overlaps)
 
-            pr = utils.Prediction(q_residues, t_residues, residue_overlaps)
+        try:
+            q = queries[q_acc]
+        except KeyError:
+            q = queries[q_acc] = []
 
-            try:
-                q = queries[q_acc]
-            except KeyError:
-                q = queries[q_acc] = []
-
-            q.append({
-                # Target signature
-                "accession": t_acc,
-                "database": {
-                    "name": t_db_name,
-                    "color": utils.get_database_obj(t_db_key).color,
-                },
-                "entry": t_entry,
-                "proteins": t_proteins,
-                # Comparison query/target
-                "collocations": collocations,
-                "overlaps": protein_overlaps,
-                "similarity": p.similarity,
-                "containment": p.containment,
-                "relationship": p.relationship,
-                "residues": {
-                    "similarity": pr.similarity,
-                    "containment": pr.containment,
-                    "relationship": pr.relationship,
-                },
-            })
+        q.append({
+            # Target signature
+            "accession": t_acc,
+            "database": {
+                "name": t_db_name,
+                "color": utils.get_database_obj(t_db_key).color,
+            },
+            "entry": t_entry,
+            "proteins": t_proteins,
+            # Comparison query/target
+            "collocations": collocations,
+            "overlaps": protein_overlaps,
+            "similarity": p.similarity,
+            "containment": p.containment,
+            "relationship": p.relationship,
+            "residues": {
+                "similarity": pr.similarity,
+                "containment": pr.containment,
+                "relationship": pr.relationship,
+            },
+        })
 
     cur.close()
     con.close()
@@ -498,21 +503,23 @@ def get_unintegrated(db_name):
             elif q_comments:
                 continue
 
+        targets = queries.get(q_acc, [])
+        if rel_filter == "without" and targets:
+            continue
+        elif (rel_filter == "without-integrated" and
+              any([t["entry"] is not None for t in targets])):
+            continue
+        elif rel_filter == "with" and not targets:
+            continue
+
         _, q_proteins, q_single_dom_proteins, _ = obj
-        query = {
+        results.append({
             "accession": q_acc,
             "proteins": q_proteins,
             "single_domain_proteins": q_single_dom_proteins,
             "comments": q_comments,
-            "targets": [],
-        }
-
-        targets = queries.get(q_acc, [])
-        for t in sorted(targets, key=lambda x: x["accession"]):
-            query["targets"].append(t)
-
-        if query["targets"] or not prediction_filter:
-            results.append(query)
+            "targets": sorted(targets, key=lambda x: x["accession"]),
+        })
 
     results.sort(key=lambda x: x[sort_col.replace("-", "_")],
                  reverse=sort_order == "desc")
@@ -525,11 +532,11 @@ def get_unintegrated(db_name):
         "parameters": {
             "commented": (None if comment_filter is None else
                           ("1" if comment_filter else "0")),
-            "with-predictions": "1" if prediction_filter else "0",
+            "relationships": rel_filter,
             "min-sl-dom-ratio": str(min_sd_ratio),
             "sort-by": sort_col,
             "sort-order": sort_order
-        },
+        }
     })
 
 
