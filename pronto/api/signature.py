@@ -21,7 +21,7 @@ def get_signature(accession):
           s.description,
           s.type,
           s.abstract,
-          s.llm_summary,
+          s.llm_abstract,
           s.num_sequences,
           s.num_complete_sequences,
           s.num_reviewed_sequences,
@@ -54,7 +54,7 @@ def get_signature(accession):
         "description": row[2],
         "type": row[3],
         "abstract": row[4],
-        "llm_summary": row[5],
+        "llm_abstract": row[5],
         "proteins": {
             "total": row[6],
             "complete": row[7],

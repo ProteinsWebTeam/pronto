@@ -109,6 +109,10 @@ export function getSignaturesAnnotations(accession) {
                     if (signature.name !== null)
                         html += `<span class="item">${signature.name}</span>`;
 
+                    if (signature.llm_generated == true)
+                            html += `<p style="color:#FF0000";><strong>LLM generated</strong></p>`;
+
+
                     html += '</div>';
 
                     if (signature.text !== null) {
@@ -183,7 +187,7 @@ export function refresh(accession) {
 
                         return `<a data-ref href="#${pubID}">${i}</a>`
                     }
-                    
+
                     return match;
                 });
 
@@ -223,7 +227,7 @@ export function refresh(accession) {
                                 <div class="item"><a data-action="save" class="ui primary button">Save</a></div>
                             </div>
                         </div>
-                        </div>  
+                        </div>
                     `;
                 }
             }
@@ -455,9 +459,9 @@ const annotationEditor = {
         text = text.replaceAll(rePub, (match, pubID) => {
             if (references.has(pubID)) {
                 const pub = references.get(pubID);
-                return `[cite:${pub.pmid}]`    
+                return `[cite:${pub.pmid}]`
             }
-            
+
             return match;
         });
 
