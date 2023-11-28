@@ -101,7 +101,11 @@ export function getSignaturesAnnotations(accession) {
             let html = '';
             if (signatures.length > 0) {
                 for (const signature of signatures) {
-                    html += `<div class="ui top attached mini menu">`;
+                    if (signature.llm_generated == true)
+                       html += `<div class="ui top attached mini menu" style="background-color:#fff3d9;">`;
+                    else
+                        html += `<div class="ui top attached mini menu">`;
+
 
                     html += `<a class="header item" href="/signature/${signature.accession}/">${signature.accession}</a>`;
 
@@ -109,14 +113,17 @@ export function getSignaturesAnnotations(accession) {
                         html += `<span class="item">${signature.name}</span>`;
 
                     if (signature.llm_generated == true)
-                        html += `<span class="header item"><i class="attention red icon"></i>LLM generated</span>`;
+                        html += `<span class="header right item"><i class="attention red icon"></i>LLM generated</span>`;
 
                     html += '</div>';
 
                     if (signature.text !== null) {
                         signatureAnnotations.set(signature.accession, signature.text);
 
-                        html += `<div class="ui attached segment">`;
+                        if (signature.llm_generated == true)
+                            html += `<div class="ui attached segment" style="background-color:#fff3d9;">`;
+                        else
+                            html += `<div class="ui attached segment">`;
 
                         html += `
                             ${escape(signature.text)}
