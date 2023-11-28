@@ -101,33 +101,38 @@ export function getSignaturesAnnotations(accession) {
             let html = '';
             if (signatures.length > 0) {
                 for (const signature of signatures) {
-                    html += `
-                            <div class="ui top attached mini menu">
-                            <a class="header item" href="/signature/${signature.accession}/">${signature.accession}</a>
-                        `;
+                    html += `<div class="ui top attached mini menu">`;
+
+                    html += `<a class="header item" href="/signature/${signature.accession}/">${signature.accession}</a>`;
 
                     if (signature.name !== null)
                         html += `<span class="item">${signature.name}</span>`;
 
                     if (signature.llm_generated == true)
-                            html += `<p style="color:#FF0000";><strong>LLM generated</strong></p>`;
-
+                        html += `<span class="header item"><i class="attention red icon"></i>LLM generated</span>`;
 
                     html += '</div>';
 
                     if (signature.text !== null) {
                         signatureAnnotations.set(signature.accession, signature.text);
+
+                        html += `<div class="ui attached segment">`;
+
                         html += `
-                            <div class="ui attached segment">
                             ${escape(signature.text)}
                             </div>
-                            <div class="ui bottom attached borderless mini menu">
-                                <span class="item message"></span>
-                                <div class="right item">
-                                <button data-id="${signature.accession}" class="ui primary button">Use</button>
-                                </div>
-                            </div>
                         `;
+
+                        if (signature.llm_generated == false) {
+                            html += `
+                                <div class="ui bottom attached borderless mini menu">
+                                    <span class="item message"></span>
+                                    <div class="right item">
+                                    <button data-id="${signature.accession}" class="ui primary button">Use</button>
+                                    </div>
+                                </div>
+                            `;
+                        }
                     } else
                         html += '<div class="ui bottom attached secondary segment">No annotation.</div>';
                 }
