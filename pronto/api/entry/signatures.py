@@ -376,18 +376,11 @@ def get_signatures_annotations(accession):
 
     signatures = []
     for accession, name, abstract, llm_abstract in cur.fetchall():
-        if abstract or llm_abstract is None:
-            text = abstract
-            llm_generated = False
-        else:
-            text = llm_abstract
-            llm_generated = True
-
         signatures.append({
             "accession": accession,
             "name": name,
-            "text": text,
-            "llm_generated": llm_generated
+            "text": abstract,
+            "llm_text": llm_abstract
         })
 
     cur.close()

@@ -101,47 +101,43 @@ export function getSignaturesAnnotations(accession) {
             let html = '';
             if (signatures.length > 0) {
                 for (const signature of signatures) {
-                    if (signature.llm_generated == true)
-                       html += `<div class="ui top attached mini menu" style="background-color:#fff3d9;">`;
-                    else
-                        html += `<div class="ui top attached mini menu">`;
-
-
-                    html += `<a class="header item" href="/signature/${signature.accession}/">${signature.accession}</a>`;
+                    html += `
+                            <div class="ui top attached mini menu">
+                            <a class="header item" href="/signature/${signature.accession}/">${signature.accession}</a>
+                        `;
 
                     if (signature.name !== null)
                         html += `<span class="item">${signature.name}</span>`;
-
-                    if (signature.llm_generated == true)
-                        html += `<span class="header right item"><i class="attention red icon"></i>LLM generated</span>`;
 
                     html += '</div>';
 
                     if (signature.text !== null) {
                         signatureAnnotations.set(signature.accession, signature.text);
-
-                        if (signature.llm_generated == true)
-                            html += `<div class="ui attached segment" style="background-color:#fff3d9;">`;
-                        else
-                            html += `<div class="ui attached segment">`;
-
                         html += `
+                            <div class="ui attached segment">
                             ${escape(signature.text)}
                             </div>
+                            <div class="ui bottom attached borderless mini menu">
+                                <span class="item message"></span>
+                                <div class="right item">
+                                <button data-id="${signature.accession}" class="ui primary button">Use</button>
+                                </div>
+                            </div>
                         `;
-
-                        if (signature.llm_generated == false) {
+                    } else {
+                        if (signature.llm_text !== null) {
                             html += `
-                                <div class="ui bottom attached borderless mini menu">
-                                    <span class="item message"></span>
-                                    <div class="right item">
-                                    <button data-id="${signature.accession}" class="ui primary button">Use</button>
+                                <div class="ui attached segment">
+                                    <div class="ui warning message">
+                                        <div class="header"><i class="attention red icon"></i>LLM generated</div><p></p>
+                                        ${escape(signature.llm_text)}
                                     </div>
                                 </div>
                             `;
                         }
-                    } else
-                        html += '<div class="ui bottom attached secondary segment">No annotation.</div>';
+                        else
+                            html += '<div class="ui bottom attached secondary segment">No annotation.</div>';
+                    }
                 }
             } else
                 html += `<p><strong>${accession}</strong> has no signatures.</p>`;
