@@ -584,8 +584,9 @@ def is_annotation(cur: oracledb.Cursor, s: str) -> bool:
         """
         SELECT COUNT(*)
         FROM INTERPRO.COMMON_ANNOTATION
-        WHERE ANN_ID = :1
-        """, (s,)
+        WHERE ANN_ID = :1 AND LLM = 'N'
+        """,
+        [s]
     )
     cnt, = cur.fetchone()
     return cnt != 0

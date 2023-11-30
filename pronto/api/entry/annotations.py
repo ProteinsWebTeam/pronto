@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import re
 
 from flask import jsonify
@@ -15,7 +13,7 @@ def get_annotations(accession):
     cur = con.cursor()
     cur.execute(
         """
-        SELECT A.ANN_ID, A.TEXT, A.COMMENTS, S.CT
+        SELECT A.ANN_ID, A.TEXT, A.COMMENTS, A.LLM, A.CHECKED, S.CT
         FROM INTERPRO.COMMON_ANNOTATION A
         INNER JOIN INTERPRO.ENTRY2COMMON E ON A.ANN_ID = E.ANN_ID
         LEFT OUTER JOIN (
@@ -25,14 +23,15 @@ def get_annotations(accession):
         ) S ON A.ANN_ID = S.ANN_ID
         WHERE E.ENTRY_AC = :1
         ORDER BY E.ORDER_IN
-        """, (accession,)
+        """,
+        [accession]
     )
 
     annotations = []
     prog_ref = re.compile(r"\[([a-z0-9]+):([a-z0-9\-.]+)]", re.I)
     prog_com = re.compile(r"\s\d\d:\d\d:\d\d$")
 
-    for ann_id, text, comment, n_entries in cur:
+    for ann_id, text, comment, is_llm, is_checked, n_entries in cur:
         ext_refs = {}
 
         if comment is not None:
@@ -64,6 +63,8 @@ def get_annotations(accession):
         annotations.append({
             "id": ann_id,
             "text": text,
+            "is_llm": is_llm == "Y",
+            "is_checked": is_checked == "Y",
             "comment": comment,
             "num_entries": n_entries,
             "cross_references": list(ext_refs.values())
@@ -78,7 +79,8 @@ def get_annotations(accession):
         INNER JOIN INTERPRO.CITATION C
         ON E.PUB_ID = C.PUB_ID
         WHERE E.ENTRY_AC = :1
-        """, (accession,)
+        """,
+        [accession]
     )
 
     references = {}
@@ -124,7 +126,8 @@ def link_annotation(accession, ann_id):
         SELECT MAX(ORDER_IN)
         FROM INTERPRO.ENTRY2COMMON
         WHERE ENTRY_AC = :1
-        """, (accession,)
+        """,
+        [accession]
     )
     order_in, = cur.fetchone()
     if order_in is None:
@@ -138,7 +141,7 @@ def link_annotation(accession, ann_id):
             INSERT INTO INTERPRO.ENTRY2COMMON (ENTRY_AC, ANN_ID, ORDER_IN)
             VALUES (:1, :2, :3)
             """,
-            (accession, ann_id, order_in)
+            [accession, ann_id, order_in]
         )
         update_references(cur, accession)
     except DatabaseError as exc:
@@ -190,7 +193,8 @@ def unlink_annotation(accession, ann_id):
         SELECT COUNT(*)
         FROM INTERPRO.ENTRY2COMMON
         WHERE ENTRY_AC = :1 AND ANN_ID != :2
-        """, (accession, ann_id)
+        """,
+        [accession, ann_id]
     )
     other_annotations, = cur.fetchone()
     if not other_annotations:
@@ -210,7 +214,8 @@ def unlink_annotation(accession, ann_id):
             """
             DELETE FROM INTERPRO.ENTRY2COMMON
             WHERE ENTRY_AC = :1 AND ANN_ID = :2
-            """, (accession, ann_id)
+            """,
+            [accession, ann_id]
         )
         update_references(cur, accession)
     except DatabaseError as exc:
@@ -251,7 +256,8 @@ def move_annotation(accession: str, ann_id: str, x: int):
         SELECT ANN_ID, ORDER_IN
         FROM INTERPRO.ENTRY2COMMON
         WHERE ENTRY_AC = :1
-        """, (accession,)
+        """,
+        [accession]
     )
     annotations = dict(cur.fetchall())
 
@@ -307,7 +313,8 @@ def move_annotation(accession: str, ann_id: str, x: int):
             UPDATE INTERPRO.ENTRY2COMMON
             SET ORDER_IN = :1
             WHERE ENTRY_AC = :2 AND ANN_ID = :3
-            """, (i + offset, accession, ann_id)
+            """,
+            [i + offset, accession, ann_id]
         )
 
     con.commit()
@@ -325,7 +332,8 @@ def update_references(cur: Cursor, accession: str):
         SELECT PUB_ID, ORDER_IN
         FROM INTERPRO.ENTRY2PUB
         WHERE ENTRY_AC = :1
-        """, (accession,)
+        """,
+        [accession]
     )
     # Keep order_in to now the highest order
     pre_references = dict(cur.fetchall())
@@ -340,7 +348,8 @@ def update_references(cur: Cursor, accession: str):
           FROM INTERPRO.ENTRY2COMMON
           WHERE ENTRY_AC = :1
         )
-        """, (accession,)
+        """,
+        [accession]
     )
 
     now_references = set()
@@ -356,7 +365,8 @@ def update_references(cur: Cursor, accession: str):
         SELECT PUB_ID
         FROM INTERPRO.SUPPLEMENTARY_REF
         WHERE ENTRY_AC = :1
-        """, (accession,)
+        """,
+        [accession]
     )
     for pub_id, in cur:
         if pub_id in now_references:
@@ -367,7 +377,8 @@ def update_references(cur: Cursor, accession: str):
             """
             DELETE FROM INTERPRO.SUPPLEMENTARY_REF
             WHERE ENTRY_AC = :1 AND PUB_ID = :2
-            """, to_delete
+            """,
+            to_delete
         )
 
     old_references = []
@@ -384,14 +395,16 @@ def update_references(cur: Cursor, accession: str):
             """
             DELETE FROM INTERPRO.ENTRY2PUB
             WHERE ENTRY_AC = :1 AND PUB_ID = :2
-            """, old_references
+            """,
+            old_references
         )
 
         cur.executemany(
             """
             INSERT INTO INTERPRO.SUPPLEMENTARY_REF
             VALUES (:1, :2)
-            """, old_references
+            """,
+            old_references
         )
 
     if now_references:
