@@ -1,6 +1,6 @@
 export function genLink(accession, reviewed) {
     if (reviewed)
-        return `//sp.isb-sib.ch/uniprot/${accession}`;
+        return `//sp.sib.swiss/uniprot/${accession}`;
     return `//www.uniprot.org/uniprotkb/${accession}/entry`
 }
 
