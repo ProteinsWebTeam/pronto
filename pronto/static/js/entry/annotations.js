@@ -124,8 +124,7 @@ export function getSignaturesAnnotations(accession) {
                                 </div>
                             </div>
                         `;
-                    } else {
-                        if (signature.llm_text !== null) {
+                    } else if (signature.llm_text !== null) {
                             html += `
                                 <div class="ui attached segment">
                                     <div class="ui warning message">
