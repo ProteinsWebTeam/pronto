@@ -47,7 +47,7 @@ def get_signature(accession):
             }
         }), 404
 
-    db = utils.get_database_obj(row[9])
+    db = utils.get_database_obj(row[10])
     result = {
         "accession": row[0],
         "name": row[1],
