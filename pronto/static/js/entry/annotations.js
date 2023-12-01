@@ -133,10 +133,8 @@ export function getSignaturesAnnotations(accession) {
                                     <p>${escape(signature.llm_text)}</p>
                                 </div>
                             `;
-                        }
-                        else
-                            html += '<div class="ui bottom attached secondary segment">No annotation.</div>';
-                    }
+                    } else
+                        html += '<div class="ui bottom attached secondary segment">No annotation.</div>';
                 }
             } else
                 html += `<p><strong>${accession}</strong> has no signatures.</p>`;
