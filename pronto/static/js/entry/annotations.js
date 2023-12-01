@@ -128,7 +128,9 @@ export function getSignaturesAnnotations(accession) {
                             html += `
                                 <div class="ui attached segment">
                                     <div class="ui warning message">
-                                        <div class="header"><i class="attention red icon"></i>LLM generated</div><p></p>
+                                    <div class="header">AI-generated annotation</div>
+                                    This annotation has been automatically generated using an AI language model.
+                                    Currently, importing AI-generated annotations for InterPro entries is not supported.
                                     </div>
                                     <p>${escape(signature.llm_text)}</p>
                                 </div>
