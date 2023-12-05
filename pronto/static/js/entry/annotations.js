@@ -124,6 +124,17 @@ export function getSignaturesAnnotations(accession) {
                                 </div>
                             </div>
                         `;
+                    } else if (signature.llm_text !== null) {
+                            html += `
+                                <div class="ui attached segment">
+                                    <div class="ui warning message">
+                                    <div class="header">AI-generated annotation</div>
+                                    This annotation has been automatically generated using an AI language model.
+                                    Currently, importing AI-generated annotations for InterPro entries is not supported.
+                                    </div>
+                                    <p>${escape(signature.llm_text)}</p>
+                                </div>
+                            `;
                     } else
                         html += '<div class="ui bottom attached secondary segment">No annotation.</div>';
                 }
@@ -183,7 +194,7 @@ export function refresh(accession) {
 
                         return `<a data-ref href="#${pubID}">${i}</a>`
                     }
-                    
+
                     return match;
                 });
 
@@ -223,7 +234,7 @@ export function refresh(accession) {
                                 <div class="item"><a data-action="save" class="ui primary button">Save</a></div>
                             </div>
                         </div>
-                        </div>  
+                        </div>
                     `;
                 }
             }
@@ -455,9 +466,9 @@ const annotationEditor = {
         text = text.replaceAll(rePub, (match, pubID) => {
             if (references.has(pubID)) {
                 const pub = references.get(pubID);
-                return `[cite:${pub.pmid}]`    
+                return `[cite:${pub.pmid}]`
             }
-            
+
             return match;
         });
 

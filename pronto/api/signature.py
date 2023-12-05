@@ -21,6 +21,7 @@ def get_signature(accession):
           s.description,
           s.type,
           s.abstract,
+          s.llm_abstract,
           s.num_sequences,
           s.num_complete_sequences,
           s.num_reviewed_sequences,
@@ -46,27 +47,28 @@ def get_signature(accession):
             }
         }), 404
 
-    db = utils.get_database_obj(row[9])
+    db = utils.get_database_obj(row[10])
     result = {
         "accession": row[0],
         "name": row[1],
         "description": row[2],
         "type": row[3],
         "abstract": row[4],
+        "llm_abstract": row[5],
         "proteins": {
-            "total": row[5],
-            "complete": row[6],
+            "total": row[6],
+            "complete": row[7],
             "reviewed": {
-                "total": row[7],
-                "complete": row[8]
+                "total": row[8],
+                "complete": row[9]
             }
         },
         "database": {
-            "name": row[10],
+            "name": row[11],
             "home": db.home,
             "link": db.gen_link(accession),
             "color": db.color,
-            "version": row[11]
+            "version": row[12]
         },
         "entry": None
     }
@@ -299,7 +301,7 @@ def get_panther_go_subfam(accession, term_id):
 
     pg_con = utils.connect_pg()
     with pg_con.cursor() as pg_cur:
-    
+
         sql = """
             SELECT DISTINCT model_acc, protein_acc
             FROM interpro.signature2protein
@@ -339,7 +341,7 @@ def get_panther_go_subfam(accession, term_id):
         "count": count_prot,
         "results": results
     })
-    
+
 
 @bp.route("/<accession>/predictions/")
 def get_signature_predictions(accession):
