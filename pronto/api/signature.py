@@ -4,7 +4,7 @@ from oracledb import DatabaseError
 from flask import Blueprint, jsonify, request
 
 from pronto import auth, utils
-
+import re
 
 bp = Blueprint("api_signature", __name__, url_prefix="/api/signature")
 
@@ -297,6 +297,12 @@ def get_term_citations(accession, term_id):
 
 
 @bp.route("/<accession>/go/<term_id>/subfam")
+def get_signature_go_info(accession, term_id):
+    if re.match('^PTHR', accession):
+        return get_panther_go_subfam(accession, term_id)
+    elif re.match('^G3DSA', accession):
+        return get_funfam_go(accession, term_id)
+
 def get_panther_go_subfam(accession, term_id):
 
     pg_con = utils.connect_pg()
@@ -334,6 +340,45 @@ def get_panther_go_subfam(accession, term_id):
     )
 
     results = {acc: matches[acc] for acc, in cur.fetchall()}
+    cur.close()
+    con.close()
+
+    return jsonify({
+        "count": count_prot,
+        "results": results
+    })
+
+
+def get_funfam_go(accession, term_id):
+
+    pg_con = pg_con = utils.connect_pg()
+    with pg_con.cursor() as pg_cur:
+
+        sql = """
+            SELECT count(DISTINCT protein_acc)
+            FROM interpro.signature2protein
+            WHERE signature_acc = %s
+        """
+        pg_cur.execute(sql, (accession,))
+        count_prot = pg_cur.fetchone()[0]
+
+    pg_con.close()
+
+    con = utils.connect_oracle()
+    cur = con.cursor()
+
+    cur.execute(
+        f""" 
+        SELECT METHOD_AC, count(PROTEIN_AC)
+        FROM FUNFAM2GO
+        WHERE METHOD_AC LIKE :gene3d
+          AND GO_ID = :go_id
+        GROUP BY METHOD_AC
+        """,
+        (str(f"{accession}%"), term_id)
+    )
+
+    results = {acc: count for acc, count in cur.fetchall()}
     cur.close()
     con.close()
 
