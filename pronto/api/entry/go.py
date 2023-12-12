@@ -178,3 +178,72 @@ def delete_term(accession, term_id):
     finally:
         cur.close()
         con.close()
+
+
+@bp.route("/<accession>/go/<term_id>/")
+def get_term_constraints(accession, term_id):
+    ora_con = utils.connect_oracle()
+    ora_cur = ora_con.cursor()
+
+    ora_cur.execute(
+        """
+        SELECT DISTINCT METHOD_AC 
+        FROM INTERPRO.ENTRY2METHOD
+        WHERE ENTRY_AC = :1
+        """, (accession,)
+    )
+    methods = [item[0] for item in ora_cur.fetchall()]
+
+    ora_cur.close()
+    ora_con.close()
+
+    pg_con = utils.connect_pg()
+    pg_cur = pg_con.cursor()
+
+    pg_cur.execute(
+        f"""
+            SELECT DISTINCT sp.protein_acc
+            FROM signature2protein sp
+            WHERE signature_acc IN ({','.join(['%s' for _ in methods])})
+            """, methods
+    )
+    sigs_proteins = [item[0] for item in pg_cur.fetchall()]
+
+    constraints = ""
+    pg_cur.execute(
+        f"""
+            SELECT gc.relationship, gc.taxon, t.left_number, t.right_number
+            FROM go2constraints gc
+            INNER JOIN taxon t
+            ON t.id = gc.taxon
+            WHERE go_id = %s
+            """, (term_id,)
+    )
+    for relationship, taxon, left_num, right_num in pg_cur:
+        if relationship == "only_in_taxon":
+            constraints += f" AND sp.taxon_left_num BETWEEN {left_num} AND {right_num} "
+        if relationship == "never_in_taxon":
+            constraints += f" AND sp.taxon_left_num NOT BETWEEN {left_num} AND {right_num} "
+
+    pg_cur.execute(
+        f"""
+            SELECT DISTINCT sp.protein_acc
+            FROM signature2protein sp
+            WHERE signature_acc IN ({','.join(['%s' for _ in methods])})
+            {constraints}
+            """, methods
+    )
+    respecting_constraints = [prot[0] for prot in pg_cur.fetchall()]
+    violating_constraints = [p for p in sigs_proteins if p not in respecting_constraints]
+
+    pg_cur.close()
+    pg_con.close()
+
+    constraints_info = {
+        "entry": accession,
+        "go-term": term_id,
+        "constraints_count": len(sigs_proteins),
+        "violating_constraints": violating_constraints
+    }
+
+    return jsonify(constraints_info)
