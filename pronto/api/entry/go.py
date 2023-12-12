@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from flask import jsonify
+from flask import jsonify, request
 from oracledb import DatabaseError
 
 from pronto import auth, utils
@@ -182,93 +182,109 @@ def delete_term(accession, term_id):
 
 @bp.route("/<accession>/go/<term_id>/", methods=["GET"])
 def get_term_constraints(accession, term_id):
-    ora_con = utils.connect_oracle()
-    ora_cur = ora_con.cursor()
+    check_constraints = request.args.get("constraints")
+    if check_constraints is not None:
 
-    ora_cur.execute(
-        """
-        SELECT DISTINCT METHOD_AC 
-        FROM INTERPRO.ENTRY2METHOD
-        WHERE ENTRY_AC = :1
-        """, (accession,)
-    )
-    methods = [item[0] for item in ora_cur.fetchall()]
+        ora_con = utils.connect_oracle()
+        ora_cur = ora_con.cursor()
 
-    ora_cur.close()
-    ora_con.close()
+        ora_cur.execute(
+            """
+            SELECT DISTINCT METHOD_AC 
+            FROM INTERPRO.ENTRY2METHOD
+            WHERE ENTRY_AC = :1
+            """, (accession,)
+        )
+        methods = [item[0] for item in ora_cur.fetchall()]
 
-    pg_con = utils.connect_pg()
-    pg_cur = pg_con.cursor()
+        ora_cur.close()
+        ora_con.close()
 
-    sigs_prot = []
-    sp_sigs_prot = []
-    pg_cur.execute(
-        f"""
-            SELECT DISTINCT sp.protein_acc, is_reviewed
-            FROM signature2protein sp
-            WHERE signature_acc IN ({','.join(['%s' for _ in methods])})
-            """, methods
-    )
-    for protein_acc, is_reviewed in pg_cur:
-        sigs_prot.append(protein_acc)
-        if is_reviewed:
-            sp_sigs_prot.append(protein_acc)
+        pg_con = utils.connect_pg()
+        pg_cur = pg_con.cursor()
 
-    pg_cur.execute(
-        f"""
-        SELECT gc.relationship, gc.taxon, t.left_number, t.right_number
-        FROM go2constraints gc
-        INNER JOIN taxon t
-        ON t.id = gc.taxon
-        WHERE go_id = %s
-        """, (term_id,)
-    )
+        sigs_prot = []
+        sp_sigs_prot = []
+        pg_cur.execute(
+            f"""
+                SELECT DISTINCT sp.protein_acc, is_reviewed
+                FROM signature2protein sp
+                WHERE signature_acc IN ({','.join(['%s' for _ in methods])})
+                """, methods
+        )
+        for protein_acc, is_reviewed in pg_cur:
+            sigs_prot.append(protein_acc)
+            if is_reviewed:
+                sp_sigs_prot.append(protein_acc)
 
-    only_in = []
-    never_in = []
-    params = []
-    taxon_constraints = {
-            "only_in_taxon": [],
-            "never_in_taxon": []
-    }
-    for relationship, taxon, left_num, right_num in pg_cur:
-        taxon_constraints[relationship].append(taxon)
-        if relationship == "only_in_taxon":
-            only_in.append("sp.taxon_left_num BETWEEN %s AND %s")
-        else:
-            never_in.append("sp.taxon_left_num NOT BETWEEN %s AND %s")
+        pg_cur.execute(
+            f"""
+            SELECT gc.relationship, gc.taxon, t.left_number, t.right_number
+            FROM go2constraints gc
+            INNER JOIN taxon t
+            ON t.id = gc.taxon
+            WHERE go_id = %s
+            """, (term_id,)
+        )
 
-        params += [left_num, right_num]
+        only_in = []
+        never_in = []
+        params = []
+        taxon_constraints = {}
+        for relationship, taxon, left_num, right_num in pg_cur:
+            print(relationship, taxon, left_num, right_num)
+            try:
+                taxon_constraints[relationship].append(taxon)
+            except KeyError:
+                taxon_constraints[relationship] = [taxon]
 
-    constraints = ""
-    if only_in:
-        constraints += f" AND ({' OR '.join(only_in)})"
-    if never_in:
-        constraints += f" AND {' AND '.join(never_in)}"
+            if relationship == "only_in_taxon":
+                only_in.append("sp.taxon_left_num BETWEEN %s AND %s")
+            else:
+                never_in.append("sp.taxon_left_num NOT BETWEEN %s AND %s")
 
-    pg_cur.execute(
-        f"""
-            SELECT DISTINCT sp.protein_acc
-            FROM signature2protein sp
-            WHERE signature_acc IN ({','.join(['%s' for _ in methods])})
-            {constraints}
-            """, methods + params
-    )
-    respect_constr = [prot[0] for prot in pg_cur.fetchall()]
-    violating_constr = [p for p in sigs_prot if p not in respect_constr]
-    sp_violating_constr = [p for p in sp_sigs_prot if p not in respect_constr]
+            params += [left_num, right_num]
 
-    pg_cur.close()
-    pg_con.close()
+        constraints = ""
+        if only_in:
+            constraints += f" AND ({' OR '.join(only_in)})"
+        if never_in:
+            constraints += f" AND {' AND '.join(never_in)}"
 
-    constraints_info = {
-        "taxon_constraints_count": len(taxon_constraints),
-        "taxon_constraints": taxon_constraints,
-        "proteins_count": len(sigs_prot),
-        "respect_constr": len(respect_constr),
-        "proteins_violating_count": len(violating_constr),
-        "reviewed_violating_count": len(sp_violating_constr),
-        "reviewed_violating_constraints": sp_violating_constr,
-    }
+        pg_cur.execute(
+            f"""
+                SELECT DISTINCT sp.protein_acc
+                FROM signature2protein sp
+                WHERE signature_acc IN ({','.join(['%s' for _ in methods])})
+                {constraints}
+                """, methods + params
+        )
+        print(f"""
+                SELECT DISTINCT sp.protein_acc
+                FROM signature2protein sp
+                WHERE signature_acc IN ({','.join(['%s' for _ in methods])})
+                {constraints}
+                """, methods + params)
+        respect_constr = [prot[0] for prot in pg_cur.fetchall()]
+        violating_constr = [p for p in sigs_prot if p not in respect_constr]
+        sp_violating_constr = [p for p in sp_sigs_prot if p not in respect_constr]
 
-    return jsonify(constraints_info)
+        pg_cur.close()
+        pg_con.close()
+
+        constraints_info = []
+        for relationship, taxon in taxon_constraints.items():
+            constraints_info.append({
+                    "relationship": relationship,
+                    "taxon_constraints": taxon,
+                })
+        return jsonify({
+            "proteins": {
+                "total": len(sigs_prot),
+                "violations": {
+                    "proteins_violating_count": len(violating_constr),
+                    "reviewed_violating_count": len(sp_violating_constr)
+                }
+            },
+            "constraints": constraints_info
+        })
