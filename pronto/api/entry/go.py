@@ -200,6 +200,8 @@ def get_term_constraints(accession, term_id):
     pg_con = utils.connect_pg()
     pg_cur = pg_con.cursor()
 
+    sigs_prot = []
+    sp_sigs_prot = []
     pg_cur.execute(
         f"""
             SELECT DISTINCT sp.protein_acc, is_reviewed
@@ -207,25 +209,30 @@ def get_term_constraints(accession, term_id):
             WHERE signature_acc IN ({','.join(['%s' for _ in methods])})
             """, methods
     )
-    sigs_prot = [item[0] for item in pg_cur.fetchall()]
-    sp_sigs_prot = [item[0] for item in pg_cur.fetchall() if item[1]]
+    for protein_acc, is_reviewed in pg_cur:
+        sigs_prot.append(protein_acc)
+        if is_reviewed:
+            sp_sigs_prot.append(protein_acc)
 
     pg_cur.execute(
         f"""
-            SELECT gc.relationship, gc.taxon, t.left_number, t.right_number
-            FROM go2constraints gc
-            INNER JOIN taxon t
-            ON t.id = gc.taxon
-            WHERE go_id = %s
-            """, (term_id,)
+        SELECT gc.relationship, gc.taxon, t.left_number, t.right_number
+        FROM go2constraints gc
+        INNER JOIN taxon t
+        ON t.id = gc.taxon
+        WHERE go_id = %s
+        """, (term_id,)
     )
 
     only_in = []
     never_in = []
     params = []
-    taxon_constraints = []
+    taxon_constraints = {
+            "only_in_taxon": [],
+            "never_in_taxon": []
+    }
     for relationship, taxon, left_num, right_num in pg_cur:
-        taxon_constraints.append((relationship, taxon))
+        taxon_constraints[relationship].append(taxon)
         if relationship == "only_in_taxon":
             only_in.append("sp.taxon_left_num BETWEEN %s AND %s")
         else:
@@ -258,6 +265,7 @@ def get_term_constraints(accession, term_id):
         "taxon_constraints_count": len(taxon_constraints),
         "taxon_constraints": taxon_constraints,
         "proteins_count": len(sigs_prot),
+        "respect_constr": len(respect_constr),
         "proteins_violating_count": len(violating_constr),
         "reviewed_violating_count": len(sp_violating_constr),
         "reviewed_violating_constraints": sp_violating_constr,
