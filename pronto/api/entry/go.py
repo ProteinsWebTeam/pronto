@@ -242,7 +242,7 @@ def get_term_constraints(accession, term_id):
     constraints_info = {
         "entry": accession,
         "go-term": term_id,
-        "constraints_count": len(sigs_proteins),
+        "proteins_count": len(sigs_proteins),
         "violating_constraints": violating_constraints
     }
 
