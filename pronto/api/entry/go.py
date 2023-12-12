@@ -232,7 +232,9 @@ def get_term_constraints(accession, term_id):
     only_in = []
     never_in = []
     params = []
+    taxon_constraints = []
     for relationship, taxon, left_num, right_num in pg_cur:
+        taxon_constraints.append((relationship, taxon))
         if relationship == "only_in_taxon":
             only_in.append("sp.taxon_left_num BETWEEN %s AND %s")
         else:
@@ -262,8 +264,8 @@ def get_term_constraints(accession, term_id):
     pg_con.close()
 
     constraints_info = {
-        "entry": accession,
-        "go-term": term_id,
+        "taxon_constraints_count": len(taxon_constraints),
+        "taxon_constraints": taxon_constraints,
         "proteins_count": len(sigs_prot),
         "proteins_violating_count": len(violating_constr),
         "reviewed_violating_count": len(sp_violating_constr),
@@ -271,3 +273,9 @@ def get_term_constraints(accession, term_id):
     }
 
     return jsonify(constraints_info)
+
+
+    #("IPR026616", "GO:0007140")
+    #("IPR003705", "GO:0009236")
+    #("IPR000079", "GO:0005634")
+    #("IPR000003", 'GO:0005634')
