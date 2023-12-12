@@ -180,7 +180,7 @@ def delete_term(accession, term_id):
         con.close()
 
 
-@bp.route("/<accession>/go/<term_id>/")
+@bp.route("/<accession>/go/<term_id>/", methods=["GET"])
 def get_term_constraints(accession, term_id):
     ora_con = utils.connect_oracle()
     ora_cur = ora_con.cursor()
@@ -207,9 +207,18 @@ def get_term_constraints(accession, term_id):
             WHERE signature_acc IN ({','.join(['%s' for _ in methods])})
             """, methods
     )
-    sigs_proteins = [item[0] for item in pg_cur.fetchall()]
+    sigs_prot = [item[0] for item in pg_cur.fetchall()]
 
-    constraints = ""
+    pg_cur.execute(
+        f"""
+                SELECT DISTINCT sp.protein_acc
+                FROM signature2protein sp
+                WHERE signature_acc IN ({','.join(['%s' for _ in methods])})
+                AND is_reviewed
+                """, methods
+    )
+    sp_sigs_prot = [item[0] for item in pg_cur.fetchall()]
+
     pg_cur.execute(
         f"""
             SELECT gc.relationship, gc.taxon, t.left_number, t.right_number
@@ -219,11 +228,23 @@ def get_term_constraints(accession, term_id):
             WHERE go_id = %s
             """, (term_id,)
     )
+
+    only_in = []
+    never_in = []
+    params = []
     for relationship, taxon, left_num, right_num in pg_cur:
         if relationship == "only_in_taxon":
-            constraints += f" AND sp.taxon_left_num BETWEEN {left_num} AND {right_num} "
-        if relationship == "never_in_taxon":
-            constraints += f" AND sp.taxon_left_num NOT BETWEEN {left_num} AND {right_num} "
+            only_in.append("sp.taxon_left_num BETWEEN %s AND %s")
+        else:
+            never_in.append("sp.taxon_left_num NOT BETWEEN %s AND %s")
+
+        params += [left_num, right_num]
+
+    constraints = ""
+    if only_in:
+        constraints += f" AND ({' OR '.join(only_in)})"
+    if never_in:
+        constraints += f" AND {' AND '.join(never_in)}"
 
     pg_cur.execute(
         f"""
@@ -231,10 +252,11 @@ def get_term_constraints(accession, term_id):
             FROM signature2protein sp
             WHERE signature_acc IN ({','.join(['%s' for _ in methods])})
             {constraints}
-            """, methods
+            """, methods + params
     )
-    respecting_constraints = [prot[0] for prot in pg_cur.fetchall()]
-    violating_constraints = [p for p in sigs_proteins if p not in respecting_constraints]
+    respect_constr = [prot[0] for prot in pg_cur.fetchall()]
+    violating_constr = [p for p in sigs_prot if p not in respect_constr]
+    sp_violating_constr = [p for p in sp_sigs_prot if p not in respect_constr]
 
     pg_cur.close()
     pg_con.close()
@@ -242,8 +264,10 @@ def get_term_constraints(accession, term_id):
     constraints_info = {
         "entry": accession,
         "go-term": term_id,
-        "proteins_count": len(sigs_proteins),
-        "violating_constraints": violating_constraints
+        "proteins_count": len(sigs_prot),
+        "proteins_violating_count": len(violating_constr),
+        "reviewed_violating_count": len(sp_violating_constr),
+        "reviewed_violating_constraints": sp_violating_constr,
     }
 
     return jsonify(constraints_info)
