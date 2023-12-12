@@ -202,22 +202,13 @@ def get_term_constraints(accession, term_id):
 
     pg_cur.execute(
         f"""
-            SELECT DISTINCT sp.protein_acc
+            SELECT DISTINCT sp.protein_acc, is_reviewed
             FROM signature2protein sp
             WHERE signature_acc IN ({','.join(['%s' for _ in methods])})
             """, methods
     )
     sigs_prot = [item[0] for item in pg_cur.fetchall()]
-
-    pg_cur.execute(
-        f"""
-                SELECT DISTINCT sp.protein_acc
-                FROM signature2protein sp
-                WHERE signature_acc IN ({','.join(['%s' for _ in methods])})
-                AND is_reviewed
-                """, methods
-    )
-    sp_sigs_prot = [item[0] for item in pg_cur.fetchall()]
+    sp_sigs_prot = [item[0] for item in pg_cur.fetchall() if item[1]]
 
     pg_cur.execute(
         f"""
@@ -273,9 +264,3 @@ def get_term_constraints(accession, term_id):
     }
 
     return jsonify(constraints_info)
-
-
-    #("IPR026616", "GO:0007140")
-    #("IPR003705", "GO:0009236")
-    #("IPR000079", "GO:0005634")
-    #("IPR000003", 'GO:0005634')
