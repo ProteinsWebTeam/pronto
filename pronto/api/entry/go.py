@@ -263,6 +263,16 @@ def get_term_constraints(accession, term_id):
     pg_cur.close()
     pg_con.close()
 
+    json_result = {
+        "proteins": {
+            "total": len(sigs_prot),
+            "violations": {
+                "proteins_violating_count": len(violating_constr),
+                "reviewed_violating_count": len(sp_violating_constr)
+            }
+        }
+    }
+
     constraints_info = []
     check_constraints = request.args.get("constraints")
     if check_constraints is not None:
@@ -271,21 +281,10 @@ def get_term_constraints(accession, term_id):
                     "relationship": relationship,
                     "taxon_constraints": taxon
                 })
+        json_result["constraints"] = constraints_info
 
-    reviewed_violating_proteins = []
     check_violating_proteins = request.args.get("violating-proteins")
     if check_violating_proteins is not None:
-        reviewed_violating_proteins = sp_violating_constr
+        json_result["reviewed_violating_proteins"] = sp_violating_constr
 
-    return jsonify({
-        "term_id": term_id,
-        "proteins": {
-            "total": len(sigs_prot),
-            "violations": {
-                "proteins_violating_count": len(violating_constr),
-                "reviewed_violating_count": len(sp_violating_constr)
-            }
-        },
-        "constraints": constraints_info,
-        "reviewed_violating_proteins": reviewed_violating_proteins
-    }), 200
+    return jsonify(json_result), 200
