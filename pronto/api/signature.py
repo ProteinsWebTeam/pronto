@@ -351,7 +351,7 @@ def get_panther_go_subfam(accession, term_id):
 
 def get_funfam_go(accession, term_id):
 
-    pg_con = pg_con = utils.connect_pg()
+    pg_con = utils.connect_pg()
     with pg_con.cursor() as pg_cur:
 
         sql = """
