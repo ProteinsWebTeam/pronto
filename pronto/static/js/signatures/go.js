@@ -191,7 +191,7 @@ function getGoTerms(accessions) {
                                     <a target="_blank" href="//www.pantherdb.org/panther/family.do?clsAccession=${subfam}">${subfam}<i class="external icon"></i></a>
                                     </td>`;
                                 }
-                                else if (acc.search('G3DSA') == 0) {
+                                else if (acc.startsWith('G3DSA')) {
                                     console.log(subfam);
                                     const fam = subfam.split(':')[1];
                                     const funfam = subfam.split(':')[3].replace(/^0+/, '');
