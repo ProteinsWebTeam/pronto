@@ -192,11 +192,8 @@ function getGoTerms(accessions) {
                                     </td>`;
                                 }
                                 else if (acc.startsWith('G3DSA')) {
-                                    console.log(subfam);
-                                    const fam = subfam.split(':')[1];
-                                    const funfam = subfam.split(':')[3].replace(/^0+/, '');
-                                    console.log(funfam);
-                                    html += `<td><a target="_blank" href="//www.cathdb.info/version/v4_3_0/superfamily/${fam}/funfam/${funfam}">${subfam}<i class="external icon"></i></a></td>`
+                                    const [_, famId, funfamId] = subfam.match(/G3DSA:([0-9.]+):FF:(\d+)/);
+                                    html += `<td><a target="_blank" href="//www.cathdb.info/version/v4_3_0/superfamily/${famId}/funfam/${Number.parseInt(funfamId, 10)}">${subfam}<i class="external icon"></i></a></td>`;
                                 }
 
                                 html += `
