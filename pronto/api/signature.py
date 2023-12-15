@@ -370,7 +370,7 @@ def get_funfam_go(accession, term_id):
     cur.execute(
         f""" 
         SELECT METHOD_AC, count(PROTEIN_AC)
-        FROM FUNFAM2GO
+        FROM INTERPRO.FUNFAM2GO
         WHERE METHOD_AC LIKE :gene3d
           AND GO_ID = :go_id
         GROUP BY METHOD_AC
