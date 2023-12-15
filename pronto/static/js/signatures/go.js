@@ -209,7 +209,7 @@ function getGoTerms(accessions) {
                                     </table>`;
 
                             const modal = document.getElementById('signature-modal');
-                            if (acc.search('PTHR') == 0) {
+                            if (acc.startsWith('PTHR')) {
                                 modal.querySelector('.ui.header').innerHTML = `PANTHER subfamilies: ${acc}/${term}`;
                             }
                             else if (acc.search('G3DSA') == 0) {
