@@ -186,7 +186,7 @@ function getGoTerms(accessions) {
 
                             for (const subfam in object.results) {
                                 html += `<tr>`;
-                                if (acc.search('PTHR') == 0) {
+                                if (acc.startsWith('PTHR')) {
                                     html += `<td>
                                     <a target="_blank" href="//www.pantherdb.org/panther/family.do?clsAccession=${subfam}">${subfam}<i class="external icon"></i></a>
                                     </td>`;
