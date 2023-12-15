@@ -378,7 +378,7 @@ def get_funfam_go(accession, term_id):
         (str(f"{accession}%"), term_id)
     )
 
-    results = {acc: count for acc, count in cur.fetchall()}
+    results = dict(cur.fetchall())
     cur.close()
     con.close()
 
