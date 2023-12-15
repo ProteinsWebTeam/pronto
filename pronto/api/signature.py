@@ -375,7 +375,7 @@ def get_funfam_go(accession, term_id):
           AND GO_ID = :go_id
         GROUP BY METHOD_AC
         """,
-        (str(f"{accession}%"), term_id)
+        (f"{accession}%", term_id)
     )
 
     results = dict(cur.fetchall())
