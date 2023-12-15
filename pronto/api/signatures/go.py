@@ -1,6 +1,5 @@
 from typing import Dict, List, Set
 from flask import jsonify, request
-import re
 
 from pronto import utils
 from . import bp, get_sig2interpro
@@ -80,7 +79,7 @@ def get_go_terms(accessions):
 
             if row[7] is not None:
                 subfams.add(row[7])
-            if re.match(r"G3DSA", signature_acc):
+            elif signature_acc.startswith("G3DSA"):
                 try:
                     g3d_signs[signature_acc].add(row[4])
                 except KeyError:
@@ -168,12 +167,11 @@ def get_go2funfam(gene3dset: dict, terms: dict, pg_cur):
     go_terms = set()
 
     for signature, proteins in gene3dset.items():
-        signlike = f"{signature}%"
 
         for i in range(0, len(proteins), 1000):
             subset = list(proteins)[i:i+1000]
             binds = [":" + str(j+1) for j in range(len(subset))]
-            subset.append(str(signlike))
+            subset.append(f"{signature}%")
 
             request = f"""
             SELECT DISTINCT METHOD_AC, GO_ID
@@ -199,7 +197,6 @@ def get_go2funfam(gene3dset: dict, terms: dict, pg_cur):
                     s = term["signatures"][signature] = [set(), set(), set()]
 
                 s[2].add(row[0])
-                s[0].update(set(subset))
 
     cur.close()
     con.close()
