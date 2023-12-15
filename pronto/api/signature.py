@@ -355,7 +355,7 @@ def get_funfam_go(accession, term_id):
     with pg_con.cursor() as pg_cur:
 
         sql = """
-            SELECT count(DISTINCT protein_acc)
+            SELECT count(protein_acc)
             FROM interpro.signature2protein
             WHERE signature_acc = %s
         """
