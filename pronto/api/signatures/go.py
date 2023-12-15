@@ -84,7 +84,7 @@ def get_go_terms(accessions):
                 try:
                     g3d_signs[signature_acc].add(row[4])
                 except KeyError:
-                    g3d_signs[signature_acc] = set([row[4]])
+                    g3d_signs[signature_acc] = {row[4]}
 
         terms = get_go2panther(subfams, terms, cur)
 
