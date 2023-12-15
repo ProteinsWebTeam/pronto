@@ -212,7 +212,7 @@ function getGoTerms(accessions) {
                             if (acc.startsWith('PTHR')) {
                                 modal.querySelector('.ui.header').innerHTML = `PANTHER subfamilies: ${acc}/${term}`;
                             }
-                            else if (acc.search('G3DSA') == 0) {
+                            else if (acc.startsWith('G3DSA')) {
                                 modal.querySelector('.ui.header').innerHTML = `CATH-Gene3D Funfams: ${acc}/${term}`;
                             }
                             modal.querySelector('.content ul').innerHTML = html;
