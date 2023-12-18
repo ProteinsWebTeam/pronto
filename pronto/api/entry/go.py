@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from flask import jsonify, request
+from flask import jsonify
 from oracledb import DatabaseError
 
 from pronto import auth, utils
@@ -224,7 +224,7 @@ def get_term_constraints(accession, term_id):
     violation_reviewed = 0
     for protein_acc, is_reviewed, taxon_left_num in pg_cur:
         total_proteins += 1
-        only_in = {"left": [], "right": []}
+        only_in = []
         for info in taxon_constraints:
             relationship, taxon_id, taxon_name, left_num, right_num = info
             if relationship == "never_in":
@@ -233,13 +233,13 @@ def get_term_constraints(accession, term_id):
                     if is_reviewed:
                         violation_reviewed += 1
             else:
-                only_in["left"].append(left_num)
-                only_in["right"].append(right_num)
+                only_in.append((left_num, right_num))
 
-        if min(only_in["left"]) <= taxon_left_num <= max(only_in["right"]):
-            violation_total += 1
-            if is_reviewed:
-                violation_reviewed += 1
+        for constraint in only_in:
+            if constraint[0] <= taxon_left_num <= constraint[1]:
+                violation_total += 1
+                if is_reviewed:
+                    violation_reviewed += 1
 
     pg_cur.close()
     pg_con.close()
