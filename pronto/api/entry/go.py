@@ -235,11 +235,14 @@ def get_term_constraints(accession, term_id):
             else:
                 only_in.append((left_num, right_num))
 
+        is_in = False
         for constraint in only_in:
             if constraint[0] <= taxon_left_num <= constraint[1]:
-                violation_total += 1
-                if is_reviewed:
-                    violation_reviewed += 1
+                is_in = True
+        if not is_in:
+            violation_total += 1
+            if is_reviewed:
+                violation_reviewed += 1
 
     pg_cur.close()
     pg_con.close()
