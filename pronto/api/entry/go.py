@@ -200,91 +200,68 @@ def get_term_constraints(accession, term_id):
     pg_con = utils.connect_pg()
     pg_cur = pg_con.cursor()
 
-    sigs_prot = []
-    sp_sigs_prot = []
     pg_cur.execute(
         f"""
-        SELECT DISTINCT sp.protein_acc, is_reviewed
-        FROM signature2protein sp
-        WHERE signature_acc IN ({','.join(['%s' for _ in methods])})
-        """, methods
-    )
-    for protein_acc, is_reviewed in pg_cur:
-        sigs_prot.append(protein_acc)
-        if is_reviewed:
-            sp_sigs_prot.append(protein_acc)
-
-    pg_cur.execute(
-        f"""
-        SELECT DISTINCT gc.relationship, gc.taxon, t.left_number, t.right_number
+        SELECT DISTINCT gc.relationship, gc.taxon, t.name, t.left_number, t.right_number
         FROM go2constraints gc
         INNER JOIN taxon t
         ON t.id = gc.taxon
         WHERE go_id = %s
         """, (term_id,)
     )
-
-    only_in = []
-    never_in = []
-    params = []
-    taxon_constraints = {}
-    for relationship, taxon, left_num, right_num in pg_cur:
-        try:
-            taxon_constraints[relationship].append(taxon)
-        except KeyError:
-            taxon_constraints[relationship] = [taxon]
-
-        if relationship == "only_in_taxon":
-            only_in.append("sp.taxon_left_num BETWEEN %s AND %s")
-        else:
-            never_in.append("sp.taxon_left_num NOT BETWEEN %s AND %s")
-
-        params += [left_num, right_num]
-
-    constraints = ""
-    if only_in:
-        constraints += f" AND ({' OR '.join(only_in)})"
-    if never_in:
-        constraints += f" AND {' AND '.join(never_in)}"
+    taxon_constraints = pg_cur.fetchall()
 
     pg_cur.execute(
         f"""
-        SELECT DISTINCT sp.protein_acc
-        FROM signature2protein sp
+        SELECT DISTINCT protein_acc, is_reviewed, taxon_left_num
+        FROM signature2protein
         WHERE signature_acc IN ({','.join(['%s' for _ in methods])})
-        {constraints}
-        """, methods + params
+        """, methods
     )
 
-    respect_constr = [prot[0] for prot in pg_cur.fetchall()]
-    violating_constr = [p for p in sigs_prot if p not in respect_constr]
-    sp_violating_constr = [p for p in sp_sigs_prot if p not in respect_constr]
+    total_proteins = 0
+    violation_total = 0
+    violation_reviewed = 0
+    for protein_acc, is_reviewed, taxon_left_num in pg_cur:
+        total_proteins += 1
+        only_in = {"left": [], "right": []}
+        for info in taxon_constraints:
+            relationship, taxon_id, taxon_name, left_num, right_num = info
+            if relationship == "never_in":
+                if left_num <= taxon_left_num <= right_num:
+                    violation_total += 1
+                    if is_reviewed:
+                        violation_reviewed += 1
+            else:
+                only_in["left"].append(left_num)
+                only_in["right"].append(right_num)
+
+        if min(only_in["left"]) <= taxon_left_num <= max(only_in["right"]):
+            violation_total += 1
+            if is_reviewed:
+                violation_reviewed += 1
 
     pg_cur.close()
     pg_con.close()
 
-    json_result = {
-        "proteins": {
-            "total": len(sigs_prot),
-            "violations": {
-                "proteins_violating_count": len(violating_constr),
-                "reviewed_violating_count": len(sp_violating_constr)
-            }
-        }
-    }
-
     constraints_info = []
-    check_constraints = request.args.get("constraints")
-    if check_constraints is not None:
-        for relationship, taxon in taxon_constraints.items():
-            constraints_info.append({
-                    "relationship": relationship,
-                    "taxon_constraints": taxon
-                })
-        json_result["constraints"] = constraints_info
+    for info in taxon_constraints:
+        relationship, taxon_id, taxon_name, left_num, right_num = info
+        constraints_info.append({
+            "type": relationship,
+            "taxon": {
+                "id": taxon_id,
+                "name": taxon_name
+            }
+        })
 
-    check_violating_proteins = request.args.get("violating-proteins")
-    if check_violating_proteins is not None:
-        json_result["reviewed_violating_proteins"] = sp_violating_constr
+    json_result = {
+        "total_proteins": total_proteins,
+        "violations": {
+            "total": violation_total,
+            "reviewed": violation_reviewed
+         },
+        "constraint": constraints_info
+    }
 
     return jsonify(json_result), 200
