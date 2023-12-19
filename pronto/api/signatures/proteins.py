@@ -215,7 +215,6 @@ def get_proteins_alt(accessions):
             params.append(term_id)
 
             if tax_constraints:
-                print(term_constraints)
                 only_in = []
                 never_in = []
                 for info in term_constraints:
@@ -224,7 +223,6 @@ def get_proteins_alt(accessions):
                         only_in.append("spx.taxon_left_num BETWEEN %s AND %s")
                     else:
                         never_in.append("spx.taxon_left_num NOT BETWEEN %s AND %s")
-
                     params += [left_num, right_num]
                     constraints = ""
                     if only_in:
@@ -232,16 +230,16 @@ def get_proteins_alt(accessions):
                     if never_in:
                         constraints += f" AND {' AND '.join(never_in)}"
 
-                    filters.append(
-                        f"""
-                        NOT EXISTS (
-                            SELECT 1
-                            FROM signature2protein spx
-                            WHERE spx.protein_acc = spx.protein_acc
-                            {constraints}
-                        )
-                        """
+                filters.append(
+                    f"""
+                    NOT EXISTS (
+                        SELECT 1
+                        FROM signature2protein spx
+                        WHERE spx.protein_acc = spx.protein_acc
+                        {constraints}
                     )
+                    """
+                )
 
         if exclude:
             filters.append(
@@ -343,8 +341,7 @@ def get_proteins_alt(accessions):
             "go": f"{term_id}: {term_name}" if term_name else None,
             "md5": dom_org_id,
             "reviewed": reviewed_only,
-            "taxon": taxon_name,
-            # "violating": violating_constraints
+            "taxon": taxon_name
         },
         "page_info": {
             "page": page,
