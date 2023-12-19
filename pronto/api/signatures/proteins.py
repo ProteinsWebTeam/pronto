@@ -216,30 +216,32 @@ def get_proteins_alt(accessions):
 
             if tax_constraints:
                 print(term_constraints)
-                # only_in = []
+                only_in = []
+                never_in = []
                 for info in term_constraints:
                     relationship, taxon, left_num, right_num = info
-                    # we want the violations
-                    if relationship == "never_in_taxon":
-                        filters.append("taxon_left_num BETWEEN %s AND %s")  # if true is a violation
-                        params += [left_num, right_num]
-                    # else:
-                    #     only_in.append("taxon_left_num BETWEEN %s AND %s")
-            #         if only_in:
-            #             filters.append(
-            #                 f"""
-            #                 NOT EXISTS (
-            #                     SELECT 1
-            #                     FROM signature2protein spx
-            #                     WHERE spx.signature_acc IN (
-            #                         {','.join("%s" for _ in exclude)}
-            #                     )
-            #                     AND sp.protein_acc = spx.protein_acc
-            #                 )
-            #                 """
-            #             )
-            #             params += list(exclude)
-            #             constraints += f" AND ({' OR '.join(only_in)})"
+                    if relationship == "only_in_taxon":
+                        only_in.append("spx.taxon_left_num BETWEEN %s AND %s")
+                    else:
+                        never_in.append("spx.taxon_left_num NOT BETWEEN %s AND %s")
+
+                    params += [left_num, right_num]
+                    constraints = ""
+                    if only_in:
+                        constraints += f" AND ({' OR '.join(only_in)})"
+                    if never_in:
+                        constraints += f" AND {' AND '.join(never_in)}"
+
+                    filters.append(
+                        f"""
+                        NOT EXISTS (
+                            SELECT 1
+                            FROM signature2protein spx
+                            WHERE spx.protein_acc = spx.protein_acc
+                            {constraints}
+                        )
+                        """
+                    )
 
         if exclude:
             filters.append(
