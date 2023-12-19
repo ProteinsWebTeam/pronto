@@ -27,6 +27,7 @@ def get_proteins_alt(accessions):
     reviewed_only = "reviewed" in request.args
     reviewed_first = "reviewedfirst" in request.args
     group_by_dom_org = "domainorganisation" in request.args
+    tax_constraints = "tax-constraints" in request.args
 
     # dl_file = "file" in request.args
 
@@ -140,6 +141,16 @@ def get_proteins_alt(accessions):
                     }
                 }), 400
 
+            if tax_constraints:
+                cur.execute(f"""
+                    SELECT DISTINCT gc.relationship, gc.taxon, t.left_number, t.right_number
+                    FROM go2constraints gc
+                    INNER JOIN taxon t
+                    ON t.id = gc.taxon
+                    WHERE go_id = %s
+                    """, (term_id,))
+                term_constraints = cur.fetchall()
+
         filters = [f"signature_acc IN ({','.join('%s' for _ in accessions)})"]
         params = list(accessions)
 
@@ -203,6 +214,33 @@ def get_proteins_alt(accessions):
             )
             params.append(term_id)
 
+            if tax_constraints:
+                print(term_constraints)
+                # only_in = []
+                for info in term_constraints:
+                    relationship, taxon, left_num, right_num = info
+                    # we want the violations
+                    if relationship == "never_in_taxon":
+                        filters.append("taxon_left_num BETWEEN %s AND %s")  # if true is a violation
+                        params += [left_num, right_num]
+                    # else:
+                    #     only_in.append("taxon_left_num BETWEEN %s AND %s")
+            #         if only_in:
+            #             filters.append(
+            #                 f"""
+            #                 NOT EXISTS (
+            #                     SELECT 1
+            #                     FROM signature2protein spx
+            #                     WHERE spx.signature_acc IN (
+            #                         {','.join("%s" for _ in exclude)}
+            #                     )
+            #                     AND sp.protein_acc = spx.protein_acc
+            #                 )
+            #                 """
+            #             )
+            #             params += list(exclude)
+            #             constraints += f" AND ({' OR '.join(only_in)})"
+
         if exclude:
             filters.append(
                 f"""
@@ -230,6 +268,7 @@ def get_proteins_alt(accessions):
         else:
             sql += "ORDER BY protein_acc"
 
+        print(sql)
         cur.execute(sql, params)
         results = cur.fetchall()
         proteins = []
@@ -303,6 +342,7 @@ def get_proteins_alt(accessions):
             "md5": dom_org_id,
             "reviewed": reviewed_only,
             "taxon": taxon_name,
+            # "violating": violating_constraints
         },
         "page_info": {
             "page": page,

@@ -264,7 +264,8 @@ def get_term_constraints(accession, term_id):
             "total": violation_total,
             "reviewed": violation_reviewed
          },
-        "constraint": constraints_info
+        "constraint": constraints_info,
+        "signatures": methods
     }
 
     return jsonify(json_result), 200
