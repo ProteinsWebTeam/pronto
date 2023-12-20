@@ -223,7 +223,7 @@ def get_proteins_alt(accessions):
                         only_in.append("spx.taxon_left_num BETWEEN %s AND %s")
                     else:
                         never_in.append("spx.taxon_left_num NOT BETWEEN %s AND %s")
-                    params += [left_num, right_num]
+                    params += [str(left_num), str(right_num)]
                     constraints = ""
                     if only_in:
                         constraints += f" AND ({' OR '.join(only_in)})"
@@ -235,7 +235,7 @@ def get_proteins_alt(accessions):
                     NOT EXISTS (
                         SELECT 1
                         FROM signature2protein spx
-                        WHERE spx.protein_acc = spx.protein_acc
+                        WHERE spx.protein_acc = sp.protein_acc
                         {constraints}
                     )
                     """
@@ -269,6 +269,7 @@ def get_proteins_alt(accessions):
             sql += "ORDER BY protein_acc"
 
         print(sql)
+        print(params)
         cur.execute(sql, params)
         results = cur.fetchall()
         proteins = []
