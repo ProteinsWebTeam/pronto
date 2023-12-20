@@ -225,13 +225,12 @@ def get_term_constraints(accession, term_id):
     for protein_acc, is_reviewed, taxon_left_num in pg_cur:
         total_proteins += 1
         only_in = []
+        is_violated = False
         for info in taxon_constraints:
             relationship, taxon_id, taxon_name, left_num, right_num = info
             if relationship == "never_in":
                 if left_num <= taxon_left_num <= right_num:
-                    violation_total += 1
-                    if is_reviewed:
-                        violation_reviewed += 1
+                    is_violated = True
             else:
                 only_in.append((left_num, right_num))
 
@@ -241,9 +240,11 @@ def get_term_constraints(accession, term_id):
                 if constraint[0] <= taxon_left_num <= constraint[1]:
                     is_in = True
             if not is_in:
-                violation_total += 1
-                if is_reviewed:
-                    violation_reviewed += 1
+                is_violated = True
+        if is_violated:
+            violation_total += 1
+            if is_reviewed:
+                violation_reviewed += 1
 
     pg_cur.close()
     pg_con.close()

@@ -268,6 +268,7 @@ def get_proteins_alt(accessions):
         else:
             sql += "ORDER BY protein_acc"
 
+        print(sql)
         cur.execute(sql, params)
         results = cur.fetchall()
         proteins = []
@@ -340,7 +341,7 @@ def get_proteins_alt(accessions):
             "go": f"{term_id}: {term_name}" if term_name else None,
             "md5": dom_org_id,
             "reviewed": reviewed_only,
-            "taxon": taxon_name
+            "taxon": taxon_name,
         },
         "page_info": {
             "page": page,
