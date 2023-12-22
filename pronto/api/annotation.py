@@ -289,7 +289,7 @@ class Annotation(object):
                 text += f"<p>{block}</p>"
 
         self.text = text
-    
+
     def strip(self):
         text = re.sub(r"(<(?:p|ul|ol|li)>)\s+", r"\1", self.text)
         self.text = re.sub(r"\s+(</(?:p|ul|ol|li)>)", r"\1", text)
@@ -848,17 +848,18 @@ def update_annotation(ann_id):
 
 @bp.route("/<ann_id>/", methods=["DELETE"])
 def delete_annotations(ann_id):
-    user = auth.get_user()
-    if not user:
-        return jsonify({
-            "status": False,
-            "error": {
-                "title": "Access denied",
-                "message": "Please log in to perform this operation."
-            }
-        }), 401
-
-    con = utils.connect_oracle_auth(user)
+    # user = auth.get_user()
+    # if not user:
+    #     return jsonify({
+    #         "status": False,
+    #         "error": {
+    #             "title": "Access denied",
+    #             "message": "Please log in to perform this operation."
+    #         }
+    #     }), 401
+    #
+    # con = utils.connect_oracle_auth(user)
+    con = utils.connect_oracle()
     cur = con.cursor()
 
     # Check entries that would be without annotations
@@ -893,17 +894,27 @@ def delete_annotations(ann_id):
     try:
         cur.execute(
             """
-            DELETE FROM INTERPRO.ENTRY2COMMON
+            SELECT ENTRY_AC FROM INTERPRO.ENTRY2COMMON
             WHERE ANN_ID = :1
             """, (ann_id,)
         )
+        entries = cur.fetchall()
 
-        cur.execute(
-            """
-            DELETE FROM INTERPRO.COMMON_ANNOTATION
-            WHERE ANN_ID = :1
-            """, (ann_id,)
-        )
+        # cur.execute(
+        #     """
+        #     DELETE FROM INTERPRO.ENTRY2COMMON
+        #     WHERE ANN_ID = :1
+        #     """, (ann_id,)
+        # )
+        #
+        # cur.execute(
+        #     """
+        #     DELETE FROM INTERPRO.COMMON_ANNOTATION
+        #     WHERE ANN_ID = :1
+        #     """, (ann_id,)
+        # )
+
+        update_references(cur, entries, ann_id)
     except DatabaseError as exc:
         return jsonify({
             "status": False,
@@ -1031,3 +1042,54 @@ def insert_citations(cur: Cursor, citations: dict) -> int | None:
             citations[pmid] = pub_id.getvalue()[0]
 
     return None
+
+
+def update_references(cur: Cursor, entries: list, ann_id: str):
+    for entry in entries:
+        accession = str(entry[0])
+        cur.execute(
+            """
+            SELECT TEXT
+            FROM INTERPRO.COMMON_ANNOTATION
+            WHERE ANN_ID IN (
+              SELECT ANN_ID
+              FROM INTERPRO.ENTRY2COMMON
+              WHERE ENTRY_AC = :1
+            ) AND ANN_ID != :2
+            """, (accession, ann_id,)
+        )
+        all_references = []
+        prog_ref = re.compile(r"\[cite:(PUB\d+)\]", re.I)
+        for text, in cur:
+            for m in prog_ref.finditer(text):
+                all_references.append(m.group(1))
+
+        ann_references = []
+        cur.execute(
+            """
+            SELECT TEXT
+            FROM INTERPRO.COMMON_ANNOTATION
+            WHERE ANN_ID = :1
+            """, (ann_id,)
+        )
+        prog_ref = re.compile(r"\[cite:(PUB\d+)\]", re.I)
+        for text, in cur:
+            for m in prog_ref.finditer(text):
+                ann_references.append(m.group(1))
+
+        to_delete = [ref for ref in ann_references if ref not in all_references]
+        if to_delete:
+            for ref in to_delete:
+                cur.executemany(
+                    """
+                    DELETE FROM INTERPRO.ENTRY2PUB
+                    WHERE ENTRY_AC = :1 AND PUB_ID = :2
+                    """, (accession, ref)
+                )
+
+                cur.executemany(
+                    """
+                    INSERT INTO INTERPRO.SUPPLEMENTARY_REF
+                    VALUES (:1, :2)
+                    """, (accession, ref)
+                )
