@@ -848,18 +848,17 @@ def update_annotation(ann_id):
 
 @bp.route("/<ann_id>/", methods=["DELETE"])
 def delete_annotations(ann_id):
-    # user = auth.get_user()
-    # if not user:
-    #     return jsonify({
-    #         "status": False,
-    #         "error": {
-    #             "title": "Access denied",
-    #             "message": "Please log in to perform this operation."
-    #         }
-    #     }), 401
-    #
-    # con = utils.connect_oracle_auth(user)
-    con = utils.connect_oracle()
+    user = auth.get_user()
+    if not user:
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Access denied",
+                "message": "Please log in to perform this operation."
+            }
+        }), 401
+
+    con = utils.connect_oracle_auth(user)
     cur = con.cursor()
 
     # Check entries that would be without annotations
@@ -900,19 +899,19 @@ def delete_annotations(ann_id):
         )
         entries = cur.fetchall()
 
-        # cur.execute(
-        #     """
-        #     DELETE FROM INTERPRO.ENTRY2COMMON
-        #     WHERE ANN_ID = :1
-        #     """, (ann_id,)
-        # )
-        #
-        # cur.execute(
-        #     """
-        #     DELETE FROM INTERPRO.COMMON_ANNOTATION
-        #     WHERE ANN_ID = :1
-        #     """, (ann_id,)
-        # )
+        cur.execute(
+            """
+            DELETE FROM INTERPRO.ENTRY2COMMON
+            WHERE ANN_ID = :1
+            """, (ann_id,)
+        )
+
+        cur.execute(
+            """
+            DELETE FROM INTERPRO.COMMON_ANNOTATION
+            WHERE ANN_ID = :1
+            """, (ann_id,)
+        )
 
         update_references(cur, entries, ann_id)
     except DatabaseError as exc:
