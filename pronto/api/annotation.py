@@ -932,6 +932,57 @@ def delete_annotations(ann_id):
         con.close()
 
 
+def update_references(cur: Cursor, entries: list, ann_id: str):
+    for entry in entries:
+        accession = str(entry[0])
+        cur.execute(
+            """
+            SELECT TEXT
+            FROM INTERPRO.COMMON_ANNOTATION
+            WHERE ANN_ID IN (
+              SELECT ANN_ID
+              FROM INTERPRO.ENTRY2COMMON
+              WHERE ENTRY_AC = :1
+            ) AND ANN_ID != :2
+            """, (accession, ann_id,)
+        )
+        refs_others_ann = []
+        prog_ref = re.compile(r"\[cite:(PUB\d+)\]", re.I)
+        for text, in cur:
+            for m in prog_ref.finditer(text):
+                refs_others_ann.append(m.group(1))
+
+        refs_ann_del = []
+        cur.execute(
+            """
+            SELECT TEXT
+            FROM INTERPRO.COMMON_ANNOTATION
+            WHERE ANN_ID = :1
+            """, (ann_id,)
+        )
+        prog_ref = re.compile(r"\[cite:(PUB\d+)\]", re.I)
+        for text, in cur:
+            for m in prog_ref.finditer(text):
+                refs_ann_del.append(m.group(1))
+
+        to_delete = [ref for ref in refs_ann_del if ref not in refs_others_ann]
+        if to_delete:
+            for ref in to_delete:
+                cur.execute(
+                    """
+                    INSERT INTO INTERPRO.SUPPLEMENTARY_REF
+                    VALUES (:1, :2)
+                    """, (accession, ref)
+                )
+
+                cur.execute(
+                    """
+                    DELETE FROM INTERPRO.ENTRY2PUB
+                    WHERE ENTRY_AC = :1 AND PUB_ID = :2
+                    """, (accession, ref)
+                )
+
+
 @bp.route("/<ann_id>/entries/")
 def get_annotation_entries(ann_id):
     con = utils.connect_oracle()
@@ -1041,54 +1092,3 @@ def insert_citations(cur: Cursor, citations: dict) -> int | None:
             citations[pmid] = pub_id.getvalue()[0]
 
     return None
-
-
-def update_references(cur: Cursor, entries: list, ann_id: str):
-    for entry in entries:
-        accession = str(entry[0])
-        cur.execute(
-            """
-            SELECT TEXT
-            FROM INTERPRO.COMMON_ANNOTATION
-            WHERE ANN_ID IN (
-              SELECT ANN_ID
-              FROM INTERPRO.ENTRY2COMMON
-              WHERE ENTRY_AC = :1
-            ) AND ANN_ID != :2
-            """, (accession, ann_id,)
-        )
-        all_references = []
-        prog_ref = re.compile(r"\[cite:(PUB\d+)\]", re.I)
-        for text, in cur:
-            for m in prog_ref.finditer(text):
-                all_references.append(m.group(1))
-
-        ann_references = []
-        cur.execute(
-            """
-            SELECT TEXT
-            FROM INTERPRO.COMMON_ANNOTATION
-            WHERE ANN_ID = :1
-            """, (ann_id,)
-        )
-        prog_ref = re.compile(r"\[cite:(PUB\d+)\]", re.I)
-        for text, in cur:
-            for m in prog_ref.finditer(text):
-                ann_references.append(m.group(1))
-
-        to_delete = [ref for ref in ann_references if ref not in all_references]
-        if to_delete:
-            for ref in to_delete:
-                cur.executemany(
-                    """
-                    DELETE FROM INTERPRO.ENTRY2PUB
-                    WHERE ENTRY_AC = :1 AND PUB_ID = :2
-                    """, (accession, ref)
-                )
-
-                cur.executemany(
-                    """
-                    INSERT INTO INTERPRO.SUPPLEMENTARY_REF
-                    VALUES (:1, :2)
-                    """, (accession, ref)
-                )
