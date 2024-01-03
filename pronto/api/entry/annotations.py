@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import re
 
 from flask import jsonify
@@ -327,7 +325,7 @@ def update_references(cur: Cursor, accession: str):
         WHERE ENTRY_AC = :1
         """, (accession,)
     )
-    # Keep order_in to now the highest order
+    # Keep order_in to know the highest order
     pre_references = dict(cur.fetchall())
 
     # Get references from annotations
