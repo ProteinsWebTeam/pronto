@@ -216,10 +216,6 @@ def get_term_constraints(accession, term_id):
             "taxon": {
                 "id": tax_id,
                 "name": tax_name
-            },
-            "violations": {
-                "total": 0,
-                "reviewed": 0
             }
         })
         lr_numbers.append((left_num, right_num))
@@ -233,49 +229,35 @@ def get_term_constraints(accession, term_id):
         signatures
     )
 
-    proteins = violations = violations_reviewed = 0
+    proteins = 0
+    violations = {"total": 0, "reviewed": 0}
+
     for protein_acc, is_reviewed, taxon_left_num in pg_cur:
         proteins += 1
         is_ok = True
+        only_in_ok = False
 
         for constraint, (left_num, right_num) in zip(constraints, lr_numbers):
-            if constraint["type"] == "only_in_taxon":
-                if not left_num <= taxon_left_num <= right_num:
+            if constraint["type"] == "never_in_taxon":
+                if left_num <= taxon_left_num <= right_num:
                     is_ok = False
-                    constraint["violations"]["total"] += 1
-                    if is_reviewed:
-                        constraint["violations"]["reviewed"] += 1
             elif left_num <= taxon_left_num <= right_num:
-                is_ok = False
-                constraint["violations"]["total"] += 1
-                if is_reviewed:
-                    constraint["violations"]["reviewed"] += 1
+                only_in_ok = True
 
-            if not is_ok:
-                violations += 1
-                if is_reviewed:
-                    violations_reviewed += 1
+        if not only_in_ok:
+            is_ok = False
+
+        if not is_ok:
+            violations["total"] += 1
+            if is_reviewed:
+                violations["reviewed"] += 1
 
     pg_cur.close()
     pg_con.close()
-
-    constraints_info = []
-    for info in taxon_constraints:
-        relationship, taxon_id, taxon_name, left_num, right_num = info
-        constraints_info.append({
-            "type": relationship,
-            "taxon": {
-                "id": taxon_id,
-                "name": taxon_name
-            }
-        })
 
     return jsonify({
         "signatures": signatures,
         "constraint": constraints,
         "proteins": proteins,
-        "violations": {
-            "total": violations,
-            "reviewed": violations_reviewed
-         }
+        "violations": violations
     }), 200
