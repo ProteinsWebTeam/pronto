@@ -208,7 +208,21 @@ def get_term_constraints(accession, term_id):
         WHERE go_id = %s
         """, (term_id,)
     )
-    taxon_constraints = pg_cur.fetchall()
+    constraints = []
+    lr_numbers = []
+    for rel_type, tax_id, tax_name, left_num, right_num in pg_cur.fetchall():
+        constraints.append({
+            "type": rel_type,
+            "taxon": {
+                "id": tax_id,
+                "name": tax_name
+            },
+            "violations": {
+                "total": 0,
+                "reviewed": 0
+            }
+        })
+        lr_numbers.append((left_num, right_num))
 
     pg_cur.execute(
         f"""
