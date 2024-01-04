@@ -143,7 +143,7 @@ class Annotation(object):
         for i, line in enumerate(self.text.splitlines(keepends=False)):
             for j, char in enumerate(line):
                 if not char.isascii() and str(ord(char)) not in exceptions:
-                    errors.append(f"'{char}' (line {i+1}, position {j+1}, "
+                    errors.append(f"'{char}' (line {i + 1}, position {j + 1}, "
                                   f"code: {ord(char)})")
 
         if errors:
@@ -185,7 +185,7 @@ class Annotation(object):
 
         if lookup_pmids:
             # Get the Pub IDs for the PMIDs found
-            args = ','.join(':'+str(i+1) for i in range(len(lookup_pmids)))
+            args = ','.join(':' + str(i + 1) for i in range(len(lookup_pmids)))
             cur.execute(
                 f"""
                 SELECT PUB_ID, PUBMED_ID
@@ -709,7 +709,7 @@ def update_annotation(ann_id):
                 FROM INTERPRO.ENTRY2COMMON
                 WHERE ANN_ID = :1            
             )
-            """, (ann_id, )
+            """, (ann_id,)
         )
 
         entries = {}
@@ -893,14 +893,6 @@ def delete_annotations(ann_id):
     try:
         cur.execute(
             """
-            SELECT ENTRY_AC FROM INTERPRO.ENTRY2COMMON
-            WHERE ANN_ID = :1
-            """, (ann_id,)
-        )
-        entries = cur.fetchall()
-
-        cur.execute(
-            """
             DELETE FROM INTERPRO.ENTRY2COMMON
             WHERE ANN_ID = :1
             """, (ann_id,)
@@ -913,7 +905,25 @@ def delete_annotations(ann_id):
             """, (ann_id,)
         )
 
-        update_references(cur, entries, ann_id)
+        del_entry2pub, new_suppl = track_references(cur, ann_id)
+
+        if del_entry2pub:
+            cur.executemany(
+                """
+                DELETE FROM INTERPRO.ENTRY2PUB
+                WHERE ENTRY_AC = :1 AND PUB_ID = :2
+                """,
+                del_entry2pub
+            )
+
+        if new_suppl:
+            cur.executemany(
+                """
+                INSERT INTO INTERPRO.SUPPLEMENTARY_REF
+                VALUES (:1, :2)
+                """,
+                new_suppl
+            )
     except DatabaseError as exc:
         return jsonify({
             "status": False,
@@ -932,55 +942,88 @@ def delete_annotations(ann_id):
         con.close()
 
 
-def update_references(cur: Cursor, entries: list, ann_id: str):
-    for entry in entries:
-        accession = str(entry[0])
-        cur.execute(
-            """
-            SELECT TEXT
-            FROM INTERPRO.COMMON_ANNOTATION
-            WHERE ANN_ID IN (
-              SELECT ANN_ID
-              FROM INTERPRO.ENTRY2COMMON
-              WHERE ENTRY_AC = :1
-            ) AND ANN_ID != :2
-            """, (accession, ann_id,)
-        )
-        refs_others_ann = []
-        prog_ref = re.compile(r"\[cite:(PUB\d+)\]", re.I)
-        for text, in cur:
-            for m in prog_ref.finditer(text):
-                refs_others_ann.append(m.group(1))
-
-        refs_ann_del = []
-        cur.execute(
-            """
-            SELECT TEXT
-            FROM INTERPRO.COMMON_ANNOTATION
-            WHERE ANN_ID = :1
+def track_references(cur: Cursor, ann_id: str):
+    cur.execute(
+        """
+            SELECT ENTRY_AC, PUB_ID
+            FROM INTERPRO.ENTRY2PUB
+            WHERE ENTRY_AC IN (
+                SELECT ENTRY_AC
+                FROM INTERPRO.ENTRY2COMMON
+                WHERE ANN_ID = :1
+            )
             """, (ann_id,)
+    )
+    entry2pub = {}
+    for entry_acc, pub_id in cur.fetchall():
+        try:
+            entry2pub[entry_acc].add(pub_id)
+        except KeyError:
+            entry2pub[entry_acc] = {pub_id}
+
+    cur.execute(
+        """
+        SELECT ENTRY_AC, PUB_ID
+        FROM INTERPRO.SUPPLEMENTARY_REF
+        WHERE ENTRY_AC IN (
+            SELECT ENTRY_AC
+            FROM INTERPRO.ENTRY2COMMON
+            WHERE ANN_ID = :1
         )
-        prog_ref = re.compile(r"\[cite:(PUB\d+)\]", re.I)
-        for text, in cur:
-            for m in prog_ref.finditer(text):
-                refs_ann_del.append(m.group(1))
+        """, (ann_id,)
+    )
+    entry2suppl = {}
+    for entry_acc, pub_id in cur.fetchall():
+        try:
+            entry2suppl[entry_acc].add(pub_id)
+        except KeyError:
+            entry2suppl[entry_acc] = {pub_id}
 
-        to_delete = [ref for ref in refs_ann_del if ref not in refs_others_ann]
-        if to_delete:
-            for ref in to_delete:
-                cur.execute(
-                    """
-                    INSERT INTO INTERPRO.SUPPLEMENTARY_REF
-                    VALUES (:1, :2)
-                    """, (accession, ref)
-                )
+    cur.execute(
+        """
+        SELECT CA.ANN_ID, CA.TEXT, EC.ENTRY_AC
+        FROM INTERPRO.COMMON_ANNOTATION CA
+        INNER JOIN ENTRY2COMMON EC on CA.ANN_ID = EC.ANN_ID
+        WHERE CA.ANN_ID != :1
+         AND EC.ENTRY_AC IN (
+            SELECT ENTRY_AC
+            FROM INTERPRO.ENTRY2COMMON
+            WHERE ANN_ID = :1
+        )
+        """, (ann_id,)
+    )
+    annotations = {}
+    for ann_id, text, entry_acc in cur.fetchall():
+        try:
+            annotations[ann_id]["entries"].append(entry_acc)
+        except KeyError:
+            annotations[ann_id] = {
+                "text": text,
+                "entries": [entry_acc]
+            }
 
-                cur.execute(
-                    """
-                    DELETE FROM INTERPRO.ENTRY2PUB
-                    WHERE ENTRY_AC = :1 AND PUB_ID = :2
-                    """, (accession, ref)
-                )
+    prog_ref = re.compile(r"\[cite:(PUB\d+)\]", re.I)
+    for ann in annotations.values():
+        pubs = set()
+        for m in prog_ref.finditer(ann["text"]):
+            pubs.add(m.group(1))
+
+        for entry_acc in ann["entries"]:
+            try:
+                entry2pub[entry_acc] -= pubs
+            except KeyError:
+                continue
+
+    del_entry2pub = []
+    new_suppl = []
+    for entry_acc, pubs in entry2pub.items():
+        for pub_id in pubs:
+            del_entry2pub.append((entry_acc, pub_id))
+
+            if pub_id not in entry2suppl.get(entry_acc, []):
+                new_suppl.append((entry_acc, pub_id))
+
+    return del_entry2pub, new_suppl
 
 
 @bp.route("/<ann_id>/entries/")
@@ -1014,7 +1057,7 @@ def get_citations(cur: Cursor, pmids: list[int | str]) -> dict:
     keys = []
     params = []
     for i, pmid in enumerate(map(str, set(pmids))):
-        keys.append(f":{i+1}")
+        keys.append(f":{i + 1}")
         params.append(pmid)
 
     cur.execute(
