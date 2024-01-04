@@ -198,10 +198,10 @@ def get_term_constraints(accession, term_id):
 
     pg_con = utils.connect_pg()
     pg_cur = pg_con.cursor()
-
     pg_cur.execute(
-        f"""
-        SELECT DISTINCT gc.relationship, gc.taxon, t.name, t.left_number, t.right_number
+        """
+        SELECT DISTINCT gc.relationship, gc.taxon, t.name, t.left_number, 
+                        t.right_number
         FROM go2constraints gc
         INNER JOIN taxon t
         ON t.id = gc.taxon
