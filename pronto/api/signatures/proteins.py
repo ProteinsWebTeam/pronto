@@ -24,10 +24,10 @@ def get_proteins_alt(accessions):
     dom_org_id = request.args.get("md5")
     name_id = request.args.get("name")
     taxon_id = request.args.get("taxon")
+    tax_constraints = request.args.get("violate-go")
     reviewed_only = "reviewed" in request.args
     reviewed_first = "reviewedfirst" in request.args
     group_by_dom_org = "domainorganisation" in request.args
-    tax_constraints = "tax-constraints" in request.args
 
     # dl_file = "file" in request.args
 
@@ -141,16 +141,6 @@ def get_proteins_alt(accessions):
                     }
                 }), 400
 
-            if tax_constraints:
-                cur.execute(f"""
-                    SELECT DISTINCT gc.relationship, gc.taxon, t.left_number, t.right_number
-                    FROM go2constraints gc
-                    INNER JOIN taxon t
-                    ON t.id = gc.taxon
-                    WHERE go_id = %s
-                    """, (term_id,))
-                term_constraints = cur.fetchall()
-
         filters = [f"signature_acc IN ({','.join('%s' for _ in accessions)})"]
         params = list(accessions)
 
@@ -168,6 +158,16 @@ def get_proteins_alt(accessions):
         if name_id is not None:
             filters.append("name_id = %s")
             params.append(name_id)
+
+        if tax_constraints is not None:
+            cur.execute(f"""
+                SELECT DISTINCT gc.relationship, gc.taxon, t.left_number, t.right_number
+                FROM go2constraints gc
+                INNER JOIN taxon t
+                ON t.id = gc.taxon
+                WHERE go_id = %s
+                """, (tax_constraints,))
+            term_constraints = cur.fetchall()
 
         sql = f"""
             SELECT protein_acc, is_reviewed, md5
@@ -214,32 +214,32 @@ def get_proteins_alt(accessions):
             )
             params.append(term_id)
 
-            if tax_constraints:
-                only_in = []
-                never_in = []
-                for info in term_constraints:
-                    relationship, taxon, left_num, right_num = info
-                    if relationship == "only_in_taxon":
-                        only_in.append("spx.taxon_left_num BETWEEN %s AND %s")
-                    else:
-                        never_in.append("spx.taxon_left_num NOT BETWEEN %s AND %s")
-                    params += [str(left_num), str(right_num)]
-                    constraints = ""
-                    if only_in:
-                        constraints += f" AND ({' OR '.join(only_in)})"
-                    if never_in:
-                        constraints += f" AND {' AND '.join(never_in)}"
+        if tax_constraints is not None:
+            only_in = []
+            never_in = []
+            for info in term_constraints:
+                relationship, taxon, left_num, right_num = info
+                if relationship == "only_in_taxon":
+                    only_in.append("spx.taxon_left_num BETWEEN %s AND %s")
+                else:
+                    never_in.append("spx.taxon_left_num NOT BETWEEN %s AND %s")
+                params += [str(left_num), str(right_num)]
+                constraints = ""
+                if only_in:
+                    constraints += f" AND ({' OR '.join(only_in)})"
+                if never_in:
+                    constraints += f" AND {' AND '.join(never_in)}"
 
-                filters.append(
-                    f"""
-                    NOT EXISTS (
-                        SELECT 1
-                        FROM signature2protein spx
-                        WHERE spx.protein_acc = sp.protein_acc
-                        {constraints}
-                    )
-                    """
+            filters.append(
+                f"""
+                NOT EXISTS (
+                    SELECT 1
+                    FROM signature2protein spx
+                    WHERE spx.protein_acc = sp.protein_acc
+                    {constraints}
                 )
+                """
+            )
 
         if exclude:
             filters.append(
