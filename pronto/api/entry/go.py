@@ -214,8 +214,9 @@ def get_term_constraints(accession, term_id):
         f"""
         SELECT DISTINCT protein_acc, is_reviewed, taxon_left_num
         FROM signature2protein
-        WHERE signature_acc IN ({','.join(['%s' for _ in methods])})
-        """, methods
+        WHERE signature_acc IN ({','.join(['%s' for _ in signatures])})
+        """,
+        signatures
     )
 
     total_proteins = 0
