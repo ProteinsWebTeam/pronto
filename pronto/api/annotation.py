@@ -317,8 +317,11 @@ def create_annotation():
     try:
         text = request.form["text"].strip()
         is_llm = request.form["llm"].strip()
-        assert is_llm in ("true", "false")
-    except (AttributeError, KeyError):
+        is_checked = request.form["checked"].strip()
+        assert (len(text) and
+                is_llm in ("true", "false") and
+                is_checked in ("true", "false"))
+    except (AssertionError, KeyError):
         return jsonify({
             "status": False,
             "error": {
@@ -328,6 +331,7 @@ def create_annotation():
         }), 400
 
     is_llm = is_llm == "true"
+    is_checked = is_checked == "true"
     ann = Annotation(text)
     if not ann.validate_html():
         return jsonify({
@@ -381,11 +385,13 @@ def create_annotation():
     try:
         cur.execute(
             """
-            INSERT INTO INTERPRO.COMMON_ANNOTATION (ANN_ID, TEXT, COMMENTS, LLM)
-            VALUES (INTERPRO.NEW_ANN_ID(), :1, :2, :3)
+            INSERT INTO INTERPRO.COMMON_ANNOTATION 
+                (ANN_ID, TEXT, COMMENTS, LLM, CHECKED)
+            VALUES (INTERPRO.NEW_ANN_ID(), :1, :2, :3, :4)
             RETURNING ANN_ID INTO :4
             """,
-            [ann.text, comment, "Y" if is_llm else "N", ann_id]
+            [ann.text, comment, "Y" if is_llm else "N",
+             "Y" if is_checked else "N", ann_id]
         )
     except DatabaseError as exc:
         error, = exc.args
