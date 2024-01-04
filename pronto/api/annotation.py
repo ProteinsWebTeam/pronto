@@ -848,18 +848,17 @@ def update_annotation(ann_id):
 
 @bp.route("/<ann_id>/", methods=["DELETE"])
 def delete_annotations(ann_id):
-    # user = auth.get_user()
-    # if not user:
-    #     return jsonify({
-    #         "status": False,
-    #         "error": {
-    #             "title": "Access denied",
-    #             "message": "Please log in to perform this operation."
-    #         }
-    #     }), 401
-    #
-    # con = utils.connect_oracle_auth(user)
-    con = utils.connect_oracle()
+    user = auth.get_user()
+    if not user:
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Access denied",
+                "message": "Please log in to perform this operation."
+            }
+        }), 401
+
+    con = utils.connect_oracle_auth(user)
     cur = con.cursor()
 
     # Check entries that would be without annotations
@@ -892,41 +891,39 @@ def delete_annotations(ann_id):
         }), 409
 
     try:
-    #     cur.execute(
-    #         """
-    #         DELETE FROM INTERPRO.ENTRY2COMMON
-    #         WHERE ANN_ID = :1
-    #         """, (ann_id,)
-    #     )
-    #
-    #     cur.execute(
-    #         """
-    #         DELETE FROM INTERPRO.COMMON_ANNOTATION
-    #         WHERE ANN_ID = :1
-    #         """, (ann_id,)
-    #     )
+        cur.execute(
+            """
+            DELETE FROM INTERPRO.ENTRY2COMMON
+            WHERE ANN_ID = :1
+            """, (ann_id,)
+        )
+
+        cur.execute(
+            """
+            DELETE FROM INTERPRO.COMMON_ANNOTATION
+            WHERE ANN_ID = :1
+            """, (ann_id,)
+        )
 
         del_entry2pub, new_suppl = track_references(cur, ann_id)
 
-        print(del_entry2pub)
-        print(new_suppl)
-        # if del_entry2pub:
-        #     cur.executemany(
-        #         """
-        #         DELETE FROM INTERPRO.ENTRY2PUB
-        #         WHERE ENTRY_AC = :1 AND PUB_ID = :2
-        #         """,
-        #         del_entry2pub
-        #     )
-        #
-        # if new_suppl:
-        #     cur.executemany(
-        #         """
-        #         INSERT INTO INTERPRO.SUPPLEMENTARY_REF
-        #         VALUES (:1, :2)
-        #         """,
-        #         new_suppl
-        #     )
+        if del_entry2pub:
+            cur.executemany(
+                """
+                DELETE FROM INTERPRO.ENTRY2PUB
+                WHERE ENTRY_AC = :1 AND PUB_ID = :2
+                """,
+                del_entry2pub
+            )
+
+        if new_suppl:
+            cur.executemany(
+                """
+                INSERT INTO INTERPRO.SUPPLEMENTARY_REF
+                VALUES (:1, :2)
+                """,
+                new_suppl
+            )
     except DatabaseError as exc:
         return jsonify({
             "status": False,
