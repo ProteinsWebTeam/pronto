@@ -219,9 +219,7 @@ def get_term_constraints(accession, term_id):
         signatures
     )
 
-    total_proteins = 0
-    violation_total = 0
-    violation_reviewed = 0
+    proteins = violations = violations_reviewed = 0
     for protein_acc, is_reviewed, taxon_left_num in pg_cur:
         total_proteins += 1
         only_in = []
