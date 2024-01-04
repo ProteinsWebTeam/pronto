@@ -271,14 +271,12 @@ def get_term_constraints(accession, term_id):
             }
         })
 
-    json_result = {
-        "total_proteins": total_proteins,
+    return jsonify({
+        "signatures": signatures,
+        "constraint": constraints,
+        "proteins": proteins,
         "violations": {
-            "total": violation_total,
-            "reviewed": violation_reviewed
-         },
-        "constraint": constraints_info,
-        "signatures": methods
-    }
-
-    return jsonify(json_result), 200
+            "total": violations,
+            "reviewed": violations_reviewed
+         }
+    }), 200
