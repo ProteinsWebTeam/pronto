@@ -192,8 +192,7 @@ def get_term_constraints(accession, term_id):
         WHERE ENTRY_AC = :1
         """, (accession,)
     )
-    methods = [item[0] for item in ora_cur.fetchall()]
-
+    signatures = [acc for acc, in ora_cur.fetchall()]
     ora_cur.close()
     ora_con.close()
 
