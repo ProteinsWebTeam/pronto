@@ -304,6 +304,7 @@ def update_entry(accession):
 
 @bp.route("/<accession>/", methods=["DELETE"])
 def delete_entry(accession):
+    _delete_annotation = "del_annot" in request.args
     user = auth.get_user()
     if not user:
         return jsonify({
@@ -340,16 +341,49 @@ def delete_entry(accession):
 
     url = utils.get_oracle_url(user)
     task = utils.executor.submit(url, f"delete:{accession}", _delete_entry,
-                                 url, accession)
+                                 url, accession, _delete_annotation)
     return jsonify({
         "status": True,
         "task": task
     }), 202
 
 
-def _delete_entry(url: str, accession: str):
+def _delete_entry(url: str, accession: str, delete_annotation: bool):
     con = oracledb.connect(url)
     cur = con.cursor()
+
+    if delete_annotation:
+        # select annotation blocks that are only assigned to this entry
+        cur.execute(
+            """
+            SELECT A.ANN_ID
+            FROM INTERPRO.COMMON_ANNOTATION A
+            INNER JOIN INTERPRO.ENTRY2COMMON E ON A.ANN_ID = E.ANN_ID
+            LEFT OUTER JOIN (
+            SELECT ANN_ID, COUNT(*) CT
+            FROM INTERPRO.ENTRY2COMMON
+            GROUP BY ANN_ID
+            ) S ON A.ANN_ID = S.ANN_ID
+            WHERE E.ENTRY_AC = :1
+            AND S.CT = 1
+            """, (accession,)
+        )
+
+        ann_to_delete = [row[0] for row in cur]
+        params = tuple(ann_to_delete)
+
+        try:
+            cur.execute(
+                f"""
+                    DELETE FROM INTERPRO.COMMON_ANNOTATION
+                    WHERE ANN_ID IN ({','.join(':' + str(i + 1) for i in range(len(ann_to_delete)))})
+                """, params
+            )
+        except oracledb.DatabaseError as exc:
+            raise exc
+        else:
+            con.commit()
+
     try:
         cur.execute(
             """
