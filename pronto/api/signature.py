@@ -311,6 +311,7 @@ def get_signature_go_info(accession, term_id):
             }
         }), 400
 
+
 def get_panther_go_subfam(accession, term_id):
 
     pg_con = utils.connect_pg()
