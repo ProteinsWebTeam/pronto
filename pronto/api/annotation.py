@@ -891,6 +891,8 @@ def delete_annotations(ann_id):
         }), 409
 
     try:
+        del_entry2pub, new_suppl = track_references(cur, ann_id)
+
         cur.execute(
             """
             DELETE FROM INTERPRO.ENTRY2COMMON
@@ -904,8 +906,6 @@ def delete_annotations(ann_id):
             WHERE ANN_ID = :1
             """, (ann_id,)
         )
-
-        del_entry2pub, new_suppl = track_references(cur, ann_id)
 
         if del_entry2pub:
             cur.executemany(
