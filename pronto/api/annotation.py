@@ -983,7 +983,7 @@ def track_references(cur: Cursor, ann_id: str):
         """
         SELECT CA.ANN_ID, CA.TEXT, EC.ENTRY_AC
         FROM INTERPRO.COMMON_ANNOTATION CA
-        INNER JOIN ENTRY2COMMON EC on CA.ANN_ID = EC.ANN_ID
+        INNER JOIN INTERPRO.ENTRY2COMMON EC ON CA.ANN_ID = EC.ANN_ID
         WHERE CA.ANN_ID != :1
          AND EC.ENTRY_AC IN (
             SELECT ENTRY_AC
