@@ -24,7 +24,7 @@ def get_proteins_alt(accessions):
     dom_org_id = request.args.get("md5")
     name_id = request.args.get("name")
     taxon_id = request.args.get("taxon")
-    tax_constraints = request.args.get("violate-go")
+    violate_term_id = request.args.get("violate-go")
     reviewed_only = "reviewed" in request.args
     reviewed_first = "reviewedfirst" in request.args
     group_by_dom_org = "domainorganisation" in request.args
@@ -126,7 +126,9 @@ def get_proteins_alt(accessions):
                 }), 400
 
         term_name = None
+        go_id = None
         if term_id is not None:
+            go_id = term_id
             cur.execute("SELECT name FROM term WHERE ID = %s", (term_id,))
             row = cur.fetchone()
             if row:
@@ -159,15 +161,34 @@ def get_proteins_alt(accessions):
             filters.append("name_id = %s")
             params.append(name_id)
 
-        if tax_constraints is not None:
+        if violate_term_id is not None:
+            go_id = violate_term_id
             cur.execute(f"""
-                SELECT DISTINCT gc.relationship, gc.taxon, t.left_number, t.right_number
-                FROM go2constraints gc
-                INNER JOIN taxon t
-                ON t.id = gc.taxon
+                SELECT DISTINCT
+                    tm.name, gc.relationship, gc.taxon,
+                    tx.left_number, tx.right_number
+                FROM term tm
+                INNER JOIN go2constraints gc
+                    ON gc.go_id = tm.id
+                INNER JOIN taxon tx
+                    ON tx.id = gc.taxon
                 WHERE go_id = %s
-                """, (tax_constraints,))
-            term_constraints = cur.fetchall()
+                """, (violate_term_id,))
+            rows = cur.fetchall()
+            if rows:
+                term_constraints = []
+                term_name = rows[0][0]
+                for row in rows:
+                    term_constraints.append(row[1:])
+            else:
+                cur.close()
+                con.close()
+                return jsonify({
+                    "error": {
+                        "title": "Bad Request (invalid GO term)",
+                        "message": f"No constraints for GO term with ID {violate_term_id}."
+                    }
+                }), 400
 
         sql = f"""
             SELECT protein_acc, is_reviewed, md5
@@ -214,7 +235,7 @@ def get_proteins_alt(accessions):
             )
             params.append(term_id)
 
-        if tax_constraints is not None:
+        if violate_term_id is not None:
             only_in = []
             never_in = []
             for info in term_constraints:
@@ -337,7 +358,7 @@ def get_proteins_alt(accessions):
             "comment": comment_value,
             "description": name_value,
             "exclude": list(exclude),
-            "go": f"{term_id}: {term_name}" if term_name else None,
+            "go": f"{go_id}: {term_name}" if term_name else None,
             "md5": dom_org_id,
             "reviewed": reviewed_only,
             "taxon": taxon_name,
