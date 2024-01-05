@@ -216,6 +216,10 @@ def get_term_constraints(accession, term_id):
             "taxon": {
                 "id": tax_id,
                 "name": tax_name
+            },
+            "violations": {
+                "total": 0,
+                "reviewed": 0
             }
         })
         lr_numbers.append((left_num, right_num))
@@ -230,7 +234,7 @@ def get_term_constraints(accession, term_id):
     )
 
     proteins = 0
-    violations = {"total": 0, "reviewed": 0}
+    proteins_violating = {"total": 0, "reviewed": 0}
 
     for protein_acc, is_reviewed, taxon_left_num in pg_cur:
         proteins += 1
@@ -241,16 +245,25 @@ def get_term_constraints(accession, term_id):
             if constraint["type"] == "never_in_taxon":
                 if left_num <= taxon_left_num <= right_num:
                     is_ok = False
-            elif left_num <= taxon_left_num <= right_num:
-                only_in_ok = True
+                    constraint["violations"]["total"] += 1
+                    if is_reviewed:
+                        constraint["violations"]["reviewed"] += 1
+            else:
+                if left_num <= taxon_left_num <= right_num:
+                    only_in_ok = True
+                # warning: this counter is incremented even in cases of more than one taxon only_in (ex: GO:0000747)
+                else:
+                    constraint["violations"]["total"] += 1
+                    if is_reviewed:
+                        constraint["violations"]["reviewed"] += 1
 
         if not only_in_ok:
             is_ok = False
 
         if not is_ok:
-            violations["total"] += 1
+            proteins_violating["total"] += 1
             if is_reviewed:
-                violations["reviewed"] += 1
+                proteins_violating["reviewed"] += 1
 
     pg_cur.close()
     pg_con.close()
@@ -259,5 +272,5 @@ def get_term_constraints(accession, term_id):
         "signatures": signatures,
         "constraint": constraints,
         "proteins": proteins,
-        "violations": violations
+        "violations": proteins_violating
     }), 200
