@@ -303,7 +303,13 @@ def get_signature_go_info(accession, term_id):
     elif accession.startswith("G3DSA"):
         return get_funfam_go(accession, term_id)
     else:
-        return jsonify(), 404
+        return jsonify({
+            "error": {
+                "title": "Invalid signature",
+                "message": "Only CATH-Gene3D and PANTHER signatures "
+                           "have subfamilies."
+            }
+        }), 400
 
 def get_panther_go_subfam(accession, term_id):
 
