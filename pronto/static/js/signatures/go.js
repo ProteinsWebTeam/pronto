@@ -21,10 +21,10 @@ function getGoTerms(accessions) {
         .then(response => response.json())
         .then((data,) => {
             const sig2ipr = new Map(Object.entries(data.integrated));
-            const isPanther = new RegExp('^PTHR');
+            const signWithGO = new RegExp('^(PTHR|G3DSA)');
 
             const genCell = (acc,) => {
-                const span = isPanther.test(acc) ? 3 : 2;
+                const span = signWithGO.test(acc) ? 3 : 2;
                 if (sig2ipr.has(acc))
                     return `<th class="center aligned" colspan="${span}"><span data-tooltip="${sig2ipr.get(acc)}" data-inverted=""><i class="star icon"></i>${acc}</span></th>`;
                 else
@@ -43,8 +43,8 @@ function getGoTerms(accessions) {
                 html += `
                         <th class="collapsing center aligned normal">UNI</th>
                         <th class="collapsing center aligned">REF</th>`;
-                if (isPanther.test(accessions[i]))
-                    html += `<th class="collapsing center aligned">PTHR</th>`;
+                if (signWithGO.test(accessions[i]))
+                    html += `<th class="collapsing center aligned">SIGN</th>`;
 
             }
             html += `</tr></thead>`;
@@ -80,17 +80,17 @@ function getGoTerms(accessions) {
                         } else
                             html += '<td class="collapsing"></td>';
 
-                        if (signature.panthergo > 0) {
+                        if (signature.signaturego > 0) {
                             html += `<td class="collapsing center aligned">
-                                        <a href="#!" data-signature="${acc}" data-term="${term.id}" data-panther="">${signature.panthergo.toLocaleString()}</a>
+                                        <a href="#!" data-signature="${acc}" data-term="${term.id}" data-sign="">${signature.signaturego.toLocaleString()}</a>
                                      </td>`;
-                        } else if (isPanther.test(acc))
+                        } else if (signWithGO.test(acc))
                             html += '<td class="collapsing"></td>';
 
                     } else {
                         html += '<td class="collapsing"></td><td class="collapsing"></td>';
 
-                        if (isPanther.test(acc)) {
+                        if (signWithGO.test(acc)) {
                             html += '<td class="collapsing"></td>';
                         }
                     }
@@ -105,7 +105,7 @@ function getGoTerms(accessions) {
                 input.checked = data.aspects.includes(input.value);
             }
 
-            for (const elem of table.querySelectorAll('[data-signature]:not(.label):not([data-panther])')) {
+            for (const elem of table.querySelectorAll('[data-signature]:not(.label):not([data-sign])')) {
                 elem.addEventListener('click', e => {
                     const acc = e.currentTarget.dataset.signature;
                     const termID = e.currentTarget.dataset.term;
@@ -162,8 +162,8 @@ function getGoTerms(accessions) {
                 });
             }
 
-            // Get PANTHER subfamilies references
-            for (const elem of table.querySelectorAll('[data-signature][data-panther]')) {
+            // Get PANTHER subfamilies or funfam info
+            for (const elem of table.querySelectorAll('[data-signature][data-sign]')) {
                 elem.addEventListener('click', (e,) => {
                     const acc = e.currentTarget.dataset.signature;
                     const term = e.currentTarget.dataset.term;
@@ -185,10 +185,18 @@ function getGoTerms(accessions) {
                                         <tbody>`;
 
                             for (const subfam in object.results) {
-                                html += `<tr>
-                                            <td>
-                                            <a target="_blank" href="//www.pantherdb.org/panther/family.do?clsAccession=${subfam}">${subfam}<i class="external icon"></i></a>
-                                            </td>
+                                html += `<tr>`;
+                                if (acc.startsWith('PTHR')) {
+                                    html += `<td>
+                                    <a target="_blank" href="//www.pantherdb.org/panther/family.do?clsAccession=${subfam}">${subfam}<i class="external icon"></i></a>
+                                    </td>`;
+                                }
+                                else if (acc.startsWith('G3DSA')) {
+                                    const [_, famId, funfamId] = subfam.match(/G3DSA:([0-9.]+):FF:(\d+)/);
+                                    html += `<td><a target="_blank" href="//www.cathdb.info/version/v4_3_0/superfamily/${famId}/funfam/${Number.parseInt(funfamId, 10)}">${subfam}<i class="external icon"></i></a></td>`;
+                                }
+
+                                html += `
                                             <td>${object.results[subfam].toLocaleString()}</td>
                                             <td>${object.count.toLocaleString()}</td>
                                          </tr>`;
@@ -197,8 +205,13 @@ function getGoTerms(accessions) {
                             html += `</tbody>
                                     </table>`;
 
-                            const modal = document.getElementById('panther-modal');
-                            modal.querySelector('.ui.header').innerHTML = `PANTHER subfamilies: ${acc}/${term}`;
+                            const modal = document.getElementById('signature-modal');
+                            if (acc.startsWith('PTHR')) {
+                                modal.querySelector('.ui.header').innerHTML = `PANTHER subfamilies: ${acc}/${term}`;
+                            }
+                            else if (acc.startsWith('G3DSA')) {
+                                modal.querySelector('.ui.header').innerHTML = `CATH-Gene3D Funfams: ${acc}/${term}`;
+                            }
                             modal.querySelector('.content ul').innerHTML = html;
                             modal.querySelector('.actions a').setAttribute('href', `//www.ebi.ac.uk/QuickGO/term/${term}`);
                             $(modal).modal('show');
@@ -207,8 +220,6 @@ function getGoTerms(accessions) {
 
                 });
             }
-
-
 
             dimmer.off();
         });

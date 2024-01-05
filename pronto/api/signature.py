@@ -297,6 +297,21 @@ def get_term_citations(accession, term_id):
 
 
 @bp.route("/<accession>/go/<term_id>/subfam")
+def get_signature_go_info(accession, term_id):
+    if accession.startswith("PTHR"):
+        return get_panther_go_subfam(accession, term_id)
+    elif accession.startswith("G3DSA"):
+        return get_funfam_go(accession, term_id)
+    else:
+        return jsonify({
+            "error": {
+                "title": "Invalid signature",
+                "message": "Only CATH-Gene3D and PANTHER signatures "
+                           "have subfamilies."
+            }
+        }), 400
+
+
 def get_panther_go_subfam(accession, term_id):
 
     pg_con = utils.connect_pg()
@@ -334,6 +349,45 @@ def get_panther_go_subfam(accession, term_id):
     )
 
     results = {acc: matches[acc] for acc, in cur.fetchall()}
+    cur.close()
+    con.close()
+
+    return jsonify({
+        "count": count_prot,
+        "results": results
+    })
+
+
+def get_funfam_go(accession, term_id):
+
+    pg_con = utils.connect_pg()
+    with pg_con.cursor() as pg_cur:
+
+        sql = """
+            SELECT count(protein_acc)
+            FROM interpro.signature2protein
+            WHERE signature_acc = %s
+        """
+        pg_cur.execute(sql, (accession,))
+        count_prot = pg_cur.fetchone()[0]
+
+    pg_con.close()
+
+    con = utils.connect_oracle()
+    cur = con.cursor()
+
+    cur.execute(
+        f""" 
+        SELECT METHOD_AC, count(PROTEIN_AC)
+        FROM INTERPRO.FUNFAM2GO
+        WHERE METHOD_AC LIKE :gene3d
+          AND GO_ID = :go_id
+        GROUP BY METHOD_AC
+        """,
+        (f"{accession}%", term_id)
+    )
+
+    results = dict(cur.fetchall())
     cur.close()
     con.close()
 
