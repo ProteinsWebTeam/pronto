@@ -388,7 +388,7 @@ def create_annotation():
             INSERT INTO INTERPRO.COMMON_ANNOTATION 
                 (ANN_ID, TEXT, COMMENTS, LLM, CHECKED)
             VALUES (INTERPRO.NEW_ANN_ID(), :1, :2, :3, :4)
-            RETURNING ANN_ID INTO :4
+            RETURNING ANN_ID INTO :5
             """,
             [ann.text, comment, "Y" if is_llm else "N",
              "Y" if is_checked else "N", ann_id]
@@ -445,13 +445,14 @@ def search_annotations():
     if re.fullmatch(r"AB\d+", search_query, re.I):
         cur.execute(
             """
-            SELECT CA.ANN_ID, CA.TEXT, CA.LLM, CA.CHECKED, 
-                   COUNT(EC.ENTRY_AC) AS CNT
+            SELECT CA.ANN_ID, CA.TEXT, CA.LLM, CA.CHECKED, NVL(EC.CNT, 0)
             FROM INTERPRO.COMMON_ANNOTATION CA
-            LEFT OUTER JOIN INTERPRO.ENTRY2COMMON EC 
-              ON CA.ANN_ID = EC.ANN_ID
+            LEFT OUTER JOIN (
+                SELECT ANN_ID, COUNT(*) AS CNT
+                FROM INTERPRO.ENTRY2COMMON
+                GROUP BY ANN_ID
+            ) EC ON CA.ANN_ID = EC.ANN_ID 
             WHERE CA.ANN_ID = :1
-            GROUP BY CA.ANN_ID, CA.TEXT
             """,
             [search_query.upper()]
         )
