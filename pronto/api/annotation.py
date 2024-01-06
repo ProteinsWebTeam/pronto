@@ -316,7 +316,12 @@ def create_annotation():
 
     try:
         text = request.form["text"].strip()
-    except (AttributeError, KeyError):
+        is_llm = request.form["llm"].strip()
+        is_checked = request.form["checked"].strip()
+        assert (len(text) and
+                is_llm in ("true", "false") and
+                is_checked in ("true", "false"))
+    except (AssertionError, KeyError):
         return jsonify({
             "status": False,
             "error": {
@@ -325,6 +330,8 @@ def create_annotation():
             }
         }), 400
 
+    is_llm = is_llm == "true"
+    is_checked = is_checked == "true"
     ann = Annotation(text)
     if not ann.validate_html():
         return jsonify({
@@ -368,7 +375,8 @@ def create_annotation():
             }
         }), 400  # could be 500 (if INSERT failed)
 
-    comment = (f"Created by {user['name'].split()[0]} "
+    action = "Imported" if is_llm else "Created"
+    comment = (f"{action} by {user['name'].split()[0]} "
                f"on {datetime.now():%Y-%m-%d %H:%M:%S}")
 
     ann.strip()
@@ -377,10 +385,13 @@ def create_annotation():
     try:
         cur.execute(
             """
-            INSERT INTO INTERPRO.COMMON_ANNOTATION (ANN_ID, TEXT, COMMENTS)
-            VALUES (INTERPRO.NEW_ANN_ID(), :1, :2)
-            RETURNING ANN_ID INTO :3
-            """, (ann.text, comment, ann_id)
+            INSERT INTO INTERPRO.COMMON_ANNOTATION 
+                (ANN_ID, TEXT, COMMENTS, LLM, CHECKED)
+            VALUES (INTERPRO.NEW_ANN_ID(), :1, :2, :3, :4)
+            RETURNING ANN_ID INTO :5
+            """,
+            [ann.text, comment, "Y" if is_llm else "N",
+             "Y" if is_checked else "N", ann_id]
         )
     except DatabaseError as exc:
         error, = exc.args
@@ -391,7 +402,8 @@ def create_annotation():
                 SELECT ANN_ID
                 FROM INTERPRO.COMMON_ANNOTATION
                 WHERE TEXT = :1
-                """, (text,)
+                """,
+                [text]
             )
             ann_id, = cur.fetchone()
 
@@ -430,23 +442,28 @@ def search_annotations():
     con = utils.connect_oracle()
     cur = con.cursor()
 
-    if re.fullmatch("AB\d+", search_query, re.I):
+    if re.fullmatch(r"AB\d+", search_query, re.I):
         cur.execute(
             """
-            SELECT CA.ANN_ID, CA.TEXT, COUNT(EC.ENTRY_AC) AS CNT
+            SELECT CA.ANN_ID, CA.TEXT, CA.LLM, CA.CHECKED, NVL(EC.CNT, 0)
             FROM INTERPRO.COMMON_ANNOTATION CA
-            LEFT OUTER JOIN INTERPRO.ENTRY2COMMON EC 
-              ON CA.ANN_ID = EC.ANN_ID
+            LEFT OUTER JOIN (
+                SELECT ANN_ID, COUNT(*) AS CNT
+                FROM INTERPRO.ENTRY2COMMON
+                GROUP BY ANN_ID
+            ) EC ON CA.ANN_ID = EC.ANN_ID 
             WHERE CA.ANN_ID = :1
-            GROUP BY CA.ANN_ID, CA.TEXT
-            """, (search_query.upper(),)
+            """,
+            [search_query.upper()]
         )
         row = cur.fetchone()
         if row:
             hits.append({
                 "id": row[0],
                 "text": row[1],
-                "num_entries": row[2]
+                "is_llm": row[2] == "Y",
+                "is_checked": row[3] == "Y",
+                "num_entries": row[4]
             })
     elif search_query:
         if search_query.isdigit():
@@ -464,7 +481,8 @@ def search_annotations():
 
         cur.execute(
             """
-            SELECT CA.ANN_ID, CA.TEXT, COUNT(EC.ENTRY_AC) AS CNT
+            SELECT CA.ANN_ID, CA.TEXT, CA.LLM, CA.CHECKED, 
+                   COUNT(EC.ENTRY_AC) AS CNT
             FROM INTERPRO.COMMON_ANNOTATION CA
             LEFT OUTER JOIN INTERPRO.ENTRY2COMMON EC 
               ON CA.ANN_ID = EC.ANN_ID
@@ -486,7 +504,9 @@ def search_annotations():
             hits.append({
                 "id": row[0],
                 "text": row[1],
-                "num_entries": row[2]
+                "is_llm": row[2] == "Y",
+                "is_checked": row[3] == "Y",
+                "num_entries": row[4]
             })
 
     cur.close()
@@ -503,7 +523,7 @@ def get_annotation(ann_id):
     cur = con.cursor()
     cur.execute(
         """
-        SELECT A.TEXT, A.COMMENTS, S.CT
+        SELECT A.TEXT, A.COMMENTS, A.LLM, A.CHECKED, S.CT
         FROM INTERPRO.COMMON_ANNOTATION A
         LEFT OUTER JOIN (
           SELECT ANN_ID, COUNT(*) CT
@@ -511,7 +531,8 @@ def get_annotation(ann_id):
           GROUP BY ANN_ID
         ) S ON A.ANN_ID = S.ANN_ID
         WHERE A.ANN_ID = :1
-        """, (ann_id,)
+        """,
+        [ann_id]
     )
     row = cur.fetchone()
     if not row:
@@ -520,7 +541,7 @@ def get_annotation(ann_id):
         return jsonify(), 404
 
     prog_ref = re.compile(r"\[([a-z0-9]+):([a-z0-9\-.]+)]", re.I)
-    text, comment, n_entries = row
+    text, comment, is_llm, is_checked, n_entries = row
     ext_refs = {}
 
     for match in prog_ref.finditer(text):
@@ -542,6 +563,8 @@ def get_annotation(ann_id):
         "id": ann_id,
         "text": text,
         "comment": comment,
+        "is_llm": is_llm == "Y",
+        "is_checked": is_checked == "Y",
         "num_entries": n_entries,
         "cross_references": list(ext_refs.values())
     }), 200
@@ -562,7 +585,12 @@ def update_annotation(ann_id):
     try:
         text = request.form["text"].strip()
         comment = request.form["reason"].strip()
-        assert len(text) and len(comment)
+        is_llm = request.form["llm"].strip()
+        is_checked = request.form["checked"].strip()
+        assert (len(text) and
+                len(comment) and
+                is_llm in ("true", "false") and
+                is_checked in ("true", "false"))
     except (AssertionError, KeyError):
         return jsonify({
             "status": False,
@@ -616,10 +644,11 @@ def update_annotation(ann_id):
 
     cur.execute(
         """
-        SELECT TEXT
+        SELECT TEXT, LLM, CHECKED
         FROM INTERPRO.COMMON_ANNOTATION
         WHERE ANN_ID = :1
-        """, (ann_id,)
+        """,
+        [ann_id]
     )
     row = cur.fetchone()
     if not row:
@@ -633,11 +662,16 @@ def update_annotation(ann_id):
             }
         }), 400
 
+    current_text = row[0]
+    current_llm = row[1] == "Y"
+    current_checked = row[2] == "Y"
+    # TODO: reject update if checked -> unchecked or not-llm -> is-llm
+
     """
     Compare references, 
     to see if there are references to add/delete in ENTRY2PUB
     """
-    pre_references = ann.get_references(row[0])
+    pre_references = ann.get_references(current_text)
     now_references = ann.get_references()
 
     # references that do not exist anymore
@@ -662,7 +696,8 @@ def update_annotation(ann_id):
                 FROM INTERPRO.ENTRY2COMMON
                 WHERE ANN_ID = :1                  
             )
-            """, (ann_id,)
+            """,
+            [ann_id]
         )
         to_delete = []
         for entry_ac, pub_id in cur:
@@ -676,7 +711,8 @@ def update_annotation(ann_id):
                     """
                     DELETE FROM INTERPRO.SUPPLEMENTARY_REF
                     WHERE ENTRY_AC = :1 AND PUB_ID = :2
-                    """, to_delete
+                    """,
+                    to_delete
                 )
             except DatabaseError as exc:
                 cur.close()
@@ -709,7 +745,8 @@ def update_annotation(ann_id):
                 FROM INTERPRO.ENTRY2COMMON
                 WHERE ANN_ID = :1            
             )
-            """, (ann_id, )
+            """,
+            [ann_id]
         )
 
         entries = {}
@@ -826,7 +863,7 @@ def update_annotation(ann_id):
             SET TEXT = :1, COMMENTS = :2
             WHERE ANN_ID = :3
             """,
-            (ann.text, comment, ann_id)
+            [ann.text, comment, ann_id]
         )
     except DatabaseError as exc:
         return jsonify({
@@ -895,14 +932,16 @@ def delete_annotations(ann_id):
             """
             DELETE FROM INTERPRO.ENTRY2COMMON
             WHERE ANN_ID = :1
-            """, (ann_id,)
+            """,
+            [ann_id]
         )
 
         cur.execute(
             """
             DELETE FROM INTERPRO.COMMON_ANNOTATION
             WHERE ANN_ID = :1
-            """, (ann_id,)
+            """,
+            [ann_id]
         )
     except DatabaseError as exc:
         return jsonify({
