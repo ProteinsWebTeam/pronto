@@ -126,9 +126,7 @@ def get_proteins_alt(accessions):
                 }), 400
 
         term_name = None
-        go_id = None
         if term_id is not None:
-            go_id = term_id
             cur.execute("SELECT name FROM term WHERE ID = %s", (term_id,))
             row = cur.fetchone()
             if row:
