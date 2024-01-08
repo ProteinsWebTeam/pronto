@@ -24,6 +24,7 @@ def get_proteins_alt(accessions):
     dom_org_id = request.args.get("md5")
     name_id = request.args.get("name")
     taxon_id = request.args.get("taxon")
+    violate_term_id = request.args.get("violate-go")
     reviewed_only = "reviewed" in request.args
     reviewed_first = "reviewedfirst" in request.args
     group_by_dom_org = "domainorganisation" in request.args
@@ -157,6 +158,52 @@ def get_proteins_alt(accessions):
         if name_id is not None:
             filters.append("name_id = %s")
             params.append(name_id)
+
+        violate_term_name = None
+        if violate_term_id is not None:
+            cur.execute("SELECT name FROM term WHERE ID = %s",
+                        [violate_term_id])
+            row = cur.fetchone()
+            if row:
+                violate_term_name, = row
+            else:
+                cur.close()
+                con.close()
+                return jsonify({
+                    "error": {
+                        "title": "Bad Request (invalid GO term)",
+                        "message": f"No GO term with ID {violate_term_id}."
+                    }
+                }), 400
+
+            only_in = []
+            only_in_params = []
+            tax_filters = []
+            tax_params = []
+            cur.execute(
+                f"""
+                SELECT g.relationship, t.left_number, t.right_number
+                FROM go2constraints g
+                INNER JOIN taxon t ON g.taxon = t.id
+                WHERE go_id = %s
+                """,
+                [violate_term_id]
+            )
+            for rel_type, left_num, right_num in cur.fetchall():
+                if rel_type == "only_in_taxon":
+                    only_in.append("taxon_left_num NOT BETWEEN %s AND %s")
+                    only_in_params += [left_num, right_num]
+                else:
+                    tax_filters.append("taxon_left_num BETWEEN %s AND %s")
+                    tax_params += [left_num, right_num]
+
+            if only_in:
+                tax_filters.append(f"({' AND '.join(only_in)})")
+                tax_params += only_in_params
+
+            if tax_filters:
+                filters.append(f"({' OR '.join(tax_filters)})")
+                params += tax_params
 
         sql = f"""
             SELECT protein_acc, is_reviewed, md5
@@ -300,6 +347,8 @@ def get_proteins_alt(accessions):
             "description": name_value,
             "exclude": list(exclude),
             "go": f"{term_id}: {term_name}" if term_name else None,
+            "violate-go": (f"{violate_term_id}: {violate_term_name}"
+                           if violate_term_name else None),
             "md5": dom_org_id,
             "reviewed": reviewed_only,
             "taxon": taxon_name,

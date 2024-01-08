@@ -178,3 +178,112 @@ def delete_term(accession, term_id):
     finally:
         cur.close()
         con.close()
+
+
+@bp.route("/<accession>/go/<term_id>/", methods=["GET"])
+def get_term_constraints(accession, term_id):
+    ora_con = utils.connect_oracle()
+    ora_cur = ora_con.cursor()
+
+    ora_cur.execute(
+        """
+        SELECT DISTINCT METHOD_AC 
+        FROM INTERPRO.ENTRY2METHOD
+        WHERE ENTRY_AC = :1
+        """, (accession,)
+    )
+    signatures = [acc for acc, in ora_cur.fetchall()]
+    ora_cur.close()
+    ora_con.close()
+
+    if not signatures:
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Invalid InterPro accession",
+                "message": f"{accession} does not exist "
+                           f"or does not have any signature."
+            }
+        }), 400
+
+    pg_con = utils.connect_pg()
+    pg_cur = pg_con.cursor()
+    pg_cur.execute(
+        """
+        SELECT DISTINCT gc.relationship, gc.taxon, t.name, t.left_number, 
+                        t.right_number
+        FROM go2constraints gc
+        INNER JOIN taxon t
+        ON t.id = gc.taxon
+        WHERE go_id = %s
+        """, (term_id,)
+    )
+    constraints = []
+    lr_numbers = []
+    for rel_type, tax_id, tax_name, left_num, right_num in pg_cur.fetchall():
+        constraints.append({
+            "type": rel_type,
+            "taxon": {
+                "id": tax_id,
+                "name": tax_name
+            },
+            "matches": {
+                "total": 0,
+                "reviewed": 0
+            }
+        })
+        lr_numbers.append((left_num, right_num))
+
+    pg_cur.execute(
+        f"""
+        SELECT DISTINCT protein_acc, is_reviewed, taxon_left_num
+        FROM signature2protein
+        WHERE signature_acc IN ({','.join(['%s' for _ in signatures])})
+        """,
+        signatures
+    )
+
+    proteins = {"total": 0, "reviewed": 0}
+    proteins_violating = {"total": 0, "reviewed": 0}
+
+    for protein_acc, is_reviewed, taxon_left_num in pg_cur:
+        proteins["total"] += 1
+        if is_reviewed:
+            proteins["reviewed"] += 1
+
+        is_ok = True
+        only_in = only_in_ok = 0
+
+        for constraint, (left_num, right_num) in zip(constraints, lr_numbers):
+            if constraint["type"] == "never_in_taxon":
+                if left_num <= taxon_left_num <= right_num:
+                    is_ok = False
+                else:
+                    constraint["matches"]["total"] += 1
+                    if is_reviewed:
+                        constraint["matches"]["reviewed"] += 1
+            else:
+                only_in += 1
+                if left_num <= taxon_left_num <= right_num:
+                    only_in_ok += 1
+                    constraint["matches"]["total"] += 1
+                    if is_reviewed:
+                        constraint["matches"]["reviewed"] += 1
+
+        if only_in > only_in_ok == 0:
+            is_ok = False
+
+        if not is_ok:
+            proteins_violating["total"] += 1
+            if is_reviewed:
+                proteins_violating["reviewed"] += 1
+
+    pg_cur.close()
+    pg_con.close()
+
+    return jsonify({
+        "signatures": signatures,
+        "constraint": constraints,
+        "proteins": proteins,
+        "violations": proteins_violating
+    }), 200
