@@ -215,7 +215,7 @@ export function refresh(accession) {
                 else {
                     rights.set(annotation.id, {
                         unlink: results.annotations.length > 1,
-                        delete: results.annotations.length > 1 && annotation.num_entries === 1
+                        delete: results.annotations.length > 1  // && annotation.num_entries === 1
                     });
 
                     html += `
@@ -326,7 +326,7 @@ export function refresh(accession) {
                     }
                     else if (action === 'delete') {
                         if (rights.get(annID).delete) {
-                            remove(annID).then((status,) => {
+                            remove(annID, annotation.entries).then((status,) => {
                                 if (status)
                                     refresh(accession).then(() => {$('.ui.sticky').sticky();});
                             });
@@ -372,7 +372,7 @@ export function search(accession, query) {
                 for (const ann of result.hits) {
                     // Highlight search query in text
                     const text = escape(ann.text).replace(re, '<span class="hl-search">$&</span>');
-                    annotations.set(ann.id, ann.text);
+                    annotations.set(ann.id, {text: ann.text, entries: ann.num_entries});
 
                     html += `
                         <div class="ui top attached segment">${text}</div>
@@ -405,7 +405,7 @@ export function search(accession, query) {
                     if (action === 'list')
                         getAnnotationEntries(annID);
                     else if (action === 'copy')
-                        create(accession, annotations.get(annID));
+                        create(accession, annotations.get(annID).text);
                     else if (action === 'link') {
                         setClass(actionButton, 'disabled', true);
                         link(accession, annID)
@@ -427,24 +427,13 @@ export function search(accession, query) {
 
                             });
                     } else if (action === 'delete') {
-                        remove(annID).then((status,) => {
+                        remove(annID, annotations.get(annID).entries).then((status,) => {
                             if (status)
                                 search(accession, query);
                             else
                                 setClass(actionButton, 'disabled', false);
                         });
                     }
-                });
-            }
-
-            // Delete annotation
-            for (const elem of modal.querySelectorAll('.content .ui.bottom.menu .red')) {
-                elem.addEventListener('click', (e,) => {
-                    const btn = e.currentTarget;
-                    const menu = btn.closest('[data-annid]');
-                    const annID = menu.dataset.annid;
-                    const count = Number.parseInt(menu.querySelector('[data-count]').dataset.count, 10);
-                    remove(annID, count);
                 });
             }
 
@@ -686,11 +675,21 @@ function unlink(accession, annID) {
     );
 }
 
-function remove(annID) {
+function remove(annID, numEntries) {
+    let content = 'Do you want to to delete this annotation? This action cannot be undone.';
+
+    if (numEntries > 1)
+        content += `
+            <br>
+            <strong>
+                Please note that this annotation is associated to multiple entries.
+            </strong>
+        `;
+
     return new Promise(resolve => {
         modals.ask(
             'Delete annotation?',
-            'Do you want to to delete this annotation? This action cannot be undone.',
+            content,
             'Delete',
             () => {
                 fetch(`/api/annotation/${annID}/`, {method: 'DELETE'})
