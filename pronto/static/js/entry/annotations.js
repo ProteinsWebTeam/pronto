@@ -56,7 +56,12 @@ export async function create(accession, text) {
                     headers: {
                         'Content-type': 'application/x-www-form-urlencoded; charset=UTF-8'
                     },
-                    body: 'text=' + modal.querySelector('textarea').value
+                    // TODO: add checkboxes for llm and checked
+                    body: [
+                        `text=${encodeURIComponent(modal.querySelector('textarea').value)}`,
+                        `llm=false`,
+                        `checked=false`
+                    ].join('&')
                 };
 
                 fetch('/api/annotation/', options)
@@ -576,7 +581,12 @@ const annotationEditor = {
             headers: {
                 'Content-type': 'application/x-www-form-urlencoded; charset=UTF-8'
             },
-            body: 'text=' + encodeURIComponent(textareaText) + '&reason=' + reason
+            body: [
+                `text=${encodeURIComponent(textareaText)}`,
+                `reason=${reason}`,
+                `llm=false`,
+                `checked=false`,
+            ].join('&')
         };
 
         // Update annotation

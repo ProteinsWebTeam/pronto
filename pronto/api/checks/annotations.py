@@ -235,6 +235,7 @@ def check(cur: Cursor):
         SELECT ANN_ID, TEXT
         FROM INTERPRO.COMMON_ANNOTATION
         WHERE ANN_ID IN (SELECT DISTINCT ANN_ID FROM INTERPRO.ENTRY2COMMON)
+          AND LLM = 'N'
         """
     )
     cabs = cur.fetchall()
