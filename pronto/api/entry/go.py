@@ -242,25 +242,25 @@ def get_term_constraints(accession, term_id):
             proteins["reviewed"] += 1
 
         is_ok = True
-        only_in_ok = False
+        only_in = only_in_ok = 0
 
         for constraint, (left_num, right_num) in zip(constraints, lr_numbers):
             if constraint["type"] == "never_in_taxon":
                 if left_num <= taxon_left_num <= right_num:
                     is_ok = False
-                    constraint["violations"]["total"] += 1
-                    if is_reviewed:
-                        constraint["violations"]["reviewed"] += 1
-            else:
-                if left_num <= taxon_left_num <= right_num:
-                    only_in_ok = True
-                # warning: this counter is incremented even in cases of more than one taxon only_in (ex: GO:0000747)
                 else:
-                    constraint["violations"]["total"] += 1
+                    constraint["matches"]["total"] += 1
                     if is_reviewed:
-                        constraint["violations"]["reviewed"] += 1
+                        constraint["matches"]["reviewed"] += 1
+            else:
+                only_in += 1
+                if left_num <= taxon_left_num <= right_num:
+                    only_in_ok += 1
+                    constraint["matches"]["total"] += 1
+                    if is_reviewed:
+                        constraint["matches"]["reviewed"] += 1
 
-        if not only_in_ok:
+        if only_in > only_in_ok == 0:
             is_ok = False
 
         if not is_ok:
