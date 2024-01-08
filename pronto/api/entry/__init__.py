@@ -353,36 +353,26 @@ def _delete_entry(url: str, accession: str, delete_annotation: bool):
     cur = con.cursor()
 
     if delete_annotations:
-        # select annotation blocks that are only assigned to this entry
-        cur.execute(
-            """
-            SELECT A.ANN_ID
-            FROM INTERPRO.COMMON_ANNOTATION A
-            INNER JOIN INTERPRO.ENTRY2COMMON E ON A.ANN_ID = E.ANN_ID
-            LEFT OUTER JOIN (
-            SELECT ANN_ID, COUNT(*) CT
-            FROM INTERPRO.ENTRY2COMMON
-            GROUP BY ANN_ID
-            ) S ON A.ANN_ID = S.ANN_ID
-            WHERE E.ENTRY_AC = :1
-            AND S.CT = 1
-            """, (accession,)
-        )
-
-        ann_to_delete = [row[0] for row in cur]
-        params = tuple(ann_to_delete)
-
         try:
             cur.execute(
-                f"""
-                    DELETE FROM INTERPRO.COMMON_ANNOTATION
-                    WHERE ANN_ID IN ({','.join(':' + str(i + 1) for i in range(len(ann_to_delete)))})
-                """, params
+                """
+                DELETE FROM INTERPRO.COMMON_ANNOTATION
+                WHERE ANN_ID IN (
+                    SELECT DISTINCT EC1.ANN_ID
+                    FROM INTERPRO.ENTRY2COMMON EC1
+                    LEFT JOIN INTERPRO.ENTRY2COMMON EC2 
+                           ON EC1.ANN_ID = EC2.ANN_ID 
+                          AND EC2.ENTRY_AC != :entry
+                    WHERE EC1.ENTRY_AC = :entry
+                      AND EC2.ANN_ID IS NULL
+                )
+                """,
+                dict(entry=accession)
             )
         except oracledb.DatabaseError as exc:
+            cur.close()
+            con.close()
             raise exc
-        else:
-            con.commit()
 
     try:
         cur.execute(
