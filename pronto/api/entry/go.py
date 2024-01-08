@@ -196,6 +196,16 @@ def get_term_constraints(accession, term_id):
     ora_cur.close()
     ora_con.close()
 
+    if not signatures:
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Invalid InterPro accession",
+                "message": f"{accession} does not exist "
+                           f"or does not have any signature."
+            }
+        }), 400
+
     pg_con = utils.connect_pg()
     pg_cur = pg_con.cursor()
     pg_cur.execute(
