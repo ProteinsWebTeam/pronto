@@ -341,7 +341,7 @@ def delete_entry(accession):
 
     url = utils.get_oracle_url(user)
     task = utils.executor.submit(url, f"delete:{accession}", _delete_entry,
-                                 url, accession, _delete_annotation)
+                                 url, accession, delete_annotations)
     return jsonify({
         "status": True,
         "task": task
