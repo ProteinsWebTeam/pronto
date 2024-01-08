@@ -259,8 +259,11 @@ document.addEventListener('DOMContentLoaded', () => {
         toggleErrorMessage(errMsg, null);
         modals.ask(
             'Delete entry',
-            `Do you want to delete <strong>${accession}</strong>?<br><br>
-            <input type="checkbox" id="delete_annot"><label>Delete annotations only assigned to this entry</label>`,
+            `Do you want to delete <strong>${accession}</strong>?
+                    <div class="ui checkbox">
+                        <input id="delete-annotations" type="checkbox" name="checked">
+                        <label>Delete annotations only assigned to this entry</label>
+                    </div>`,
             'Delete',
             () => {
                 let url = `/api/entry/${accession}/`;
