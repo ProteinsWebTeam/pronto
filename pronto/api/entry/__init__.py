@@ -348,7 +348,7 @@ def delete_entry(accession):
     }), 202
 
 
-def _delete_entry(url: str, accession: str, delete_annotation: bool):
+def _delete_entry(url: str, accession: str, delete_annotations: bool):
     con = oracledb.connect(url)
     cur = con.cursor()
 
