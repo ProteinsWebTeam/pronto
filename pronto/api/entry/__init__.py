@@ -352,7 +352,7 @@ def _delete_entry(url: str, accession: str, delete_annotation: bool):
     con = oracledb.connect(url)
     cur = con.cursor()
 
-    if delete_annotation:
+    if delete_annotations:
         # select annotation blocks that are only assigned to this entry
         cur.execute(
             """
