@@ -304,7 +304,7 @@ def update_entry(accession):
 
 @bp.route("/<accession>/", methods=["DELETE"])
 def delete_entry(accession):
-    _delete_annotation = "del_annot" in request.args
+    delete_annotations = "delete-annotations" in request.args
     user = auth.get_user()
     if not user:
         return jsonify({
