@@ -237,7 +237,10 @@ def get_term_constraints(accession, term_id):
     proteins_violating = {"total": 0, "reviewed": 0}
 
     for protein_acc, is_reviewed, taxon_left_num in pg_cur:
-        proteins += 1
+        proteins["total"] += 1
+        if is_reviewed:
+            proteins["reviewed"] += 1
+
         is_ok = True
         only_in_ok = False
 
