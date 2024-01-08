@@ -267,8 +267,8 @@ document.addEventListener('DOMContentLoaded', () => {
             'Delete',
             () => {
                 let url = `/api/entry/${accession}/`;
-                if (document.querySelector('#delete_annot').checked) {
-                    url += '?del_annot';
+                if (document.getElementById('delete-annotations').checked) {
+                    url += '?delete-annotations';
                 }
                 fetch(url, { method: 'DELETE' })
                     .then(response => response.json())
