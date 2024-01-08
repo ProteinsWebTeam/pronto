@@ -217,7 +217,7 @@ def get_term_constraints(accession, term_id):
                 "id": tax_id,
                 "name": tax_name
             },
-            "violations": {
+            "matches": {
                 "total": 0,
                 "reviewed": 0
             }
