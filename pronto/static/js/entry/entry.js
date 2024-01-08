@@ -259,10 +259,18 @@ document.addEventListener('DOMContentLoaded', () => {
         toggleErrorMessage(errMsg, null);
         modals.ask(
             'Delete entry',
-            `Do you want to delete <strong>${accession}</strong>?`,
+            `Do you want to delete <strong>${accession}</strong>?
+                    <div class="ui checkbox">
+                        <input id="delete-annotations" type="checkbox" name="checked">
+                        <label>Delete annotations only assigned to this entry</label>
+                    </div>`,
             'Delete',
             () => {
-                fetch(`/api/entry/${accession}/`, {method: 'DELETE'})
+                let url = `/api/entry/${accession}/`;
+                if (document.getElementById('delete-annotations').checked) {
+                    url += '?delete-annotations';
+                }
+                fetch(url, { method: 'DELETE' })
                     .then(response => response.json())
                     .then(result => {
                         if (result.status) {
