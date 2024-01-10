@@ -304,6 +304,7 @@ def update_entry(accession):
 
 @bp.route("/<accession>/", methods=["DELETE"])
 def delete_entry(accession):
+    delete_annotations = "delete-annotations" in request.args
     user = auth.get_user()
     if not user:
         return jsonify({
@@ -340,16 +341,39 @@ def delete_entry(accession):
 
     url = utils.get_oracle_url(user)
     task = utils.executor.submit(url, f"delete:{accession}", _delete_entry,
-                                 url, accession)
+                                 url, accession, delete_annotations)
     return jsonify({
         "status": True,
         "task": task
     }), 202
 
 
-def _delete_entry(url: str, accession: str):
+def _delete_entry(url: str, accession: str, delete_annotations: bool):
     con = oracledb.connect(url)
     cur = con.cursor()
+
+    if delete_annotations:
+        try:
+            cur.execute(
+                """
+                DELETE FROM INTERPRO.COMMON_ANNOTATION
+                WHERE ANN_ID IN (
+                    SELECT DISTINCT EC1.ANN_ID
+                    FROM INTERPRO.ENTRY2COMMON EC1
+                    LEFT JOIN INTERPRO.ENTRY2COMMON EC2 
+                           ON EC1.ANN_ID = EC2.ANN_ID 
+                          AND EC2.ENTRY_AC != :entry
+                    WHERE EC1.ENTRY_AC = :entry
+                      AND EC2.ANN_ID IS NULL
+                )
+                """,
+                dict(entry=accession)
+            )
+        except oracledb.DatabaseError as exc:
+            cur.close()
+            con.close()
+            raise exc
+
     try:
         cur.execute(
             """
