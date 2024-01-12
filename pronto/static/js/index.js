@@ -763,7 +763,7 @@ async function getSanityCheck() {
                 if (error.exceptions && error.type !== 'Invalid character')
                     html += `<button data-resolve="${error.id}" data-except class="ui very compact basic button">Add exception</button>`;
 
-                html += `<button data-resolve="${error.id}" class="ui very compact basic button">Resolve</button>`;
+                html += `<button data-resolve="${error.id}" class="ui very compact basic button">Mark as resolved</button>`;
             }
 
             html += '</tr>';
