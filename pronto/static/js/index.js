@@ -455,15 +455,21 @@ function getDatabases() {
             let html = '';
             // const series = [];
             for (const database of databases) {
-                const total = `<a href="/database/${database.id}/">${database.signatures.total.toLocaleString()}</a>`;
-                const unint = `<a href="/database/${database.id}/unintegrated/?sort-by=single-domain-proteins&sort-order=desc">${(database.signatures.total - database.signatures.integrated).toLocaleString()}</a>`;
-                const pc = (database.signatures.integrated / database.signatures.total * 100).toFixed(1);
+                let total;
+                let unint;
+                if (database.id === 'mobidblt') {
+                    total = database.signatures.total.toLocaleString();
+                    unint = (database.signatures.total - database.signatures.integrated).toLocaleString();
+                } else {
+                    total = `<a href="/database/${database.id}/">${database.signatures.total.toLocaleString()}</a>`;
+                    unint = `<a href="/database/${database.id}/unintegrated/?sort-by=single-domain-proteins&sort-order=desc">${(database.signatures.total - database.signatures.integrated).toLocaleString()}</a>`;
 
-                // series.push({
-                //     name: database.name,
-                //     int: database.signatures.integrated,
-                //     unint: database.signatures.total - database.signatures.integrated
-                // });
+                    // series.push({
+                    //     name: database.name,
+                    //     int: database.signatures.integrated,
+                    //     unint: database.signatures.total - database.signatures.integrated
+                    // });
+                }
 
                 html += `
                     <tr>
@@ -474,7 +480,7 @@ function getDatabases() {
                         <div class="ui basic label">${database.version}<span class="detail">${database.date}</span></div>
                     </td>
                     <td>${total}</td>
-                    <td>${database.signatures.integrated.toLocaleString()} (${pc}%)</td>
+                    <td>${database.signatures.integrated.toLocaleString()}</td>
                     <td>${unint}</td>
                     </tr>
                 `;
