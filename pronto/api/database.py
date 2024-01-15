@@ -343,9 +343,9 @@ def get_unintegrated(db_name):
     
     try:
         request.args["with-abstract"]
-        sig_desc = True  # filter to only those with abstacts
+        sig_desc = "AND ((abstract IS NOT NULL) OR (llm_abstract IS NOT NULL))"
     except KeyError:
-        sig_desc = False  # default
+        sig_desc = ""
 
     con = utils.connect_oracle()
     cur = con.cursor()
@@ -399,26 +399,15 @@ def get_unintegrated(db_name):
         }), 404
 
     db_identifier, db_full_name, db_version = row
-    if sig_desc:
-        cur.execute(
-            """
-            SELECT accession, type, num_complete_sequences, 
-                num_complete_single_domain_sequences, num_residues
-            FROM signature
-            WHERE database_id = %s AND ((abstract IS NOT NULL) OR (llm_abstract IS NOT NULL))
-            """,
-            (db_identifier,)
-        )
-    else:
-        cur.execute(
-            """
-            SELECT accession, type, num_complete_sequences, 
-                num_complete_single_domain_sequences, num_residues
-            FROM signature
-            WHERE database_id = %s
-            """,
-            [db_identifier]
-        )
+    cur.execute(
+        """
+        SELECT accession, type, num_complete_sequences, 
+            num_complete_single_domain_sequences, num_residues
+        FROM signature
+        WHERE database_id = %s
+        """  + sig_desc,
+        (db_identifier,)
+    )
 
     unintegrated = {}
     _min_sd_ratio = min_sd_ratio / 100
