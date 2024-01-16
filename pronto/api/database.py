@@ -406,7 +406,7 @@ def get_unintegrated(db_name):
         FROM signature
         WHERE database_id = %s
         """  + sig_desc,
-        (db_identifier,)
+        [db_identifier]
     )
 
     unintegrated = {}
