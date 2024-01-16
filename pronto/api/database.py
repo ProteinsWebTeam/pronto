@@ -340,6 +340,12 @@ def get_unintegrated(db_name):
             }),
             400
         )
+    
+    try:
+        request.args["with-abstract"]
+        sig_desc = "AND ((abstract IS NOT NULL) OR (llm_abstract IS NOT NULL))"
+    except KeyError:
+        sig_desc = ""
 
     con = utils.connect_oracle()
     cur = con.cursor()
@@ -396,10 +402,10 @@ def get_unintegrated(db_name):
     cur.execute(
         """
         SELECT accession, type, num_complete_sequences, 
-               num_complete_single_domain_sequences, num_residues
+            num_complete_single_domain_sequences, num_residues
         FROM signature
         WHERE database_id = %s
-        """,
+        """  + sig_desc,
         [db_identifier]
     )
 
