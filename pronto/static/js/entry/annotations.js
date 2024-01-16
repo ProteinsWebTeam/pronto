@@ -218,6 +218,14 @@ export function refresh(accession) {
                         delete: results.annotations.length > 1  // && annotation.num_entries === 1
                     });
 
+                    let llmAction = '';
+                    if (annotation.is_llm) {
+                        if (annotation.is_checked)
+                            llmAction = '<a data-action="review" class="disabled item"><abbr title="Approve annotation"><i class="eye icon"></i></abbr></a>';
+                        else
+                            llmAction = '<a data-action="review" class="item"><abbr title="Approve annotation"><i class="eye slash icon"></i></abbr></a>';
+                    }
+
                     html += `
                         <div id="${annotation.id}" class="annotation">
                         <div class="ui top attached mini menu">
@@ -226,6 +234,7 @@ export function refresh(accession) {
                         <a data-action="movedown" class="${i + 1 === results.annotations.length ? 'disabled' : ''} item"><abbr title="Move annotation down"><i class="arrow down fitted icon"></i></abbr></a>
                         <a data-action="unlink" class="item"><abbr title="Unlink annotation"><i class="unlink fitted icon"></i></abbr></a>
                         <a data-action="delete" class="item"><abbr title="Delete annotation"><i class="trash fitted icon"></i></abbr></a>
+                        ${llmAction}
                         <div class="right menu">
                             <span class="selectable item">${annotation.id}</span>
                             ${annotation.comment ? '<span class="item">'+annotation.comment+'</span>' : ''}
@@ -304,6 +313,16 @@ export function refresh(accession) {
             // Event listener on actions
             annotationEditor.reset();
             for (const elem of document.querySelectorAll('.annotation a[data-action]:not(.disabled)')) {
+                if (elem.dataset.action === 'review') {
+                    elem.addEventListener('mouseenter', (e,) => {
+                        e.currentTarget.querySelector('i').className = 'eye icon';
+                    });
+
+                    elem.addEventListener('mouseleave', (e,) => {
+                        e.currentTarget.querySelector('i').className = 'eye slash icon';
+                    });
+                }
+
                 elem.addEventListener('click', e => {
                     const annID = e.currentTarget.closest('.annotation').getAttribute('id');
                     const action = e.currentTarget.dataset.action;
@@ -349,9 +368,10 @@ export function refresh(accession) {
                             annotationEditor.save(accession, annID);
                     } else if (action === 'cancel')
                         annotationEditor.close();
-                    else if (action === 'list') {
+                    else if (action === 'list')
                         getAnnotationEntries(annID);
-                    }
+                    else if (action === 'review')
+                        annotationEditor.approve(annID);
                 });
             }
         });
@@ -603,6 +623,9 @@ const annotationEditor = {
                     setClass(form, 'error', true);
                 }
             });
+    },
+    approve: function (annID) {
+        // TODO: implement
     }
 };
 
