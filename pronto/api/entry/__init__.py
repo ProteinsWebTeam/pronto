@@ -26,6 +26,8 @@ def get_entry(accession):
           E.ENTRY_TYPE,
           ET.ABBREV,
           E.CHECKED,
+          E.LLM,
+          E.LLM_CHECKED,
           CREATED.USERSTAMP,
           CREATED.TIMESTAMP,
           MODIFIED.USERSTAMP,
@@ -68,16 +70,20 @@ def get_entry(accession):
             "short_name": row[1],
             "type": {
                 "code": row[2],
-                "name": row[3].replace('_', ' ')
+                "name": row[3].replace("_", " ")
             },
-            "is_checked": row[4] == 'Y',
+            "status": {
+                "checked": row[4] == "Y",
+                "llm": row[5] == "Y",
+                "reviewed": row[6] == "Y"
+            },
             "creation": {
-                "user": row[5],
-                "date": row[6].strftime("%d %b %Y")
-            },
-            "last_modification": {
                 "user": row[7],
                 "date": row[8].strftime("%d %b %Y")
+            },
+            "last_modification": {
+                "user": row[9],
+                "date": row[10].strftime("%d %b %Y")
             }
         }
         return jsonify(entry), 200
@@ -102,6 +108,7 @@ def update_entry(accession):
         entry_name = request.json["name"].strip()
         entry_short_name = request.json["short_name"].strip()
         entry_checked = bool(request.json["checked"])
+        entry_llm_reviewed = bool(request.json["llm-reviewed"])
     except KeyError:
         return jsonify({
             "status": False,
@@ -156,7 +163,6 @@ def update_entry(accession):
             }
         }), 400
 
-
     con = utils.connect_oracle_auth(user)
     cur = con.cursor()
     cur.execute(
@@ -164,7 +170,8 @@ def update_entry(accession):
         SELECT ENTRY_AC
         FROM INTERPRO.ENTRY
         WHERE ENTRY_AC != :1 AND UPPER(NAME) = :2
-        """, (accession, entry_name.upper(),)
+        """,
+        [accession, entry_name.upper()]
     )
     row = cur.fetchone()
     if row:
@@ -184,7 +191,8 @@ def update_entry(accession):
         SELECT ENTRY_AC
         FROM INTERPRO.ENTRY
         WHERE ENTRY_AC != :1 AND UPPER(SHORT_NAME) = :1
-        """, (accession, entry_short_name.upper(),)
+        """,
+        [accession, entry_short_name.upper()]
     )
     row = cur.fetchone()
     if row:
@@ -201,10 +209,11 @@ def update_entry(accession):
 
     cur.execute(
         """
-        SELECT ENTRY_TYPE, NAME, SHORT_NAME, CHECKED
+        SELECT ENTRY_TYPE, NAME, SHORT_NAME, CHECKED, LLM, LLM_CHECKED
         FROM INTERPRO.ENTRY
         WHERE ENTRY_AC = :1
-        """, (accession,)
+        """,
+        [accession]
     )
     row = cur.fetchone()
     if not row:
@@ -218,9 +227,23 @@ def update_entry(accession):
             }
         }), 400
 
-    params = (entry_type, entry_name, entry_short_name,
-              'Y' if entry_checked else 'N')
-    if params == row:
+    core_info = list(row[:4])
+    llm_info = tuple(row[4:])
+    if llm_info == ("Y", "Y") and not entry_llm_reviewed:
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Action not permitted",
+                "message": f"{accession} is an LLM-generated entry that "
+                           f"already has been reviewed. "
+                           f"Unreviewing is not permitted."
+            }
+        }), 400
+
+    params = [entry_type, entry_name, entry_short_name,
+              "Y" if entry_checked else "N",
+              "Y" if entry_llm_reviewed else "N"]
+    if params == core_info + [llm_info[1]]:
         # Nothing to do
         cur.close()
         con.close()
@@ -231,7 +254,8 @@ def update_entry(accession):
             SELECT METHOD_AC
             FROM INTERPRO.ENTRY2METHOD
             WHERE ENTRY_AC = :1
-            """, (accession,)
+            """,
+            [accession]
         )
         integrated = [acc for acc, in cur]
         if not integrated:
@@ -255,7 +279,8 @@ def update_entry(accession):
             FROM interpro.signature
             WHERE accession IN ({','.join('%s' for _ in integrated)})
             AND num_sequences = 0
-            """, integrated
+            """,
+            integrated
         )
         cnt, = cur2.fetchone()
         cur2.close()
@@ -281,10 +306,12 @@ def update_entry(accession):
                 NAME = :2, 
                 SHORT_NAME = :3, 
                 CHECKED = :4,
+                LLM_CHECKED = :5,
                 TIMESTAMP = SYSDATE,
                 USERSTAMP = USER
-            WHERE ENTRY_AC = :5
-            """, (*params, accession)
+            WHERE ENTRY_AC = :6
+            """,
+            [*params, accession]
         )
     except oracledb.DatabaseError as exc:
         return jsonify({
