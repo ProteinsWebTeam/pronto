@@ -585,18 +585,30 @@ def update_annotation(ann_id):
     try:
         text = request.form["text"].strip()
         comment = request.form["reason"].strip()
-        is_llm = request.form["llm"].strip()
-        is_checked = request.form["checked"].strip()
-        assert (len(text) and
-                len(comment) and
-                is_llm in ("true", "false") and
-                is_checked in ("true", "false"))
-    except (AssertionError, KeyError):
+    except KeyError:
         return jsonify({
             "status": False,
             "error": {
                 "title": "Bad request",
                 "message": "Invalid or missing parameters."
+            }
+        }), 400
+
+    if len(text) == 0:
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Empty annotation",
+                "message": "An annotation cannot be left empty."
+            }
+        }), 400
+    elif len(comment) == 0:
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Empty comment",
+                "message": "A comment/reason is required when "
+                           "updating an annotation."
             }
         }), 400
 
@@ -644,7 +656,7 @@ def update_annotation(ann_id):
 
     cur.execute(
         """
-        SELECT TEXT, LLM, CHECKED
+        SELECT TEXT, LLM
         FROM INTERPRO.COMMON_ANNOTATION
         WHERE ANN_ID = :1
         """,
@@ -663,9 +675,7 @@ def update_annotation(ann_id):
         }), 400
 
     current_text = row[0]
-    current_llm = row[1] == "Y"
-    current_checked = row[2] == "Y"
-    # TODO: reject update if checked -> unchecked or not-llm -> is-llm
+    is_llm = row[1] == "Y"  # TODO: refuse update if LLM-generated annotation?
 
     """
     Compare references, 
@@ -845,7 +855,7 @@ def update_annotation(ann_id):
                 return jsonify({
                     "status": False,
                     "error": {
-                        "title": "Database error 3",
+                        "title": "Could not add literature reference to entry",
                         "message": str(exc)
                     }
                 }), 500
@@ -868,7 +878,81 @@ def update_annotation(ann_id):
         return jsonify({
             "status": False,
             "error": {
-                "title": "Database error 4",
+                "title": f"Could not update {ann_id}",
+                "message": str(exc)
+            }
+        }), 500
+    else:
+        con.commit()
+        return jsonify({
+            "status": True
+        }), 200
+    finally:
+        cur.close()
+        con.close()
+
+
+@bp.route("/<ann_id>/review/", methods=["POST"])
+def approve_annotation(ann_id):
+    user = auth.get_user()
+    if not user:
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Access denied",
+                "message": "Please log in to perform this operation."
+            }
+        }), 401
+
+    con = utils.connect_oracle_auth(user)
+    cur = con.cursor()
+    cur.execute(
+        """
+        SELECT LLM, CHECKED
+        FROM INTERPRO.COMMON_ANNOTATION
+        WHERE ANN_ID = :1
+        """,
+        [ann_id]
+    )
+    row = cur.fetchone()
+    if not row:
+        cur.close()
+        con.close()
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Invalid annotation",
+                "message": f"{ann_id} is not a valid annotation ID."
+            }
+        }), 400
+
+    if row[0] == "N":
+        # Not an LLM-generated annotation: cannot be flagged as "reviewed"
+        cur.close()
+        con.close()
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Action not permitted",
+                "message": f"{ann_id} has not been generated using a LLM, "
+                           f"and therefore cannot be reviewed."
+            }
+        }), 400
+
+    try:
+        cur.execute(
+            """
+            UPDATE INTERPRO.COMMON_ANNOTATION
+               SET CHECKED = 'Y'
+             WHERE ANN_ID = :1
+            """,
+            [ann_id]
+        )
+    except DatabaseError as exc:
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": f"Could not flagged {ann_id} as reviewed",
                 "message": str(exc)
             }
         }), 500
