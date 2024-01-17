@@ -1,7 +1,7 @@
 import * as references from "./references.js"
 import * as dimmer from "../ui/dimmer.js";
 import * as modals from "../ui/modals.js"
-import {setClass, toggleErrorMessage} from "../ui/utils.js";
+import {toggleErrorMessage} from "../ui/utils.js";
 
 async function getSignature(accession) {
     const response = await fetch(`/api/signature/${accession}/`);
@@ -48,7 +48,7 @@ export async function create(accession, text) {
             closable: false,
             onDeny: function() {
                 modal.querySelector('textarea').value = null;
-                setClass(msg, 'hidden', true);
+                msg.classList.add('hidden');
             },
             onApprove: function() {
                 const options = {
@@ -65,14 +65,14 @@ export async function create(accession, text) {
                     .then(response => response.json())
                     .then(result => {
                         if (result.status) {
-                            setClass(msg, 'hidden', true);
+                            msg.classList.add('hidden');
 
                             // Return a promise to link the created annotation to the entry
                             return link(accession, result.id);
                         } else {
                             msg.querySelector('.header').innerHTML = result.error.title;
                             msg.querySelector('p').innerHTML = result.error.message.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                            setClass(msg, 'hidden', false);
+                            msg.classList.remove('hidden');
                             return null;
                         }
                     })
@@ -426,7 +426,7 @@ export function search(accession, query) {
                     else if (action === 'copy')
                         create(accession, annotations.get(annID).text);
                     else if (action === 'link') {
-                        setClass(actionButton, 'disabled', true);
+                        actionButton.classList.add('disabled');
                         link(accession, annID)
                             .then((result,) => {
                                 if (result.status) {
@@ -437,10 +437,10 @@ export function search(accession, query) {
                                     elem.innerHTML = `Associated to ${count} ${count === 1 ? 'entry' : 'entries'}`;
                                     // Disable 'delete' button
                                     elem = menu.querySelector('[data-action="delete"]');
-                                    setClass(elem, 'disabled', true);
+                                    elem.classList.add('disabled');
                                     refresh(accession).then(() => {$('.ui.sticky').sticky();});
                                 } else {
-                                    setClass(actionButton, 'disabled', false);
+                                    actionButton.classList.remove('disabled');
                                     toggleErrorMessage(modal.querySelector('.ui.message'), result.error);
                                 }
 
@@ -450,7 +450,7 @@ export function search(accession, query) {
                             if (status)
                                 search(accession, query);
                             else
-                                setClass(actionButton, 'disabled', false);
+                                actionButton.classList.remove('disabled');
                         });
                     }
                 });
@@ -518,7 +518,7 @@ const annotationEditor = {
         // msg.innerHTML = null;
 
         // Display bottom menu
-        setClass(menu, 'hidden', false);
+        menu.classList.remove('hidden');
 
         // Save formatted annotation
         segment = this.element.querySelector('.segment');
@@ -552,7 +552,7 @@ const annotationEditor = {
         if (this.element === null) return;
 
         // Hide bottom menu
-        setClass(this.element.querySelector('.ui.bottom.menu'), 'hidden', true);
+        this.element.querySelector('.ui.bottom.menu').classList.add('hidden');
 
         // Restore formatted annotation
         const segment = this.element.querySelector('.segment');
@@ -580,9 +580,9 @@ const annotationEditor = {
         const reason = select.options[select.selectedIndex].value;
 
         if (reason.length)
-            setClass(select.parentNode, 'error', false);
+            select.parentNode.classList.remove('error');
         else {
-            setClass(select.parentNode, 'error', true);
+            select.parentNode.classList.add('error');
             return;
         }
 
@@ -618,8 +618,8 @@ const annotationEditor = {
                     const form = this.element.querySelector('.ui.form');
                     // Escape lesser/greater signs because if the error message contains "<p>" it will be interpreted
                     form.querySelector('.ui.message').innerHTML = '<div class="header">'+ result.error.title +'</div><p>'+ result.error.message.replace(/</g, '&lt;').replace(/>/g, '&gt;') +'</p>';
-                    setClass(textarea.parentNode, 'error', true);
-                    setClass(form, 'error', true);
+                    select.parentNode.classList.add('error');
+                    form.classList.add('error');
                 }
             });
     },
@@ -665,11 +665,10 @@ function addHighlightEvenListeners(div) {
         elem.addEventListener('click', e => {
             let active = document.querySelector('li.active');
             if (active)
-                setClass(active, 'active', false);
+                active.classList.remove('active');
 
-            const id = e.currentTarget.getAttribute('href').substr(1);
-            active = document.getElementById(id);
-            setClass(active, 'active', true);
+            const id = e.currentTarget.getAttribute('href').substring(1);
+            document.getElementById(id).classList.add('active');
         });
     }
 }
