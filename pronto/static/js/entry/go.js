@@ -87,28 +87,24 @@ function render(accession, terms, divID) {
                                     <thead>
                                         <tr>
                                             <th class="normal">Taxon constraint</th>
-                                            <th>Swiss-Prot/reviewed proteins - ${result.proteins.reviewed}</th>
-                                            <th>All proteins - ${result.proteins.total}</th>
+                                            <th>Swiss-Prot/reviewed proteins - ${result.proteins.reviewed.toLocaleString()}</th>
+                                            <th>All proteins - ${result.proteins.total.toLocaleString()}</th>
                                         </tr>
                                     </thead>
                                     <tbody>
 
                                     <tr>
                                     <td>Violations summary</td>
-                                    <td><a href="/signatures/${signatures}/proteins/?violate-go=${term}&reviewed">${result.violations.reviewed}</a></td>
-                                    <td><a href="/signatures/${signatures}/proteins/?violate-go=${term}">${result.violations.total}</a></td>
+                                    <td><a href="/signatures/${signatures}/proteins/?violate-go=${term}&reviewed">${result.violations.reviewed.toLocaleString()}</a></td>
+                                    <td><a href="/signatures/${signatures}/proteins/?violate-go=${term}">${result.violations.total.toLocaleString()}</a></td>
                                     </tr>`;
 
                     for (const item in result.constraint) {
-
-                        let constType = result.constraint[item].type;
-                        constType = constType.replace(/only_in_taxon/g, 'Only in');
-                        constType = constType.replace(/never_in_taxon/g, 'Never in');
-
+                        const constType = result.constraint[item].type === 'only_in_taxon' ? 'Only in' : 'Never in';
                         html += `<tr>
                                 <td>${constType} ${result.constraint[item].taxon.name}</td>
-                                <td>${result.constraint[item].matches.reviewed}</td>
-                                <td>${result.constraint[item].matches.total}</td>
+                                <td>${result.constraint[item].matches.reviewed.toLocaleString()}</td>
+                                <td>${result.constraint[item].matches.total.toLocaleString()}</td>
                                 </tr>`;
                     }
 
