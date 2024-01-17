@@ -79,7 +79,7 @@ function render(accession, terms, divID) {
             const term = e.currentTarget.dataset.term;
 
             dimmer.on();
-            fetch(`/api/entry/${acc}/go/${term}/`, { method: 'GET' })
+            fetch(`/api/entry/${acc}/go/${term}/`)
                 .then(response => response.json())
                 .then(result => {
                     const signatures = result.signatures.join('/');
