@@ -73,7 +73,7 @@ function render(accession, terms, divID) {
         });
     }
 
-    for (const elem of document.querySelectorAll('[data-entry]')) {
+    for (const elem of div.querySelectorAll('[data-entry]')) {
         elem.addEventListener('click', (e,) => {
             const acc = e.currentTarget.dataset.entry;
             const term = e.currentTarget.dataset.term;
