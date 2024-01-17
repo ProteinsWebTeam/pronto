@@ -1,4 +1,5 @@
 import * as references from "./references.js"
+import * as checkbox from "./ui/checkbox.js"
 import * as dimmer from "../ui/dimmer.js";
 import * as modals from "../ui/modals.js"
 import {toggleErrorMessage} from "../ui/utils.js";
@@ -111,6 +112,8 @@ export function getSignaturesAnnotations(accession) {
                     if (signature.name !== null)
                         html += `<span class="item">${signature.name}</span>`;
 
+                    signature.llm_text !== null
+
                     html += '</div>';
 
                     if (signature.text !== null) {
@@ -127,16 +130,22 @@ export function getSignaturesAnnotations(accession) {
                             </div>
                         `;
                     } else if (signature.llm_text !== null) {
-                            html += `
-                                <div class="ui attached segment">
-                                    <div class="ui warning message">
-                                    <div class="header">AI-generated annotation</div>
-                                    This annotation has been automatically generated using an AI language model.
-                                    Currently, importing AI-generated annotations for InterPro entries is not supported.
-                                    </div>
-                                    <p>${escape(signature.llm_text)}</p>
+                        signatureAnnotations.set(signature.accession, signature.llm_text);
+                        html += `
+                            <div class="ui attached segment">
+                                <div class="ui warning message">
+                                <div class="header">AI-generated annotation</div>
+                                This annotation has been automatically generated using an AI language model.
                                 </div>
-                            `;
+                                <p>${escape(signature.llm_text)}</p>
+                            </div>
+                            <div class="ui bottom attached borderless mini menu">
+                                <span class="item message"></span>
+                                <div class="right item">
+                                <button data-id="${signature.accession}" class="ui primary button">Use</button>
+                                </div>
+                            </div>
+                        `;
                     } else
                         html += '<div class="ui bottom attached secondary segment">No annotation.</div>';
                 }
