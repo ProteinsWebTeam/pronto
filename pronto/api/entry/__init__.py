@@ -235,7 +235,7 @@ def update_entry(accession):
             "error": {
                 "title": "Action not permitted",
                 "message": f"{accession} is an LLM-generated entry that "
-                           f"already has been reviewed. "
+                           f"has already been reviewed. "
                            f"Unreviewing is not permitted."
             }
         }), 400
