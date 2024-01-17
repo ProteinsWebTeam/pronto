@@ -112,7 +112,7 @@ function render(accession, terms, divID) {
                             </table>`;
 
                     const modal = document.getElementById('goconstraint-modal');
-                    modal.querySelector('.ui.header').innerHTML = `GO constraint: ${term}`;
+                    modal.querySelector('.ui.header').innerHTML = `GO constraints: ${term}`;
                     modal.querySelector('.scrolling.content').innerHTML = html;
                     $(modal).modal('show');
                     dimmer.off();
