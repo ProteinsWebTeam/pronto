@@ -56,11 +56,8 @@ export async function create(accession, text) {
                     headers: {
                         'Content-type': 'application/x-www-form-urlencoded; charset=UTF-8'
                     },
-                    // TODO: add checkboxes for llm and checked
                     body: [
                         `text=${encodeURIComponent(modal.querySelector('textarea').value)}`,
-                        `llm=false`,
-                        `checked=false`
                     ].join('&')
                 };
 
@@ -219,7 +216,9 @@ export function refresh(accession) {
                     });
 
                     let llmAction = '';
+                    let sourceIcon = 'user graduate';
                     if (annotation.is_llm) {
+                        sourceIcon = 'robot';
                         if (annotation.is_checked)
                             llmAction = '<a data-action="review" class="disabled item"><abbr title="Approve annotation"><i class="eye icon"></i></abbr></a>';
                         else
@@ -234,9 +233,9 @@ export function refresh(accession) {
                         <a data-action="movedown" class="${i + 1 === results.annotations.length ? 'disabled' : ''} item"><abbr title="Move annotation down"><i class="arrow down fitted icon"></i></abbr></a>
                         <a data-action="unlink" class="item"><abbr title="Unlink annotation"><i class="unlink fitted icon"></i></abbr></a>
                         <a data-action="delete" class="item"><abbr title="Delete annotation"><i class="trash fitted icon"></i></abbr></a>
-                        ${llmAction}
                         <div class="right menu">
-                            <span class="selectable item">${annotation.id}</span>
+                            <span class="selectable item"><i class="${sourceIcon} icon"></i> ${annotation.id}</span>
+                            ${llmAction}
                             ${annotation.comment ? '<span class="item">'+annotation.comment+'</span>' : ''}
                             <a data-action="list" class="item"><i class="list icon"></i> Associated to ${annotation.num_entries} ${annotation.num_entries === 1 ? 'entry' : 'entries'}</a>
                         </div>
@@ -371,7 +370,7 @@ export function refresh(accession) {
                     else if (action === 'list')
                         getAnnotationEntries(annID);
                     else if (action === 'review')
-                        annotationEditor.approve(annID);
+                        annotationEditor.approve(accession, annID);
                 });
             }
         });
@@ -624,8 +623,15 @@ const annotationEditor = {
                 }
             });
     },
-    approve: function (annID) {
-        // TODO: implement
+    approve: function (accession, annID) {
+        fetch(`/api/annotation/${annID}/review/`, { method: 'POST' })
+            .then((response,) => response.json())
+            .then((result,) => {
+                if (result.status)
+                    refresh(accession).then(() => { $('.ui.sticky').sticky(); });
+                else
+                    modals.error(result.error.title, result.error.message);
+            });
     }
 };
 
