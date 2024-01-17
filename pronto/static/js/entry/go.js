@@ -82,7 +82,7 @@ function render(accession, terms, divID) {
             fetch(`/api/entry/${acc}/go/${term}/`, { method: 'GET' })
                 .then(response => response.json())
                 .then(result => {
-                    const signatures = result.signatures.toString().replace(/,/g, '/');
+                    const signatures = result.signatures.join('/');
                     let html = `<table class="ui definition celled table">
                                     <thead>
                                         <tr>
