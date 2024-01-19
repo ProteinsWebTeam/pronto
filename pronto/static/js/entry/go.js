@@ -99,12 +99,12 @@ function render(accession, terms, divID) {
                                     <td><a href="/signatures/${signatures}/proteins/?violate-go=${term}">${result.violations.total.toLocaleString()}</a></td>
                                     </tr>`;
 
-                    for (const item in result.constraint) {
-                        const constType = result.constraint[item].type === 'only_in_taxon' ? 'Only in' : 'Never in';
+                    for (const constraint of result.constraint) {
+                        const constType = constraint.type === 'only_in_taxon' ? 'Only in' : 'Never in';
                         html += `<tr>
-                                <td>${constType} ${result.constraint[item].taxon.name}</td>
-                                <td>${result.constraint[item].matches.reviewed.toLocaleString()}</td>
-                                <td>${result.constraint[item].matches.total.toLocaleString()}</td>
+                                <td>${constType} ${constraint.taxon.name}</td>
+                                <td>${constraint.matches.reviewed.toLocaleString()}</td>
+                                <td>${constraint.matches.total.toLocaleString()}</td>
                                 </tr>`;
                     }
 
