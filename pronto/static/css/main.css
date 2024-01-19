@@ -90,6 +90,12 @@ code.negative {
     font-weight: normal;
 }
 
+.ui.table>thead>tr>th.normal {
+    border-left: 1px solid rgba(34, 36, 38, 0.1) !important;
+    background: #F9FAFB !important;
+    color: rgba(0, 0, 0, 0.87) !important;
+    font-weight: bold !important;
+}
 /* Toggle checkbox */
 .ui.toggle.checkbox + .ui.toggle.checkbox {
     margin-left: 2em;
