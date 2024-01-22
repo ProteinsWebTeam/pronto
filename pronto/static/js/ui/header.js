@@ -84,10 +84,13 @@ export function updateHeader(signatureAcc) {
                 const signaturesForm = document.getElementById('new-entry-signatures');
                 const signatures = new Map();
                 const errMsg = modal.querySelector('.ui.message');
+                let existing_ai_warning = false;
+            
                 $(signaturesForm).form({
                     fields: { accession: 'empty' },
                     onSuccess: function (event, fields) {
                         const acc = fields.accession.trim();
+                        let first_entry = true;
                         fetch(`/api/signature/${acc}/`)
                             .then(response => {
                                 if (!response.ok)
@@ -171,21 +174,36 @@ export function updateHeader(signatureAcc) {
                                     });
                                 }
 
-                                // if (signature.ai_warning !== null) {
-                                //     throw new Error(
-                                //         'This entry will be marked as AI-generated',
-                                //         {
-                                //             cause: `Then name, short name, and description of <strong>${signature.accession}</strong> have been generated using AI.`
-                                //         }
-                                //     );
-                                // }
+                                // only apply ai generated tag (and thus warning) depending on the first entry only
+                                if ((signature.ai_warning !== null) && (first_entry)) {
+                                    existing_ai_warning = true;
+                                    throw new Error(
+                                        'This entry will be marked as AI-generated',
+                                        {
+                                            cause: `The name, short name, and description of <strong>${signature.accession}</strong> have been generated using AI.`
+                                        }
+                                    );
+                                }
+
+                                if (existing_ai_warning) {
+                                    throw new Error(
+                                        'This entry will be marked as AI-generated',
+                                        {
+                                            cause: `The name, short name, and description of the first signature have been generated using AI.`
+                                        }
+                                    );
+                                }
 
                                 toggleErrorMessage(errMsg, null);
+
+                                first_entry = false;
                             })
                             .catch((error) => {
                                 toggleErrorMessage(errMsg, { title: error.message, message:  error.cause});
                             });
-                    }
+                        
+                        first_entry = true;
+                    }            
                 });
 
                 $(infoForm).form({
@@ -254,7 +272,11 @@ export function updateHeader(signatureAcc) {
                     });
 
                 resolve(object.user !== null);
+
+                
             });
+
+            existing_ai_warning = false;
     }));
 
 }
