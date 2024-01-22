@@ -171,6 +171,15 @@ export function updateHeader(signatureAcc) {
                                     });
                                 }
 
+                                // if (signature.ai_warning !== null) {
+                                //     throw new Error(
+                                //         'This entry will be marked as AI-generated',
+                                //         {
+                                //             cause: `Then name, short name, and description of <strong>${signature.accession}</strong> have been generated using AI.`
+                                //         }
+                                //     );
+                                // }
+
                                 toggleErrorMessage(errMsg, null);
                             })
                             .catch((error) => {
