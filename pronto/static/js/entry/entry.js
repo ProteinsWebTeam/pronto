@@ -39,6 +39,9 @@ function getEntry(accession) {
                     const field = document.getElementById('llm-field');
                     field.classList.remove('hidden');
                     field.querySelector('input[name="llm-reviewed"]').checked = entry.status.reviewed;
+                    var llm = field.querySelector('input[name="is-llm"]');
+                    llm.checked = entry.status.llm;
+                    llm.disabled = true;
                 }
 
                 const statistics = document.getElementById('statistics');
