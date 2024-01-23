@@ -1,5 +1,4 @@
 import * as references from "./references.js"
-import * as checkbox from "./ui/checkbox.js"
 import * as dimmer from "../ui/dimmer.js";
 import * as modals from "../ui/modals.js"
 import {toggleErrorMessage} from "../ui/utils.js";
@@ -111,8 +110,6 @@ export function getSignaturesAnnotations(accession) {
 
                     if (signature.name !== null)
                         html += `<span class="item">${signature.name}</span>`;
-
-                    signature.llm_text !== null
 
                     html += '</div>';
 
