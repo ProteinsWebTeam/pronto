@@ -32,10 +32,8 @@ SIGNATURES = [
 XREFS = {
     "CATHGENE3D": "http://www.cathdb.info/superfamily/{}",
     "CAZY": "http://www.cazy.org/{}.html",
-    # "COG": "http://www.ncbi.nlm.nih.gov/COG/new/release/cow.cgi?cog={}",
     "COG": "https://ftp.ncbi.nih.gov/pub/COG/COG2014/static/byCOG/{}.html",
-    # "EC": "http://www.ebi.ac.uk/intenz/query?cmd=SearchEC&ec={}",
-    "INTENZ": "http://www.ebi.ac.uk/intenz/query?cmd=SearchEC&ec={}",
+    "EC": "https://enzyme.expasy.org/EC/{}",
     "GENPROP": "https://www.ebi.ac.uk/interpro/genomeproperties/#{}",
     "INTERPRO": "/entry/{}",
     "MIM": "https://www.omim.org/entry/{}",
