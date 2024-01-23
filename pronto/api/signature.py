@@ -18,6 +18,7 @@ def get_signature(accession):
         SELECT
           s.accession,
           s.name,
+          s.llm_name,
           s.llm_short_name,
           s.description,
           s.type,
@@ -49,28 +50,28 @@ def get_signature(accession):
         }), 404
 
     # data populates signature table to new entry window
-    db = utils.get_database_obj(row[11])
+    db = utils.get_database_obj(row[12])
     result = {
         "accession": row[0],
         "name": row[1],  # --> short name
-        "description": row[3],  # --> name
-        "type": row[4],
-        "abstract": row[5],
-        "llm_abstract": row[6],
+        "description": row[4],  # --> name
+        "type": row[5],
+        "abstract": row[6],
+        "llm_abstract": row[7],
         "proteins": {
-            "total": row[7],
-            "complete": row[8],
+            "total": row[8],
+            "complete": row[9],
             "reviewed": {
-                "total": row[9],
-                "complete": row[10]
+                "total": row[10],
+                "complete": row[11]
             }
         },
         "database": {
-            "name": row[12],
+            "name": row[13],
             "home": db.home,
             "link": db.gen_link(accession),
             "color": db.color,
-            "version": row[13]
+            "version": row[14]
         },
         "entry": None,
         "ai_warning": None,
@@ -78,9 +79,9 @@ def get_signature(accession):
 
     # if curator assigned name/desc is incomplete, use AI generated if avaiable
     # Note: llm_abstract == llm_description <- retrieved from INTERPRO.METHOD_LLM.DESCRIPTION
-    if None in [row[1], row[3]]:  # [name, description]
-        if row[2] is not None or row[6] is not None:
-            result["name"], result["description"] = row[2], row[6]
+    if None in [row[1], row[4]]:  # [name, description] incomplete
+        if row[2] is not None and row[3] is not None:
+            result["name"], result["description"] = row[2], row[3]
             result["ai_warning"] = {
                 "title": "Signature is AI generated",
                 "message": (
