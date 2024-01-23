@@ -294,7 +294,7 @@ def get_term_citations(accession, term_id):
                 AND ref_db_code = 'PMID'
             )
             ORDER BY published
-            """, (term_id, accession)
+            """, [term_id, accession]
         )
 
         results = []

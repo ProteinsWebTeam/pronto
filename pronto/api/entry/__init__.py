@@ -433,6 +433,11 @@ def create_entry():
         entry_type = request.json["type"].strip()
         entry_name = request.json["name"].strip()
         entry_short_name = request.json["short_name"].strip()
+        entry_llm = request.json["existing_ai_warning"].strip()
+        if entry_llm:
+            entry_reviewed, entry_llm = 'N', 'Y'
+        else:
+            entry_reviewed, entry_llm = 'Y', 'N'
     except KeyError:
         return jsonify({
             "status": False,
@@ -653,11 +658,11 @@ def create_entry():
     try:
         cur.execute(
             """
-            INSERT INTO INTERPRO.ENTRY (ENTRY_AC, ENTRY_TYPE, NAME, SHORT_NAME) 
-            VALUES (INTERPRO.NEW_ENTRY_AC(), :1, :2, :3)
+            INSERT INTO INTERPRO.ENTRY (ENTRY_AC, ENTRY_TYPE, NAME, SHORT_NAME, LLM, LLM_CHECKED) 
+            VALUES (INTERPRO.NEW_ENTRY_AC(), :1, :2, :3, :4, :5, :6)
             RETURNING ENTRY_AC INTO :4
             """,
-            [entry_type, entry_name, entry_short_name, entry_var]
+            [entry_type, entry_name, entry_short_name, entry_var, entry_llm, entry_reviewed]
         )
 
         entry_acc = entry_var.getvalue()[0]
