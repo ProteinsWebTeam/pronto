@@ -33,7 +33,7 @@ XREFS = {
     "CATHGENE3D": "http://www.cathdb.info/superfamily/{}",
     "CAZY": "http://www.cazy.org/{}.html",
     "COG": "https://ftp.ncbi.nih.gov/pub/COG/COG2014/static/byCOG/{}.html",
-    "EXPASY": "https://enzyme.expasy.org/EC/{}",
+    "ENZYME": "https://enzyme.expasy.org/EC/{}",
     "GENPROP": "https://www.ebi.ac.uk/interpro/genomeproperties/#{}",
     "INTERPRO": "/entry/{}",
     "MIM": "https://www.omim.org/entry/{}",
