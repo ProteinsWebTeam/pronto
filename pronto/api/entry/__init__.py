@@ -6,6 +6,7 @@ from flask import Blueprint, jsonify, request
 bp = Blueprint("api_entry", __name__, url_prefix="/api/entry")
 
 from pronto import auth, utils
+from pronto.api import annotation
 from . import annotations
 from . import comments
 from . import go
@@ -682,6 +683,11 @@ def create_entry():
                 """,
                 [(entry_acc, pub_id) for pub_id in new_references]
             )
+
+        if entry_llm:
+            response, response_code = annotation.create_llm_annotation(entry_acc)
+            if response_code != 200:
+                return response, response_code
     except oracledb.DatabaseError as exc:
         return jsonify({
             "status": False,
@@ -696,6 +702,9 @@ def create_entry():
             "status": True,
             "accession": entry_acc
         })
+    
     finally:
         cur.close()
         con.close()
+
+
