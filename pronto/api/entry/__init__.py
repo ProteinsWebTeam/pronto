@@ -659,7 +659,7 @@ def create_entry():
         cur.execute(
             """
             INSERT INTO INTERPRO.ENTRY (ENTRY_AC, ENTRY_TYPE, NAME, SHORT_NAME, LLM, LLM_CHECKED) 
-            VALUES (INTERPRO.NEW_ENTRY_AC(), :1, :2, :3, :4, :5, :6)
+            VALUES (INTERPRO.NEW_ENTRY_AC(), :1, :2, :3, :5, :6)
             RETURNING ENTRY_AC INTO :4
             """,
             [entry_type, entry_name, entry_short_name, entry_var, entry_llm, entry_reviewed]
