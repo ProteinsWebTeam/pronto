@@ -10,7 +10,7 @@ async function getSignature(accession) {
     return null;
 }
 
-export async function create(accession, text) {
+export async function create(accession, text, is_llm) {
     const modal = document.getElementById('new-annotation');
     const msg = modal.querySelector('.message');
 
@@ -58,6 +58,8 @@ export async function create(accession, text) {
                     },
                     body: [
                         `text=${encodeURIComponent(modal.querySelector('textarea').value)}`,
+                        `llm=${is_llm}`,
+                        `checked=false`
                     ].join('&')
                 };
 
@@ -113,7 +115,9 @@ export function getSignaturesAnnotations(accession) {
 
                     html += '</div>';
 
+                    let is_llm = null
                     if (signature.text !== null) {
+                        is_llm = false
                         signatureAnnotations.set(signature.accession, signature.text);
                         html += `
                             <div class="ui attached segment">
@@ -127,6 +131,7 @@ export function getSignaturesAnnotations(accession) {
                             </div>
                         `;
                     } else if (signature.llm_text !== null) {
+                        is_llm = true
                         signatureAnnotations.set(signature.accession, signature.llm_text);
                         html += `
                             <div class="ui attached segment">
@@ -160,7 +165,7 @@ export function getSignaturesAnnotations(accession) {
                         return;
 
                     $(modal).modal('hide');
-                    create(accession, signatureAnnotations.get(key));
+                    create(accession, signatureAnnotations.get(key), is_llm);
                 });
             }
 

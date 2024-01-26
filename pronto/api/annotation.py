@@ -656,7 +656,7 @@ def update_annotation(ann_id):
 
     cur.execute(
         """
-        SELECT TEXT, LLM
+        SELECT TEXT, LLM, CHECKED
         FROM INTERPRO.COMMON_ANNOTATION
         WHERE ANN_ID = :1
         """,
@@ -675,7 +675,9 @@ def update_annotation(ann_id):
         }), 400
 
     current_text = row[0]
-    is_llm = row[1] == "Y"  # TODO: refuse update if LLM-generated annotation?
+    current_llm = row[1] == "Y"
+    current_checked = row[2] == "Y"
+    # TODO: reject update if checked -> unchecked or not-llm -> is-llm
 
     """
     Compare references, 
