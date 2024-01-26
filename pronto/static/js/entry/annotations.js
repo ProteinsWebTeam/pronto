@@ -13,6 +13,7 @@ async function getSignature(accession) {
 export async function create(accession, text, is_llm) {
     const modal = document.getElementById('new-annotation');
     const msg = modal.querySelector('.message');
+    let is_checked = is_llm  //if is_llm, when curator use the annotation, checked=true. If is not llm, checked=false
 
     if (text !== undefined && text !== null) {
         const pfams = new Map();
@@ -59,7 +60,7 @@ export async function create(accession, text, is_llm) {
                     body: [
                         `text=${encodeURIComponent(modal.querySelector('textarea').value)}`,
                         `llm=${is_llm}`,
-                        `checked=false`
+                        `checked=${is_checked}`
                     ].join('&')
                 };
 
@@ -115,10 +116,9 @@ export function getSignaturesAnnotations(accession) {
 
                     html += '</div>';
 
-                    let is_llm = null
+                    let is_llm = false;
                     if (signature.text !== null) {
-                        is_llm = false
-                        signatureAnnotations.set(signature.accession, signature.text);
+                        signatureAnnotations.set(signature.accession, {text: signature.text, llm: is_llm});
                         html += `
                             <div class="ui attached segment">
                             ${escape(signature.text)}
@@ -132,7 +132,7 @@ export function getSignaturesAnnotations(accession) {
                         `;
                     } else if (signature.llm_text !== null) {
                         is_llm = true
-                        signatureAnnotations.set(signature.accession, signature.llm_text);
+                        signatureAnnotations.set(signature.accession, {text: signature.llm_text, llm: is_llm});
                         html += `
                             <div class="ui attached segment">
                                 <div class="ui warning message">
@@ -165,7 +165,8 @@ export function getSignaturesAnnotations(accession) {
                         return;
 
                     $(modal).modal('hide');
-                    create(accession, signatureAnnotations.get(key), is_llm);
+                    const annInfo = signatureAnnotations.get(key);
+                    create(accession, annInfo.text, annInfo.llm);
                 });
             }
 
