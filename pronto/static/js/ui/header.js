@@ -185,7 +185,7 @@ export function updateHeader(signatureAcc) {
                                     )
                                 }
 
-                                if (existing_ai_warning) {
+                                else if (existing_ai_warning) {
                                     toggleErrorMessage(
                                         errMsg,
                                         {
@@ -195,8 +195,10 @@ export function updateHeader(signatureAcc) {
                                     )
                                 }
 
-                                toggleErrorMessage(errMsg, null);
-
+                                else {
+                                    toggleErrorMessage(errMsg, null);
+                                }
+                                
                             })
                             .catch((error) => {
                                 toggleErrorMessage(errMsg, { title: error.message, message:  error.cause});
