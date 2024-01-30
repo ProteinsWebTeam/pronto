@@ -175,23 +175,25 @@ export function updateHeader(signatureAcc) {
                                 }
 
                                 // only apply ai generated tag (and thus warning) depending on the first entry only
-                                if ((signature.ai_warning !== null) && (first_entry)) {
+                                if (signature.ai_warning !== null && first_entry) {
                                     existing_ai_warning = true;
-                                    throw new Error(
-                                        'This entry will be marked as AI-generated',
+                                    toggleErrorMessage(
+                                        errMsg,
                                         {
-                                            cause: `The name, short name, and description of <strong>${signature.accession}</strong> have been generated using AI.`
+                                            title: 'This entry will be marked as AI-generated',
+                                            message: `The name, short name, and description of <strong>${signature.accession}</strong> have been generated using AI.`,
                                         }
-                                    );
+                                    )
                                 }
 
                                 if (existing_ai_warning) {
-                                    throw new Error(
-                                        'This entry will be marked as AI-generated',
+                                    toggleErrorMessage(
+                                        errMsg,
                                         {
-                                            cause: `The name, short name, and description of the first signature have been generated using AI.`
+                                            title: 'This entry will be marked as AI-generated',
+                                            message: `The name, short name, and description of the first signature have been generated using AI.`,
                                         }
-                                    );
+                                    )
                                 }
 
                                 toggleErrorMessage(errMsg, null);
