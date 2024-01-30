@@ -90,7 +90,6 @@ export function updateHeader(signatureAcc) {
                     fields: { accession: 'empty' },
                     onSuccess: function (event, fields) {
                         const acc = fields.accession.trim();
-                        let first_selected_sig = true;
                         fetch(`/api/signature/${acc}/`)
                             .then(response => {
                                 if (!response.ok)
@@ -175,7 +174,7 @@ export function updateHeader(signatureAcc) {
                                 }
 
                                 // only apply ai generated tag (and thus warning) depending on the first entry only
-                                if (signature.ai_warning !== null && first_selected_sig) {
+                                if (signature.ai_warning !== null && signatures.size < 2) {
                                     existing_ai_warning = true;
                                     toggleErrorMessage(
                                         errMsg,
@@ -198,13 +197,11 @@ export function updateHeader(signatureAcc) {
 
                                 toggleErrorMessage(errMsg, null);
 
-                                first_selected_sig = false;
                             })
                             .catch((error) => {
                                 toggleErrorMessage(errMsg, { title: error.message, message:  error.cause});
                             });
-                        
-                        first_selected_sig = true;
+                    
                     }            
                 });
 
