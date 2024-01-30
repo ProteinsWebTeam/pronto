@@ -276,7 +276,6 @@ export function updateHeader(signatureAcc) {
                 
             });
 
-            existing_ai_warning = false;
     }));
 
 }
