@@ -542,7 +542,7 @@ def search_annotations():
                 SELECT PUB_ID 
                 FROM INTERPRO.CITATION 
                 WHERE PUBMED_ID = :1
-                """, (int(search_query),)
+                """, [int(search_query)]
             )
             row = cur.fetchone()
             if row:
@@ -824,7 +824,7 @@ def update_annotation(ann_id):
                 FROM INTERPRO.ENTRY2COMMON
                 WHERE ANN_ID = :1            
             )
-            """, (ann_id,)
+            """, [ann_id]
         )
 
         entries = {}
@@ -1143,7 +1143,7 @@ def track_references(cur: Cursor, ann_id: str):
                 FROM INTERPRO.ENTRY2COMMON
                 WHERE ANN_ID = :1
             )
-            """, (ann_id,)
+            """, [ann_id]
     )
     entry2pub = {}
     for entry_acc, pub_id in cur.fetchall():
@@ -1161,7 +1161,7 @@ def track_references(cur: Cursor, ann_id: str):
             FROM INTERPRO.ENTRY2COMMON
             WHERE ANN_ID = :1
         )
-        """, (ann_id,)
+        """, [ann_id]
     )
     entry2suppl = {}
     for entry_acc, pub_id in cur.fetchall():
@@ -1229,7 +1229,7 @@ def get_annotation_entries(ann_id):
           ON EC.ENTRY_AC = E.ENTRY_AC
         WHERE EC.ANN_ID = :1
         ORDER BY EC.ENTRY_AC
-        """, (ann_id,)
+        """, [ann_id]
     )
 
     entries = []

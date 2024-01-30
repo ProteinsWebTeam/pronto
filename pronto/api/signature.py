@@ -81,7 +81,7 @@ def get_signature(accession):
     # Note: llm_abstract == llm_description <- retrieved from INTERPRO.METHOD_LLM.DESCRIPTION
     if None in [row[1], row[4]]:  # [name, description] incomplete
         if row[2] is not None and row[3] is not None:
-            result["name"], result["description"] = row[2], row[3]
+            result["name"], result["description"] = f"llm_{row[2]}", f"llm_{row[3]}"
             result["ai_warning"] = {
                 "title": "Signature is AI generated",
                 "message": (
@@ -154,7 +154,7 @@ def get_signature_comments(accession):
         WHERE C.METHOD_AC = :1
         ORDER BY C.CREATED_ON DESC
         """,
-        (accession,)
+        [accession]
     )
     comments = [
         {
@@ -440,7 +440,7 @@ def get_signature_predictions(accession):
             FROM INTERPRO.ENTRY2ENTRY
             START WITH ENTRY_AC = :1
             CONNECT BY PRIOR PARENT_AC = ENTRY_AC
-            """, (query_entry,)
+            """, [query_entry]
         )
         ancestors = {row[0] for row in cur}
 
@@ -451,7 +451,7 @@ def get_signature_predictions(accession):
             FROM INTERPRO.ENTRY2ENTRY
             START WITH PARENT_AC = :1
             CONNECT BY PRIOR ENTRY_AC = PARENT_AC
-            """, (query_entry,)
+            """, [query_entry]
         )
         descendants = {row[0] for row in cur}
     else:
@@ -479,7 +479,7 @@ def get_signature_predictions(accession):
         SELECT num_complete_sequences, num_residues
         FROM interpro.signature
         WHERE accession = %s
-        """, (accession,)
+        """, [accession]
     )
     q_proteins, q_residues = cur.fetchone()
 
@@ -504,7 +504,7 @@ def get_signature_predictions(accession):
               ON (c.signature_acc_1 = p.signature_acc_1
                   AND c.signature_acc_2 = p.signature_acc_2)
             WHERE c.signature_acc_1 = %s
-            """, (accession,)
+            """, [accession]
         )
     else:
         cur.execute(
@@ -524,7 +524,7 @@ def get_signature_predictions(accession):
             INNER JOIN interpro.database d
               ON s.database_id = d.id
             WHERE p.signature_acc_1 = %s
-            """, (accession,)
+            """, [accession]
         )
 
     targets = {}
