@@ -54,10 +54,12 @@ def get_signature(accession):
     result = {
         "accession": row[0],
         "name": row[1],  # --> short name
+        "llm_name": row[2],
+        "llm_short_name": row[3],
         "description": row[4],  # --> name
         "type": row[5],
         "abstract": row[6],
-        "llm_abstract": row[7],
+        "llm_abstract": row[7], # == llm_description
         "proteins": {
             "total": row[8],
             "complete": row[9],
@@ -74,21 +76,17 @@ def get_signature(accession):
             "version": row[14]
         },
         "entry": None,
-        "ai_warning": None,
+        "ai_warning": {
+            "title": "Signature is AI generated",
+            "message": (
+                "Then name, short name, and description of the signature "
+                " have been generated using AI."
+            ),
+        } if ((None in [row[1], row[4]]) and (row[2] is not None and row[3] is not None)) else None,
     }
-
-    # if curator assigned name/desc is incomplete, use AI generated if avaiable
+    # ai_warning :: if curator assigned name/desc is incomplete, use AI generated if avaiable
     # Note: llm_abstract == llm_description <- retrieved from INTERPRO.METHOD_LLM.DESCRIPTION
-    if None in [row[1], row[4]]:  # [name, description] incomplete
-        if row[2] is not None and row[3] is not None:
-            result["name"], result["description"] = f"llm_{row[2]}", f"llm_{row[3]}"
-            result["ai_warning"] = {
-                "title": "Signature is AI generated",
-                "message": (
-                    "Then name, short name, and description of the signature "
-                    " have been generated using AI."
-                ),
-            }
+
 
     con = utils.connect_oracle()
     cur = con.cursor()
