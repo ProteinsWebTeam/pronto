@@ -148,8 +148,10 @@ export function updateHeader(signatureAcc) {
                                         <td class="collapsing"><i class="fitted database icon" style="color: ${s.database.color};"></i></td>
                                         <td class="nowrap"><a target="_blank" href="${s.database.link}">${s.database.name}<i class="external icon"></i></a></td>
                                         <td><a href="/signature/${s.accession}">${s.accession}</a></td>
-                                        <td>${s.name !== null ? s.name : ''}</td>
-                                        <td>${s.description !== null ? s.description : ''}</td>
+                                        <td>${(s.name !== null && s.description !== null) ? s.name : (s.llm_short_name !== null ? s.llm_short_name : (s.name !== null ? s.name : ''))
+                                    }</td>
+                                        <td>${(s.name !== null && s.description !== null) ? s.description : (s.llm_name !== null ? s.llm_name : (s.description !== null ? s.description : ''))
+                                    }</td>
                                         <td class="right aligned">${s.proteins.total.toLocaleString()}</td>
                                         <td class="collapsing"><i data-accession="${s.accession}" class="trash fitted button icon"></i></td>
                                         </tr>
@@ -185,15 +187,17 @@ export function updateHeader(signatureAcc) {
                                     )
                                 }
 
-                                else if (existing_ai_warning) {
-                                    toggleErrorMessage(
-                                        errMsg,
-                                        {
-                                            title: 'This entry will be marked as AI-generated',
-                                            message: `The name, short name, and description of the first signature have been generated using AI.`,
-                                        }
-                                    )
-                                }
+                                // TODO: flush error messages when 'cancel' button is selected
+                                // all error messages are currently persistent
+                                // else if (existing_ai_warning) {
+                                //     toggleErrorMessage(
+                                //         errMsg,
+                                //         {
+                                //             title: 'This entry will be marked as AI-generated',
+                                //             message: `The name, short name, and description of the first signature have been generated using AI.`,
+                                //         }
+                                //     )
+                                // }
 
                                 else {
                                     toggleErrorMessage(errMsg, null);
