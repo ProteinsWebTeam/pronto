@@ -117,11 +117,11 @@ export function updateHeader(signatureAcc) {
                                 // Use signature's info
                                 const values = $(infoForm).form('get values');
                                 if (values.name.length === 0) {
-                                    $(infoForm).form('set value', 'name', signature.description);
+                                    $(infoForm).form('set value', 'name', (signature.name !== null && signature.description !== null) ? signature.description : (signature.llm_name !== null ? signature.llm_name : (signature.description !== null ? signature.description : '')));
                                     setCharsCountdown(infoForm.querySelector('input[name="name"]'));
                                 }
                                 if (values.short_name.length === 0) {
-                                    $(infoForm).form('set value', 'short_name', signature.name !== null ? signature.name : '');
+                                    $(infoForm).form('set value', 'short_name', (signature.name !== null && signature.description !== null) ? signature.name : (signature.llm_short_name !== null ? signature.llm_short_name : (signature.name !== null ? signature.name : '')));
                                     setCharsCountdown(infoForm.querySelector('input[name="short_name"]'));
                                 }
                                 if (values.type.length === 0) {
