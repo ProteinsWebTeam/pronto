@@ -436,9 +436,9 @@ def create_entry():
         entry_short_name = request.json["short_name"].strip()
         entry_llm = request.json["existing_ai_warning"].strip()
         if entry_llm:
-            entry_llm_reviewed, entry_llm = 'Y', 'Y'
+            entry_llm_reviewed = entry_llm = 'Y'
         else:
-            entry_llm_reviewed, entry_llm = 'N', 'N'
+            entry_llm_reviewed = entry_llm = 'N'
     except KeyError:
         return jsonify({
             "status": False,
