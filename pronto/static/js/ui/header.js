@@ -188,7 +188,7 @@ export function updateHeader(signatureAcc) {
                                 }
 
                                 // TODO: flush error messages when 'cancel' button is selected
-                                // all error messages are currently persistent
+                                // error messages are currently persistent
                                 // else if (existing_ai_warning) {
                                 //     toggleErrorMessage(
                                 //         errMsg,
