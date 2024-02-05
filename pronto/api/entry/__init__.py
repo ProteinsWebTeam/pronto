@@ -685,9 +685,16 @@ def create_entry():
             )
 
         if entry_llm:
-            response, response_code = annotation.create_llm_annotation(entry_acc)
+            anno_id, response, response_code = annotation.insert_annotation(
+                request.json["llm_abstract"].strip(),
+                con,
+                user,
+                is_llm=entry_llm,
+                is_checked=entry_llm_reviewed,
+            )
             if response_code != 200:
                 return response, response_code
+
     except oracledb.DatabaseError as exc:
         return jsonify({
             "status": False,
