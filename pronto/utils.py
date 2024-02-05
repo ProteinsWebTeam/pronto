@@ -34,7 +34,7 @@ XREFS = {
     "CAZY": "http://www.cazy.org/{}.html",
     "COG": "https://ftp.ncbi.nih.gov/pub/COG/COG2014/static/byCOG/{}.html",
     "EC": "https://enzyme.expasy.org/EC/{}",
-    "GENPROP": "https://www.ebi.ac.uk/interpro/genomeproperties/#{}",
+    "GENPROP": "https://www.ebi.ac.uk/interpro/genomeproperties/genome-property/{}",
     "INTERPRO": "/entry/{}",
     "MIM": "https://www.omim.org/entry/{}",
     "PDBE": "http://www.ebi.ac.uk/pdbe/entry/pdb/{}",
