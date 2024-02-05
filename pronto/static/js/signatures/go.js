@@ -212,7 +212,7 @@ function getGoTerms(accessions) {
                             else if (acc.startsWith('G3DSA')) {
                                 modal.querySelector('.ui.header').innerHTML = `CATH-Gene3D Funfams: ${acc}/${term}`;
                             }
-                            modal.querySelector('.content ul').innerHTML = html;
+                            modal.querySelector('.scrolling.content').innerHTML = html;
                             modal.querySelector('.actions a').setAttribute('href', `//www.ebi.ac.uk/QuickGO/term/${term}`);
                             $(modal).modal('show');
                             dimmer.off();

@@ -390,10 +390,10 @@ A second paragraph after an empty line.
             <li>CATH-Gene3D: <code>[cathgene3d:&hellip;]</code></li>
             <li>CAZy: <code>[cazy:&hellip;]</code></li>
             <li>COG: <code>[cog:&hellip;]</code></li>
-            <li>ENZYME/INTENZ: <code>[intenz:&hellip;]</code></li>
+            <li>EC number: <code>[ec:&hellip;]</code></li>
             <li>Genome Properties: <code>[genprop:&hellip;]</code></li>
             <li>InterPro: <code>[interpro:&hellip;]</code></li>
-            <li>OMIM: <code>[mim:&hellip;]</code></li>
+            <li>OMIM: <code>[omim:&hellip;]</code></li>
             <li>PDBe: <code>[pdbe:&hellip;]</code></li>
             <li>Pfam: <code>[pfam:&hellip;]</code></li>
             <li>PIRSF: <code>[pirsf:&hellip;]</code></li>
@@ -407,6 +407,12 @@ A second paragraph after an empty line.
             Add a literature reference (citation) by writing <code>cite:</code>, followed by one or several PubMed IDs, in square brackets, e.g. <code>[cite:11298287]</code>. When adding several references, PubMed IDs should be separated by commas. When saving the annotation, PubMed IDs will be replaced by Publication IDs.
         </p>
     </div>
+</div>
+
+<div id="goconstraint-modal" class="ui modal">
+    <i class="close icon"></i>
+    <div class="ui header"></div>
+    <div class="scrolling content"></div>
 </div>
 
 <script src="{{ url_for('static', filename='vendor/jquery.min.js') }}"></script>
