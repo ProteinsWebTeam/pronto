@@ -187,17 +187,15 @@ export function updateHeader(signatureAcc) {
                                     )
                                 }
 
-                                // TODO: flush error messages when 'cancel' button is selected
-                                // error messages are currently persistent
-                                // else if (existing_ai_warning) {
-                                //     toggleErrorMessage(
-                                //         errMsg,
-                                //         {
-                                //             title: 'This entry will be marked as AI-generated',
-                                //             message: `The name, short name, and description of the first signature have been generated using AI.`,
-                                //         }
-                                //     )
-                                // }
+                                else if (existing_ai_warning) {
+                                    toggleErrorMessage(
+                                        errMsg,
+                                        {
+                                            title: 'This entry will be marked as AI-generated',
+                                            message: `The name, short name, and description of the first signature have been generated using AI.`,
+                                        }
+                                    )
+                                }
 
                                 else {
                                     toggleErrorMessage(errMsg, null);
@@ -245,6 +243,7 @@ export function updateHeader(signatureAcc) {
                     .modal({
                         closable: false,
                         onShow: function () {
+                            toggleErrorMessage(errMsg, null);
                             if (signatureAcc !== undefined && signatureAcc !== null) {
                                 $(signaturesForm)
                                     .form('set value', 'accession', signatureAcc)
