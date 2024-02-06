@@ -663,7 +663,7 @@ def create_entry():
             VALUES (INTERPRO.NEW_ENTRY_AC(), :1, :2, :3, :5, :6)
             RETURNING ENTRY_AC INTO :4
             """,
-            [entry_type, entry_name, entry_short_name, entry_var, entry_llm, entry_llm_reviewed]
+            [entry_type, entry_name, entry_short_name, entry_llm, entry_llm_reviewed, entry_var]
         )
 
         entry_acc = entry_var.getvalue()[0]
