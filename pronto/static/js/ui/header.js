@@ -218,6 +218,7 @@ export function updateHeader(signatureAcc) {
                         }
 
                         fields.signatures = [...signatures.keys()];
+                        fields.is_llm = existing_ai_warning;
 
                         const options = {
                             method: 'PUT',
