@@ -9,6 +9,7 @@ bp = Blueprint("api_entry", __name__, url_prefix="/api/entry")
 
 from pronto import auth, utils
 from pronto.api import annotation
+from pronto.api.entry.annotations import relate_entry_to_anno
 from . import annotations
 from . import comments
 from . import go
@@ -714,6 +715,8 @@ def create_entry():
             if response_code != 200:
                 return response, response_code
 
+            relate_entry_to_anno(anno_id, entry_acc, con)
+
     except oracledb.DatabaseError as exc:
         return jsonify({
             "status": False,
@@ -728,9 +731,7 @@ def create_entry():
             "status": True,
             "accession": entry_acc
         })
-    
+
     finally:
         cur.close()
         con.close()
-
-

@@ -107,19 +107,18 @@ def get_annotations(accession):
     })
 
 
-@bp.route('/<accession>/annotation/<ann_id>/', methods=["PUT"])
-def link_annotation(accession, ann_id):
-    user = auth.get_user()
-    if not user:
-        return jsonify({
-            "status": False,
-            "error": {
-                "title": "Access denied",
-                "message": "Please log in to perform this operation."
-            }
-        }), 401
+def relate_entry_to_anno(ann_id, entry_acc, con):
+    """Link a newly inserted annotation to a new entry
 
-    con = utils.connect_oracle_auth(user)
+    Con closing should be handled by the func that calls this func.
+
+    :param ann_id: str, oracle db id for annotation record
+    :param entry_acc: str, oracle db id for entry record
+
+    Return tuple:
+    * None if successful, error obj (dict) if fails
+    * http status code
+    """
     cur = con.cursor()
     cur.execute(
         """
@@ -127,7 +126,7 @@ def link_annotation(accession, ann_id):
         FROM INTERPRO.ENTRY2COMMON
         WHERE ENTRY_AC = :1
         """,
-        [accession]
+        [entry_acc]
     )
     order_in, = cur.fetchone()
     if order_in is None:
@@ -141,9 +140,9 @@ def link_annotation(accession, ann_id):
             INSERT INTO INTERPRO.ENTRY2COMMON (ENTRY_AC, ANN_ID, ORDER_IN)
             VALUES (:1, :2, :3)
             """,
-            [accession, ann_id, order_in]
+            [entry_acc, ann_id, order_in]
         )
-        update_references(cur, accession)
+        update_references(cur, entry_acc)
     except DatabaseError as exc:
         return jsonify({
             "status": False,
@@ -159,7 +158,30 @@ def link_annotation(accession, ann_id):
         }), 200
     finally:
         cur.close()
-        con.close()
+
+
+@bp.route('/<accession>/annotation/<ann_id>/', methods=["PUT"])
+def link_annotation(accession, ann_id):
+    user = auth.get_user()
+    if not user:
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Access denied",
+                "message": "Please log in to perform this operation."
+            }
+        }), 401
+
+    con = utils.connect_oracle_auth(user)
+
+    err_obj, http_status = relate_entry_to_anno(
+        ann_id,
+        accession,
+        con
+    )
+
+    con.close()
+    return err_obj, http_status
 
 
 @bp.route('/<accession>/annotation/<ann_id>/order/up/', methods=["POST"])
