@@ -1,5 +1,7 @@
 import re
 
+from collections import OrderedDict
+
 import oracledb
 from flask import Blueprint, jsonify, request
 
@@ -448,7 +450,9 @@ def create_entry():
             }
         }), 400
 
-    entry_signatures = set(request.json.get("signatures", []))
+    entry_signatures = list(
+        OrderedDict(signature, None) for signature in request.json.get("signatures", [])
+    )
     if not entry_signatures:
         return jsonify({
             "status": False,
@@ -685,8 +689,30 @@ def create_entry():
             )
 
         if entry_llm:
+
+            with con.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT
+                        s.llm_abstract
+                    FROM signature s
+                    WHERE s.accession = %s
+                    """,
+                    [entry_signatures[0]]
+                )
+                row = cur.fetchone()
+
+            if not row:
+                return jsonify({
+                    "error": {
+                        "title": "Signature not found",
+                        "message": f"A signature of type: {entry_type}, name: {entry_name}, and short name: {entry_short_name} could not be found"
+                    }
+                })
+            anno_text = row[0]
+
             anno_id, response, response_code = annotation.insert_annotation(
-                request.json["llm_abstract"].strip(),
+                anno_text,
                 con,
                 user,
                 is_llm=entry_llm,
