@@ -702,13 +702,6 @@ def create_entry():
                 )
                 row = cur.fetchone()
 
-            if not row:
-                return jsonify({
-                    "error": {
-                        "title": "Signature not found",
-                        "message": f"A signature of type: {entry_type}, name: {entry_name}, and short name: {entry_short_name} could not be found"
-                    }
-                })
             anno_text = row[0]
 
             anno_id, response, response_code = annotation.insert_annotation(
