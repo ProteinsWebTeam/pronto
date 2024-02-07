@@ -573,10 +573,6 @@ def create_annotation():
         con.close()
 
 
-
-
-
-
 @bp.route("/search/")
 def search_annotations():
     search_query = request.args.get("q", "").strip()
