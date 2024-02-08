@@ -333,38 +333,38 @@ def insert_annotation(
     if not ann.validate_html():
         return (
             None,
-            jsonify({
+            {
                 "status": False,
                 "error": {
                     "title": "Text error",
                     "message": ann.error
                 }
-            }),
+            },
             400
         )
     elif not ann.validate_xref_tags():
         return (
             None,
-            jsonify({
+            {
                 "status": False,
                 "error": {
                     "title": "Text error",
                     "message": ann.error
                 }
-            }),
+            },
             400,
         )
 
     if not ann.validate_encoding(load_global_exceptions(cur, "encoding")):
         return (
             None,
-            jsonify({
+            {
                 "status": False,
                 "error": {
                     "title": "Text error",
                     "message": ann.error
                 }
-            }),
+            },
             400,
         )
 
@@ -373,13 +373,13 @@ def insert_annotation(
         cur.close()
         return (
             None,
-            jsonify({
+            {
                 "status": False,
                 "error": {
                     "title": "Text error",
                     "message": ann.error
                 }
-            }),
+            },
             400,  # could be 500 (if INSERT failed)
         )
 
@@ -418,36 +418,36 @@ def insert_annotation(
 
             return (
                 None,
-                jsonify({
+                {
                     "status": False,
                     "error": {
                         "title": "Database error",
                         "message": f"Duplicate of {ann_id}"
                     }
-                }),
+                },
                 500,
             )
         else:
             return (
                 None,
-                jsonify({
+                {
                     "status": False,
                     "error": {
                         "title": "Database error",
                         "message": f"The annotation could not be created: {exc}."
                     }
-                }),
+                },
                 500,
             )
     else:
         con.commit()
         return (
             ann_id,
-            jsonify({
+            {
                 "status": True,
                 # RETURNING -> getvalue() returns an array
                 "id": ann_id.getvalue()[0]
-            }),
+            },
             200,
         )
     finally:
