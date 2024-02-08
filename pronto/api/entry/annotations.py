@@ -1,5 +1,7 @@
 import re
 
+import oracledb
+
 from flask import jsonify
 from oracledb import Cursor, DatabaseError
 
@@ -107,14 +109,19 @@ def get_annotations(accession):
     })
 
 
-def relate_entry_to_anno(ann_id, entry_acc, con):
+def relate_entry_to_anno(
+    ann_id: str,
+    entry_acc: str,
+    con: oracledb.Connection,
+):
     """Link a newly inserted annotation to a new entry
 
     Con closing should be handled by the func that calls this func.
 
     :param ann_id: str, oracle db id for annotation record
     :param entry_acc: str, oracle db id for entry record
-
+    :param con: open oracle db connection
+    
     Return tuple:
     * None if successful, error obj (dict) if fails
     * http status code

@@ -3,6 +3,7 @@ from datetime import datetime
 from xml.dom.minidom import parseString
 from xml.parsers.expat import ExpatError
 
+import oracledb
 from oracledb import Cursor, DatabaseError, STRING
 from flask import Blueprint, jsonify, request
 
@@ -303,12 +304,12 @@ class Annotation(object):
 
 
 def insert_annotation(
-        text,
-        con,
-        user,
-        is_llm=False,
-        is_checked=False,
-):
+        text: str,
+        con: oracledb.Connection,
+        user: dict,
+        is_llm: bool = False,
+        is_checked: bool = False,
+) -> tuple[str | None, dict, int]:
     """
     Insert a new annotation into the hooked up oracle db (e.g. IPPRO)
 
@@ -319,6 +320,7 @@ def insert_annotation(
 
     :param text: str, description of annotation
     :param con: oracle db connection
+    :param user: dict, user authentication dict
     :param is_llm: bool, ai generated annotation or not
     :param is_checked: bool, annotation has been revieweed by a curator
 
