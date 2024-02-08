@@ -437,7 +437,7 @@ def create_entry():
         entry_type = request.json["type"].strip()
         entry_name = request.json["name"].strip()
         entry_short_name = request.json["short_name"].strip()
-        entry_llm = request.json["is_llm"].strip()
+        entry_llm = request.json["is_llm"]
         if entry_llm:
             entry_llm_reviewed = entry_llm = 'Y'
         else:
