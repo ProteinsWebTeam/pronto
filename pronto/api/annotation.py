@@ -487,7 +487,6 @@ def create_annotation():
     is_checked = is_checked == "true"
 
     con = utils.connect_oracle_auth(user)
-    cur = con.cursor()
 
     anno_id, err_obj, http_status = insert_annotation(
         text,
