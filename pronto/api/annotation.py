@@ -496,14 +496,8 @@ def create_annotation():
         is_checked,
     )
 
-    if http_status != 200:
-        cur.close()
-        con.close()
-        return err_obj, http_status
-    else:
-        print()
-        cur.close()
-        con.close()
+    con.close()
+    return jsonify(err_obj), http_status
 
 
 @bp.route("/search/")
