@@ -711,11 +711,11 @@ def create_entry():
                 is_checked=entry_llm_reviewed,
             )
             if response_code != 200:
-                return response, response_code
+                return jsonify(response), response_code
 
             response, response_code = relate_entry_to_anno(anno_id, entry_acc, con)
             if response_code != 200:
-                return response, response_code
+                return jsonify(response), response_code
 
     except oracledb.DatabaseError as exc:
         return jsonify({
