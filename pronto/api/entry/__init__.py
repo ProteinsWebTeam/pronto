@@ -1,7 +1,5 @@
 import re
 
-from collections import OrderedDict
-
 import oracledb
 from flask import Blueprint, jsonify, request
 
@@ -452,7 +450,7 @@ def create_entry():
         }), 400
 
     entry_signatures = list(
-        OrderedDict(signature, None) for signature in request.json.get("signatures", [])
+        dict.fromkeys(request.json.get("signatures", [])).keys()
     )
     if not entry_signatures:
         return jsonify({
