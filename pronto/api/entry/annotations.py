@@ -121,7 +121,7 @@ def relate_entry_to_anno(
     :param ann_id: str, oracle db id for annotation record
     :param entry_acc: str, oracle db id for entry record
     :param con: open oracle db connection
-    
+
     Return tuple:
     * None if successful, error obj (dict) if fails
     * http status code
@@ -151,18 +151,18 @@ def relate_entry_to_anno(
         )
         update_references(cur, entry_acc)
     except DatabaseError as exc:
-        return jsonify({
+        return {
             "status": False,
             "error": {
                 "title": "Database error",
                 "message": f"Could not link annotation: {exc}."
             }
-        }), 500
+        }, 500
     else:
         con.commit()
-        return jsonify({
+        return {
             "status": True
-        }), 200
+        }, 200
     finally:
         cur.close()
 
