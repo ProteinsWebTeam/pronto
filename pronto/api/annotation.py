@@ -321,8 +321,8 @@ def insert_annotation(
     :param text: str, description of annotation
     :param con: oracle db connection
     :param user: dict, user authentication dict
-    :param is_llm: bool, ai generated annotation or not
-    :param is_checked: bool, annotation has been revieweed by a curator
+    :param is_llm: bool, whether the annotation is an AI-generated annotation
+    :param is_checked: bool, whether the annotation has been reviewed by a curator
 
     Return tuple:
     * annotation id (ann_id) if successful, None if fails
