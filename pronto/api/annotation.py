@@ -355,7 +355,9 @@ def insert_annotation(
             400,
         )
 
+    cur = con.cursor()
     if not ann.validate_encoding(load_global_exceptions(cur, "encoding")):
+        cur.close()
         return (
             None,
             {
@@ -368,7 +370,6 @@ def insert_annotation(
             400,
         )
 
-    cur = con.cursor()
     if not ann.update_references(cur):
         cur.close()
         return (
