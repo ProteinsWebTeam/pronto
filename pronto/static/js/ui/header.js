@@ -156,9 +156,9 @@ export function updateHeader(signatureAcc) {
                                         <td class="collapsing"><i class="fitted database icon" style="color: ${s.database.color};"></i></td>
                                         <td class="nowrap"><a target="_blank" href="${s.database.link}">${s.database.name}<i class="external icon"></i></a></td>
                                         <td><a href="/signature/${s.accession}">${s.accession}</a></td>
-                                        <td>${(s.name !== null && s.description !== null) ? s.name : (s.llm_short_name !== null ? s.llm_short_name : (s.name !== null ? s.name : ''))
+                                        <td>${(s.name !== null && s.description !== null) ? s.name : (s.llm_name !== null ? s.llm_name : (s.name !== null ? s.name : ''))
                                     }</td>
-                                        <td>${(s.name !== null && s.description !== null) ? s.description : (s.llm_name !== null ? s.llm_name : (s.description !== null ? s.description : ''))
+                                        <td>${(s.name !== null && s.description !== null) ? s.description : (s.llm_description !== null ? s.llm_description : (s.description !== null ? s.description : ''))
                                     }</td>
                                         <td class="right aligned">${s.proteins.total.toLocaleString()}</td>
                                         <td class="collapsing"><i data-accession="${s.accession}" class="trash fitted button icon"></i></td>
@@ -185,7 +185,7 @@ export function updateHeader(signatureAcc) {
 
                                 // only apply ai generated tag (and thus warning) depending on the first entry only
                                 // here here
-                                if (signature.ai_warning !== null && signatures.size < 2) {
+                                if (useAIAnnotations !== null && signatures.size < 2) {
                                     existing_ai_warning = true;
                                     toggleErrorMessage(
                                         errMsg,
