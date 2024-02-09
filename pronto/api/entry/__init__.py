@@ -436,10 +436,7 @@ def create_entry():
         entry_name = request.json["name"].strip()
         entry_short_name = request.json["short_name"].strip()
         entry_llm = request.json["is_llm"]
-        if entry_llm:
-            entry_llm_reviewed = entry_llm = 'Y'
-        else:
-            entry_llm_reviewed = entry_llm = 'N'
+        # Assume if record is genereted by AI (is_llm) it has been reviewed
     except KeyError:
         return jsonify({
             "status": False,
@@ -660,13 +657,21 @@ def create_entry():
 
     entry_var = cur.var(oracledb.STRING)
     try:
+        # ATM assume if llm, llm has been reviewed; entry_llm_reviewed = entry_llm
         cur.execute(
             """
             INSERT INTO INTERPRO.ENTRY (ENTRY_AC, ENTRY_TYPE, NAME, SHORT_NAME, LLM, LLM_CHECKED) 
             VALUES (INTERPRO.NEW_ENTRY_AC(), :1, :2, :3, :5, :6)
             RETURNING ENTRY_AC INTO :4
             """,
-            [entry_type, entry_name, entry_short_name, entry_llm, entry_llm_reviewed, entry_var]
+            [
+                entry_type,
+                entry_name,
+                entry_short_name, 
+                "Y" if entry_llm else "N",
+                "Y" if entry_llm else "N",
+                entry_var,
+            ]
         )
 
         entry_acc = entry_var.getvalue()[0]
@@ -708,7 +713,7 @@ def create_entry():
                 con,
                 user,
                 is_llm=entry_llm,
-                is_checked=entry_llm_reviewed,
+                is_checked=entry_llm,  # ATM assuming if entry_llm, then entry_llm_reivewed is True
             )
             if response_code != 200:
                 return jsonify(response), response_code
