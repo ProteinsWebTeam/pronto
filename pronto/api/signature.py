@@ -13,14 +13,16 @@ bp = Blueprint("api_signature", __name__, url_prefix="/api/signature")
 def get_signature(accession):
     con = utils.connect_pg()
     cur = con.cursor()
+    # description becomes short name on the front end
+    # abstract becomes description on the front end
     cur.execute(
         """
         SELECT
           s.accession,
           s.name,
           s.llm_name,
-          s.llm_short_name,
           s.description,
+          s.llm_description,
           s.type,
           s.abstract,
           s.llm_abstract,
@@ -55,11 +57,11 @@ def get_signature(accession):
         "accession": row[0],
         "name": row[1],  # --> short name
         "llm_name": row[2],
-        "llm_short_name": row[3],
-        "description": row[4],  # --> name
+        "description": row[3],
+        "llm_description": row[4],  # --> name on front end
         "type": row[5],
         "abstract": row[6],
-        "llm_abstract": row[7], # == llm_description
+        "llm_abstract": row[7],  # --> description on front end
         "proteins": {
             "total": row[8],
             "complete": row[9],
