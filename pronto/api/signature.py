@@ -78,17 +78,7 @@ def get_signature(accession):
             "version": row[14]
         },
         "entry": None,
-        "ai_warning": {
-            "title": "Signature is AI generated",
-            "message": (
-                "Then name, short name, and description of the signature "
-                " have been generated using AI."
-            ),
-        } if ((None in [row[1], row[4]]) and (row[2] is not None and row[3] is not None)) else None,
     }
-    # ai_warning :: if curator assigned name/desc is incomplete, use AI generated if avaiable
-    # Note: llm_abstract == llm_description <- retrieved from INTERPRO.METHOD_LLM.DESCRIPTION
-
 
     con = utils.connect_oracle()
     cur = con.cursor()

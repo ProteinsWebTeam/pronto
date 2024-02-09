@@ -115,13 +115,21 @@ export function updateHeader(signatureAcc) {
                                 $(this).form('clear');
 
                                 // Use signature's info
+                                let name = signature.name;
+                                let description = signature.description;
+                                let useAIAnnotations = false;
+                                if (name === null && description == null) {
+                                    name = signature.llm_name;
+                                    description = signature.llm_description;
+                                    useAIAnnotations = true;
+                                }
                                 const values = $(infoForm).form('get values');
                                 if (values.name.length === 0) {
-                                    $(infoForm).form('set value', 'name', (signature.name !== null && signature.description !== null) ? signature.description : (signature.llm_name !== null ? signature.llm_name : (signature.description !== null ? signature.description : '')));
+                                    $(infoForm).form('set value', 'name', description || '');
                                     setCharsCountdown(infoForm.querySelector('input[name="name"]'));
                                 }
                                 if (values.short_name.length === 0) {
-                                    $(infoForm).form('set value', 'short_name', (signature.name !== null && signature.description !== null) ? signature.name : (signature.llm_short_name !== null ? signature.llm_short_name : (signature.name !== null ? signature.name : '')));
+                                    $(infoForm).form('set value', 'short_name', name || '');
                                     setCharsCountdown(infoForm.querySelector('input[name="short_name"]'));
                                 }
                                 if (values.type.length === 0) {
@@ -176,6 +184,7 @@ export function updateHeader(signatureAcc) {
                                 }
 
                                 // only apply ai generated tag (and thus warning) depending on the first entry only
+                                // here here
                                 if (signature.ai_warning !== null && signatures.size < 2) {
                                     existing_ai_warning = true;
                                     toggleErrorMessage(
