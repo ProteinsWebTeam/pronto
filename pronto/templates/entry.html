@@ -91,11 +91,6 @@
                 </div>
                 <div id="llm-field" class="hidden field">
                     <div class="ui checkbox">
-                        <input type="checkbox" name="is-llm">
-                        <label>This is an AI-generated entry</label>
-                    </div>
-                    <br>
-                    <div class="ui checkbox">
                         <input type="checkbox" name="llm-reviewed">
                         <label>Reviewed (curators approve this AI-generated entry)</label>
                     </div>
@@ -422,12 +417,6 @@ A second paragraph after an empty line.
             Add a literature reference (citation) by writing <code>cite:</code>, followed by one or several PubMed IDs, in square brackets, e.g. <code>[cite:11298287]</code>. When adding several references, PubMed IDs should be separated by commas. When saving the annotation, PubMed IDs will be replaced by Publication IDs.
         </p>
     </div>
-</div>
-
-<div id="goconstraint-modal" class="ui modal">
-    <i class="close icon"></i>
-    <div class="ui header"></div>
-    <div class="scrolling content"></div>
 </div>
 
 <script src="{{ url_for('static', filename='vendor/jquery.min.js') }}"></script>

@@ -1,5 +1,4 @@
 import * as modals from "../ui/modals.js";
-import * as dimmer from "../ui/dimmer.js";
 
 function unlink(accession, termID) {
     modals.ask(
@@ -48,9 +47,7 @@ function render(accession, terms, divID) {
         `;
 
         if (term.taxon_constraints > 0) {
-            html += `&nbsp;<span class="ui tiny red label button" data-entry="${accession}" data-term="${term.id}">Taxon constraints 
-            <span class="detail">${term.taxon_constraints}</span>
-            </span>`;
+            html += `&nbsp;<a target="_blank" href="https://www.ebi.ac.uk/QuickGO/term/${term.id}#termTaxonConstraints" class="ui tiny red label">Taxon constraints <span class="detail">${term.taxon_constraints}</span></a>`;
         }
 
         if (term.is_obsolete)
@@ -70,53 +67,6 @@ function render(accession, terms, divID) {
     for (const elem of div.querySelectorAll('[data-id]')) {
         elem.addEventListener('click', (e,) => {
             unlink(accession, e.currentTarget.dataset.id);
-        });
-    }
-
-    for (const elem of div.querySelectorAll('[data-entry]')) {
-        elem.addEventListener('click', (e,) => {
-            const acc = e.currentTarget.dataset.entry;
-            const term = e.currentTarget.dataset.term;
-
-            dimmer.on();
-            fetch(`/api/entry/${acc}/go/${term}/`)
-                .then(response => response.json())
-                .then(result => {
-                    const signatures = result.signatures.join('/');
-                    let html = `<table class="ui definition celled table">
-                                    <thead>
-                                        <tr>
-                                            <th class="normal">Taxon constraint</th>
-                                            <th>Swiss-Prot/reviewed proteins - ${result.proteins.reviewed.toLocaleString()}</th>
-                                            <th>All proteins - ${result.proteins.total.toLocaleString()}</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-
-                                    <tr>
-                                    <td>Violations summary</td>
-                                    <td><a href="/signatures/${signatures}/proteins/?violate-go=${term}&reviewed">${result.violations.reviewed.toLocaleString()}</a></td>
-                                    <td><a href="/signatures/${signatures}/proteins/?violate-go=${term}">${result.violations.total.toLocaleString()}</a></td>
-                                    </tr>`;
-
-                    for (const constraint of result.constraint) {
-                        const constType = constraint.type === 'only_in_taxon' ? 'Only in' : 'Never in';
-                        html += `<tr>
-                                <td>${constType} ${constraint.taxon.name}</td>
-                                <td>${constraint.matches.reviewed.toLocaleString()}</td>
-                                <td>${constraint.matches.total.toLocaleString()}</td>
-                                </tr>`;
-                    }
-
-                    html += `</tbody>
-                            </table>`;
-
-                    const modal = document.getElementById('goconstraint-modal');
-                    modal.querySelector('.ui.header').innerHTML = `GO constraints: ${term}`;
-                    modal.querySelector('.scrolling.content').innerHTML = html;
-                    $(modal).modal('show');
-                    dimmer.off();
-                });
         });
     }
 }
