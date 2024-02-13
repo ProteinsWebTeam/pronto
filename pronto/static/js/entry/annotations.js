@@ -44,7 +44,8 @@ export async function create(accession, text, is_llm) {
         modal.querySelector('textarea').value = text;
     }
 
-    if (is_llm) {
+    const existingWarnings = modal.querySelectorAll('.llm-warning');
+    if (is_llm && !modal.querySelector('.llm-warning')) {
         const llmWarning = `
             <div class="ui llm warning message">
                 <div class="header">Checked AI-generated annotation?</div>
