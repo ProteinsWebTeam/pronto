@@ -694,7 +694,9 @@ def create_entry():
 
         if entry_llm:
 
-            with con.cursor() as cur:
+            pg_con = utils.connect_pg(utils.get_pg_url())
+
+            with pg_con.cursor() as cur:
                 cur.execute(
                     """
                     SELECT
@@ -705,6 +707,8 @@ def create_entry():
                     [entry_signatures[0]]
                 )
                 row = cur.fetchone()
+
+            pg_con.close()
 
             anno_text = row[0]
 
