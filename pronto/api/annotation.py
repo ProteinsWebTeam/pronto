@@ -382,6 +382,10 @@ def create_annotation():
     ann.strip()
     ann.wrap()
     ann_id = cur.var(STRING)
+
+    if is_llm and not is_checked:
+        is_checked = True
+
     try:
         cur.execute(
             """
