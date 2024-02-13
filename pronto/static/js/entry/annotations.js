@@ -13,7 +13,13 @@ async function getSignature(accession) {
 export async function create(accession, text, is_llm) {
     const modal = document.getElementById('new-annotation');
     const msg = modal.querySelector('.message');
-    let is_checked = is_llm  //if is_llm, when curator use the annotation, checked=true. If is not llm, checked=false
+
+    // in case of New Annotation
+    if (is_llm === undefined && text === undefined) {
+        is_llm = false
+    }
+
+    let is_checked = is_llm
 
     if (text !== undefined && text !== null) {
         const pfams = new Map();
