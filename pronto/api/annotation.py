@@ -442,12 +442,12 @@ def insert_annotation(
             )
     else:
         con.commit()
+        ann_id = ann_id.getvalue()[0]
         return (
             ann_id,
             {
                 "status": True,
-                # RETURNING -> getvalue() returns an array
-                "id": ann_id.getvalue()[0]
+                "id": ann_id
             },
             200,
         )
