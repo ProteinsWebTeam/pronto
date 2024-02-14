@@ -696,8 +696,8 @@ def create_entry():
 
             pg_con = utils.connect_pg(utils.get_pg_url())
 
-            with pg_con.cursor() as cur:
-                cur.execute(
+            with pg_con.cursor() as pg_cur:
+                pg_cur.execute(
                     """
                     SELECT
                         s.llm_abstract
@@ -706,7 +706,7 @@ def create_entry():
                     """,
                     [entry_signatures[0]]
                 )
-                row = cur.fetchone()
+                row = pg_cur.fetchone()
 
             pg_con.close()
 
