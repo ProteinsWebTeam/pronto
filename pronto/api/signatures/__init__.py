@@ -83,7 +83,7 @@ def get_recommendations():
     con = utils.connect_pg()
     with con.cursor() as cur:
         cur.execute(
-            f"""
+            """
             SELECT *
             FROM (
               SELECT
