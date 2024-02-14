@@ -442,7 +442,7 @@ export function search(accession, query) {
                     if (action === 'list')
                         getAnnotationEntries(annID);
                     else if (action === 'copy')
-                        create(accession, annotations.get(annID).text);
+                        create(accession, annotations.get(annID).text, false);
                     else if (action === 'link') {
                         actionButton.classList.add('disabled');
                         link(accession, annID)
