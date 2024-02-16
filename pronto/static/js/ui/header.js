@@ -118,7 +118,7 @@ export function updateHeader(signatureAcc) {
                                 let name = signature.name;
                                 let description = signature.description;
                                 let useAIAnnotations = false;
-                                if ((name === null || description === null) && signature.llm_name !== null && signature.llm_description !== null) {
+                                if ((name == null || description == null) && signature.llm_name !== null && signature.llm_description !== null) {
                                     name = signature.llm_name;
                                     description = signature.llm_description;
                                     useAIAnnotations = true;
@@ -185,7 +185,7 @@ export function updateHeader(signatureAcc) {
 
                                 // only apply ai generated tag (and thus warning) depending on the first entry only
                                 // here here
-                                if (useAIAnnotations !== null && signatures.size < 2) {
+                                if (useAIAnnotations && signatures.size < 2) {
                                     existing_ai_warning = true;
                                     toggleErrorMessage(
                                         errMsg,
