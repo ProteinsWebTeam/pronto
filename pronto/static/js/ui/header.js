@@ -118,7 +118,7 @@ export function updateHeader(signatureAcc) {
                                 let name = signature.name;
                                 let description = signature.description;
                                 let useAIAnnotations = false;
-                                if (name === null && description == null) {
+                                if ((name === null || description === null) && signature.llm_name !== null && signature.llm_description !== null) {
                                     name = signature.llm_name;
                                     description = signature.llm_description;
                                     useAIAnnotations = true;
