@@ -436,7 +436,6 @@ def create_entry():
         entry_name = request.json["name"].strip()
         entry_short_name = request.json["short_name"].strip()
         entry_llm = request.json["is_llm"]
-        # Assume if record is genereted by AI (is_llm) it has been reviewed
     except KeyError:
         return jsonify({
             "status": False,
@@ -445,6 +444,16 @@ def create_entry():
                 "message": "Invalid or missing parameters."
             }
         }), 400
+
+    try:
+        is_llm_reviewed = request.json["is_llm_reviewed"]
+    except KeyError:
+        is_llm_reviewed = entry_llm
+
+    try:
+        is_checked = request.json["is_checked"]
+    except KeyError:
+        is_checked = False
 
     entry_signatures = list(
         dict.fromkeys(request.json.get("signatures", [])).keys()
@@ -669,7 +678,7 @@ def create_entry():
                 entry_name,
                 entry_short_name, 
                 "Y" if entry_llm else "N",
-                "Y" if entry_llm else "N",
+                "Y" if is_llm_reviewed else "N",
                 entry_var,
             ]
         )
