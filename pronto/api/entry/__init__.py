@@ -537,12 +537,12 @@ def create_entry():
     invalid = []
     for signature_acc in entry_signatures:
         try:
-            entry_acc, is_checked, cnt = existing_signatures[signature_acc]
+            entry_acc, entry_checked, cnt = existing_signatures[signature_acc]
         except KeyError:
             not_found.append(signature_acc)
         else:
             if entry_acc is not None:
-                if is_checked and cnt == 1:
+                if entry_checked and cnt == 1:
                     invalid.append(signature_acc)
                 else:
                     to_unintegrate.append((entry_acc, signature_acc))
@@ -669,16 +669,25 @@ def create_entry():
         # ATM assume if llm, llm has been reviewed; entry_llm_reviewed = entry_llm
         cur.execute(
             """
-            INSERT INTO INTERPRO.ENTRY (ENTRY_AC, ENTRY_TYPE, NAME, SHORT_NAME, LLM, LLM_CHECKED) 
-            VALUES (INTERPRO.NEW_ENTRY_AC(), :1, :2, :3, :5, :6)
-            RETURNING ENTRY_AC INTO :4
+            INSERT INTO INTERPRO.ENTRY (
+                ENTRY_AC,
+                ENTRY_TYPE,
+                NAME,
+                SHORT_NAME,
+                LLM,
+                LLM_CHECKED,
+                CHECKED
+            )
+            VALUES (INTERPRO.NEW_ENTRY_AC(), :1, :2, :3, :4, :5, :6)
+            RETURNING ENTRY_AC INTO :7
             """,
             [
                 entry_type,
                 entry_name,
-                entry_short_name, 
+                entry_short_name,
                 "Y" if entry_llm else "N",
                 "Y" if is_llm_reviewed else "N",
+                is_checked,
                 entry_var,
             ]
         )
