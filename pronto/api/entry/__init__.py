@@ -687,7 +687,7 @@ def create_entry():
                 entry_short_name,
                 "Y" if entry_llm else "N",
                 "Y" if is_llm_reviewed else "N",
-                is_checked,
+                "Y" if is_checked else "N",
                 entry_var,
             ]
         )
