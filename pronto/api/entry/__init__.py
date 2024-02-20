@@ -1,5 +1,7 @@
 import re
 
+from typing import Tuple
+
 import oracledb
 from flask import Blueprint, jsonify, request
 
@@ -445,6 +447,10 @@ def create_entry():
             }
         }), 400
 
+    response_dict, response_status = check_unique_constraints(entry_name, entry_short_name)
+    if response_status != 200:
+        return jsonify(response_dict), response_status
+
     try:
         is_llm_reviewed = request.json["is_llm_reviewed"]
     except KeyError:
@@ -762,3 +768,44 @@ def create_entry():
     finally:
         cur.close()
         con.close()
+
+
+def check_unique_constraints(
+    entry_name: str,
+    entry_short_name: str
+) -> Tuple[dict, int]:
+    """Check if name and/or short name are already presented in oracle db
+
+    :param entry_name: str, name of new entry to be created
+    :param entry_short_name: str, short_name of entry to be created
+
+    Return response in dict and a http status code
+    """
+    con = utils.connect_oracle()
+    with con.cursor() as cur:
+        cur.execute(
+            """
+            SELECT ENTRY_AC, NAME, SHORT_NAME
+            FROM INTERPRO.ENTRY
+            WHERE (NAME = :1) OR (SHORT_NAME = :2)
+            """,
+            [entry_name, entry_short_name]
+        )
+        rows = cur.fetchall()
+    if len(rows) > 0:
+        con.close()
+        return {
+            'status': False,
+            'error': {
+                'title': 'Unique constraint error',
+                'message': (
+                    f"The name '{entry_name}' and/or short name '{entry_short_name}' is already "
+                    f"associated with entry {rows[0][0]}."
+                )
+            }
+        }, 400
+    else:
+        con.close()
+        return {
+            'status': True
+        }, 200
