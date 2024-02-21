@@ -1,6 +1,5 @@
 import re
 
-from typing import Tuple
 
 import oracledb
 from flask import Blueprint, jsonify, request
