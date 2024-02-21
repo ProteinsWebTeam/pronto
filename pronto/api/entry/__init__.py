@@ -789,9 +789,9 @@ def check_uniqueness(name: str,short_name: str) -> list[dict]:
             """
             SELECT ENTRY_AC, NAME, SHORT_NAME
             FROM INTERPRO.ENTRY
-            WHERE (NAME = :1) OR (SHORT_NAME = :2)
+            WHERE LOWER(NAME) = :1 OR LOWER(SHORT_NAME) = :2
             """,
-            [name, short_name]
+            [name.lower(), short_name.lower()]
         )
         rows = cur.fetchall()
 
