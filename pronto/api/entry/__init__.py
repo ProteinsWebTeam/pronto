@@ -775,16 +775,13 @@ def create_entry():
         con.close()
 
 
-def check_unique_constraints(
-    entry_name: str,
-    entry_short_name: str
-) -> Tuple[dict, int]:
-    """Check if name and/or short name are already presented in oracle db
+def check_uniqueness(name: str,short_name: str) -> list[dict]:
+    """Check if name and/or short name are already used by an InterPro entry
 
-    :param entry_name: str, name of new entry to be created
-    :param entry_short_name: str, short_name of entry to be created
+    :param name: str, name of new entry to be created
+    :param short_name: str, short_name of entry to be created
 
-    Return response in dict and a http status code
+    Return list of existing entries with the same name/short name or None
     """
     con = utils.connect_oracle()
     with con.cursor() as cur:
@@ -794,23 +791,17 @@ def check_unique_constraints(
             FROM INTERPRO.ENTRY
             WHERE (NAME = :1) OR (SHORT_NAME = :2)
             """,
-            [entry_name, entry_short_name]
+            [name, short_name]
         )
         rows = cur.fetchall()
+
+    con.close()
+
     if len(rows) > 0:
-        con.close()
-        return {
-            'status': False,
-            'error': {
-                'title': 'Unique constraint error',
-                'message': (
-                    f"The name '{entry_name}' and/or short name '{entry_short_name}' is already "
-                    f"associated with entry {rows[0][0]}."
-                )
-            }
-        }, 400
+        return [{
+            "accession": row[0],
+            "name": row[1],
+            "short_name": row[2]
+        } for row in rows]
     else:
-        con.close()
-        return {
-            'status': True
-        }, 200
+        return []
