@@ -447,10 +447,16 @@ def create_entry():
             }
         }), 400
 
-    response_dict, response_status = check_unique_constraints(entry_name, entry_short_name)
-    if response_status != 200:
-        return jsonify(response_dict), response_status
-
+    entries = check_uniqueness(entry_name, entry_short_name)
+    if entries:
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Bad request",
+                "message": "The name or short name is already in use.",
+                "entries": entries
+            }
+        }), 400
     try:
         is_llm_reviewed = request.json["is_llm_reviewed"]
     except KeyError:
