@@ -327,31 +327,18 @@ def search_proteome():
     con = utils.connect_pg(utils.get_pg_url())
     cur = con.cursor()
 
-    sql = """
-        SELECT p.id, p.name
-        FROM interpro.proteome p
-    """
+    sql = "SELECT id, name FROM interpro.proteome"
 
-    if re.fullmatch(r'UP\d+', query):
-        cur.execute(
-            f"""
-            {sql}
-            WHERE p.id = %s
-            """,
-            [query]
-        )
+    if re.fullmatch(r"UP\d+", query):
+        cur.execute(f"{sql} WHERE id = %s", [query])
+    elif query.isdecimal():
+        cur.execute(f"{sql} WHERE name ILIKE %s OR taxon_id = %s ",
+                    [f"%{query}%", int(query)])
     else:
-        cur.execute(
-            f"""
-            {sql}
-            WHERE p.name ILIKE %s
-            """,
-            [f"%{query}%"]
-        )
+        cur.execute(f"{sql} WHERE name ILIKE %s", [f"%{query}%"])
 
     cols = ("id", "name")
     results = [dict(zip(cols, row)) for row in cur.fetchall()]
-
     cur.close()
     con.close()
 
