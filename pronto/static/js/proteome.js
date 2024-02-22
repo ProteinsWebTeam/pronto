@@ -200,7 +200,7 @@ function renderResults(task) {
             if (d !== 0)
                 return d;
 
-            return a.name.localeCompare(b.name);
+            return a.accession.localeCompare(b.accession);
         })
         .map(item => {
             const key = item.database.name;
@@ -244,7 +244,7 @@ function renderResults(task) {
             tbody += `
                 <tr>
                     <td><a href="/signature/${item.accession}/">${item.accession}</a></td>
-                    <td>${item.name !== item.accession ? item.name : ''}</td>
+                    <td>${item.name !== null && item.name !== item.accession ? item.name : ''}</td>
                     <td class="collapsing">${btn}</td>
                     <td class="right aligned">${item.proteins.total_all.toLocaleString()}</td>
                     <td class="right aligned">${item.proteins.total_reviewed.toLocaleString()}</td>
