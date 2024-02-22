@@ -100,10 +100,6 @@ def sig_taxonomy(accessions, rank):
     return render_template("signatures/taxonomy.html")
 
 
-@app.route("/taxon/")
-def taxon():
-    return render_template("taxon.html")
-
 @app.route("/proteome/")
 def proteome():
     return render_template("proteome.html")
