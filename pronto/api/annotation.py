@@ -391,10 +391,6 @@ def insert_annotation(
     ann.strip()
     ann.wrap()
     ann_id = cur.var(STRING)
-
-    if is_llm and not is_checked:
-        is_checked = True
-        
     try:
         cur.execute(
             """
@@ -550,7 +546,7 @@ def search_annotations():
 
         cur.execute(
             """
-            SELECT CA.ANN_ID, CA.TEXT, CA.LLM, CA.CHECKED, 
+            SELECT CA.ANN_ID, CA.TEXT, MIN(CA.LLM), MIN(CA.CHECKED), 
                    COUNT(EC.ENTRY_AC) AS CNT
             FROM INTERPRO.COMMON_ANNOTATION CA
             LEFT OUTER JOIN INTERPRO.ENTRY2COMMON EC 
@@ -654,6 +650,8 @@ def update_annotation(ann_id):
     try:
         text = request.form["text"].strip()
         comment = request.form["reason"].strip()
+        is_llm = request.form["llm"].strip()
+        is_checked = request.form["checked"].strip()
     except KeyError:
         return jsonify({
             "status": False,
@@ -680,6 +678,25 @@ def update_annotation(ann_id):
                            "updating an annotation."
             }
         }), 400
+    elif is_llm not in ("true", "false"):
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Invalid value for 'llm'",
+                "message": "The value of 'llm' must be 'true' or 'false'."
+            }
+        }), 400
+    elif is_checked not in ("true", "false"):
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Invalid value for 'checked'",
+                "message": "The value of 'checked' must be 'true' or 'false'."
+            }
+        }), 400
+
+    is_llm = is_llm == "true"
+    is_checked = is_checked == "true"
 
     ann = Annotation(text)
     if not ann.validate_html():
@@ -725,7 +742,7 @@ def update_annotation(ann_id):
 
     cur.execute(
         """
-        SELECT TEXT, LLM, CHECKED
+        SELECT TEXT, LLM
         FROM INTERPRO.COMMON_ANNOTATION
         WHERE ANN_ID = :1
         """,
@@ -744,9 +761,17 @@ def update_annotation(ann_id):
         }), 400
 
     current_text = row[0]
-    current_llm = row[1] == "Y"
-    current_checked = row[2] == "Y"
-    # TODO: reject update if checked -> unchecked or not-llm -> is-llm
+    is_currently_llm = row[1] == "Y"
+
+    # TODO: remove following block if allowing to change LLM->human
+    if is_currently_llm != is_llm:
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Action not permitted",
+                "message": f"Changing the origin of annotations is forbidden."
+            }
+        }), 403
 
     """
     Compare references, 
@@ -940,10 +965,10 @@ def update_annotation(ann_id):
         cur.execute(
             """
             UPDATE INTERPRO.COMMON_ANNOTATION
-            SET TEXT = :1, COMMENTS = :2
-            WHERE ANN_ID = :3
+            SET TEXT = :1, COMMENTS = :2, LLM = :3
+            WHERE ANN_ID = :4
             """,
-            [ann.text, comment, ann_id]
+            [ann.text, comment, "Y" if is_llm else "N", ann_id]
         )
     except DatabaseError as exc:
         return jsonify({
@@ -1008,7 +1033,7 @@ def approve_annotation(ann_id):
                 "message": f"{ann_id} has not been generated using a LLM, "
                            f"and therefore cannot be reviewed."
             }
-        }), 400
+        }), 403
 
     try:
         cur.execute(
