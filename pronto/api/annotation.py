@@ -3,6 +3,7 @@ from datetime import datetime
 from xml.dom.minidom import parseString
 from xml.parsers.expat import ExpatError
 
+import oracledb
 from oracledb import Cursor, DatabaseError, STRING
 from flask import Blueprint, jsonify, request
 
@@ -302,6 +303,161 @@ class Annotation(object):
         }
 
 
+def insert_annotation(
+        text: str,
+        con: oracledb.Connection,
+        user: dict,
+        is_llm: bool = False,
+        is_checked: bool = False,
+) -> tuple[str | None, dict, int]:
+    """
+    Insert a new annotation into the hooked up oracle db (e.g. IPPRO)
+
+    When adding AI generated entry, automatically add AI generated description to
+    COMMON_ANNOTATION, and link to ENTRY via entry2common relationship table
+
+    Con closing should be handled in the func that calls this func.
+
+    :param text: str, description of annotation
+    :param con: oracle db connection
+    :param user: dict, user authentication dict
+    :param is_llm: bool, whether the annotation is an AI-generated annotation
+    :param is_checked: bool, whether the annotation has been reviewed by a curator
+
+    Return tuple:
+    * annotation id (ann_id) if successful, None if fails
+    * None if successful, error obj (dict) if fails
+    * http status code
+    """
+    ann = Annotation(text)
+    if not ann.validate_html():
+        return (
+            None,
+            {
+                "status": False,
+                "error": {
+                    "title": "Text error",
+                    "message": ann.error
+                }
+            },
+            400
+        )
+    elif not ann.validate_xref_tags():
+        return (
+            None,
+            {
+                "status": False,
+                "error": {
+                    "title": "Text error",
+                    "message": ann.error
+                }
+            },
+            400,
+        )
+
+    cur = con.cursor()
+    if not ann.validate_encoding(load_global_exceptions(cur, "encoding")):
+        cur.close()
+        return (
+            None,
+            {
+                "status": False,
+                "error": {
+                    "title": "Text error",
+                    "message": ann.error
+                }
+            },
+            400,
+        )
+
+    if not ann.update_references(cur):
+        cur.close()
+        return (
+            None,
+            {
+                "status": False,
+                "error": {
+                    "title": "Text error",
+                    "message": ann.error
+                }
+            },
+            400,  # could be 500 (if INSERT failed)
+        )
+
+    action = "Imported" if is_llm else "Created"
+    comment = (f"{action} by {user['name'].split()[0]} "
+               f"on {datetime.now():%Y-%m-%d %H:%M:%S}")
+
+    ann.strip()
+    ann.wrap()
+    ann_id = cur.var(STRING)
+
+    if is_llm and not is_checked:
+        is_checked = True
+        
+    try:
+        cur.execute(
+            """
+            INSERT INTO INTERPRO.COMMON_ANNOTATION 
+                (ANN_ID, TEXT, COMMENTS, LLM, CHECKED)
+            VALUES (INTERPRO.NEW_ANN_ID(), :1, :2, :3, :4)
+            RETURNING ANN_ID INTO :5
+            """,
+            [ann.text, comment, "Y" if is_llm else "N",
+             "Y" if is_checked else "N", ann_id]
+        )
+    except DatabaseError as exc:
+        error, = exc.args
+        if error.code == 1:
+            # ORA-00001: unique constraint violated
+            cur.execute(
+                """
+                SELECT ANN_ID
+                FROM INTERPRO.COMMON_ANNOTATION
+                WHERE TEXT = :1
+                """,
+                [text]
+            )
+            ann_id, = cur.fetchone()
+
+            return (
+                None,
+                {
+                    "status": False,
+                    "error": {
+                        "title": "Database error",
+                        "message": f"Duplicate of {ann_id}"
+                    }
+                },
+                500,
+            )
+        else:
+            return (
+                None,
+                {
+                    "status": False,
+                    "error": {
+                        "title": "Database error",
+                        "message": f"The annotation could not be created: {exc}."
+                    }
+                },
+                500,
+            )
+    else:
+        con.commit()
+        ann_id = ann_id.getvalue()[0]
+        return (
+            ann_id,
+            {
+                "status": True,
+                "id": ann_id
+            },
+            200,
+        )
+    finally:
+        cur.close()
+
+
 @bp.route("/", methods=["PUT"])
 def create_annotation():
     user = auth.get_user()
@@ -332,110 +488,19 @@ def create_annotation():
 
     is_llm = is_llm == "true"
     is_checked = is_checked == "true"
-    ann = Annotation(text)
-    if not ann.validate_html():
-        return jsonify({
-            "status": False,
-            "error": {
-                "title": "Text error",
-                "message": ann.error
-            }
-        }), 400
-    elif not ann.validate_xref_tags():
-        return jsonify({
-            "status": False,
-            "error": {
-                "title": "Text error",
-                "message": ann.error
-            }
-        }), 400
 
     con = utils.connect_oracle_auth(user)
-    cur = con.cursor()
 
-    if not ann.validate_encoding(load_global_exceptions(cur, "encoding")):
-        cur.close()
-        con.close()
-        return jsonify({
-            "status": False,
-            "error": {
-                "title": "Text error",
-                "message": ann.error
-            }
-        }), 400
+    anno_id, err_obj, http_status = insert_annotation(
+        text,
+        con,
+        user,
+        is_llm,
+        is_checked,
+    )
 
-    if not ann.update_references(cur):
-        cur.close()
-        con.close()
-        return jsonify({
-            "status": False,
-            "error": {
-                "title": "Text error",
-                "message": ann.error
-            }
-        }), 400  # could be 500 (if INSERT failed)
-
-    action = "Imported" if is_llm else "Created"
-    comment = (f"{action} by {user['name'].split()[0]} "
-               f"on {datetime.now():%Y-%m-%d %H:%M:%S}")
-
-    ann.strip()
-    ann.wrap()
-    ann_id = cur.var(STRING)
-
-    if is_llm and not is_checked:
-        is_checked = True
-
-    try:
-        cur.execute(
-            """
-            INSERT INTO INTERPRO.COMMON_ANNOTATION 
-                (ANN_ID, TEXT, COMMENTS, LLM, CHECKED)
-            VALUES (INTERPRO.NEW_ANN_ID(), :1, :2, :3, :4)
-            RETURNING ANN_ID INTO :5
-            """,
-            [ann.text, comment, "Y" if is_llm else "N",
-             "Y" if is_checked else "N", ann_id]
-        )
-    except DatabaseError as exc:
-        error, = exc.args
-        if error.code == 1:
-            # ORA-00001: unique constraint violated
-            cur.execute(
-                """
-                SELECT ANN_ID
-                FROM INTERPRO.COMMON_ANNOTATION
-                WHERE TEXT = :1
-                """,
-                [text]
-            )
-            ann_id, = cur.fetchone()
-
-            return jsonify({
-                "status": False,
-                "error": {
-                    "title": "Database error",
-                    "message": f"Duplicate of {ann_id}"
-                }
-            }), 500
-        else:
-            return jsonify({
-                "status": False,
-                "error": {
-                    "title": "Database error",
-                    "message": f"The annotation could not be created: {exc}."
-                }
-            }), 500
-    else:
-        con.commit()
-        return jsonify({
-            "status": True,
-            # RETURNING -> getvalue() returns an array
-            "id": ann_id.getvalue()[0]
-        }), 200
-    finally:
-        cur.close()
-        con.close()
+    con.close()
+    return jsonify(err_obj), http_status
 
 
 @bp.route("/search/")
@@ -477,7 +542,7 @@ def search_annotations():
                 SELECT PUB_ID 
                 FROM INTERPRO.CITATION 
                 WHERE PUBMED_ID = :1
-                """, (int(search_query),)
+                """, [int(search_query)]
             )
             row = cur.fetchone()
             if row:
@@ -761,7 +826,7 @@ def update_annotation(ann_id):
                 FROM INTERPRO.ENTRY2COMMON
                 WHERE ANN_ID = :1            
             )
-            """, (ann_id,)
+            """, [ann_id]
         )
 
         entries = {}
@@ -1080,7 +1145,7 @@ def track_references(cur: Cursor, ann_id: str):
                 FROM INTERPRO.ENTRY2COMMON
                 WHERE ANN_ID = :1
             )
-            """, (ann_id,)
+            """, [ann_id]
     )
     entry2pub = {}
     for entry_acc, pub_id in cur.fetchall():
@@ -1098,7 +1163,7 @@ def track_references(cur: Cursor, ann_id: str):
             FROM INTERPRO.ENTRY2COMMON
             WHERE ANN_ID = :1
         )
-        """, (ann_id,)
+        """, [ann_id]
     )
     entry2suppl = {}
     for entry_acc, pub_id in cur.fetchall():
@@ -1166,7 +1231,7 @@ def get_annotation_entries(ann_id):
           ON EC.ENTRY_AC = E.ENTRY_AC
         WHERE EC.ANN_ID = :1
         ORDER BY EC.ENTRY_AC
-        """, (ann_id,)
+        """, [ann_id]
     )
 
     entries = []
