@@ -10,16 +10,10 @@ async function getSignature(accession) {
     return null;
 }
 
-export async function create(accession, text, is_llm) {
+export async function create(accession, text, isLLM) {
     const modal = document.getElementById('new-annotation');
     const msg = modal.querySelector('.message');
-
-    // in case of New Annotation
-    if (is_llm === undefined && text === undefined) {
-        is_llm = false
-    }
-
-    let is_checked = is_llm
+    const textarea = modal.querySelector('textarea');
 
     if (text !== undefined && text !== null) {
         const pfams = new Map();
@@ -47,8 +41,9 @@ export async function create(accession, text, is_llm) {
 
         text = text.replaceAll(/\bPfam:(PF\d+)\b/gi, replacer);
         text = text.replaceAll(/\bswiss:([a-z0-9]+)\b/gi, "[swissprot:$1]");
-        modal.querySelector('textarea').value = text;
+        textarea.value = text;
     }
+    textarea.readOnly = isLLM;
 
     $(modal)
         .modal({
@@ -65,8 +60,8 @@ export async function create(accession, text, is_llm) {
                     },
                     body: [
                         `text=${encodeURIComponent(modal.querySelector('textarea').value)}`,
-                        `llm=${is_llm}`,
-                        `checked=${is_checked}`
+                        `llm=${isLLM ? 'true' : 'false'}`,
+                        `checked=${isLLM ? 'true' : 'false'}`
                     ].join('&')
                 };
 
@@ -122,40 +117,44 @@ export function getSignaturesAnnotations(accession) {
 
                     html += '</div>';
 
-                    let is_llm = false;
+                    if (signature.text === null && signature.llm_text === null) {
+                        html += '<div class="ui bottom attached secondary segment">No annotation.</div>';
+                        continue;
+                    }
+
+                    html += '<div class="ui attached segment">';
+
+                    let text;
+                    let isLLM;
                     if (signature.text !== null) {
-                        signatureAnnotations.set(signature.accession, {text: signature.text, llm: is_llm});
+                        text = signature.text;
+                        isLLM = false;
+                    } else {
+                        text = signature.llm_text;
+                        isLLM = true;
                         html += `
-                            <div class="ui attached segment">
-                            ${escape(signature.text)}
-                            </div>
-                            <div class="ui bottom attached borderless mini menu">
-                                <span class="item message"></span>
-                                <div class="right item">
-                                <button data-id="${signature.accession}" class="ui primary button">Use</button>
-                                </div>
-                            </div>
-                        `;
-                    } else if (signature.llm_text !== null) {
-                        is_llm = true
-                        signatureAnnotations.set(signature.accession, {text: signature.llm_text, llm: is_llm});
-                        html += `
-                            <div class="ui attached segment">
-                                <div class="ui warning message">
+                            <div class="ui warning message">
                                 <div class="header">AI-generated annotation</div>
                                 This annotation has been automatically generated using an AI language model.
-                                </div>
-                                <p>${escape(signature.llm_text)}</p>
-                            </div>
-                            <div class="ui bottom attached borderless mini menu">
-                                <span class="item message"></span>
-                                <div class="right item">
-                                <button data-id="${signature.accession}" class="ui primary button">Use</button>
-                                </div>
-                            </div>
+                            </div>                        
                         `;
-                    } else
-                        html += '<div class="ui bottom attached secondary segment">No annotation.</div>';
+                    }
+
+                    html += `
+                        ${escape(text)}
+                        </div>
+                        <div class="ui bottom attached borderless mini menu">
+                            <span class="item message"></span>
+                            <div class="right item">
+                            <button data-id="${signature.accession}" class="ui primary button">Use</button>
+                            </div>
+                        </div>
+                    `;
+
+                    signatureAnnotations.set(
+                        signature.accession,
+                        {text: text, llm: isLLM}
+                    );
                 }
             } else
                 html += `<p><strong>${accession}</strong> has no signatures.</p>`;
@@ -238,9 +237,9 @@ export function refresh(accession) {
                     if (annotation.is_llm) {
                         sourceIcon = 'robot';
                         if (annotation.is_checked)
-                            llmAction = '<a data-action="review" class="disabled item"><abbr title="Approve annotation"><i class="eye icon"></i></abbr></a>';
+                            llmAction = '<a data-action="review" class="disabled item"><abbr title="Approve annotation"><i class="eye fitted icon"></i></abbr></a>';
                         else
-                            llmAction = '<a data-action="review" class="item"><abbr title="Approve annotation"><i class="eye slash icon"></i></abbr></a>';
+                            llmAction = '<a data-action="review" class="item"><abbr title="Approve annotation"><i class="eye slash fitted icon"></i></abbr></a>';
                     }
 
                     html += `
@@ -332,11 +331,11 @@ export function refresh(accession) {
             for (const elem of document.querySelectorAll('.annotation a[data-action]:not(.disabled)')) {
                 if (elem.dataset.action === 'review') {
                     elem.addEventListener('mouseenter', (e,) => {
-                        e.currentTarget.querySelector('i').className = 'eye icon';
+                        e.currentTarget.querySelector('i').className = 'eye fitted icon';
                     });
 
                     elem.addEventListener('mouseleave', (e,) => {
-                        e.currentTarget.querySelector('i').className = 'eye slash icon';
+                        e.currentTarget.querySelector('i').className = 'eye slash fitted icon';
                     });
                 }
 
@@ -409,7 +408,10 @@ export function search(accession, query) {
                 for (const ann of result.hits) {
                     // Highlight search query in text
                     const text = escape(ann.text).replace(re, '<span class="hl-search">$&</span>');
-                    annotations.set(ann.id, {text: ann.text, entries: ann.num_entries});
+                    annotations.set(
+                        ann.id,
+                        {text: ann.text, entries: ann.num_entries, llm: ann.is_llm}
+                    );
 
                     html += `
                         <div class="ui top attached segment">${text}</div>
@@ -441,8 +443,10 @@ export function search(accession, query) {
 
                     if (action === 'list')
                         getAnnotationEntries(annID);
-                    else if (action === 'copy')
-                        create(accession, annotations.get(annID).text, false);
+                    else if (action === 'copy') {
+                        const annInfo = annotations.get(annID);
+                        create(accession, annInfo.text, annInfo.llm);
+                    }
                     else if (action === 'link') {
                         actionButton.classList.add('disabled');
                         link(accession, annID)
