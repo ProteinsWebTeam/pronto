@@ -320,14 +320,14 @@ def ck_unchecked_children(cur: Cursor) -> Err:
 
 def ck_children_type(cur: Cursor) -> Err:
     cur.execute(
-    """
+        """
         SELECT A.PARENT_AC PARENT, A.ENTRY_AC CHILD
         FROM INTERPRO.ENTRY2ENTRY A
         JOIN INTERPRO.ENTRY B1 ON A.ENTRY_AC = B1.ENTRY_AC
         JOIN INTERPRO.ENTRY B2 ON A.PARENT_AC = B2.ENTRY_AC
         WHERE B2.ENTRY_TYPE != B1.ENTRY_TYPE
         ORDER BY A.PARENT_AC,A.ENTRY_AC
-    """
+        """
     )
     errors = []
 
@@ -339,7 +339,7 @@ def ck_children_type(cur: Cursor) -> Err:
 
 def ck_no_children(cur: Cursor) -> Err:
     cur.execute(
-    """
+        """
         SELECT A.PARENT_AC PARENT, A.ENTRY_AC CHILD 
         FROM INTERPRO.ENTRY2ENTRY A
         JOIN INTERPRO.ENTRY B1 ON A.ENTRY_AC = B1.ENTRY_AC
@@ -453,20 +453,20 @@ def ck_underscore(entries: LoT, exceptions: set[str]) -> Err:
 
 
 def ck_no_cab(cur: Cursor) -> Err:
-    cur.execute("""
-            SELECT ENTRY_AC
-            FROM INTERPRO.ENTRY
-            WHERE CHECKED = 'Y'
-            MINUS
-            SELECT DISTINCT ENTRY_AC
-            FROM INTERPRO.ENTRY2COMMON
+    cur.execute(
+        """
+        SELECT ENTRY_AC
+        FROM INTERPRO.ENTRY
+        WHERE CHECKED = 'Y'
+        MINUS
+        SELECT DISTINCT ENTRY_AC
+        FROM INTERPRO.ENTRY2COMMON
         """
     )
-
     return cur.fetchall()
 
 
-def ck_fragments(cur: Cursor, sign_frag_only: set) -> Err:
+def ck_fragments(cur: Cursor, sign_frag_only: list[str]) -> Err:
     # Integrated ENTRIES that have METHODs that MATCH ONLY FRAGMENTS
     errors = []
 
@@ -475,12 +475,14 @@ def ck_fragments(cur: Cursor, sign_frag_only: set) -> Err:
 
         cur.execute(
             f"""
-                SELECT E.ENTRY_AC, E2M.METHOD_AC
-                FROM INTERPRO.ENTRY E
-                JOIN INTERPRO.ENTRY2METHOD E2M ON E.ENTRY_AC=E2M.ENTRY_AC
-                WHERE E.CHECKED='Y' AND E2M.METHOD_AC IN ({",".join(binds)})
-                GROUP BY E.ENTRY_AC, E2M.METHOD_AC
-            """, list(sign_frag_only))
+            SELECT E.ENTRY_AC, E2M.METHOD_AC
+            FROM INTERPRO.ENTRY E
+            JOIN INTERPRO.ENTRY2METHOD E2M ON E.ENTRY_AC=E2M.ENTRY_AC
+            WHERE E.CHECKED='Y' AND E2M.METHOD_AC IN ({",".join(binds)})
+            GROUP BY E.ENTRY_AC, E2M.METHOD_AC
+            """,
+            sign_frag_only
+        )
 
         for row in cur:
             entry_ac, sign = row
@@ -490,23 +492,21 @@ def ck_fragments(cur: Cursor, sign_frag_only: set) -> Err:
     return errors
 
 
-def get_frags_only_signatures(pg_url: str) -> Err:
+def get_frags_only_signatures(pg_url: str) -> list[str]:
     pg_con = connect_pg(pg_url)
     pg_cur = pg_con.cursor()
 
     pg_cur.execute(
         """
-            SELECT accession
-            FROM signature
-            WHERE num_sequences > 0
-            AND num_complete_sequences = 0
+        SELECT accession
+        FROM signature
+        WHERE num_sequences > 0 
+          AND num_complete_sequences = 0
         """
     )
     errors = [row[0] for row in pg_cur]
-
     pg_cur.close()
     pg_con.close()
-
     return errors
 
 
