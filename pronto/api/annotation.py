@@ -965,10 +965,11 @@ def update_annotation(ann_id):
         cur.execute(
             """
             UPDATE INTERPRO.COMMON_ANNOTATION
-            SET TEXT = :1, COMMENTS = :2, LLM = :3
-            WHERE ANN_ID = :4
+            SET TEXT = :1, COMMENTS = :2, LLM = :3, CHECKED = :4
+            WHERE ANN_ID = :5
             """,
-            [ann.text, comment, "Y" if is_llm else "N", ann_id]
+            [ann.text, comment, "Y" if is_llm else "N",
+             "Y" if is_checked else "N", ann_id]
         )
     except DatabaseError as exc:
         return jsonify({
