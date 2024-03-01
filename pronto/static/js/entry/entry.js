@@ -3,7 +3,7 @@ import * as dimmer from "../ui/dimmer.js"
 import {updateHeader} from "../ui/header.js"
 import * as menu from "../ui/menu.js"
 import * as modals from "../ui/modals.js";
-import {setClass, setCharsCountdown, toggleErrorMessage} from "../ui/utils.js";
+import {setCharsCountdown, toggleErrorMessage} from "../ui/utils.js";
 import * as annotations from "./annotations.js";
 import * as go from "./go.js";
 import * as references from "./references.js";
@@ -33,12 +33,25 @@ function getEntry(accession) {
                 document.querySelector('input[name="name"]').dataset.value = entry.name;
                 document.querySelector('input[name="short_name"]').dataset.value = entry.short_name;
                 document.querySelector('select[name="type"]').dataset.value = entry.type.code;
-                document.querySelector('input[name="checked"]').dataset.value = entry.is_checked ? 'checked' : '';
+                document.querySelector('input[name="checked"]').checked = entry.status.checked;
+
+                if (entry.status.llm) {
+                    const field = document.getElementById('llm-field');
+                    field.classList.remove('hidden');
+                    field.querySelector('input[name="llm-reviewed"]').checked = entry.status.reviewed;
+                }
 
                 const statistics = document.getElementById('statistics');
-                setClass(statistics, entry.type.code, true);
+                statistics.classList.add(entry.type.code);
                 statistics.querySelector('[data-statistic="type"]').innerHTML = entry.type.name;
-                statistics.querySelector('[data-statistic="checked"]').innerHTML = `<i class="${entry.is_checked ? 'check' : 'times'} icon"></i>`;
+                if (!entry.status.llm)
+                    statistics.querySelector('[data-statistic="source"]').innerHTML = `<i class="user graduate icon"></i>`;
+                else if (entry.status.reviewed)
+                    statistics.querySelector('[data-statistic="source"]').innerHTML = `<i class="robot icon"></i>&nbsp;<i class="eye outline icon"></i>`;
+                else
+                    statistics.querySelector('[data-statistic="source"]').innerHTML = `<i class="robot icon"></i>&nbsp;<i class="eye slash outline icon"></i>`;
+
+                statistics.querySelector('[data-statistic="checked"]').innerHTML = `<i class="${entry.status.checked ? 'check' : 'times'} icon"></i>`;
                 document.getElementById('public-website').href = `//www.ebi.ac.uk/interpro/entry/InterPro/${entry.accession}`;
                 document.querySelector('.ui.feed').innerHTML = `
                 <div class="event">
@@ -109,25 +122,33 @@ document.addEventListener('DOMContentLoaded', () => {
             });
     });
 
-    document.getElementById('create-annotation').addEventListener('click', (e,) => {annotations.create(accession);});
+    document.getElementById('create-annotation')
+        .addEventListener('click', (e,) => {
+            annotations.create(accession, null, false);
+        });
 
     // List signatures' annotations
-    document.getElementById('signatures-annotations').addEventListener('click', e => {annotations.getSignaturesAnnotations(accession);});
+    document.getElementById('signatures-annotations')
+        .addEventListener('click', e => {
+            annotations.getSignaturesAnnotations(accession);
+        });
 
     // Event to show formatting help
-    document.getElementById('help-format').addEventListener('click', e => {
-        $('#format-help').modal('show');
-    });
+    document.getElementById('help-format')
+        .addEventListener('click', e => {
+            $('#format-help').modal('show');
+        });
 
     // Even to search annotations
-    document.getElementById('search-annotations').addEventListener('keyup' , (e,) => {
-        if (e.key !== 'Enter')
-            return;
+    document.getElementById('search-annotations')
+        .addEventListener('keyup' , (e,) => {
+            if (e.key !== 'Enter')
+                return;
 
-        const query = e.currentTarget.value.trim();
-        if (query.length >= 3)
-            annotations.search(accession, query);
-    });
+            const query = e.currentTarget.value.trim();
+            if (query.length >= 3)
+                annotations.search(accession, query);
+        });
 
     /*
         Event to integrate signatures
@@ -201,16 +222,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 setCharsCountdown(elem);
             }
 
-            setClass(segment, 'hidden', false);
+            segment.classList.remove('hidden');
         } else
-            setClass(segment, 'hidden', true);
+            segment.classList.add('hidden');
 
         $('.ui.sticky').sticky();
     });
 
     // Close edit panel (cancel changes)
     document.querySelector('#edit-entry .cancel.button').addEventListener('click', e => {
-        setClass(document.getElementById('edit-entry'), 'hidden', true);
+        document.getElementById('edit-entry').classList.add('hidden');
     });
 
     // Init saving changes in edit panel
@@ -244,7 +265,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     .then(result => {
                         if (result.status) {
                             toggleErrorMessage(errMsg, null);
-                            setClass(segment, 'hidden', true);
+                            segment.classList.add('hidden');
                             getEntry(accession);
                         } else
                             toggleErrorMessage(errMsg, result.error);
@@ -297,10 +318,13 @@ document.addEventListener('DOMContentLoaded', () => {
             onChange: function () {
                 const checked = this.checked;
                 annotations.refresh(accession).then(() => {
-                    let elem = document.querySelector('#curation');
-                    setClass(elem, 'hidden', checked);
-                    elem = document.querySelector('#annotations div.header');
-                    setClass(elem, 'hidden', checked);
+                    if (checked) {
+                        document.getElementById('curation').classList.add('hidden');
+                        document.querySelector('#annotations div.header').classList.add('hidden');
+                    } else {
+                        document.getElementById('curation').classList.remove('hidden');
+                        document.querySelector('#annotations div.header').classList.remove('hidden');
+                    }
                     $('.ui.sticky').sticky();
                 });
             }
@@ -323,7 +347,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                     else {
                         modals.error(result.error.title, result.error.message);
-                        setClass(this.querySelector('.field'), 'error', true);
+                        this.querySelector('.field').classList.add('error');
                     }
                 });
         }

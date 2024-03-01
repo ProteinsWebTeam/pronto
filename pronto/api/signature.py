@@ -13,12 +13,16 @@ bp = Blueprint("api_signature", __name__, url_prefix="/api/signature")
 def get_signature(accession):
     con = utils.connect_pg()
     cur = con.cursor()
+    # description becomes short name on the front end
+    # abstract becomes description on the front end
     cur.execute(
         """
         SELECT
           s.accession,
           s.name,
+          s.llm_name,
           s.description,
+          s.llm_description,
           s.type,
           s.abstract,
           s.llm_abstract,
@@ -47,30 +51,33 @@ def get_signature(accession):
             }
         }), 404
 
-    db = utils.get_database_obj(row[10])
+    # data populates signature table to new entry window
+    db = utils.get_database_obj(row[12])
     result = {
         "accession": row[0],
-        "name": row[1],
-        "description": row[2],
-        "type": row[3],
-        "abstract": row[4],
-        "llm_abstract": row[5],
+        "name": row[1],  # --> short name
+        "llm_name": row[2],
+        "description": row[3],
+        "llm_description": row[4],  # --> name on front end
+        "type": row[5],
+        "abstract": row[6],
+        "llm_abstract": row[7],  # --> description on front end
         "proteins": {
-            "total": row[6],
-            "complete": row[7],
+            "total": row[8],
+            "complete": row[9],
             "reviewed": {
-                "total": row[8],
-                "complete": row[9]
+                "total": row[10],
+                "complete": row[11]
             }
         },
         "database": {
-            "name": row[11],
+            "name": row[13],
             "home": db.home,
             "link": db.gen_link(accession),
             "color": db.color,
-            "version": row[12]
+            "version": row[14]
         },
-        "entry": None
+        "entry": None,
     }
 
     con = utils.connect_oracle()
@@ -82,7 +89,8 @@ def get_signature(accession):
         LEFT OUTER JOIN INTERPRO.ENTRY E
           ON EM.ENTRY_AC = E.ENTRY_AC
         WHERE EM.METHOD_AC = :1
-        """, (result["accession"],)
+        """,
+        [result["accession"]]
     )
     row = cur.fetchone()
 
@@ -107,7 +115,7 @@ def get_signature(accession):
             ) H
             INNER JOIN INTERPRO.ENTRY E ON H.PARENT_AC = E.ENTRY_AC
             ORDER BY H.RN DESC
-            """, (entry_acc,)
+            """, [entry_acc]
         )
         ancestors = [dict(zip(("accession", "name"), row)) for row in cur]
         result["entry"]["hierarchy"] = ancestors
@@ -136,7 +144,7 @@ def get_signature_comments(accession):
         WHERE C.METHOD_AC = :1
         ORDER BY C.CREATED_ON DESC
         """,
-        (accession,)
+        [accession]
     )
     comments = [
         {
@@ -277,7 +285,7 @@ def get_term_citations(accession, term_id):
                 AND ref_db_code = 'PMID'
             )
             ORDER BY published
-            """, (term_id, accession)
+            """, [term_id, accession]
         )
 
         results = []
@@ -422,7 +430,7 @@ def get_signature_predictions(accession):
             FROM INTERPRO.ENTRY2ENTRY
             START WITH ENTRY_AC = :1
             CONNECT BY PRIOR PARENT_AC = ENTRY_AC
-            """, (query_entry,)
+            """, [query_entry]
         )
         ancestors = {row[0] for row in cur}
 
@@ -433,7 +441,7 @@ def get_signature_predictions(accession):
             FROM INTERPRO.ENTRY2ENTRY
             START WITH PARENT_AC = :1
             CONNECT BY PRIOR ENTRY_AC = PARENT_AC
-            """, (query_entry,)
+            """, [query_entry]
         )
         descendants = {row[0] for row in cur}
     else:
@@ -461,7 +469,7 @@ def get_signature_predictions(accession):
         SELECT num_complete_sequences, num_residues
         FROM interpro.signature
         WHERE accession = %s
-        """, (accession,)
+        """, [accession]
     )
     q_proteins, q_residues = cur.fetchone()
 
@@ -486,7 +494,7 @@ def get_signature_predictions(accession):
               ON (c.signature_acc_1 = p.signature_acc_1
                   AND c.signature_acc_2 = p.signature_acc_2)
             WHERE c.signature_acc_1 = %s
-            """, (accession,)
+            """, [accession]
         )
     else:
         cur.execute(
@@ -506,7 +514,7 @@ def get_signature_predictions(accession):
             INNER JOIN interpro.database d
               ON s.database_id = d.id
             WHERE p.signature_acc_1 = %s
-            """, (accession,)
+            """, [accession]
         )
 
     targets = {}

@@ -1,7 +1,7 @@
 import * as references from "./references.js"
 import * as dimmer from "../ui/dimmer.js";
 import * as modals from "../ui/modals.js"
-import {setClass, toggleErrorMessage} from "../ui/utils.js";
+import {toggleErrorMessage} from "../ui/utils.js";
 
 async function getSignature(accession) {
     const response = await fetch(`/api/signature/${accession}/`);
@@ -10,9 +10,10 @@ async function getSignature(accession) {
     return null;
 }
 
-export async function create(accession, text) {
+export async function create(accession, text, isLLM) {
     const modal = document.getElementById('new-annotation');
     const msg = modal.querySelector('.message');
+    const textarea = modal.querySelector('textarea');
 
     if (text !== undefined && text !== null) {
         const pfams = new Map();
@@ -40,15 +41,16 @@ export async function create(accession, text) {
 
         text = text.replaceAll(/\bPfam:(PF\d+)\b/gi, replacer);
         text = text.replaceAll(/\bswiss:([a-z0-9]+)\b/gi, "[swissprot:$1]");
-        modal.querySelector('textarea').value = text;
+        textarea.value = text;
     }
+    textarea.readOnly = isLLM;
 
     $(modal)
         .modal({
             closable: false,
             onDeny: function() {
                 modal.querySelector('textarea').value = null;
-                setClass(msg, 'hidden', true);
+                msg.classList.add('hidden');
             },
             onApprove: function() {
                 const options = {
@@ -56,11 +58,10 @@ export async function create(accession, text) {
                     headers: {
                         'Content-type': 'application/x-www-form-urlencoded; charset=UTF-8'
                     },
-                    // TODO: add checkboxes for llm and checked
                     body: [
                         `text=${encodeURIComponent(modal.querySelector('textarea').value)}`,
-                        `llm=false`,
-                        `checked=false`
+                        `llm=${isLLM ? 'true' : 'false'}`,
+                        `checked=${isLLM ? 'true' : 'false'}`
                     ].join('&')
                 };
 
@@ -68,14 +69,14 @@ export async function create(accession, text) {
                     .then(response => response.json())
                     .then(result => {
                         if (result.status) {
-                            setClass(msg, 'hidden', true);
+                            msg.classList.add('hidden');
 
                             // Return a promise to link the created annotation to the entry
                             return link(accession, result.id);
                         } else {
                             msg.querySelector('.header').innerHTML = result.error.title;
                             msg.querySelector('p').innerHTML = result.error.message.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                            setClass(msg, 'hidden', false);
+                            msg.classList.remove('hidden');
                             return null;
                         }
                     })
@@ -116,32 +117,44 @@ export function getSignaturesAnnotations(accession) {
 
                     html += '</div>';
 
-                    if (signature.text !== null) {
-                        signatureAnnotations.set(signature.accession, signature.text);
-                        html += `
-                            <div class="ui attached segment">
-                            ${escape(signature.text)}
-                            </div>
-                            <div class="ui bottom attached borderless mini menu">
-                                <span class="item message"></span>
-                                <div class="right item">
-                                <button data-id="${signature.accession}" class="ui primary button">Use</button>
-                                </div>
-                            </div>
-                        `;
-                    } else if (signature.llm_text !== null) {
-                            html += `
-                                <div class="ui attached segment">
-                                    <div class="ui warning message">
-                                    <div class="header">AI-generated annotation</div>
-                                    This annotation has been automatically generated using an AI language model.
-                                    Currently, importing AI-generated annotations for InterPro entries is not supported.
-                                    </div>
-                                    <p>${escape(signature.llm_text)}</p>
-                                </div>
-                            `;
-                    } else
+                    if (signature.text === null && signature.llm_text === null) {
                         html += '<div class="ui bottom attached secondary segment">No annotation.</div>';
+                        continue;
+                    }
+
+                    html += '<div class="ui attached segment">';
+
+                    let text;
+                    let isLLM;
+                    if (signature.text !== null) {
+                        text = signature.text;
+                        isLLM = false;
+                    } else {
+                        text = signature.llm_text;
+                        isLLM = true;
+                        html += `
+                            <div class="ui warning message">
+                                <div class="header">AI-generated annotation</div>
+                                This annotation has been automatically generated using an AI language model.
+                            </div>                        
+                        `;
+                    }
+
+                    html += `
+                        ${escape(text)}
+                        </div>
+                        <div class="ui bottom attached borderless mini menu">
+                            <span class="item message"></span>
+                            <div class="right item">
+                            <button data-id="${signature.accession}" class="ui primary button">Use</button>
+                            </div>
+                        </div>
+                    `;
+
+                    signatureAnnotations.set(
+                        signature.accession,
+                        {text: text, llm: isLLM}
+                    );
                 }
             } else
                 html += `<p><strong>${accession}</strong> has no signatures.</p>`;
@@ -157,7 +170,8 @@ export function getSignaturesAnnotations(accession) {
                         return;
 
                     $(modal).modal('hide');
-                    create(accession, signatureAnnotations.get(key));
+                    const annInfo = signatureAnnotations.get(key);
+                    create(accession, annInfo.text, annInfo.llm);
                 });
             }
 
@@ -218,6 +232,16 @@ export function refresh(accession) {
                         delete: results.annotations.length > 1  // && annotation.num_entries === 1
                     });
 
+                    let llmAction = '';
+                    let sourceIcon = 'user graduate';
+                    if (annotation.is_llm) {
+                        sourceIcon = 'robot';
+                        if (annotation.is_checked)
+                            llmAction = '<a data-action="review" class="disabled item"><abbr title="Approve annotation"><i class="eye fitted icon"></i></abbr></a>';
+                        else
+                            llmAction = '<a data-action="review" class="item"><abbr title="Approve annotation"><i class="eye slash fitted icon"></i></abbr></a>';
+                    }
+
                     html += `
                         <div id="${annotation.id}" class="annotation">
                         <div class="ui top attached mini menu">
@@ -227,7 +251,8 @@ export function refresh(accession) {
                         <a data-action="unlink" class="item"><abbr title="Unlink annotation"><i class="unlink fitted icon"></i></abbr></a>
                         <a data-action="delete" class="item"><abbr title="Delete annotation"><i class="trash fitted icon"></i></abbr></a>
                         <div class="right menu">
-                            <span class="selectable item">${annotation.id}</span>
+                            <span class="selectable item"><i class="${sourceIcon} icon"></i> ${annotation.id}</span>
+                            ${llmAction}
                             ${annotation.comment ? '<span class="item">'+annotation.comment+'</span>' : ''}
                             <a data-action="list" class="item"><i class="list icon"></i> Associated to ${annotation.num_entries} ${annotation.num_entries === 1 ? 'entry' : 'entries'}</a>
                         </div>
@@ -304,6 +329,16 @@ export function refresh(accession) {
             // Event listener on actions
             annotationEditor.reset();
             for (const elem of document.querySelectorAll('.annotation a[data-action]:not(.disabled)')) {
+                if (elem.dataset.action === 'review') {
+                    elem.addEventListener('mouseenter', (e,) => {
+                        e.currentTarget.querySelector('i').className = 'eye fitted icon';
+                    });
+
+                    elem.addEventListener('mouseleave', (e,) => {
+                        e.currentTarget.querySelector('i').className = 'eye slash fitted icon';
+                    });
+                }
+
                 elem.addEventListener('click', e => {
                     const annID = e.currentTarget.closest('.annotation').getAttribute('id');
                     const action = e.currentTarget.dataset.action;
@@ -349,9 +384,10 @@ export function refresh(accession) {
                             annotationEditor.save(accession, annID);
                     } else if (action === 'cancel')
                         annotationEditor.close();
-                    else if (action === 'list') {
+                    else if (action === 'list')
                         getAnnotationEntries(annID);
-                    }
+                    else if (action === 'review')
+                        annotationEditor.approve(accession, annID);
                 });
             }
         });
@@ -372,7 +408,10 @@ export function search(accession, query) {
                 for (const ann of result.hits) {
                     // Highlight search query in text
                     const text = escape(ann.text).replace(re, '<span class="hl-search">$&</span>');
-                    annotations.set(ann.id, {text: ann.text, entries: ann.num_entries});
+                    annotations.set(
+                        ann.id,
+                        {text: ann.text, entries: ann.num_entries, llm: ann.is_llm}
+                    );
 
                     html += `
                         <div class="ui top attached segment">${text}</div>
@@ -404,10 +443,12 @@ export function search(accession, query) {
 
                     if (action === 'list')
                         getAnnotationEntries(annID);
-                    else if (action === 'copy')
-                        create(accession, annotations.get(annID).text);
+                    else if (action === 'copy') {
+                        const annInfo = annotations.get(annID);
+                        create(accession, annInfo.text, annInfo.llm);
+                    }
                     else if (action === 'link') {
-                        setClass(actionButton, 'disabled', true);
+                        actionButton.classList.add('disabled');
                         link(accession, annID)
                             .then((result,) => {
                                 if (result.status) {
@@ -418,10 +459,10 @@ export function search(accession, query) {
                                     elem.innerHTML = `Associated to ${count} ${count === 1 ? 'entry' : 'entries'}`;
                                     // Disable 'delete' button
                                     elem = menu.querySelector('[data-action="delete"]');
-                                    setClass(elem, 'disabled', true);
+                                    elem.classList.add('disabled');
                                     refresh(accession).then(() => {$('.ui.sticky').sticky();});
                                 } else {
-                                    setClass(actionButton, 'disabled', false);
+                                    actionButton.classList.remove('disabled');
                                     toggleErrorMessage(modal.querySelector('.ui.message'), result.error);
                                 }
 
@@ -431,7 +472,7 @@ export function search(accession, query) {
                             if (status)
                                 search(accession, query);
                             else
-                                setClass(actionButton, 'disabled', false);
+                                actionButton.classList.remove('disabled');
                         });
                     }
                 });
@@ -499,7 +540,7 @@ const annotationEditor = {
         // msg.innerHTML = null;
 
         // Display bottom menu
-        setClass(menu, 'hidden', false);
+        menu.classList.remove('hidden');
 
         // Save formatted annotation
         segment = this.element.querySelector('.segment');
@@ -533,7 +574,7 @@ const annotationEditor = {
         if (this.element === null) return;
 
         // Hide bottom menu
-        setClass(this.element.querySelector('.ui.bottom.menu'), 'hidden', true);
+        this.element.querySelector('.ui.bottom.menu').classList.add('hidden');
 
         // Restore formatted annotation
         const segment = this.element.querySelector('.segment');
@@ -561,9 +602,9 @@ const annotationEditor = {
         const reason = select.options[select.selectedIndex].value;
 
         if (reason.length)
-            setClass(select.parentNode, 'error', false);
+            select.parentNode.classList.remove('error');
         else {
-            setClass(select.parentNode, 'error', true);
+            select.parentNode.classList.add('error');
             return;
         }
 
@@ -599,9 +640,19 @@ const annotationEditor = {
                     const form = this.element.querySelector('.ui.form');
                     // Escape lesser/greater signs because if the error message contains "<p>" it will be interpreted
                     form.querySelector('.ui.message').innerHTML = '<div class="header">'+ result.error.title +'</div><p>'+ result.error.message.replace(/</g, '&lt;').replace(/>/g, '&gt;') +'</p>';
-                    setClass(textarea.parentNode, 'error', true);
-                    setClass(form, 'error', true);
+                    select.parentNode.classList.add('error');
+                    form.classList.add('error');
                 }
+            });
+    },
+    approve: function (accession, annID) {
+        fetch(`/api/annotation/${annID}/review/`, { method: 'POST' })
+            .then((response,) => response.json())
+            .then((result,) => {
+                if (result.status)
+                    refresh(accession).then(() => { $('.ui.sticky').sticky(); });
+                else
+                    modals.error(result.error.title, result.error.message);
             });
     }
 };
@@ -636,11 +687,10 @@ function addHighlightEvenListeners(div) {
         elem.addEventListener('click', e => {
             let active = document.querySelector('li.active');
             if (active)
-                setClass(active, 'active', false);
+                active.classList.remove('active');
 
-            const id = e.currentTarget.getAttribute('href').substr(1);
-            active = document.getElementById(id);
-            setClass(active, 'active', true);
+            const id = e.currentTarget.getAttribute('href').substring(1);
+            document.getElementById(id).classList.add('active');
         });
     }
 }

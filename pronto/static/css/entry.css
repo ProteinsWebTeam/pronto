@@ -45,7 +45,7 @@ Preview mode: no horizontal line between annotations, but a simple padding (like
 .ui.vertical.segment.annotation { border-bottom: none; }
 .ui.vertical.segment.annotation:not(:last-child) { padding-bottom: 0; }
 
-.ui.hidden.menu, .ui.hidden.segment, .hidden.header {
+.ui.hidden.menu, .ui.hidden.segment, .hidden.header, .hidden.field {
     display: none;
 }
 

@@ -3,6 +3,7 @@ from datetime import datetime
 from xml.dom.minidom import parseString
 from xml.parsers.expat import ExpatError
 
+import oracledb
 from oracledb import Cursor, DatabaseError, STRING
 from flask import Blueprint, jsonify, request
 
@@ -302,78 +303,86 @@ class Annotation(object):
         }
 
 
-@bp.route("/", methods=["PUT"])
-def create_annotation():
-    user = auth.get_user()
-    if not user:
-        return jsonify({
-            "status": False,
-            "error": {
-                "title": "Access denied",
-                "message": "Please log in to perform this operation."
-            }
-        }), 401
+def insert_annotation(
+        text: str,
+        con: oracledb.Connection,
+        user: dict,
+        is_llm: bool = False,
+        is_checked: bool = False,
+) -> tuple[str | None, dict, int]:
+    """
+    Insert a new annotation into the hooked up oracle db (e.g. IPPRO)
 
-    try:
-        text = request.form["text"].strip()
-        is_llm = request.form["llm"].strip()
-        is_checked = request.form["checked"].strip()
-        assert (len(text) and
-                is_llm in ("true", "false") and
-                is_checked in ("true", "false"))
-    except (AssertionError, KeyError):
-        return jsonify({
-            "status": False,
-            "error": {
-                "title": "Bad request",
-                "message": "Invalid or missing parameters."
-            }
-        }), 400
+    When adding AI generated entry, automatically add AI generated description to
+    COMMON_ANNOTATION, and link to ENTRY via entry2common relationship table
 
-    is_llm = is_llm == "true"
-    is_checked = is_checked == "true"
+    Con closing should be handled in the func that calls this func.
+
+    :param text: str, description of annotation
+    :param con: oracle db connection
+    :param user: dict, user authentication dict
+    :param is_llm: bool, whether the annotation is an AI-generated annotation
+    :param is_checked: bool, whether the annotation has been reviewed by a curator
+
+    Return tuple:
+    * annotation id (ann_id) if successful, None if fails
+    * None if successful, error obj (dict) if fails
+    * http status code
+    """
     ann = Annotation(text)
     if not ann.validate_html():
-        return jsonify({
-            "status": False,
-            "error": {
-                "title": "Text error",
-                "message": ann.error
-            }
-        }), 400
+        return (
+            None,
+            {
+                "status": False,
+                "error": {
+                    "title": "Text error",
+                    "message": ann.error
+                }
+            },
+            400
+        )
     elif not ann.validate_xref_tags():
-        return jsonify({
-            "status": False,
-            "error": {
-                "title": "Text error",
-                "message": ann.error
-            }
-        }), 400
+        return (
+            None,
+            {
+                "status": False,
+                "error": {
+                    "title": "Text error",
+                    "message": ann.error
+                }
+            },
+            400,
+        )
 
-    con = utils.connect_oracle_auth(user)
     cur = con.cursor()
-
     if not ann.validate_encoding(load_global_exceptions(cur, "encoding")):
         cur.close()
-        con.close()
-        return jsonify({
-            "status": False,
-            "error": {
-                "title": "Text error",
-                "message": ann.error
-            }
-        }), 400
+        return (
+            None,
+            {
+                "status": False,
+                "error": {
+                    "title": "Text error",
+                    "message": ann.error
+                }
+            },
+            400,
+        )
 
     if not ann.update_references(cur):
         cur.close()
-        con.close()
-        return jsonify({
-            "status": False,
-            "error": {
-                "title": "Text error",
-                "message": ann.error
-            }
-        }), 400  # could be 500 (if INSERT failed)
+        return (
+            None,
+            {
+                "status": False,
+                "error": {
+                    "title": "Text error",
+                    "message": ann.error
+                }
+            },
+            400,  # could be 500 (if INSERT failed)
+        )
 
     action = "Imported" if is_llm else "Created"
     comment = (f"{action} by {user['name'].split()[0]} "
@@ -407,31 +416,87 @@ def create_annotation():
             )
             ann_id, = cur.fetchone()
 
-            return jsonify({
-                "status": False,
-                "error": {
-                    "title": "Database error",
-                    "message": f"Duplicate of {ann_id}"
-                }
-            }), 500
+            return (
+                None,
+                {
+                    "status": False,
+                    "error": {
+                        "title": "Database error",
+                        "message": f"Duplicate of {ann_id}"
+                    }
+                },
+                500,
+            )
         else:
-            return jsonify({
-                "status": False,
-                "error": {
-                    "title": "Database error",
-                    "message": f"The annotation could not be created: {exc}."
-                }
-            }), 500
+            return (
+                None,
+                {
+                    "status": False,
+                    "error": {
+                        "title": "Database error",
+                        "message": f"The annotation could not be created: {exc}."
+                    }
+                },
+                500,
+            )
     else:
         con.commit()
-        return jsonify({
-            "status": True,
-            # RETURNING -> getvalue() returns an array
-            "id": ann_id.getvalue()[0]
-        }), 200
+        ann_id = ann_id.getvalue()[0]
+        return (
+            ann_id,
+            {
+                "status": True,
+                "id": ann_id
+            },
+            200,
+        )
     finally:
         cur.close()
-        con.close()
+
+
+@bp.route("/", methods=["PUT"])
+def create_annotation():
+    user = auth.get_user()
+    if not user:
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Access denied",
+                "message": "Please log in to perform this operation."
+            }
+        }), 401
+
+    try:
+        text = request.form["text"].strip()
+        is_llm = request.form["llm"].strip()
+        is_checked = request.form["checked"].strip()
+        assert (len(text) and
+                is_llm in ("true", "false") and
+                is_checked in ("true", "false"))
+    except (AssertionError, KeyError):
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Bad request",
+                "message": "Invalid or missing parameters."
+            }
+        }), 400
+
+    is_llm = is_llm == "true"
+    is_checked = is_checked == "true"
+
+    con = utils.connect_oracle_auth(user)
+
+    anno_id, err_obj, http_status = insert_annotation(
+        text,
+        con,
+        user,
+        is_llm,
+        is_checked,
+    )
+
+    con.close()
+    return jsonify(err_obj), http_status
 
 
 @bp.route("/search/")
@@ -473,7 +538,7 @@ def search_annotations():
                 SELECT PUB_ID 
                 FROM INTERPRO.CITATION 
                 WHERE PUBMED_ID = :1
-                """, (int(search_query),)
+                """, [int(search_query)]
             )
             row = cur.fetchone()
             if row:
@@ -481,7 +546,7 @@ def search_annotations():
 
         cur.execute(
             """
-            SELECT CA.ANN_ID, CA.TEXT, CA.LLM, CA.CHECKED, 
+            SELECT CA.ANN_ID, CA.TEXT, MIN(CA.LLM), MIN(CA.CHECKED), 
                    COUNT(EC.ENTRY_AC) AS CNT
             FROM INTERPRO.COMMON_ANNOTATION CA
             LEFT OUTER JOIN INTERPRO.ENTRY2COMMON EC 
@@ -587,11 +652,7 @@ def update_annotation(ann_id):
         comment = request.form["reason"].strip()
         is_llm = request.form["llm"].strip()
         is_checked = request.form["checked"].strip()
-        assert (len(text) and
-                len(comment) and
-                is_llm in ("true", "false") and
-                is_checked in ("true", "false"))
-    except (AssertionError, KeyError):
+    except KeyError:
         return jsonify({
             "status": False,
             "error": {
@@ -599,6 +660,43 @@ def update_annotation(ann_id):
                 "message": "Invalid or missing parameters."
             }
         }), 400
+
+    if len(text) == 0:
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Empty annotation",
+                "message": "An annotation cannot be left empty."
+            }
+        }), 400
+    elif len(comment) == 0:
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Empty comment",
+                "message": "A comment/reason is required when "
+                           "updating an annotation."
+            }
+        }), 400
+    elif is_llm not in ("true", "false"):
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Invalid value for 'llm'",
+                "message": "The value of 'llm' must be 'true' or 'false'."
+            }
+        }), 400
+    elif is_checked not in ("true", "false"):
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Invalid value for 'checked'",
+                "message": "The value of 'checked' must be 'true' or 'false'."
+            }
+        }), 400
+
+    is_llm = is_llm == "true"
+    is_checked = is_checked == "true"
 
     ann = Annotation(text)
     if not ann.validate_html():
@@ -644,7 +742,7 @@ def update_annotation(ann_id):
 
     cur.execute(
         """
-        SELECT TEXT, LLM, CHECKED
+        SELECT TEXT, LLM
         FROM INTERPRO.COMMON_ANNOTATION
         WHERE ANN_ID = :1
         """,
@@ -663,9 +761,17 @@ def update_annotation(ann_id):
         }), 400
 
     current_text = row[0]
-    current_llm = row[1] == "Y"
-    current_checked = row[2] == "Y"
-    # TODO: reject update if checked -> unchecked or not-llm -> is-llm
+    is_currently_llm = row[1] == "Y"
+
+    # TODO: remove following block if allowing to change LLM->human
+    if is_currently_llm != is_llm:
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Action not permitted",
+                "message": f"Changing the origin of annotations is forbidden."
+            }
+        }), 403
 
     """
     Compare references, 
@@ -745,7 +851,7 @@ def update_annotation(ann_id):
                 FROM INTERPRO.ENTRY2COMMON
                 WHERE ANN_ID = :1            
             )
-            """, (ann_id,)
+            """, [ann_id]
         )
 
         entries = {}
@@ -845,7 +951,7 @@ def update_annotation(ann_id):
                 return jsonify({
                     "status": False,
                     "error": {
-                        "title": "Database error 3",
+                        "title": "Could not add literature reference to entry",
                         "message": str(exc)
                     }
                 }), 500
@@ -859,16 +965,91 @@ def update_annotation(ann_id):
         cur.execute(
             """
             UPDATE INTERPRO.COMMON_ANNOTATION
-            SET TEXT = :1, COMMENTS = :2
-            WHERE ANN_ID = :3
+            SET TEXT = :1, COMMENTS = :2, LLM = :3, CHECKED = :4
+            WHERE ANN_ID = :5
             """,
-            [ann.text, comment, ann_id]
+            [ann.text, comment, "Y" if is_llm else "N",
+             "Y" if is_checked else "N", ann_id]
         )
     except DatabaseError as exc:
         return jsonify({
             "status": False,
             "error": {
-                "title": "Database error 4",
+                "title": f"Could not update {ann_id}",
+                "message": str(exc)
+            }
+        }), 500
+    else:
+        con.commit()
+        return jsonify({
+            "status": True
+        }), 200
+    finally:
+        cur.close()
+        con.close()
+
+
+@bp.route("/<ann_id>/review/", methods=["POST"])
+def approve_annotation(ann_id):
+    user = auth.get_user()
+    if not user:
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Access denied",
+                "message": "Please log in to perform this operation."
+            }
+        }), 401
+
+    con = utils.connect_oracle_auth(user)
+    cur = con.cursor()
+    cur.execute(
+        """
+        SELECT LLM, CHECKED
+        FROM INTERPRO.COMMON_ANNOTATION
+        WHERE ANN_ID = :1
+        """,
+        [ann_id]
+    )
+    row = cur.fetchone()
+    if not row:
+        cur.close()
+        con.close()
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Invalid annotation",
+                "message": f"{ann_id} is not a valid annotation ID."
+            }
+        }), 400
+
+    if row[0] == "N":
+        # Not an LLM-generated annotation: cannot be flagged as "reviewed"
+        cur.close()
+        con.close()
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Action not permitted",
+                "message": f"{ann_id} has not been generated using a LLM, "
+                           f"and therefore cannot be reviewed."
+            }
+        }), 403
+
+    try:
+        cur.execute(
+            """
+            UPDATE INTERPRO.COMMON_ANNOTATION
+               SET CHECKED = 'Y'
+             WHERE ANN_ID = :1
+            """,
+            [ann_id]
+        )
+    except DatabaseError as exc:
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": f"Could not flagged {ann_id} as reviewed",
                 "message": str(exc)
             }
         }), 500
@@ -990,7 +1171,7 @@ def track_references(cur: Cursor, ann_id: str):
                 FROM INTERPRO.ENTRY2COMMON
                 WHERE ANN_ID = :1
             )
-            """, (ann_id,)
+            """, [ann_id]
     )
     entry2pub = {}
     for entry_acc, pub_id in cur.fetchall():
@@ -1008,7 +1189,7 @@ def track_references(cur: Cursor, ann_id: str):
             FROM INTERPRO.ENTRY2COMMON
             WHERE ANN_ID = :1
         )
-        """, (ann_id,)
+        """, [ann_id]
     )
     entry2suppl = {}
     for entry_acc, pub_id in cur.fetchall():
@@ -1076,7 +1257,7 @@ def get_annotation_entries(ann_id):
           ON EC.ENTRY_AC = E.ENTRY_AC
         WHERE EC.ANN_ID = :1
         ORDER BY EC.ENTRY_AC
-        """, (ann_id,)
+        """, [ann_id]
     )
 
     entries = []

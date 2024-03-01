@@ -1,11 +1,14 @@
 import re
 
+
 import oracledb
 from flask import Blueprint, jsonify, request
 
 bp = Blueprint("api_entry", __name__, url_prefix="/api/entry")
 
 from pronto import auth, utils
+from pronto.api import annotation
+from pronto.api.entry.annotations import relate_entry_to_anno
 from . import annotations
 from . import comments
 from . import go
@@ -26,6 +29,8 @@ def get_entry(accession):
           E.ENTRY_TYPE,
           ET.ABBREV,
           E.CHECKED,
+          E.LLM,
+          E.LLM_CHECKED,
           CREATED.USERSTAMP,
           CREATED.TIMESTAMP,
           MODIFIED.USERSTAMP,
@@ -68,16 +73,20 @@ def get_entry(accession):
             "short_name": row[1],
             "type": {
                 "code": row[2],
-                "name": row[3].replace('_', ' ')
+                "name": row[3].replace("_", " ")
             },
-            "is_checked": row[4] == 'Y',
+            "status": {
+                "checked": row[4] == "Y",
+                "llm": row[5] == "Y",
+                "reviewed": row[6] == "Y"
+            },
             "creation": {
-                "user": row[5],
-                "date": row[6].strftime("%d %b %Y")
-            },
-            "last_modification": {
                 "user": row[7],
                 "date": row[8].strftime("%d %b %Y")
+            },
+            "last_modification": {
+                "user": row[9],
+                "date": row[10].strftime("%d %b %Y")
             }
         }
         return jsonify(entry), 200
@@ -102,6 +111,7 @@ def update_entry(accession):
         entry_name = request.json["name"].strip()
         entry_short_name = request.json["short_name"].strip()
         entry_checked = bool(request.json["checked"])
+        entry_llm_reviewed = bool(request.json["llm-reviewed"])
     except KeyError:
         return jsonify({
             "status": False,
@@ -156,7 +166,6 @@ def update_entry(accession):
             }
         }), 400
 
-
     con = utils.connect_oracle_auth(user)
     cur = con.cursor()
     cur.execute(
@@ -164,7 +173,8 @@ def update_entry(accession):
         SELECT ENTRY_AC
         FROM INTERPRO.ENTRY
         WHERE ENTRY_AC != :1 AND UPPER(NAME) = :2
-        """, (accession, entry_name.upper(),)
+        """,
+        [accession, entry_name.upper()]
     )
     row = cur.fetchone()
     if row:
@@ -184,7 +194,8 @@ def update_entry(accession):
         SELECT ENTRY_AC
         FROM INTERPRO.ENTRY
         WHERE ENTRY_AC != :1 AND UPPER(SHORT_NAME) = :1
-        """, (accession, entry_short_name.upper(),)
+        """,
+        [accession, entry_short_name.upper()]
     )
     row = cur.fetchone()
     if row:
@@ -201,10 +212,11 @@ def update_entry(accession):
 
     cur.execute(
         """
-        SELECT ENTRY_TYPE, NAME, SHORT_NAME, CHECKED
+        SELECT ENTRY_TYPE, NAME, SHORT_NAME, CHECKED, LLM, LLM_CHECKED
         FROM INTERPRO.ENTRY
         WHERE ENTRY_AC = :1
-        """, (accession,)
+        """,
+        [accession]
     )
     row = cur.fetchone()
     if not row:
@@ -218,9 +230,23 @@ def update_entry(accession):
             }
         }), 400
 
-    params = (entry_type, entry_name, entry_short_name,
-              'Y' if entry_checked else 'N')
-    if params == row:
+    core_info = list(row[:4])
+    llm_info = tuple(row[4:])
+    if llm_info == ("Y", "Y") and not entry_llm_reviewed:
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Action not permitted",
+                "message": f"{accession} is an LLM-generated entry that "
+                           f"has already been reviewed. "
+                           f"Unreviewing is not permitted."
+            }
+        }), 400
+
+    params = [entry_type, entry_name, entry_short_name,
+              "Y" if entry_checked else "N",
+              "Y" if entry_llm_reviewed else "N"]
+    if params == core_info + [llm_info[1]]:
         # Nothing to do
         cur.close()
         con.close()
@@ -231,7 +257,8 @@ def update_entry(accession):
             SELECT METHOD_AC
             FROM INTERPRO.ENTRY2METHOD
             WHERE ENTRY_AC = :1
-            """, (accession,)
+            """,
+            [accession]
         )
         integrated = [acc for acc, in cur]
         if not integrated:
@@ -255,7 +282,8 @@ def update_entry(accession):
             FROM interpro.signature
             WHERE accession IN ({','.join('%s' for _ in integrated)})
             AND num_sequences = 0
-            """, integrated
+            """,
+            integrated
         )
         cnt, = cur2.fetchone()
         cur2.close()
@@ -281,10 +309,12 @@ def update_entry(accession):
                 NAME = :2, 
                 SHORT_NAME = :3, 
                 CHECKED = :4,
+                LLM_CHECKED = :5,
                 TIMESTAMP = SYSDATE,
                 USERSTAMP = USER
-            WHERE ENTRY_AC = :5
-            """, (*params, accession)
+            WHERE ENTRY_AC = :6
+            """,
+            [*params, accession]
         )
     except oracledb.DatabaseError as exc:
         return jsonify({
@@ -406,6 +436,7 @@ def create_entry():
         entry_type = request.json["type"].strip()
         entry_name = request.json["name"].strip()
         entry_short_name = request.json["short_name"].strip()
+        entry_llm = request.json["is_llm"]
     except KeyError:
         return jsonify({
             "status": False,
@@ -415,7 +446,29 @@ def create_entry():
             }
         }), 400
 
-    entry_signatures = set(request.json.get("signatures", []))
+    entries = check_uniqueness(entry_name, entry_short_name)
+    if entries:
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Bad request",
+                "message": "The name or short name is already in use.",
+                "entries": entries
+            }
+        }), 400
+    try:
+        is_llm_reviewed = request.json["is_llm_reviewed"]
+    except KeyError:
+        is_llm_reviewed = entry_llm
+
+    try:
+        is_checked = request.json["is_checked"]
+    except KeyError:
+        is_checked = False
+
+    entry_signatures = list(
+        dict.fromkeys(request.json.get("signatures", [])).keys()
+    )
     if not entry_signatures:
         return jsonify({
             "status": False,
@@ -495,12 +548,12 @@ def create_entry():
     invalid = []
     for signature_acc in entry_signatures:
         try:
-            entry_acc, is_checked, cnt = existing_signatures[signature_acc]
+            entry_acc, entry_checked, cnt = existing_signatures[signature_acc]
         except KeyError:
             not_found.append(signature_acc)
         else:
             if entry_acc is not None:
-                if is_checked and cnt == 1:
+                if entry_checked and cnt == 1:
                     invalid.append(signature_acc)
                 else:
                     to_unintegrate.append((entry_acc, signature_acc))
@@ -624,13 +677,30 @@ def create_entry():
 
     entry_var = cur.var(oracledb.STRING)
     try:
+        # ATM assume if llm, llm has been reviewed; entry_llm_reviewed = entry_llm
         cur.execute(
             """
-            INSERT INTO INTERPRO.ENTRY (ENTRY_AC, ENTRY_TYPE, NAME, SHORT_NAME) 
-            VALUES (INTERPRO.NEW_ENTRY_AC(), :1, :2, :3)
-            RETURNING ENTRY_AC INTO :4
+            INSERT INTO INTERPRO.ENTRY (
+                ENTRY_AC,
+                ENTRY_TYPE,
+                NAME,
+                SHORT_NAME,
+                LLM,
+                LLM_CHECKED,
+                CHECKED
+            )
+            VALUES (INTERPRO.NEW_ENTRY_AC(), :1, :2, :3, :4, :5, :6)
+            RETURNING ENTRY_AC INTO :7
             """,
-            [entry_type, entry_name, entry_short_name, entry_var]
+            [
+                entry_type,
+                entry_name,
+                entry_short_name,
+                "Y" if entry_llm else "N",
+                "Y" if is_llm_reviewed else "N",
+                "Y" if is_checked else "N",
+                entry_var,
+            ]
         )
 
         entry_acc = entry_var.getvalue()[0]
@@ -650,6 +720,41 @@ def create_entry():
                 """,
                 [(entry_acc, pub_id) for pub_id in new_references]
             )
+
+        if entry_llm:
+
+            pg_con = utils.connect_pg(utils.get_pg_url())
+
+            with pg_con.cursor() as pg_cur:
+                pg_cur.execute(
+                    """
+                    SELECT
+                        s.llm_abstract
+                    FROM signature s
+                    WHERE s.accession = %s
+                    """,
+                    [entry_signatures[0]]
+                )
+                row = pg_cur.fetchone()
+
+            pg_con.close()
+
+            anno_text = row[0]
+
+            anno_id, response, response_code = annotation.insert_annotation(
+                anno_text,
+                con,
+                user,
+                is_llm=entry_llm,
+                is_checked=entry_llm,  # ATM assuming if entry_llm, then entry_llm_reivewed is True
+            )
+            if response_code != 200:
+                return jsonify(response), response_code
+
+            response, response_code = relate_entry_to_anno(anno_id, entry_acc, con)
+            if response_code != 200:
+                return jsonify(response), response_code
+
     except oracledb.DatabaseError as exc:
         return jsonify({
             "status": False,
@@ -664,6 +769,39 @@ def create_entry():
             "status": True,
             "accession": entry_acc
         })
+
     finally:
         cur.close()
         con.close()
+
+
+def check_uniqueness(name: str,short_name: str) -> list[dict]:
+    """Check if name and/or short name are already used by an InterPro entry
+
+    :param name: str, name of new entry to be created
+    :param short_name: str, short_name of entry to be created
+
+    Return list of existing entries with the same name/short name or None
+    """
+    con = utils.connect_oracle()
+    with con.cursor() as cur:
+        cur.execute(
+            """
+            SELECT ENTRY_AC, NAME, SHORT_NAME
+            FROM INTERPRO.ENTRY
+            WHERE LOWER(NAME) = :1 OR LOWER(SHORT_NAME) = :2
+            """,
+            [name.lower(), short_name.lower()]
+        )
+        rows = cur.fetchall()
+
+    con.close()
+
+    if len(rows) > 0:
+        return [{
+            "accession": row[0],
+            "name": row[1],
+            "short_name": row[2]
+        } for row in rows]
+    else:
+        return []

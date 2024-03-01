@@ -84,6 +84,8 @@ export function updateHeader(signatureAcc) {
                 const signaturesForm = document.getElementById('new-entry-signatures');
                 const signatures = new Map();
                 const errMsg = modal.querySelector('.ui.message');
+                let existing_ai_warning = false;
+            
                 $(signaturesForm).form({
                     fields: { accession: 'empty' },
                     onSuccess: function (event, fields) {
@@ -113,13 +115,21 @@ export function updateHeader(signatureAcc) {
                                 $(this).form('clear');
 
                                 // Use signature's info
+                                let name = signature.name;
+                                let description = signature.description;
+                                let useAIAnnotations = false;
+                                if ((name == null || description == null) && signature.llm_name !== null && signature.llm_description !== null) {
+                                    name = signature.llm_name;
+                                    description = signature.llm_description;
+                                    useAIAnnotations = true;
+                                }
                                 const values = $(infoForm).form('get values');
                                 if (values.name.length === 0) {
-                                    $(infoForm).form('set value', 'name', signature.description);
+                                    $(infoForm).form('set value', 'name', description || '');
                                     setCharsCountdown(infoForm.querySelector('input[name="name"]'));
                                 }
                                 if (values.short_name.length === 0) {
-                                    $(infoForm).form('set value', 'short_name', signature.name !== null ? signature.name : '');
+                                    $(infoForm).form('set value', 'short_name', name || '');
                                     setCharsCountdown(infoForm.querySelector('input[name="short_name"]'));
                                 }
                                 if (values.type.length === 0) {
@@ -146,8 +156,10 @@ export function updateHeader(signatureAcc) {
                                         <td class="collapsing"><i class="fitted database icon" style="color: ${s.database.color};"></i></td>
                                         <td class="nowrap"><a target="_blank" href="${s.database.link}">${s.database.name}<i class="external icon"></i></a></td>
                                         <td><a href="/signature/${s.accession}">${s.accession}</a></td>
-                                        <td>${s.name !== null ? s.name : ''}</td>
-                                        <td>${s.description !== null ? s.description : ''}</td>
+                                        <td>${(s.name !== null && s.description !== null) ? s.name : (s.llm_name !== null ? s.llm_name : (s.name !== null ? s.name : ''))
+                                    }</td>
+                                        <td>${(s.name !== null && s.description !== null) ? s.description : (s.llm_description !== null ? s.llm_description : (s.description !== null ? s.description : ''))
+                                    }</td>
                                         <td class="right aligned">${s.proteins.total.toLocaleString()}</td>
                                         <td class="collapsing"><i data-accession="${s.accession}" class="trash fitted button icon"></i></td>
                                         </tr>
@@ -171,12 +183,39 @@ export function updateHeader(signatureAcc) {
                                     });
                                 }
 
-                                toggleErrorMessage(errMsg, null);
+                                // only apply ai generated tag (and thus warning) depending on the first entry only
+                                // here here
+                                if (useAIAnnotations && signatures.size < 2) {
+                                    existing_ai_warning = true;
+                                    toggleErrorMessage(
+                                        errMsg,
+                                        {
+                                            title: 'This entry will be marked as AI-generated',
+                                            message: `The name, short name, and description of <strong>${signature.accession}</strong> have been generated using AI.`,
+                                        }
+                                    )
+                                }
+
+                                else if (existing_ai_warning) {
+                                    toggleErrorMessage(
+                                        errMsg,
+                                        {
+                                            title: 'This entry will be marked as AI-generated',
+                                            message: `The name, short name, and description of the first signature have been generated using AI.`,
+                                        }
+                                    )
+                                }
+
+                                else {
+                                    toggleErrorMessage(errMsg, null);
+                                }
+                                
                             })
                             .catch((error) => {
                                 toggleErrorMessage(errMsg, { title: error.message, message:  error.cause});
                             });
-                    }
+                    
+                    }            
                 });
 
                 $(infoForm).form({
@@ -188,6 +227,7 @@ export function updateHeader(signatureAcc) {
                         }
 
                         fields.signatures = [...signatures.keys()];
+                        fields.is_llm = existing_ai_warning;
 
                         const options = {
                             method: 'PUT',
@@ -213,6 +253,7 @@ export function updateHeader(signatureAcc) {
                     .modal({
                         closable: false,
                         onShow: function () {
+                            toggleErrorMessage(errMsg, null);
                             if (signatureAcc !== undefined && signatureAcc !== null) {
                                 $(signaturesForm)
                                     .form('set value', 'accession', signatureAcc)
@@ -245,7 +286,10 @@ export function updateHeader(signatureAcc) {
                     });
 
                 resolve(object.user !== null);
+
+                
             });
+
     }));
 
 }
