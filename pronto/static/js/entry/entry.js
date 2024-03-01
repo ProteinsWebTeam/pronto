@@ -39,9 +39,6 @@ function getEntry(accession) {
                     const field = document.getElementById('llm-field');
                     field.classList.remove('hidden');
                     field.querySelector('input[name="llm-reviewed"]').checked = entry.status.reviewed;
-                    var llm = field.querySelector('input[name="is-llm"]');
-                    llm.checked = entry.status.llm;
-                    llm.disabled = true;
                 }
 
                 const statistics = document.getElementById('statistics');
@@ -125,25 +122,33 @@ document.addEventListener('DOMContentLoaded', () => {
             });
     });
 
-    document.getElementById('create-annotation').addEventListener('click', (e,) => {annotations.create(accession);});
+    document.getElementById('create-annotation')
+        .addEventListener('click', (e,) => {
+            annotations.create(accession, null, false);
+        });
 
     // List signatures' annotations
-    document.getElementById('signatures-annotations').addEventListener('click', e => {annotations.getSignaturesAnnotations(accession);});
+    document.getElementById('signatures-annotations')
+        .addEventListener('click', e => {
+            annotations.getSignaturesAnnotations(accession);
+        });
 
     // Event to show formatting help
-    document.getElementById('help-format').addEventListener('click', e => {
-        $('#format-help').modal('show');
-    });
+    document.getElementById('help-format')
+        .addEventListener('click', e => {
+            $('#format-help').modal('show');
+        });
 
     // Even to search annotations
-    document.getElementById('search-annotations').addEventListener('keyup' , (e,) => {
-        if (e.key !== 'Enter')
-            return;
+    document.getElementById('search-annotations')
+        .addEventListener('keyup' , (e,) => {
+            if (e.key !== 'Enter')
+                return;
 
-        const query = e.currentTarget.value.trim();
-        if (query.length >= 3)
-            annotations.search(accession, query);
-    });
+            const query = e.currentTarget.value.trim();
+            if (query.length >= 3)
+                annotations.search(accession, query);
+        });
 
     /*
         Event to integrate signatures
