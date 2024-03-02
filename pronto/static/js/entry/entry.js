@@ -10,6 +10,12 @@ import * as references from "./references.js";
 import * as relationships from "./relationships.js";
 import * as signatures from "./signatures.js";
 
+function formatType(type) {
+    const arr = type.split(/\s+/);
+    if (arr.length === 1)
+        return type;
+    return `${arr[0].charAt(0)}. ${arr[1]}`;
+}
 
 function getEntry(accession) {
     dimmer.on();
@@ -43,7 +49,7 @@ function getEntry(accession) {
 
                 const statistics = document.getElementById('statistics');
                 statistics.classList.add(entry.type.code);
-                statistics.querySelector('[data-statistic="type"]').innerHTML = entry.type.name;
+                statistics.querySelector('[data-statistic="type"]').innerHTML = formatType(entry.type.name);
                 if (!entry.status.llm)
                     statistics.querySelector('[data-statistic="source"]').innerHTML = `<i class="user graduate icon"></i>`;
                 else if (entry.status.reviewed)
