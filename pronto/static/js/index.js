@@ -86,7 +86,8 @@ async function getInterPro2GoStats() {
         for (const entryType of obj.types) {
             const key = entryType.name;
             const val = entryType.count;
-            total += val;
+            if (obj.terms > 0)
+                total += val;
 
             if (!series.has(key))
                 // Init array with zeros
