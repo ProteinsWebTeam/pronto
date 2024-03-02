@@ -681,7 +681,6 @@ def create_entry():
 
     entry_var = cur.var(oracledb.STRING)
     try:
-        # ATM assume if llm, llm has been reviewed; entry_llm_reviewed = entry_llm
         cur.execute(
             """
             INSERT INTO INTERPRO.ENTRY (
@@ -726,14 +725,11 @@ def create_entry():
             )
 
         if entry_llm:
-
             pg_con = utils.connect_pg(utils.get_pg_url())
-
             with pg_con.cursor() as pg_cur:
                 pg_cur.execute(
                     """
-                    SELECT
-                        s.llm_abstract
+                    SELECT s.llm_abstract
                     FROM signature s
                     WHERE s.accession = %s
                     """,
@@ -742,22 +738,20 @@ def create_entry():
                 row = pg_cur.fetchone()
 
             pg_con.close()
-
             anno_text = row[0]
-
-            anno_id, response, response_code = annotation.insert_annotation(
+            anno_id, response, code = annotation.insert_annotation(
                 anno_text,
                 con,
                 user,
-                is_llm=entry_llm,
-                is_checked=entry_llm,  # ATM assuming if entry_llm, then entry_llm_reivewed is True
+                is_llm=True,
+                is_checked=False
             )
-            if response_code != 200:
-                return jsonify(response), response_code
+            if code != 200:
+                return jsonify(response), code
 
-            response, response_code = relate_entry_to_anno(anno_id, entry_acc, con)
-            if response_code != 200:
-                return jsonify(response), response_code
+            response, code = relate_entry_to_anno(anno_id, entry_acc, con)
+            if code != 200:
+                return jsonify(response), code
 
     except oracledb.DatabaseError as exc:
         return jsonify({
