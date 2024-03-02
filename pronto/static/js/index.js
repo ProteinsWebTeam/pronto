@@ -496,6 +496,7 @@ function getDatabases() {
 function renderRecentEntries(entries) {
     const tab = document.querySelector('.tab[data-tab="news"]');
     const authorFilter = tab.querySelector('#curators').selectedOptions[0];
+    const humanOnly = tab.querySelector('input[name="human-entries"]').checked;
     const uncheckedOnly = tab.querySelector('input[name="entries-unchecked"]').checked;
     const noCommentOnly = tab.querySelector('input[name="entries-nocomment"]').checked;
 
@@ -504,8 +505,9 @@ function renderRecentEntries(entries) {
     for (const entry of entries) {
         if (entry.checked && uncheckedOnly)
             continue;
-
-        if (authorFilter.value !== 'any' && entry.user !== authorFilter.value)
+        else if (entry.llm && humanOnly)
+            continue
+        else if (authorFilter.value !== 'any' && entry.user !== authorFilter.value)
             continue
 
         let numComments = entry.comments.entry + entry.comments.signatures;
@@ -513,10 +515,10 @@ function renderRecentEntries(entries) {
             continue;
 
         count += 1;
-
         const signatures = entry.signatures
             .map((acc) => `<a href="/signature/${acc}/">${acc}</a>`)
             .join(', ');
+
         html += `
             <tr>
             <td>${count}</td>
