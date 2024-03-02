@@ -244,8 +244,8 @@ def get_recent_entries():
         """
         SELECT
           E.ENTRY_AC, E.ENTRY_TYPE, E.SHORT_NAME, A.TIMESTAMP, 
-          NVL(U.NAME, A.DBUSER), E.CHECKED, NVL(EC.CNT, 0), NVL(MC.CNT, 0), 
-          EM.ACCESSIONS
+          NVL(U.NAME, A.DBUSER), E.CHECKED, E.LLM, NVL(EC.CNT, 0), 
+          NVL(MC.CNT, 0), EM.ACCESSIONS
         FROM INTERPRO.ENTRY E
         INNER JOIN (
           -- First audit event
@@ -280,24 +280,21 @@ def get_recent_entries():
         WHERE A.TIMESTAMP >= :1
         ORDER BY E.ENTRY_AC DESC
         """,
-        (date,),
+        [date]
     )
     entries = []
     for row in cur:
-        user_name = row[4]
-
-        entries.append(
-            {
-                "accession": row[0],
-                "type": row[1],
-                "short_name": row[2],
-                "signatures": sorted(row[8].split(',')) if row[8] else [],
-                "date": row[3].strftime("%d %b %Y"),
-                "user": user_name,
-                "checked": row[5] == "Y",
-                "comments": {"entry": row[6], "signatures": row[7]},
-            }
-        )
+        entries.append({
+            "accession": row[0],
+            "type": row[1],
+            "short_name": row[2],
+            "date": row[3].strftime("%d %b %Y"),
+            "user": row[4],
+            "checked": row[5] == "Y",
+            "llm": row[6] == "Y",
+            "comments": {"entry": row[7], "signatures": row[8]},
+            "signatures": sorted(row[9].split(',')) if row[9] else []
+        })
     cur.close()
     con.close()
 
