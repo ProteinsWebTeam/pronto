@@ -446,16 +446,6 @@ def create_entry():
             }
         }), 400
 
-    entries = check_uniqueness(entry_name, entry_short_name)
-    if entries:
-        return jsonify({
-            "status": False,
-            "error": {
-                "title": "Bad request",
-                "message": "The name or short name is already in use.",
-                "entries": entries
-            }
-        }), 400
     try:
         is_llm_reviewed = request.json["is_llm_reviewed"]
     except KeyError:
@@ -517,6 +507,20 @@ def create_entry():
 
     con = utils.connect_oracle_auth(user)
     cur = con.cursor()
+
+    entries = check_uniqueness(cur, entry_name, entry_short_name)
+    if entries:
+        cur.close()
+        con.close()
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Bad request",
+                "message": "The name or short name is already in use.",
+                "entries": entries
+            }
+        }), 400
+
     stmt = [':'+str(i+1) for i in range(len(entry_signatures))]
     cur.execute(
         f"""
@@ -775,33 +779,26 @@ def create_entry():
         con.close()
 
 
-def check_uniqueness(name: str,short_name: str) -> list[dict]:
+def check_uniqueness(
+        cur: oracledb.Cursor,
+        name: str,
+        short_name: str
+) -> list[dict]:
     """Check if name and/or short name are already used by an InterPro entry
 
+    :param cur: Oracle cursor
     :param name: str, name of new entry to be created
     :param short_name: str, short_name of entry to be created
 
     Return list of existing entries with the same name/short name or None
     """
-    con = utils.connect_oracle()
-    with con.cursor() as cur:
-        cur.execute(
-            """
-            SELECT ENTRY_AC, NAME, SHORT_NAME
-            FROM INTERPRO.ENTRY
-            WHERE LOWER(NAME) = :1 OR LOWER(SHORT_NAME) = :2
-            """,
-            [name.lower(), short_name.lower()]
-        )
-        rows = cur.fetchall()
-
-    con.close()
-
-    if len(rows) > 0:
-        return [{
-            "accession": row[0],
-            "name": row[1],
-            "short_name": row[2]
-        } for row in rows]
-    else:
-        return []
+    cur.execute(
+        """
+        SELECT ENTRY_AC, NAME, SHORT_NAME
+        FROM INTERPRO.ENTRY
+        WHERE LOWER(NAME) = :1 OR LOWER(SHORT_NAME) = :2
+        """,
+        [name.lower(), short_name.lower()]
+    )
+    cols = ("accession", "name", "short_name")
+    return [dict(zip(cols, row)) for row in cur.fetchall()]
