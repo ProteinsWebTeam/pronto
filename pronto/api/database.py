@@ -67,6 +67,31 @@ def get_signatures(db_name):
     except (KeyError, ValueError):
         filter_type = None
 
+    order_by = request.args.get("sort-by", "accession").lower()
+    if order_by not in ("accession", "proteins", "reviewed-proteins"):
+        return (
+            jsonify({
+                "error": {
+                    "title": "Bad Request (invalid sorting parameter)",
+                    "message": "Accepted values are: accession, proteins, "
+                               "reviewed-proteins",
+                }
+            }),
+            400
+        )
+
+    order_dir = request.args.get("sort-order", "asc")
+    if order_dir not in ("asc", "desc"):
+        return (
+            jsonify({
+                "error": {
+                    "title": "Bad Request (invalid sorting direction)",
+                    "message": "Accepted values are: asc, desc",
+                }
+            }),
+            400
+        )
+
     search_query = request.args.get("search", "").strip()
     details = "details" in request.args
 
@@ -100,11 +125,19 @@ def get_signatures(db_name):
 
     if search_query:
         sql += "AND LOWER(accession) LIKE %s"
-        params = (db_identifier, f"{search_query.lower()}%")
+        params = [db_identifier, f"{search_query.lower()}%"]
     else:
-        params = (db_identifier,)
+        params = [db_identifier]
 
-    cur.execute(f"{sql} ORDER BY accession", params)
+    if order_by == "accession":
+        sql += f"ORDER BY accession {order_dir}"
+    elif order_by == "proteins":
+        sql += f"ORDER BY num_sequences {order_dir}"
+    else:
+        sql += (f"ORDER BY num_reviewed_sequences {order_dir}, "
+                f"num_sequences {order_dir}")
+
+    cur.execute(sql, params)
     pg_signatures = cur.fetchall()
     cur.close()
     con.close()
