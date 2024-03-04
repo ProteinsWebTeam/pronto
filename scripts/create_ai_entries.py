@@ -48,7 +48,6 @@ def main(argv: Optional[List[str]] = None):
         f"{args.pronto}/login/".replace("//login", "/login"),
         data=payload,
         timeout=args.timeout,
-        auth=('user', 'pass'),
     )
 
     if (s.get(f"{args.pronto}/api/".replace("//api", "/api")).text).find('"user": Null') != -1:
