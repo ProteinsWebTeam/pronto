@@ -12,6 +12,10 @@ from typing import List, Optional
 logger = logging.getLogger(__name__)
 
 
+def clean_url(url):
+    return url.rstrip("/")
+
+
 def build_parser(argv: Optional[List] = None):
     parser = argparse.ArgumentParser(
         prog="Import AI generated data",
@@ -58,8 +62,8 @@ def build_parser(argv: Optional[List] = None):
 
     parser.add_argument(
         "--pronto",
-        type=str,
-        default="http://pronto.ebi.ac.uk:5000/",
+        type=clean_url,
+        default="http://pronto.ebi.ac.uk:5000",
         help="URL of pronto - used to connect to the pronto API."
     )
     # test deployment - http://pronto-tst.ebi.ac.uk:5000
