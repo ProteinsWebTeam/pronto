@@ -12,6 +12,9 @@ from typing import List, Optional
 logger = logging.getLogger(__name__)
 
 
+DATABASES = ["panther", "ncbifam", "cathgene3d"]
+
+
 def clean_url(url):
     return url.rstrip("/")
 
@@ -55,8 +58,8 @@ def build_parser(argv: Optional[List] = None):
         "--databases",
         action="store",
         nargs="+",
-        choices=["panther"],
-        default=["panther"],
+        choices=DATABASES,
+        default=DATABASES,
         help="Member databases to integrate ai generated signatures from. Default: ALL"
     )
 
