@@ -91,6 +91,6 @@ def check_url(args: argparse.Namespace) -> None:
     """
     if args.pronto.startswith("http://pronto.ebi.ac.uk:5000"):
         response = input("About to connect to the live pronto server. Do you want to proceed? [y/N]")
-        if response.lower() in ['n', 'no']:
+        if response.lower() not in ['y', 'yes']:
             logger.warning("Opt to not continue. Terminating program.")
             sys.exit(1)
