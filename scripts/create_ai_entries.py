@@ -69,18 +69,18 @@ def main(argv: Optional[List[str]] = None):
     create_entries(s, args)
 
 
-def is_human_complete(signature: dict) -> bool:
+def is_human_complete(sig_response: dict) -> bool:
     """Check if human curated data is complete"""
     keys = ["name", "description", "abstract"]
-    return all(signature.get(key) for key in keys)
+    return all(sig_response.get(key) for key in keys)
 
 
-def is_llm(signature: dict) -> bool:
+def is_llm(sig_response: dict) -> bool:
     """Check if record is ai-generated:
         It should have at least one ai-generated element
     """
     keys = ["llm_name", "llm_description", "llm_abstract"]
-    return any(signature.get(key) for key in keys)
+    return any(sig_response.get(key) for key in keys)
 
 
 def write_error(message, args):
@@ -136,12 +136,12 @@ def create_entries(
                 logger.error("Could not retrieve data for signature %s", sig_acc)
                 continue
 
-            if is_human_complete(signature):
+            if is_human_complete(sig_response.json()):
                 # human curatored data is complete
                 # leave to curator to choose between human- and ai-generated data
                 continue  
 
-            if is_llm(signature) is False:
+            if is_llm(sig_response.json()) is False:
                 continue
 
             if sig_response.json()['llm_description'] is not None:
