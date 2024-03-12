@@ -2,6 +2,18 @@
 
 This dir contains scripts for automating the retrieval of AI generated signatures from a PostgreSQL db (e.g. `INTPRO`), and generating a new entry for each retrieved signature (which is not already integrated) in the oracle db (e.g. `IPPRO`), using the `pronto` API.
 
+## Automated signature integration decision process
+
+1. Is the human-curated data complete?
+  - Yes:
+    - Use human data --> leave for curators
+  - No:
+    2. Is AI data available?
+    - Yes:
+      - Use AI generated data --> auto-generate signature
+    - No:
+      - Use human data --> leave for curators
+
 ## Quick Start
 
 To create entries in the oracle db for *all* AI generated signatures in the *all* InterPro member databases:
