@@ -4,6 +4,7 @@
 
 import argparse
 import logging
+import os
 import sys
 
 from typing import List, Optional
@@ -24,18 +25,6 @@ def build_parser(argv: Optional[List] = None):
         prog="Import AI generated data",
         description="Automatically integrated AI-generated signatures into the IPPRO database",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
-
-    parser.add_argument(
-        "username",
-        type=str,
-        help="Oracle db username - used to login into pronto"
-    )
-
-    parser.add_argument(
-        "password",
-        type=str,
-        help="Oracle db password - used to login into pronto"
     )
 
     parser.add_argument(
@@ -101,3 +90,23 @@ def check_url(args: argparse.Namespace) -> None:
         if response.lower() not in ['y', 'yes']:
             logger.warning("Opt to not continue. Terminating program.")
             sys.exit(1)
+
+
+def check_login_details() -> tuple[str, str]:
+    """Check if the environment variables for the users oracle db
+    username and password are available"""
+    username, password = None, None
+    if os.getenv('ORC_USER'):
+        username = os.getenv('ORC_USER')
+    if os.getenv('ORC_PWD'):
+        password = os.getenv('ORC_PWD')
+
+    if not username or not password:
+        logger.error(
+            "Username and/or password not in environmental variables\n"
+            "Please set 'ORC_USER' and 'ORC_PWD' to your oracle db username and password, respectively.\n"
+            "Terminating program"
+        )
+        sys.exit(1)
+
+    return username, password

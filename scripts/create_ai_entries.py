@@ -13,6 +13,7 @@ from typing import List, Optional
 from utilities import (
     logger,
     build_parser,
+    check_login_details,
     check_url,
 )
 
@@ -38,9 +39,11 @@ def main(argv: Optional[List[str]] = None):
 
     check_url(args)
 
+    username, password = check_login_details()
+
     payload = {
-        "username": args.username,
-        "password": args.password,
+        "username": username,
+        "password": password,
     }
 
     s = requests.Session()
@@ -61,12 +64,15 @@ def main(argv: Optional[List[str]] = None):
         )
         sys.exit(1)
     else:
-        logger.warning("Logged in as %s", args.username)
+        logger.warning("Logged in as %s", username)
 
     create_entries(s, args)
 
 
 def is_llm(signature: dict) -> bool:
+    """Check if record is ai-generated:
+        It should have at least one ai-generated element
+    """
     keys = ["llm_name", "llm_description", "llm_abstract"]
     return any(signature.get(key) for key in keys)
 
