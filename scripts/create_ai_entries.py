@@ -69,6 +69,12 @@ def main(argv: Optional[List[str]] = None):
     create_entries(s, args)
 
 
+def is_human_complete(signature: dict) -> bool:
+    """Check if human curated data is complete"""
+    keys = ["name", "description", "abstract"]
+    return all(signature.get(key) for key in keys)
+
+
 def is_llm(signature: dict) -> bool:
     """Check if record is ai-generated:
         It should have at least one ai-generated element
@@ -129,6 +135,11 @@ def create_entries(
             if sig_response.status_code != 200:
                 logger.error("Could not retrieve data for signature %s", sig_acc)
                 continue
+
+            if is_human_complete(signature):
+                # human curatored data is complete
+                # leave to curator to choose between human- and ai-generated data
+                continue  
 
             if is_llm(signature) is False:
                 continue
