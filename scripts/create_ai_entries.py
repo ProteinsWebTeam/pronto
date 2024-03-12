@@ -89,7 +89,7 @@ def create_entries(
     :param s: requests session which is logged into pronto
     :param args: cli args parser
     """
-    submission_url = f"{args.pronto}/api/entry/".replace("//api", "/api")
+    submission_url = f"{args.pronto}/api/entry/"
 
     for database in args.databases:
         query_url = (
@@ -107,12 +107,7 @@ def create_entries(
             continue
 
         sig_total, sig_count = len(sigs_query.json()['results']), 0
-        sig_perc = {
-            "25%": round(sig_total * 0.25),
-            "50%": round(sig_total * 0.5),
-            "75%": round(sig_total * 0.75),
-        }
-        sig_perc = {f"{i*10}%": round(sig_total * i/20) for i in range(1, 21)}
+        sig_perc = {f"{i*10}%": round(sig_total * i/10) for i in range(1, 11)}
 
         for signature in sigs_query.json()['results']:
             perc = (sig_count / sig_total * 100)
@@ -121,7 +116,7 @@ def create_entries(
 
             sig_acc = signature['accession']
             sig_type = signature['type']['code']
-            sig_url = f"{args.pronto}//api/signature/{sig_acc}/"
+            sig_url = f"{args.pronto}/api/signature/{sig_acc}/"
 
             sig_response = s.get(sig_url)
 
@@ -130,21 +125,7 @@ def create_entries(
                 continue
 
             if is_llm(signature) is False:
-                print("F")
-                try:
-                    signature['llm_name']
-                except KeyError:
-                    print("not LLM NAME")
-                try:
-                    signature['llm_description']
-                except KeyError:
-                    print("not LLM description")
-                try:
-                    print(signature['llm_abstract'])
-                except KeyError:
-                    print("Not LLM ABSTRACT")
                 continue
-            print("TRUE********")
 
             if sig_response.json()['llm_description'] is not None:
                 if len(sig_response.json()['llm_description']) > 30:
