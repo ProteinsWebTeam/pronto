@@ -14,6 +14,9 @@ This dir contains scripts for automating the retrieval of AI generated signature
     - No:
       - Use human data --> leave for curators
 
+This means that even in cases where only one piece (from name, short-name and abstract) from the human-curatored data is missing, an 
+entry will be automatically generated using the AI-generated data (when available).
+
 ## Quick Start
 
 To create entries in the oracle db for *all* AI generated signatures in the *all* InterPro member databases:
