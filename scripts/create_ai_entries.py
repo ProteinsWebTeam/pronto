@@ -136,9 +136,7 @@ def create_entries(
             if sig_response.json()['llm_description'] is not None:
                 if len(sig_response.json()['llm_description']) > 30:
                     logger.error(
-                        (
-                            "Short name '%s' too long. Entry short names cannot be longer than 30 characters.\n"
-                        ),
+                        "Short name '%s' too long. Entry short names cannot be longer than 30 characters.\n",
                         sig_response.json()['llm_description']
                     )
                     message = (

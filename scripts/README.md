@@ -1,27 +1,28 @@
 # (Auto-)Create AI entries
 
-This dir contains scripts for automating the retrieval of AI generated signatures from a PostgreSQL db (e.g. `INTPRO`), and generating a new entry for each retrieved signature (which is not already integrated) in the oracle db (e.g. `IPPRO`).
+This dir contains scripts for automating the retrieval of AI generated signatures from a PostgreSQL db (e.g. `INTPRO`), and generating a new entry for each retrieved signature (which is not already integrated) in the oracle db (e.g. `IPPRO`), using the `pronto` API.
 
 ## Quick Start
 
-To create entries in the oracle db (defined in `config.cfg`) for all AI generated signatures in the all InterPro member databases.
+To create entries in the oracle db for *all* AI generated signatures in the *all* InterPro member databases:
 
-**Note:** this command will connect to the live `pronto` server
-
+1. Set your oracle db and password as environment variables
 ```bash
-python3 create_ai_entries.py \
-    <InterPro username> \
-    <InterPro password> \
+export ORC_USER="example-username"
+export ORC_PWD="dummy-password"
 ```
 
-Note this connects to the live pronto server.
+2. Run `create_ai_entries`:
+```bash
+python3 create_ai_entries.py
+```
+
+**Note:** this command will connect to the live `pronto` server
 
 **To use a local run of `pronto`,** use the `--pronto` flag and provide the base url for the local run, e.g.
 
 ```bash
 python3 create_ai_entries.py \
-    <InterPro username> \
-    <InterPro password> \
     --pronto http://127.0.0.1:5000
 ```
 
@@ -29,8 +30,6 @@ python3 create_ai_entries.py \
 
 ```bash
 python3 create_ai_entries.py \
-    <InterPro username> \
-    <InterPro password> \
     --pronto http://127.0.0.1:5000 \
     --file
 ```
@@ -44,6 +43,8 @@ Headers:
 * Entry name
 * Entry short name
 
+Signatures whose short-names are tool long (i.e. longer than 30 characters) are also written to STDERR or this error file.
+
 Each unique signature-entry pair is presented on a separate row.
 
 ```
@@ -54,8 +55,6 @@ SIGNATURE:PTHR48394	Interleukin-10 family cytokines	IL-10_family_cytokines	ENTRY
 
 ```bash
 python3 create_ai_entries.py \
-    <InterPro username> \
-    <InterPro password> \
     --databases panther
 ```
 
@@ -63,23 +62,19 @@ python3 create_ai_entries.py \
 
 ```bash
 $ python3 create_ai_entries.py -h
-usage: Import AI generated data [-h] [-b BATCH_SIZE] [-c] [--databases {panther} [{panther} ...]] [--pronto PRONTO] [--request_pause REQUEST_PAUSE] [--timeout TIMEOUT]
-                                username password
+usage: Import AI generated data [-h] [-b BATCH_SIZE] [-c] [--databases {panther,ncbifam,cathgene3d} [{panther,ncbifam,cathgene3d} ...]] [--pronto PRONTO] [--request_pause REQUEST_PAUSE]
+                                [--timeout TIMEOUT]
 
 Automatically integrated AI-generated signatures into the IPPRO database
-
-positional arguments:
-  username              Oracle db username - used to login into pronto
-  password              Oracle db password - used to login into pronto
 
 options:
   -h, --help            show this help message and exit
   -b BATCH_SIZE, --batch_size BATCH_SIZE
                         Number of signatures to parse at a time. (default: 50000000)
   -c, --cache           Write out signatures with non-unique name/short name to a TSV file (default: False)
-  --databases {panther} [{panther} ...]
-                        Member databases to integrate ai generated signatures from. Default: ALL (default: ['panther'])
-  --pronto PRONTO       URL of pronto - used to connect to the pronto API. (default: http://pronto.ebi.ac.uk:5000/)
+  --databases {panther,ncbifam,cathgene3d} [{panther,ncbifam,cathgene3d} ...]
+                        Member databases to integrate ai generated signatures from. Default: ALL (default: ['panther', 'ncbifam', 'cathgene3d'])
+  --pronto PRONTO       URL of pronto - used to connect to the pronto API. (default: http://pronto.ebi.ac.uk:5000)
   --request_pause REQUEST_PAUSE
                         Seconds to wait between payloards to the Pronto REST API (default: 1)
   --timeout TIMEOUT     Seconds timeout limit for connection to pronto (default: 10)
