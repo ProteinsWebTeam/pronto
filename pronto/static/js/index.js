@@ -531,7 +531,7 @@ function renderRecentEntries(entries) {
             <td>${signatures}</td>
             <td>${checkbox.createDisabled(entry.checked)}</td>
             <td>${entry.date}</td>
-            <td>${entry.user}</td>
+            <td><i class="${entry.llm ? 'robot' : 'user'} icon"></i>${entry.user}</td>
             <td>
         `;
 
