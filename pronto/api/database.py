@@ -58,6 +58,11 @@ def get_signatures(db_name):
         checked = None
 
     try:
+        llm = bool(int(request.args["llm"]))
+    except (KeyError, ValueError):
+        llm = None
+
+    try:
         commented = bool(int(request.args["commented"]))
     except (KeyError, ValueError):
         commented = None
@@ -124,17 +129,31 @@ def get_signatures(db_name):
     """
 
     if search_query:
-        sql += "AND LOWER(accession) LIKE %s"
+        sql += " AND LOWER(accession) LIKE %s"
         params = [db_identifier, f"{search_query.lower()}%"]
     else:
         params = [db_identifier]
 
+    if llm is True:
+        sql += """
+            AND (llm_name IS NOT NULL AND 
+                 llm_description IS NOT NULL
+                 AND llm_abstract IS NOT NULL)
+            AND (name IS NULL OR description IS NULL OR abstract IS NULL)
+        """
+    elif llm is False:
+        sql += """
+            AND llm_name IS NULL 
+            AND llm_description IS NULL
+            AND llm_abstract IS NULL
+        """
+
     if order_by == "accession":
-        sql += f"ORDER BY accession {order_dir}"
+        sql += f" ORDER BY accession {order_dir}"
     elif order_by == "proteins":
-        sql += f"ORDER BY num_sequences {order_dir}"
+        sql += f" ORDER BY num_sequences {order_dir}"
     else:
-        sql += (f"ORDER BY num_reviewed_sequences {order_dir}, "
+        sql += (f" ORDER BY num_reviewed_sequences {order_dir}, "
                 f"num_sequences {order_dir}")
 
     cur.execute(sql, params)
@@ -373,7 +392,7 @@ def get_unintegrated(db_name):
             }),
             400
         )
-    
+
     try:
         request.args["with-abstract"]
         sig_desc = "AND ((abstract IS NOT NULL) OR (llm_abstract IS NOT NULL))"
