@@ -51,7 +51,7 @@ function getEntry(accession) {
                 statistics.classList.add(entry.type.code);
                 statistics.querySelector('[data-statistic="type"]').innerHTML = formatType(entry.type.name);
                 if (!entry.status.llm)
-                    statistics.querySelector('[data-statistic="source"]').innerHTML = `<i class="user graduate icon"></i>`;
+                    statistics.querySelector('[data-statistic="source"]').innerHTML = `<i class="user icon"></i>`;
                 else if (entry.status.reviewed)
                     statistics.querySelector('[data-statistic="source"]').innerHTML = `<i class="robot icon"></i>&nbsp;<i class="eye outline icon"></i>`;
                 else

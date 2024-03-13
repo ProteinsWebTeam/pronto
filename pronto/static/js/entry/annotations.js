@@ -233,7 +233,7 @@ export function refresh(accession) {
                     });
 
                     let llmAction = '';
-                    let sourceIcon = 'user graduate';
+                    let sourceIcon = 'user';
                     if (annotation.is_llm) {
                         sourceIcon = 'robot';
                         if (annotation.is_checked)
