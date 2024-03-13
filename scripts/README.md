@@ -93,6 +93,6 @@ options:
                         Member databases to integrate ai generated signatures from. Default: ALL (default: ['panther', 'ncbifam', 'cathgene3d'])
   --pronto PRONTO       URL of pronto - used to connect to the pronto API. (default: http://pronto.ebi.ac.uk:5000)
   --request_pause REQUEST_PAUSE
-                        Seconds to wait between payloards to the Pronto REST API (default: 1)
+                        Seconds to wait between payloards to the Pronto REST API (default: 0.01)
   --timeout TIMEOUT     Seconds timeout limit for connection to pronto (default: 10)
 ```
