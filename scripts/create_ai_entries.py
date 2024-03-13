@@ -162,8 +162,8 @@ def create_entries(
                 "short_name": sig_response.json()['llm_name'],
                 'is_llm': True,
                 'is_llm_reviewed': False,
-                'is_checked': False,
-                'signatures': sig_acc,
+                'is_checked': True,
+                'signatures': [sig_acc],
             }
 
             submission_response = s.put(
