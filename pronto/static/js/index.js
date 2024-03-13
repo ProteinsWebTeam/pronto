@@ -739,10 +739,12 @@ async function getSanityCheck() {
         for (const error of object.errors) {
             count += 1
             const acc = error.annotation !== null ? error.annotation : error.entry;
+            const iconClass = error.llm ? 'robot' : 'user';
             html += `
                 <tr>
                 <td class="left marked ${error.resolution.date === null ? 'red' : 'green'}">${count}</td>
-                <td>
+                <td class="collapsing">
+                    <i class="${iconClass} icon"></i>
                     <a target="_blank" href="/search/?q=${acc}">${acc}</a>
                 </td>
             `;

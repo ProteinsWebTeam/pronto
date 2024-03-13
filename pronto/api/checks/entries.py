@@ -231,7 +231,7 @@ def ck_similar_names(cur: Cursor, exceptions: DoS) -> Err:
         FROM INTERPRO.ENTRY A
         INNER JOIN INTERPRO.ENTRY B
           ON (
-            A.ENTRY_AC < B.ENTRY_AC
+            A.ENTRY_AC > B.ENTRY_AC
             AND (
               REGEXP_REPLACE(A.NAME, '[^a-zA-Z0-9]+', '') = 
                 REGEXP_REPLACE(B.NAME, '[^a-zA-Z0-9]+', '')

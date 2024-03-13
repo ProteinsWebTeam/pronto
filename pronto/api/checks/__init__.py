@@ -18,7 +18,8 @@ def get_checks():
     cur = con.cursor()
     cur.execute(
         """
-        SELECT C.CHECK_TYPE, C.TERM, E.ID, E.TERM, E.ANN_ID, E.ENTRY_AC, E.ENTRY_AC2
+        SELECT C.CHECK_TYPE, C.TERM, E.ID, E.TERM, E.ANN_ID, E.ENTRY_AC, 
+               E.ENTRY_AC2
         FROM INTERPRO.SANITY_CHECK C
         LEFT OUTER JOIN INTERPRO.SANITY_EXCEPTION E
           ON (C.CHECK_TYPE = E.CHECK_TYPE 
@@ -212,6 +213,16 @@ def get_run(run_id):
             "user": run_user,
             "errors": []
         }
+
+        cur.execute(
+            """
+            SELECT ENTRY_AC FROM INTERPRO.ENTRY WHERE LLM = 'Y'
+            UNION ALL
+            SELECT ANN_ID FROM INTERPRO.COMMON_ANNOTATION WHERE LLM = 'Y'
+            """
+        )
+        llm_objects = {row[0] for row in cur.fetchall()}
+
         cur.execute(
             """
             SELECT SE.ID, SE.ANN_ID, SE.ENTRY_AC, SE.CHECK_TYPE, SE.TERM, 
@@ -219,14 +230,9 @@ def get_run(run_id):
             FROM INTERPRO.SANITY_ERROR SE
             LEFT OUTER JOIN INTERPRO.PRONTO_USER PU
               ON SE.USERNAME = PU.DB_USER
-            WHERE RUN_ID = :1
-            ORDER BY 
-                CASE WHEN SE.ANN_ID IS NULL THEN 0 ELSE 1 END,
-                SE.ANN_ID,
-                SE.ENTRY_AC,
-                SE.CHECK_TYPE
-            
-            """, (run_id,)
+            WHERE RUN_ID = :1           
+            """,
+            [run_id]
         )
         for _id, ann_id, entry_acc, check_type, error, cnt, ts, user in cur:
             check = CHECKS[check_type]
@@ -234,6 +240,8 @@ def get_run(run_id):
                 "id": _id,
                 "annotation": ann_id,
                 "entry": entry_acc,
+                "llm": ((entry_acc is not None and entry_acc in llm_objects) or
+                        (ann_id is not None and ann_id in llm_objects)),
                 "type": check["label"],
                 "details": check.get("details"),
                 "exceptions": check["exceptions"] is not None,
@@ -244,12 +252,24 @@ def get_run(run_id):
                     "user": user.split()[0] if user else None
                 }
             })
+
+        run["errors"].sort(key=cmp_errs)
     else:
         run = {}
 
     cur.close()
     con.close()
     return jsonify(run), 200 if run else 404
+
+
+def cmp_errs(obj: dict) -> tuple:
+    return (
+        1 if obj["llm"] else 0,
+        0 if obj["entry"] is not None else 1,
+        obj["entry"],
+        obj["annotation"],
+        obj["type"]
+    )
 
 
 @bp.route("/run/<run_id>/<int:err_id>/", methods=["POST"])
