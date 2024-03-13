@@ -75,8 +75,8 @@ def build_parser(argv: Optional[List] = None):
 
     parser.add_argument(
         "--request_pause",
-        type=int,
-        default=1,
+        type=float,
+        default=0.01,
         help="Seconds to wait between payloards to the Pronto REST API",
     )
 
