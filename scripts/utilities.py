@@ -38,7 +38,7 @@ def build_parser(argv: Optional[List] = None):
     parser.add_argument(
         "-c",
         "--cache",
-        action="store_false",
+        action="store_true",
         default=False,
         help="Write out signatures with non-unique name/short name to a TSV file",
     )
