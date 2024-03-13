@@ -132,7 +132,7 @@ def create_entries(
             sig_count += 1
             perc = (sig_count / sig_total * 100)
             try:
-                logger.info("Parserd %s of signatures", sig_perc[perc])
+                logger.info("Parsed %s of signatures", sig_perc[perc])
             except KeyError:
                 pass
 
