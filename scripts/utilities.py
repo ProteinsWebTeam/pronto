@@ -93,18 +93,18 @@ def check_url(args: argparse.Namespace) -> None:
 
 
 def check_login_details() -> tuple[str, str]:
-    """Check if the environment variables for the users oracle db
+    """Check if the environment variables for the users pronto credentials
     username and password are available"""
     username, password = None, None
-    if os.getenv('ORC_USER'):
-        username = os.getenv('ORC_USER')
-    if os.getenv('ORC_PWD'):
-        password = os.getenv('ORC_PWD')
+    if os.getenv('PRONTO_USER'):
+        username = os.getenv('PRONTO_USER')
+    if os.getenv('PRONTO_PWD'):
+        password = os.getenv('PRONTO_PWD')
 
     if not username or not password:
         logger.error(
             "Username and/or password not in environmental variables\n"
-            "Please set 'ORC_USER' and 'ORC_PWD' to your oracle db username and password, respectively.\n"
+            "Please set 'PRONTO_USER' and 'PRONTO_PWD' to your pronto condentials.\n"
             "Terminating program"
         )
         sys.exit(1)

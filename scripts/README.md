@@ -23,8 +23,8 @@ To create entries in the oracle db for *all* AI generated signatures in the *all
 
 1. Set your oracle db and password as environment variables
 ```bash
-export ORC_USER="example-username"
-export ORC_PWD="dummy-password"
+export PRONTO_USER="example-username"
+export PRONTO_PWD="dummy-password"
 ```
 
 2. Run `create_ai_entries`:
