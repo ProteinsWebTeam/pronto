@@ -88,7 +88,7 @@ options:
   -h, --help            show this help message and exit
   -b BATCH_SIZE, --batch_size BATCH_SIZE
                         Number of signatures to parse at a time. (default: 50000000)
-  -c, --cache           Write out signatures with non-unique name/short name to a TSV file (default: False)
+  --file           Write out signatures with non-unique name/short name to a TSV file (default: False)
   --databases {panther,ncbifam,cathgene3d} [{panther,ncbifam,cathgene3d} ...]
                         Member databases to integrate ai generated signatures from. Default: ALL (default: ['panther', 'ncbifam', 'cathgene3d'])
   --pronto PRONTO       URL of pronto - used to connect to the pronto API. (default: http://pronto.ebi.ac.uk:5000)

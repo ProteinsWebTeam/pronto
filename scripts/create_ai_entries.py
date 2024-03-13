@@ -91,7 +91,7 @@ def is_llm_incomplete(sig_response: dict) -> bool:
 
 
 def write_error(message, args):
-    if args.cache:
+    if args.file:
         with open("failed_signatures.tsv", "a") as fh:
             fh.write(message)
     else:
@@ -126,12 +126,15 @@ def create_entries(
             continue
 
         sig_total, sig_count = len(sigs_query.json()['results']), 0
-        sig_perc = {f"{i*10}%": round(sig_total * i/10) for i in range(1, 11)}
+        sig_perc = {round(sig_total * i/10): f"{i*10}%" for i in range(1, 11)}
 
         for signature in sigs_query.json()['results']:
+            sig_count += 1
             perc = (sig_count / sig_total * 100)
-            if perc in sig_perc.values():
+            try:
                 logger.info("Parserd %s of signatures", sig_perc[perc])
+            except KeyError:
+                pass
 
             sig_acc = signature['accession']
             sig_type = signature['type']['code']

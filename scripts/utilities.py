@@ -16,19 +16,6 @@ logger = logging.getLogger(__name__)
 DATABASES = ["panther", "ncbifam", "cathgene3d"]
 
 
-class ValidateDatabases(argparse.Action):
-    """Check the user has provided valid databases."""
-    def __call__(self, parser, args, values, option_string=None):
-        invalid = False
-        for value in values:
-            if value.lower() not in DATABASES:
-                invalid = True
-                raise ValueError(f'Invalid database "{value}" provided. Accepted databases: {DATABASES}')
-        if invalid:
-            sys.exit(1)
-        setattr(args, self.dest, [value.lower() for value in values])
-
-
 def clean_url(url):
     return url.rstrip("/")
 
@@ -49,8 +36,7 @@ def build_parser(argv: Optional[List] = None):
     )
 
     parser.add_argument(
-        "-c",
-        "--cache",
+        "--file",
         action="store_true",
         default=False,
         help="Write out signatures with non-unique name/short name to a TSV file",
@@ -58,7 +44,7 @@ def build_parser(argv: Optional[List] = None):
 
     parser.add_argument(
         "--databases",
-        action=ValidateDatabases,
+        type=str.lower,
         nargs="+",
         choices=DATABASES,
         default=DATABASES,
