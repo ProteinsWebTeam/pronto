@@ -80,7 +80,14 @@ def is_llm(sig_response: dict) -> bool:
         It should have at least one ai-generated element
     """
     keys = ["llm_name", "llm_description", "llm_abstract"]
-    return any(sig_response.get(key) for key in keys)
+    return all(sig_response.get(key) for key in keys)
+
+
+def is_llm_incomplete(sig_response: dict) -> bool:
+    """Check for potential data or REST API error.
+        AI-generated data should be complete"""
+    keys = ["llm_name", "llm_description", "llm_abstract"]
+    return False if all(sig_response.get(key) for key in keys) or all(not sig_response.get(key) for key in keys) else True
 
 
 def write_error(message, args):
@@ -139,9 +146,25 @@ def create_entries(
             if is_human_complete(sig_response.json()):
                 # human curatored data is complete
                 # leave to curator to choose between human- and ai-generated data
-                continue  
+                continue
 
             if is_llm(sig_response.json()) is False:
+                continue
+
+            if is_llm_incomplete(sig_response.json()):
+                logger.error(
+                    (
+                        "AI data (name/short-name/desc) for signature '%s' is incomplete\n"
+                        "AI generated data is incomplete. This may reflect an error in the data generation process\n"
+                        "the the pronto RESTAPI.\n"
+                        "Not creating an entry for this signature"
+                    ), sig_acc
+                )
+                message = (
+                        f"SIGNATURE:{sig_acc}\t{sig_response.json()['llm_name']}\t{sig_response.json()['llm_description']}\t"
+                        f"ERROR: AI-generated data is incomplete.\n"
+                    )
+                write_error(message, args)
                 continue
 
             if sig_response.json()['llm_name'] is not None:
