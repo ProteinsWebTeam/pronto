@@ -6,13 +6,15 @@ This dir contains scripts for automating the retrieval of AI generated signature
 
 1. Is the human-curated data complete?
   - Yes:
-    - Use human data --> leave for curators
+    - Do not auto-generate the entry --> leave for curators
   - No:
     2. Is AI data available?
     - Yes:
-      - Use AI generated data --> auto-generate signature
+      3. Is the AI data (name, short name, description) complete?
+        - Yes: Use AI generated data --> auto-generate signature
+        - No: Do not auto-generate the entry, raise error (issue with data or RESTAPI), and logged to STDERR
     - No:
-      - Use human data --> leave for curators
+      - Do not auto-generate the entry --> leave for curators
 
 This means that even in cases where only one piece (from name, short-name and abstract) from the human-curatored data is missing, an 
 entry will be automatically generated using the AI-generated data (when available).
