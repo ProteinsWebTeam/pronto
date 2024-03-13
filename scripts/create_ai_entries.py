@@ -158,8 +158,8 @@ def create_entries(
 
             payload = {
                 "type": sig_type,
-                "name": sig_response.json()['llm_name'],
-                "short_name": sig_response.json()['llm_description'],
+                "name": sig_response.json()['llm_description'],
+                "short_name": sig_response.json()['llm_name'],
                 'is_llm': True,
                 'is_llm_reviewed': False,
                 'is_checked': False,
