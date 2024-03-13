@@ -196,12 +196,14 @@ def create_entries(
             )
 
             if submission_response.status_code == 400:
-                if submission_response.text.find('"entries":') != -1:
-                    entries = [{
-                        "accession": re.findall(r'\"accession\":\"\D{3,4}\d+\",', entry)[0][13:-2],
-                        "name": re.findall(r'\"name\":\".+?\"', entry)[0][8:-2],
-                        "short_name": re.findall(r'\"short_name\":\".+?\"', entry)[0][14:-2],
-                    } for entry in re.findall(r'entries\":\[.+\}\]', submission_response.text)[0][9:].split("}") if entry.find("accession") != -1]
+                try:
+                    entries = []
+                    for entry in submission_response.json()['error']['entries']:
+                        entries.append({
+                            "accession": entry['accession'],
+                            "name": entry['name'],
+                            "short_name": entry['short_name']
+                        })
 
                     logger.error(
                         (
@@ -221,7 +223,8 @@ def create_entries(
                             f"ENTRY:{entry['accession']}\t{entry['name']}\t{entry['short_name']}\n"
                         )
                         write_error(message, args)
-                else:
+
+                except KeyError:
                     logger.error(
                         "Error (HTTP code: %s) raised while tying to generate entry for signature %s:\n%s",
                         submission_response.status_code,
