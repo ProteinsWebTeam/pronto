@@ -421,7 +421,7 @@ def get_signature_predictions(accession):
     cur = con.cursor()
     cur.execute(
         """
-        SELECT EM.METHOD_AC, E.ENTRY_AC, E.ENTRY_TYPE, E.NAME, E.CHECKED
+        SELECT EM.METHOD_AC, E.ENTRY_AC, E.ENTRY_TYPE, E.NAME, E.CHECKED, E.LLM
         FROM INTERPRO.ENTRY2METHOD EM
         INNER JOIN INTERPRO.ENTRY E ON EM.ENTRY_AC = E.ENTRY_AC
         """
@@ -551,7 +551,8 @@ def get_signature_predictions(accession):
                 "accession": obj[0],
                 "type": obj[1],
                 "name": obj[2],
-                "checked": obj[3] == 'Y'
+                "checked": obj[3] == "Y",
+                "llm": obj[4] == "Y"
             }
 
         database = utils.get_database_obj(db_key)
