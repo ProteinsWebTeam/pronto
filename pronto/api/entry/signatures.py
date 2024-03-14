@@ -42,16 +42,8 @@ def get_signatures(accession):
         cur = con.cursor()
         cur.execute(
             f"""
-            SELECT 
-              s.accession,
-              s.name,
-              s.num_sequences,
-              s.num_complete_sequences,
-              s.description,
-              s.abstract,
-              s.llm_name,
-              d.name,
-              d.name_long 
+            SELECT s.accession, s.num_sequences, s.num_complete_sequences,
+                   s.name, s.llm_name, d.name, d.name_long 
             FROM interpro.signature s
             INNER JOIN interpro.database d
             ON s.database_id = d.id
@@ -64,19 +56,18 @@ def get_signatures(accession):
         for row in cur:
             acc = row[0]
             timestamp, userstamp, num_comments, unirule = integrated[acc]
-            db = utils.get_database_obj(row[7])
-            # if human data missing or incomplete, use ai (llm) generated data
+            db = utils.get_database_obj(row[5])
             signatures.append({
                 "accession": acc,
-                "name": row[6] if any(x is None for x in [row[1], row[4], row[5]]) else row[1],
+                "name": row[3] or row[4],
                 "sequences": {
-                    "all": row[2],
-                    "complete": row[3]
+                    "all": row[1],
+                    "complete": row[2]
                 },
                 "database": {
                     "color": db.color,
                     "link": db.gen_link(row[0]),
-                    "name": row[8]
+                    "name": row[6]
                 },
                 "date": f"{userstamp} ({timestamp:%d %b %Y})",
                 "comments": num_comments,
