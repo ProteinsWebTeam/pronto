@@ -84,7 +84,7 @@ def get_signature(accession):
     cur = con.cursor()
     cur.execute(
         """
-        SELECT E.ENTRY_AC, E.NAME, E.ENTRY_TYPE, E.CHECKED
+        SELECT E.ENTRY_AC, E.NAME, E.ENTRY_TYPE, E.CHECKED, E.LLM
         FROM INTERPRO.ENTRY2METHOD EM
         LEFT OUTER JOIN INTERPRO.ENTRY E
           ON EM.ENTRY_AC = E.ENTRY_AC
@@ -97,16 +97,18 @@ def get_signature(accession):
     if row:
         entry_acc = row[0]
 
-        result["entry"] = {
+        entry = result["entry"] = {
             "accession": entry_acc,
             "name": row[1],
             "type": row[2],
-            "checked": row[3] == 'Y'
+            "checked": row[3] == "Y",
+            "llm": row[4] == "Y",
+            "hierarchy": []
         }
 
         cur.execute(
             """
-            SELECT E.ENTRY_AC, E.NAME
+            SELECT E.ENTRY_AC, E.NAME, E.LLM
             FROM (
                 SELECT PARENT_AC, ROWNUM RN
                 FROM INTERPRO.ENTRY2ENTRY
@@ -115,10 +117,16 @@ def get_signature(accession):
             ) H
             INNER JOIN INTERPRO.ENTRY E ON H.PARENT_AC = E.ENTRY_AC
             ORDER BY H.RN DESC
-            """, [entry_acc]
+            """,
+            [entry_acc]
         )
-        ancestors = [dict(zip(("accession", "name"), row)) for row in cur]
-        result["entry"]["hierarchy"] = ancestors
+
+        for row in cur.fetchall():
+            entry["hierarchy"].append({
+                "accession": row[0],
+                "name": row[1],
+                "llm": row[2] == "Y"
+            })
 
     cur.close()
     con.close()
