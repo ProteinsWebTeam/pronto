@@ -88,7 +88,7 @@ function getMatrices(accessions) {
                             </tr>
                             <tr>
                                 <td>In either signatures</td>
-                                <td class="right aligned">${(proteins1+proteins2-values.collocations).toLocaleString()}</td>
+                                <td class="right aligned"><a href="/signatures/${key1}/${key2}/proteins/">${(proteins1+proteins2-values.collocations).toLocaleString()}</a></td>
                             </tr>
                             <tr>
                                 <td>In ${key1}</td>
