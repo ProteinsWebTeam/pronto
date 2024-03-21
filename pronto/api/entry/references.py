@@ -298,3 +298,25 @@ def update_protein_citations(prot_accs: list[str], entry_acc: str, orc_con) -> T
     orc_con.commit()
 
     return invalid_pmids, failed_pub_ids
+
+
+def check_pmid_in_citations(pmids: list[str], orc_con) -> list[int]:
+    """Check for pmid citations that are not listed in INTERPRO.CITATION
+
+    :param pmids: list of pubmed ids from postgresql publication table
+    :param orc_con: interpro oracle db connection
+    """
+    placeholder = ', '.join([':' + str(i) for i in range(1, len(pmids) + 1)])
+    citation_query = f"""
+    SELECT PUBMED_ID
+    FROM CITATION
+    WHERE PUBMED_ID IN ({placeholder})
+    """
+    params = {str(i): pmid for i, pmid in enumerate(pmids, start=1)}
+
+    with orc_con.cursor() as orc_cur:
+        orc_cur.execute(citation_query, params)
+        in_oracle = [row[0] for row in orc_cur]
+        not_in_oracle = set(pmids).difference(set(in_oracle))
+
+    return list(not_in_oracle)
