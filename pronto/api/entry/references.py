@@ -186,3 +186,53 @@ def unlink_reference(accession, pub_id):
     finally:
         cur.close()
         con.close()
+
+
+@bp.route("/<accession>/reference/swissprot/", methods=["PUT"])
+def update_entry_citations(accession):
+    """
+    Retrieve signatures for interpro entry, and the matching proteins, to
+    coordinating updating citations in the interpro oracle db for said proteins.
+
+    :param accession: interpro entry accession
+    """
+    user = auth.get_user()
+    if not user:
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Access denied",
+                "message": "Please log in to perform this action."
+            }
+        }), 401
+
+    sig_query = """
+        SELECT METHOD_AC
+        FROM ENTRY2METHOD
+        WHERE ENTRY_AC = :1
+    """
+    prot_query = """
+        SELECT PROTEIN_AC
+        FROM MATCH
+        WHERE METHOD_AC = :1
+    """
+
+    con = utils.connect_oracle_auth(user)
+
+    # retrieve all signatures for interpro entry
+    with con.cursor() as cur:
+        cur.execute(sig_query, [accession])
+        signature_accs = cur.fetchall()
+
+    # process each signature in turn & batch process proteins for each signature
+    with con.cursor() as cur:
+        for sig_acc in signature_accs:
+            cur.execute(prot_query, [sig_acc[0]])
+
+            while True:
+                rows = cur.fetchmany(100)
+                if not rows:
+                    break
+                update_protein_citations([_[0] for _ in rows], accession, con)
+
+    con.close()
