@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from typing import List, Tuple
+
 from flask import jsonify
 from oracledb import DatabaseError
 
@@ -233,6 +235,66 @@ def update_entry_citations(accession):
                 rows = cur.fetchmany(100)
                 if not rows:
                     break
-                update_protein_citations([_[0] for _ in rows], accession, con)
+                invalid_pmids, failed_pub_ids = update_protein_citations([_[0] for _ in rows], accession, con)
 
     con.close()
+
+    if len(invalid_pmids) == 0 and len(failed_pub_ids) == 0:
+        return jsonify({
+            "status": True,
+        }), 200
+    else:
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Failed citation update",
+                "message": f"Failed to update citations and/or relate citations to entry {accession}.",
+                "invalid_pmids": invalid_pmids,
+                "failed_pub_ids": failed_pub_ids,
+            }
+        }), 400
+
+
+def update_protein_citations(prot_accs: list[str], entry_acc: str, orc_con) -> Tuple[List[str], List[str]]:
+    """Coordinate inserting missing citations from PostGreSQL (e.g. INTTST) db 
+    into the IPRO db (e.g. IPDEV), and relate the new citations to the InterPro entry
+
+    :param proc_accs: list of proteins accessions associated with the IPPRO entry
+    :param entry_acc: str, IPPRO entry accession
+    :param orc_con: open connection to IPPRO oracle db
+    """
+    invalid_pmids, failed_pub_ids = [], []
+    pmid_query = """
+        SELECT pubmed_id
+        FROM protein2publication
+        WHERE protein_acc = ANY(%s)
+    """
+
+    pg_con = utils.connect_pg(utils.get_pg_url())
+
+    with pg_con.cursor() as pg_cur:
+        # retrieve all PMIDs for all provided protein accessions
+        pg_cur.execute(pmid_query, [prot_accs])
+        pmids = pg_cur.fetchall()
+
+        if len(pmids) > 0:
+            not_in_oracle = check_pmid_in_citations([_[0] for _ in pmids], orc_con)
+
+            if len(not_in_oracle) > 0:
+                with orc_con.cursor() as cit_cur:
+                    new_citations = get_citations(cit_cur, not_in_oracle)
+                    error = insert_citations(cit_cur, new_citations)
+
+                if error:
+                    invalid_pmids.extend(list(new_citations.keys()))
+
+                else:
+                    for pmid, pub_id in new_citations.items():
+                        error = relate_entry_to_pubs(entry_acc, pub_id, orc_con)
+                        if error:
+                            failed_pub_ids.append(pmid)
+
+    pg_con.close()
+    orc_con.commit()
+
+    return invalid_pmids, failed_pub_ids
