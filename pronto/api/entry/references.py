@@ -320,3 +320,31 @@ def check_pmid_in_citations(pmids: list[str], orc_con) -> list[int]:
         not_in_oracle = set(pmids).difference(set(in_oracle))
 
     return list(not_in_oracle)
+
+
+def relate_entry_to_pubs(entry_acc, pub_id, orc_con):
+    """Link the entry record to the newly inserted publications
+
+    :param entry_acc: str, interpro entry accession
+    :param pub_id: int, pubmed id
+    :param orc_con: open oracle db connection
+    """
+    insert_cur = orc_con.cursor()
+    try:
+        insert_cur.execute(
+            """
+            INSERT INTO INTERPRO.ENTRY2PUB (ENTRY_AC, ORDER_IN, PUB_ID)
+            VALUES (
+                :acc, 
+                (
+                SELECT NVL(MAX(ORDER_IN), 0)+1 
+                FROM INTERPRO.ENTRY2PUB 
+                WHERE ENTRY_AC = :acc
+                ), 
+                :pub
+            )
+            """, dict(acc=entry_acc, pub=pub_id)
+        )
+    except DatabaseError as exc:
+        insert_cur.close()
+        return exc
