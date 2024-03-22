@@ -199,7 +199,12 @@ export function refresh(accession) {
                 const annotation = results.annotations[i];
                 let text = annotation.text;
 
-                annotations.set(annotation.id, {text: text, entries: annotation.num_entries});
+                annotations.set(
+                    annotation.id, {
+                        text: text,
+                        entries: annotation.num_entries,
+                        isLLM: annotation.is_llm,
+                    });
 
                 text = text.replaceAll(rePub, (match, pubID) => {
                     if (references.has(pubID)) {
@@ -377,11 +382,11 @@ export function refresh(accession) {
                                 'Save changes?',
                                 'This annotation is used by <strong>' + annotation.entries + ' entries</strong>. Changes will be visible in all entries.',
                                 'Save',
-                                () => annotationEditor.save(accession, annID)
+                                () => annotationEditor.save(accession, annID, annotation.isLLM)
                             );
 
                         } else
-                            annotationEditor.save(accession, annID);
+                            annotationEditor.save(accession, annID, annotation.isLLM);
                     } else if (action === 'cancel')
                         annotationEditor.close();
                     else if (action === 'list')
@@ -595,7 +600,7 @@ const annotationEditor = {
                     modals.error(object.error.title, object.error.message);
             });
     },
-    save: function (accession, annID) {
+    save: function (accession, annID, isLLM) {
         if (this.element === null) return;
 
         const select = this.element.querySelector('select');
@@ -625,8 +630,9 @@ const annotationEditor = {
             body: [
                 `text=${encodeURIComponent(textareaText)}`,
                 `reason=${reason}`,
-                `llm=false`,
-                `checked=false`,
+                `llm=${isLLM ? 'true' : 'false'}`,
+                // Assume the curator approves the annotation, since they update it:
+                `checked=${isLLM ? 'true' : 'false'}`,
             ].join('&')
         };
 
