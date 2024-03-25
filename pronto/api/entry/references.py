@@ -210,12 +210,12 @@ def update_entry_citations(accession):
 
     sig_query = """
         SELECT METHOD_AC
-        FROM ENTRY2METHOD
+        FROM INTERPRO.ENTRY2METHOD
         WHERE ENTRY_AC = :1
     """
     prot_query = """
         SELECT PROTEIN_AC
-        FROM MATCH
+        FROM INTERPRO.MATCH
         WHERE METHOD_AC = :1
     """
 
@@ -309,7 +309,7 @@ def check_pmid_in_citations(pmids: list[str], orc_con) -> list[int]:
     placeholder = ', '.join([':' + str(i) for i in range(1, len(pmids) + 1)])
     citation_query = f"""
     SELECT PUBMED_ID
-    FROM CITATION
+    FROM INTERPRO.CITATION
     WHERE PUBMED_ID IN ({placeholder})
     """
     params = {str(i): pmid for i, pmid in enumerate(pmids, start=1)}
