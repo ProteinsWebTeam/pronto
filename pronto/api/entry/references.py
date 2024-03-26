@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from typing import List, Tuple
-
 from flask import jsonify
 from oracledb import DatabaseError
 
@@ -213,29 +211,17 @@ def update_entry_citations(accession):
         FROM INTERPRO.ENTRY2METHOD
         WHERE ENTRY_AC = :1
     """
-    prot_query = """
-        SELECT PROTEIN_AC
-        FROM INTERPRO.MATCH
-        WHERE METHOD_AC = :1
-    """
 
     con = utils.connect_oracle_auth(user)
-
-    # retrieve all signatures for interpro entry
     with con.cursor() as cur:
         cur.execute(sig_query, [accession])
         signature_accs = cur.fetchall()
 
     # process each signature in turn & batch process proteins for each signature
-    with con.cursor() as cur:
-        for sig_acc in signature_accs:
-            cur.execute(prot_query, [sig_acc[0]])
-
-            while True:
-                rows = cur.fetchmany(100)
-                if not rows:
-                    break
-                invalid_pmids, failed_pub_ids = update_protein_citations([_[0] for _ in rows], accession, con)
+    for sig_acc in signature_accs:
+        invalid_pmids, failed_pub_ids = update_signature_citations(
+            sig_acc, accession, con
+        )
 
     con.close()
 
@@ -255,30 +241,36 @@ def update_entry_citations(accession):
         }), 400
 
 
-def update_protein_citations(prot_accs: list[str], entry_acc: str, orc_con) -> Tuple[List[str], List[str]]:
+def update_signature_citations(
+    sig_acc: str,
+    entry_acc: str,
+    orc_con
+) -> tuple[list[str], list[str]]:
     """Coordinate inserting missing citations from PostGreSQL (e.g. INTTST) db 
     into the IPRO db (e.g. IPDEV), and relate the new citations to the InterPro entry
 
-    :param proc_accs: list of proteins accessions associated with the IPPRO entry
+    :param sig_acc: signature acc associated with interpro entry
     :param entry_acc: str, IPPRO entry accession
     :param orc_con: open connection to IPPRO oracle db
     """
     invalid_pmids, failed_pub_ids = [], []
     pmid_query = """
-        SELECT pubmed_id
-        FROM protein2publication
-        WHERE protein_acc = ANY(%s)
+        SELECT P.pubmed_id
+        FROM protein2publication P
+        INNER JOIN signature2protein S ON P.protein_acc = S.protein_acc
+        WHERE S.signature_acc = %s
     """
 
     pg_con = utils.connect_pg(utils.get_pg_url())
 
     with pg_con.cursor() as pg_cur:
-        # retrieve all PMIDs for all provided protein accessions
-        pg_cur.execute(pmid_query, [prot_accs])
-        pmids = pg_cur.fetchall()
+        pg_cur.execute(pmid_query, sig_acc)
+        while True:
+            pmid_batch = pg_cur.fetchmany(size=1000)
+            if not pmid_batch:
+                break
 
-        if len(pmids) > 0:
-            not_in_oracle = check_pmid_in_citations([_[0] for _ in pmids], orc_con)
+            not_in_oracle = check_pmid_in_citations([_[0] for _ in pmid_batch], orc_con)
 
             if len(not_in_oracle) > 0:
                 with orc_con.cursor() as cit_cur:
