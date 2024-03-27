@@ -218,14 +218,14 @@ def update_entry_citations(accession):
         signature_accs = cur.fetchall()
 
     # process each signature in turn & batch process proteins for each signature
-    for sig_acc in signature_accs:
-        invalid_pmids, failed_pub_ids = update_signature_citations(
-            sig_acc, accession, con
-        )
+    signature_accs = [_[0] for _ in signature_accs]
+    invalid_pmids, failed_pub_ids = update_signature_citations(
+        signature_accs, accession, con
+    )
 
     con.close()
 
-    if len(invalid_pmids) == 0 and len(failed_pub_ids) == 0:
+    if len(invalid_pmids) == len(failed_pub_ids) == 0:
         return jsonify({
             "status": True,
         }), 200
@@ -242,29 +242,29 @@ def update_entry_citations(accession):
 
 
 def update_signature_citations(
-    sig_acc: str,
+    sig_accs: list[str],
     entry_acc: str,
     orc_con
 ) -> tuple[list[str], list[str]]:
     """Coordinate inserting missing citations from PostGreSQL (e.g. INTTST) db 
     into the IPRO db (e.g. IPDEV), and relate the new citations to the InterPro entry
 
-    :param sig_acc: signature acc associated with interpro entry
+    :param sig_accs: list of signature accs associated with interpro entry
     :param entry_acc: str, IPPRO entry accession
     :param orc_con: open connection to IPPRO oracle db
     """
     invalid_pmids, failed_pub_ids = [], []
-    pmid_query = """
+    pmid_query = f"""
         SELECT P.pubmed_id
         FROM protein2publication P
         INNER JOIN signature2protein S ON P.protein_acc = S.protein_acc
-        WHERE S.signature_acc = %s
+        WHERE S.signature_acc IN ({','.join(['%s'] * len(sig_accs))})
     """
 
     pg_con = utils.connect_pg(utils.get_pg_url())
 
     with pg_con.cursor() as pg_cur:
-        pg_cur.execute(pmid_query, sig_acc)
+        pg_cur.execute(pmid_query, sig_accs)
         while True:
             pmid_batch = pg_cur.fetchmany(size=1000)
             if not pmid_batch:
@@ -325,16 +325,8 @@ def relate_entry_to_pubs(entry_acc, pub_id, orc_con):
     try:
         insert_cur.execute(
             """
-            INSERT INTO INTERPRO.ENTRY2PUB (ENTRY_AC, ORDER_IN, PUB_ID)
-            VALUES (
-                :acc, 
-                (
-                SELECT NVL(MAX(ORDER_IN), 0)+1 
-                FROM INTERPRO.ENTRY2PUB 
-                WHERE ENTRY_AC = :acc
-                ), 
-                :pub
-            )
+            INSERT INTO INTERPRO.SUPPLEMENTARY_REF (ENTRY_AC, PUB_ID)
+            VALUES (:acc, :pub)
             """, dict(acc=entry_acc, pub=pub_id)
         )
     except DatabaseError as exc:
