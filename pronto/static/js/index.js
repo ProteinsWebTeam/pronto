@@ -1246,7 +1246,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         plotJobTimeChart();
                         plotJobMemoryChart();
                     }, 1000);
-                });    sanityLlmCheckbox
+                });
         });
 
 });
