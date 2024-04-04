@@ -736,8 +736,13 @@ async function getSanityCheck() {
     let numUnresolved = 0;
     if (object.errors.length > 0) {
         let count = 0
+        const includeLlm = document.querySelector('input[name="include-llm"]').checked;
         for (const error of object.errors) {
             count += 1
+            // If 'include llm' checkbox is not checked and error.llm is true, skip this error
+            if (!includeLlm && error.llm) {
+                continue;
+            }
             const acc = error.annotation !== null ? error.annotation : error.entry;
             const iconClass = error.llm ? 'robot' : 'user';
             html += `
@@ -1119,7 +1124,7 @@ document.addEventListener('DOMContentLoaded', () => {
     updateHeader();
     backToTop();
     const match = location.href.match(/\/#\/(.+)$/);
-
+    
     // Init tabs
     $('.tabular.menu .item').tab({
         // If URL endswith /#/<tab> and <tab> exists in markup, select this tab, otherwise (true) select the first tab
@@ -1241,6 +1246,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         plotJobTimeChart();
                         plotJobMemoryChart();
                     }, 1000);
-                });
+                });    sanityLlmCheckbox
         });
+
 });
+
+// reload sanity check records if 'show llms' checkbox is checked/unchecked
+document.querySelector('input[name="include-llm"]').addEventListener('change', function() {
+    getSanityCheck();
+});
+
