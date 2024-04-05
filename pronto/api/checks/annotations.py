@@ -144,7 +144,7 @@ def ck_punctuations(cabs: LoT, terms: LoS, exceptions: DoS) -> Err:
             elif text[i-5:i] == "et al":
                 continue  # et al. [
             elif prog_detail.match(text[i-3:i]):
-                """
+                r"""
                 [a-z]{3}            ent. [
                 \d[\]\d]\]          22]. [
                                     3]]. [
@@ -159,8 +159,8 @@ def ck_punctuations(cabs: LoT, terms: LoS, exceptions: DoS) -> Err:
 
 def ck_spelling(cabs: LoT, terms: LoS, exceptions: DoS) -> Err:
     prog1 = re.compile(fr"\b(?:{'|'.join(terms)})\b", flags=re.I)
-    gram_terms = ["gram\s*-(?!negative|positive)", "gram\s*\+", "gram pos",
-                  "gram neg", "g-positive", "g-negative"]
+    gram_terms = [r"gram\s*-(?!negative|positive)", r"gram\s*\+", r"gram pos",
+                  r"gram neg", r"g-positive", r"g-negative"]
     prog2 = re.compile('|'.join(gram_terms), flags=re.I)
 
     errors = []
@@ -244,7 +244,7 @@ def check(cur: Cursor):
     exceptions = load_exceptions(cur, "abbreviation", "ANN_ID", "TERM")
     for item in ck_abbreviations(cabs, terms, exceptions):
         yield "abbreviation", item
-    
+
     exceptions = load_exceptions(cur, "begin_uppercase", "ANN_ID", "TERM")
     for item in ck_begin_uppercase(cabs, exceptions):
         yield "begin_uppercase", item
