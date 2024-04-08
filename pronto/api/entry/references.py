@@ -265,11 +265,7 @@ def update_signature_citations(
 
     with pg_con.cursor() as pg_cur:
         pg_cur.execute(pmid_query, sig_accs)
-        while True:
-            pmid_batch = pg_cur.fetchmany(size=1000)
-            if not pmid_batch:
-                break
-
+        while pmid_batch := pg_cur.fetchmany(size=1000):
             not_in_oracle = check_pmid_in_citations([_[0] for _ in pmid_batch], orc_con)
 
             if len(not_in_oracle) > 0:
