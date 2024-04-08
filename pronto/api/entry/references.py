@@ -266,21 +266,27 @@ def update_signature_citations(
     with pg_con.cursor() as pg_cur:
         pg_cur.execute(pmid_query, sig_accs)
         while pmid_batch := pg_cur.fetchmany(size=1000):
-            not_in_oracle = check_pmid_in_citations([_[0] for _ in pmid_batch], orc_con)
+            citations, new_citations, pub_ids = {}, {}, []
+            not_in_oracle, in_oracle = check_pmid_in_citations([_[0] for _ in pmid_batch], orc_con)
 
             if len(not_in_oracle) > 0:
-                with orc_con.cursor() as cit_cur:
-                    new_citations = get_citations(cit_cur, not_in_oracle)
-                    error = insert_citations(cit_cur, new_citations)
+                with orc_con.cursor() as new_cit_cur:
+                    new_citations = get_citations(new_cit_cur, not_in_oracle)
+                    error = insert_citations(new_cit_cur, new_citations)
 
                 if error:
                     invalid_pmids.extend(list(new_citations.keys()))
-
                 else:
-                    for pmid, pub_id in new_citations.items():
-                        error = relate_entry_to_pubs(entry_acc, pub_id, orc_con)
-                        if error:
-                            failed_pub_ids.append(pmid)
+                    pub_ids.extend([new_citations[pmid][0] for pmid in new_citations])
+
+            with orc_con.cursor() as cit_cur:
+                citations = get_citations(cit_cur, in_oracle)
+                pub_ids.extend(get_unlinked_pub_ids(citations, cit_cur))
+
+            for pub_id in pub_ids:
+                error = relate_entry_to_pubs(entry_acc, pub_id, orc_con)
+                if error:
+                    failed_pub_ids.append(pub_id)
 
     pg_con.close()
     orc_con.commit()
@@ -288,7 +294,7 @@ def update_signature_citations(
     return invalid_pmids, failed_pub_ids
 
 
-def check_pmid_in_citations(pmids: list[int], orc_con) -> list[int]:
+def check_pmid_in_citations(pmids: list[int], orc_con) -> tuple(list[int], list[int]):
     """Check for pmid citations that are not listed in INTERPRO.CITATION
 
     :param pmids: list of pubmed ids from postgresql publication table
@@ -307,7 +313,25 @@ def check_pmid_in_citations(pmids: list[int], orc_con) -> list[int]:
         in_oracle = [row[0] for row in orc_cur]
         not_in_oracle = set(pmids).difference(set(in_oracle))
 
-    return list(not_in_oracle)
+    return list(not_in_oracle), in_oracle
+
+
+def get_unlinked_pub_ids(citations: dict, cur) -> list[int]:
+    """Retrieve pub_ids for citations retrieved from api.annotation.get_citations()
+
+    :param citations: dict from api.annotation.get_citations()
+    :param cur: active oracle db cursor
+    """
+    placeholder = ', '.join([':' + str(i) for i in range(1, len(citations.keys()) + 1)])
+    query = f"""
+        SELECT C.PUB_ID
+        FROM INTERPRO.CITATION C
+        WHERE C.PUBMED_ID IN ({placeholder}) 
+            AND C.PUB_ID NOT IN (SELECT PUB_ID FROM SUPPLEMENTARY_REF);
+    """
+
+    cur.execute(query, tuple(citations.keys()))
+    return [row[0] for row in cur]
 
 
 def relate_entry_to_pubs(entry_acc, pub_id, orc_con):
