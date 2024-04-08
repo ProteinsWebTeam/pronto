@@ -42,7 +42,7 @@ def get_suppl_references(accession):
     return jsonify(references)
 
 
-@bp.route("/<accession>/reference/<int:pmid>/", methods=["PUT"])
+@bp.route("/<accession>/references/<int:pmid>/", methods=["PUT"])
 def link_reference(accession, pmid):
     user = auth.get_user()
     if not user:
@@ -150,7 +150,7 @@ def link_reference(accession, pmid):
         con.close()
 
 
-@bp.route("/<accession>/reference/<pub_id>/", methods=["DELETE"])
+@bp.route("/<accession>/references/<pub_id>/", methods=["DELETE"])
 def unlink_reference(accession, pub_id):
     user = auth.get_user()
     if not user:
@@ -188,7 +188,7 @@ def unlink_reference(accession, pub_id):
         con.close()
 
 
-@bp.route("/<accession>/reference/swissprot/", methods=["PUT"])
+@bp.route("/<accession>/references/swissprot/", methods=["PUT"])
 def update_entry_citations(accession):
     """
     Retrieve signatures for interpro entry, and the matching proteins, to
