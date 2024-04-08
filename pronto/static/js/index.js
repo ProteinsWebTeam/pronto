@@ -738,11 +738,13 @@ async function getSanityCheck() {
         let count = 0
         const includeLlm = document.querySelector('input[name="include-llm"]').checked;
         for (const error of object.errors) {
-            count += 1
             // If 'include llm' checkbox is not checked and error.llm is true, skip this error
             if (!includeLlm && error.llm) {
                 continue;
             }
+            
+            count += 1
+
             const acc = error.annotation !== null ? error.annotation : error.entry;
             const iconClass = error.llm ? 'robot' : 'user';
             html += `
