@@ -277,7 +277,7 @@ def update_signature_citations(
                 if error:
                     invalid_pmids.extend(list(new_citations.keys()))
                 else:
-                    pub_ids.extend([new_citations[pmid][0] for pmid in new_citations])
+                    pub_ids.extend([new_citations[pmid] for pmid in new_citations])
 
             with orc_con.cursor() as cit_cur:
                 citations = get_citations(cit_cur, in_oracle)
@@ -316,7 +316,7 @@ def check_pmid_in_citations(pmids: list[int], orc_con) -> tuple[list[int], list[
     return list(not_in_oracle), in_oracle
 
 
-def get_unlinked_pub_ids(citations: dict, cur) -> list[int]:
+def get_unlinked_pub_ids(citations: dict, cur) -> list[str]:
     """Retrieve pub_ids for citations retrieved from api.annotation.get_citations()
 
     :param citations: dict from api.annotation.get_citations()
@@ -327,11 +327,11 @@ def get_unlinked_pub_ids(citations: dict, cur) -> list[int]:
         SELECT C.PUB_ID
         FROM INTERPRO.CITATION C
         WHERE C.PUBMED_ID IN ({placeholder}) 
-            AND C.PUB_ID NOT IN (SELECT PUB_ID FROM SUPPLEMENTARY_REF);
+            AND C.PUB_ID NOT IN (SELECT PUB_ID FROM SUPPLEMENTARY_REF)
     """
 
     cur.execute(query, tuple(citations.keys()))
-    return [row[0] for row in cur]
+    return [row for row in cur]
 
 
 def relate_entry_to_pubs(entry_acc, pub_id, orc_con):
