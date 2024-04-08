@@ -1249,10 +1249,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
         });
 
+    // reload sanity check records if 'show llms' checkbox is checked/unchecked
+    document
+        .querySelector('input[name="include-llm"]')
+        .addEventListener('change', () => {
+            dimmer.on();
+            getSanityCheck()
+                .then(() => {dimmer.off()})
+    }); 
 });
-
-// reload sanity check records if 'show llms' checkbox is checked/unchecked
-document.querySelector('input[name="include-llm"]').addEventListener('change', function() {
-    getSanityCheck();
-});
-
