@@ -288,7 +288,7 @@ def update_signature_citations(
     return invalid_pmids, failed_pub_ids
 
 
-def check_pmid_in_citations(pmids: list[str], orc_con) -> list[int]:
+def check_pmid_in_citations(pmids: list[int], orc_con) -> list[int]:
     """Check for pmid citations that are not listed in INTERPRO.CITATION
 
     :param pmids: list of pubmed ids from postgresql publication table
