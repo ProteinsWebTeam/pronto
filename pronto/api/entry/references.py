@@ -327,7 +327,7 @@ def get_unlinked_pub_ids(citations: dict, cur) -> list[str]:
         SELECT C.PUB_ID
         FROM INTERPRO.CITATION C
         WHERE C.PUBMED_ID IN ({placeholder}) 
-            AND C.PUB_ID NOT IN (SELECT PUB_ID FROM SUPPLEMENTARY_REF)
+          AND C.PUB_ID NOT IN (SELECT PUB_ID FROM INTERPRO.SUPPLEMENTARY_REF)
     """
 
     cur.execute(query, tuple(citations.keys()))
