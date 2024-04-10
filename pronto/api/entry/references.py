@@ -255,7 +255,7 @@ def update_signature_citations(
     """
     invalid_pmids, failed_pub_ids = [], []
     pmid_query = f"""
-        SELECT P.pubmed_id
+        SELECT DISTINCT P.pubmed_id
         FROM protein2publication P
         INNER JOIN signature2protein S ON P.protein_acc = S.protein_acc
         WHERE S.signature_acc IN ({','.join(['%s'] * len(sig_accs))})
