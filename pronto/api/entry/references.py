@@ -284,7 +284,7 @@ def update_signature_citations(
                 pub_ids.extend(get_unlinked_pub_ids(citations, cit_cur))
 
             for pub_id in pub_ids:
-                error = relate_entry_to_pubs(entry_acc, pub_id, orc_con)
+                error = relate_entry_to_pubs(entry_acc, pub_id[0], orc_con)
                 if error:
                     failed_pub_ids.append(pub_id)
 
