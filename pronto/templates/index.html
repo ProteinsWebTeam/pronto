@@ -116,8 +116,19 @@
                     </table>
                 </div>
                 <div class="ui tab basic segment" data-tab="checks">
-                    <button class="ui compact primary button">Run</button>
-                    <a href="/checks/" class="ui compact basic button">Details</a>
+                    <div class="ui form">
+                        <div class="fields">
+                            <button class="ui compact primary button">Run</button>
+                            <a href="/checks/" class="ui compact basic button">Details</a>
+                        </div>
+                        <div class="field">
+                            <div class="ui checkbox">
+                                <input type="checkbox" name="include-llm">
+                                <label>Show errors for AI-generated entries and annotations</label>
+                            </div>
+                        </div>
+                    </div>    
+
                     <div class="ui hidden message"></div>
                     <table class="ui single line compact table">
                         <thead>
