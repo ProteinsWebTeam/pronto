@@ -219,24 +219,26 @@ def update_entry_citations(accession):
 
     # process each signature in turn & batch process proteins for each signature
     signature_accs = [_[0] for _ in signature_accs]
-    invalid_pmids, failed_pub_ids = update_signature_citations(
+    invalid, failed, inserted = update_signature_citations(
         signature_accs, accession, con
     )
 
     con.close()
 
-    if len(invalid_pmids) == len(failed_pub_ids) == 0:
+    if len(invalid) == len(failed) == 0:
         return jsonify({
             "status": True,
+            "inserted": len(inserted)
         }), 200
     else:
         return jsonify({
             "status": False,
             "error": {
                 "title": "Failed citation update",
-                "message": f"Failed to update citations and/or relate citations to entry {accession}.",
-                "invalid_pmids": invalid_pmids,
-                "failed_pub_ids": failed_pub_ids,
+                "message": (f"Failed to update citations and/or "
+                            f"relate citations to entry {accession}."),
+                "invalid_pmids": invalid,
+                "failed_pub_ids": failed,
             }
         }), 400
 
@@ -245,7 +247,7 @@ def update_signature_citations(
     sig_accs: list[str],
     entry_acc: str,
     orc_con
-) -> tuple[list[str], list[str]]:
+) -> tuple[list[str], list[str], list[str]]:
     """Coordinate inserting missing citations from PostGreSQL (e.g. INTTST) db 
     into the IPRO db (e.g. IPDEV), and relate the new citations to the InterPro entry
 
@@ -253,7 +255,7 @@ def update_signature_citations(
     :param entry_acc: str, IPPRO entry accession
     :param orc_con: open connection to IPPRO oracle db
     """
-    invalid_pmids, failed_pub_ids = [], []
+    invalid_pmids, failed_pub_ids, inserted_pub_ids = [], [], []
     pmid_query = f"""
         SELECT DISTINCT P.pubmed_id
         FROM protein2publication P
@@ -287,11 +289,13 @@ def update_signature_citations(
                 error = relate_entry_to_pubs(entry_acc, pub_id[0], orc_con)
                 if error:
                     failed_pub_ids.append(pub_id)
+                else:
+                    inserted_pub_ids.append(pub_id[0])
 
     pg_con.close()
     orc_con.commit()
 
-    return invalid_pmids, failed_pub_ids
+    return invalid_pmids, failed_pub_ids, inserted_pub_ids
 
 
 def check_pmid_in_citations(pmids: list[int], orc_con) -> tuple[list[int], list[int]]:
