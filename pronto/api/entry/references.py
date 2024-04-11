@@ -228,7 +228,7 @@ def update_entry_citations(accession):
     if len(invalid) == len(failed) == 0:
         return jsonify({
             "status": True,
-            "inserted": len(inserted)
+            "added": len(inserted)
         }), 200
     else:
         return jsonify({
