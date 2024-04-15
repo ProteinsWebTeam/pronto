@@ -43,7 +43,7 @@ export async function create(accession, text, isLLM) {
         text = text.replaceAll(/\bswiss:([a-z0-9]+)\b/gi, "[swissprot:$1]");
         textarea.value = text;
     }
-    textarea.readOnly = isLLM;
+    // textarea.readOnly = isLLM;
 
     $(modal)
         .modal({
