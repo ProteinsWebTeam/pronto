@@ -7,6 +7,47 @@ import * as pagination from '../ui/pagination.js'
 import * as searchbox from '../ui/searchbox.js'
 
 
+function fmtSignature(s) {
+    let html = `
+        <span class="ui circular mini label type ${s.type.code}">
+            ${s.type.code}
+        </span>
+    `;
+
+    if (s.name !== null) {
+        html += `
+            <a href="/signature/${s.accession}/">
+                ${s.accession} &middot; ${s.name}
+            </a>
+        `;
+    } else {
+        html += `
+            <a href="/signature/${s.accession}/">
+                ${s.accession}
+            </a>
+        `;
+    }
+    return html;
+}
+
+function fmtEntry(e) {
+    if (e !== null) {
+        return `
+            <td>
+                <span class="ui circular mini label type ${e.type.code}">${e.type.code}</span>
+                <a href="/entry/${e.accession}/">${e.accession} &middot; ${e.short_name}</a>
+            </td>
+            <td class="collapsing">${checkbox.createDisabled(e.checked)}</td>        
+        `;
+    } else {
+        return `
+            <td></td>
+            <td class="collapsing">${checkbox.createDisabled(false)}</td>        
+        `;
+    }
+}
+
+
 function getSignatures() {
     dimmer.on();
     const url = new URL(`/api${location.pathname}signatures/`, location.origin);
@@ -38,26 +79,9 @@ function getSignatures() {
             if (object.count) {
                 for (const signature of object.results) {
                     html += `<tr data-id="${signature.accession}">
-                             <td>
-                                <span class="ui circular mini label type ${signature.type.code}">${signature.type.code}</span>
-                                <a href="/signature/${signature.accession}/">${signature.accession}</a>
-                             </td>
+                             <td>${fmtSignature(signature)}</td>
+                             ${fmtEntry(signature.entry)}
                     `;
-
-                    if (signature.entry !== null) {
-                        html += `
-                            <td>
-                                <span class="ui circular mini label type ${signature.entry.type.code}">${signature.entry.type.code}</span>
-                                <a href="/entry/${signature.entry.accession}/">${signature.entry.accession}</a>
-                            </td>
-                            <td class="collapsing">${checkbox.createDisabled(signature.entry.checked)}</td>
-                        `;
-                    } else {
-                        html += `
-                            <td></td>
-                            <td class="collapsing">${checkbox.createDisabled(false)}</td>
-                        `;
-                    }
 
                     let change = '';
                     if (signature.proteins.then > 0 && signature.proteins.now > 0) {
