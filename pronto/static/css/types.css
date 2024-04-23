@@ -22,11 +22,13 @@
     border-color: #db2828;
     color: #fff;
 }
-.ui.label.type.C, .ui.label.type.B, .ui.label.type.A, .ui.label.type.P {
+.ui.label.type.A, .ui.label.type.B, .ui.label.type.C, .ui.label.type.P {
     background-color: #a333c8;
     border-color: #a333c8;
     color: #fff;
 }
+.ui.label.type.I,
+.ui.label.type.O,
 .ui.label.type.U {
     background-color: #767676;
     border-color: #767676;

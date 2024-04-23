@@ -129,8 +129,10 @@ def get_signatures(db_name):
     """
 
     if search_query:
-        sql += " AND LOWER(accession) LIKE %s"
-        params = [db_identifier, f"{search_query.lower()}%"]
+        sql += " AND (LOWER(accession) LIKE %s OR LOWER(name) LIKE %s)"
+        params = [db_identifier,
+                  f"{search_query.lower()}%",
+                  f"{search_query.lower()}%"]
     else:
         params = [db_identifier]
 
@@ -172,6 +174,7 @@ def get_signatures(db_name):
           M.METHOD_AC, 
           E.ENTRY_AC, 
           E.ENTRY_TYPE,
+          E.SHORT_NAME,
           E.CHECKED,
           C.VALUE,
           C.NAME,
@@ -208,19 +211,20 @@ def get_signatures(db_name):
     con.close()
 
     results = []
-    for acc, type_name, cnt in pg_signatures:
+    for acc, name, type_name, cnt in pg_signatures:
         try:
             info = ora_signatures[acc]
         except KeyError:
-            info = [None] * 5
+            info = [None] * 7
 
         entry_acc = info[0]
         type_code = info[1]
         entry_type_name = code2type[type_code] if entry_acc else None
-        is_checked = info[2] == "Y"
-        comment_text = info[3]
-        comment_author = info[4]
-        comment_date = info[5]
+        entry_name = info[2]
+        is_checked = info[3] == "Y"
+        comment_text = info[4]
+        comment_author = info[5]
+        comment_date = info[6]
 
         if integrated is True and not entry_acc:
             continue
@@ -251,6 +255,7 @@ def get_signatures(db_name):
             },
             "entry": {
                 "accession": entry_acc,
+                "short_name": entry_name,
                 "type": {
                     "code": type_code,
                     "name": entry_type_name.replace("_", " ")

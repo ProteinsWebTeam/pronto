@@ -328,7 +328,7 @@ def get_signature_go_info(accession, term_id):
         }), 400
 
 
-def get_panther_go_subfam(accession, term_id):
+def get_panther_go_subfam(accession: str, term_id: str):
 
     pg_con = utils.connect_pg()
     with pg_con.cursor() as pg_cur:
@@ -356,9 +356,10 @@ def get_panther_go_subfam(accession, term_id):
     params = list(matches.keys()) + [term_id]
     cur.execute(
         f""" 
-        SELECT DISTINCT P.METHOD_AC
-        FROM INTERPRO.PANTHER2GO P
-        WHERE P.METHOD_AC IN ({','.join(binds)}) 
+        SELECT DISTINCT SUBFAMILY_AC
+        FROM INTERPRO.PANTHER2GO
+        WHERE SUBFAMILY_AC IS NOT NULL
+          AND SUBFAMILY_AC IN ({','.join(binds)}) 
           AND GO_ID = :go_id
         """,
         params
