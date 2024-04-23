@@ -122,9 +122,9 @@ def get_go2panther(subfams: set[str], terms: dict[str, dict], pg_cur):
         binds = [":" + str(j+1) for j in range(len(subset))]
         cur.execute(
             f"""
-            SELECT DISTINCT METHOD_AC, GO_ID
+            SELECT DISTINCT SUBFAMILY_AC, GO_ID
             FROM INTERPRO.PANTHER2GO
-            WHERE METHOD_AC IN ({','.join(binds)})
+            WHERE SUBFAMILY_AC IN ({','.join(binds)})
             """,
             subset
         )
@@ -159,7 +159,7 @@ def get_go2panther(subfams: set[str], terms: dict[str, dict], pg_cur):
     return terms
 
 
-def get_go2funfam(gene3dset: dict, terms: dict, pg_cur):
+def get_go2funfam(gene3dset: dict, terms: dict, pg_cur) -> dict[str, dict]:
     con = utils.connect_oracle()
     cur = con.cursor()
 
