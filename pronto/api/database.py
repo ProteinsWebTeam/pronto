@@ -123,7 +123,7 @@ def get_signatures(db_name):
     db_identifier, db_full_name, db_version = row
 
     sql = """
-        SELECT accession, type, num_sequences
+        SELECT accession, name, type, num_sequences
         FROM interpro.signature
         WHERE database_id = %s
     """
@@ -202,7 +202,6 @@ def get_signatures(db_name):
             WHERE C.STATUS='Y'
         ) C ON (M.METHOD_AC = C.METHOD_AC AND C.R = 1)
         WHERE LOWER(D.DBSHORT) = :1
-
         """,
         [db_name]
     )
@@ -253,6 +252,7 @@ def get_signatures(db_name):
                          if v == type_name][0],
                 "name": type_name.replace("_", " "),
             },
+            "name": name,
             "entry": {
                 "accession": entry_acc,
                 "short_name": entry_name,
