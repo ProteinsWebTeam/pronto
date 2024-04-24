@@ -1,3 +1,4 @@
+import importlib.metadata
 from flask import Blueprint, jsonify, request
 
 from pronto import auth, utils
@@ -45,6 +46,7 @@ def api_index():
         "uniprot": version,
         "ready": is_ready,
         "user": user,
+        "version": importlib.metadata.version("pronto"),
     })
 
 
