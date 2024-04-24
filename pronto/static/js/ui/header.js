@@ -85,7 +85,7 @@ export function updateHeader(signatureAcc) {
                 const signatures = new Map();
                 const errMsg = modal.querySelector('.ui.message');
                 let existing_ai_warning = false;
-            
+
                 $(signaturesForm).form({
                     fields: { accession: 'empty' },
                     onSuccess: function (event, fields) {
@@ -135,7 +135,7 @@ export function updateHeader(signatureAcc) {
                                 if (values.type.length === 0) {
                                     /*
                                         API returns signature full type (e.g. Domain, Family, etc.)
-                                        but select's options have the type code as value (e.g. D, F, etc.)
+                                        but the select element's options have the type code as value (e.g. D, F, etc.)
                                      */
                                     let typeCode = null;
                                     for (const option of infoForm.querySelectorAll('select option')) {
@@ -183,8 +183,8 @@ export function updateHeader(signatureAcc) {
                                     });
                                 }
 
-                                // only apply ai generated tag (and thus warning) depending on the first entry only
-                                // here here
+                                // Only apply AI generated tag (and thus warning)
+                                // depending on the first entry only here
                                 if (useAIAnnotations && signatures.size < 2) {
                                     existing_ai_warning = true;
                                     toggleErrorMessage(
@@ -194,9 +194,7 @@ export function updateHeader(signatureAcc) {
                                             message: `The name, short name, and description of <strong>${signature.accession}</strong> have been generated using AI.`,
                                         }
                                     )
-                                }
-
-                                else if (existing_ai_warning) {
+                                } else if (existing_ai_warning) {
                                     toggleErrorMessage(
                                         errMsg,
                                         {
@@ -204,18 +202,14 @@ export function updateHeader(signatureAcc) {
                                             message: `The name, short name, and description of the first signature have been generated using AI.`,
                                         }
                                     )
-                                }
-
-                                else {
+                                } else {
                                     toggleErrorMessage(errMsg, null);
                                 }
-                                
                             })
                             .catch((error) => {
                                 toggleErrorMessage(errMsg, { title: error.message, message:  error.cause});
                             });
-                    
-                    }            
+                    }
                 });
 
                 $(infoForm).form({
@@ -286,10 +280,6 @@ export function updateHeader(signatureAcc) {
                     });
 
                 resolve(object.user !== null);
-
-                
             });
-
     }));
-
 }
