@@ -359,7 +359,7 @@ document.addEventListener('DOMContentLoaded', () => {
         .slider({
             min: 1,
             max: accessions.length,
-            start: Number.isInteger(matching) ? matching : 1,
+            start: Number.isInteger(matching) ? matching : accessions.length,
             onChange: function (value) {
                 const newURL = new URL(location.href);
                 newURL.searchParams.set('matching', value);

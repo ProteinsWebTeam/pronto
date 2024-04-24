@@ -52,7 +52,7 @@ def get_proteins_alt(accessions):
     try:
         min_sign_per_prot = int(request.args["matching"])
     except KeyError:
-        min_sign_per_prot = 1
+        min_sign_per_prot = len(accessions)
     except ValueError:
         return jsonify({
             "error": {
