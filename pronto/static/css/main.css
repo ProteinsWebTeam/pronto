@@ -52,6 +52,7 @@ a > i:last-child {
     margin-bottom: 0;
 }
 
+.ui.form .grouped.fields .hidden.field,
 .ui.form .hidden.field {
     display: none;
 }
