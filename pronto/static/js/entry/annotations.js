@@ -277,7 +277,9 @@ export function refresh(accession) {
                 addHighlightEvenListeners(elem);
             }
 
-            annotations.map((annotation) => annotation.listenActionEvent());
+            annotations.forEach((annotation) => {
+                annotation.listenActionEvent(accession, references);
+            });
 
             return;
 
@@ -447,7 +449,8 @@ export function search(accession, query) {
 class Annotation {
     constructor(id, text, isLLM, isReviewed, comment, numEntries, xrefs, canUnlink, canDelete) {
         this.id = id;
-        this.text = text;
+        this.rawText = text;
+        this.formattedText = null;
         this.isLLM = isLLM;
         this.isReviewed = isReviewed;
         this.comment = comment;
@@ -455,6 +458,7 @@ class Annotation {
         this.xrefs = xrefs;
         this.canUnlink = canUnlink;
         this.canDelete = canDelete;
+        this.editorIsOpen = false;
     }
 
     get element() {
@@ -462,7 +466,7 @@ class Annotation {
     }
 
     createEditor(isFirst, isLast, references, mainRefs, previewMode) {
-        let text = this.text.replaceAll(
+        let text = this.rawText.replaceAll(
             REGEX_PUB,
             (match, pubID) => {
                 if (references.has(pubID)) {
@@ -493,6 +497,7 @@ class Annotation {
             );
         }
 
+        this.formattedText = text;
         if (previewMode)
             return `<div class="ui vertical segment annotation">${text}</div>`;
 
@@ -559,44 +564,221 @@ class Annotation {
         `;
     }
 
-    listenActionEvent(references) {
+    listenActionEvent(entryAccession, references) {
         const elements = this.element.querySelectorAll('a[data-action]:not(.disabled)');
         for (const element of elements) {
             element.addEventListener('click', (e) => {
                 const action = e.currentTarget.dataset.action;
                 if (action === 'edit') {
-
+                    this.openEditor(references);
                 } else if (action === 'moveup') {
-
+                    this.reorder(entryAccession, 'up');
                 } else if (action === 'movedown') {
-
+                    this.reorder(entryAccession, 'down');
                 } else if (action === 'unlink') {
-
+                    if (this.canUnlink) {
+                        unlink(entryAccession, this.id);
+                    } else {
+                        modals.error(
+                            `Cannot unlink ${this.id}`,
+                            `${this.id} is the only annotation associated to ${entryAccession}. 
+                            Please make sure that ${entryAccession} has at least one other annotation.`
+                        );
+                    }
                 } else if (action === 'delete') {
+                    if (this.canDelete) {
+                        remove(this.id, this.numEntries)
+                            .then((status,) => {
+                                    if (status) {
+                                        refresh(entryAccession)
+                                            .then(() => {
+                                                $('.ui.sticky').sticky();
+                                            });
+                                    }
+                                }
+                            );
+                    } else {
+                        modals.error(
+                            `Cannot unlink ${this.id}`,
+                            `${this.id} is the only annotation associated to ${entryAccession}. 
+                            Please make sure that ${entryAccession} has at least one other annotation.`
+                        );
+                    }
+                } else if (['mark-as-reviewed', 'mark-as-curated', 'save'].includes(action)) {
+                    let header;
+                    let reason;
+                    switch (action) {
+                        case 'mark-as-reviewed': {
+                            header = 'Mark as reviewed';
+                            reason = 'Reviewed';
+                            break;
+                        }
+                        case 'mark-as-curated': {
+                            header = 'Mark as curated';
+                            reason = 'Curated';
+                            break;
+                        }
+                        case 'save': {
+                            header = 'Save changes';
+                            reason = null;
+                            break
+                        }
+                    }
 
-                } else if (action === 'mark-as-reviewed') {
-
-                } else if (action === 'mark-as-curated') {
-
+                    if (this.numEntries > 1) {
+                        modals.ask(
+                            header,
+                            `This annotation is used by <strong>${this.numEntries} entries</strong>. Changes will be visible in all entries.`,
+                            'Save',
+                            () => {
+                                this.saveChanges(entryAccession, reason);
+                            }
+                        );
+                    } else {
+                        this.saveChanges(entryAccession, reason);
+                    }
                 } else if (action === 'list-entries') {
-
-                } else if (action === 'save') {
-
+                    getAnnotationEntries(this.id);
+                } else if (action === 'cancel') {
+                    this.closeEditor();
                 }
             });
         }
     }
 
     openEditor(references) {
+        if (this.editorIsOpen)
+            return;
 
-        const text = this.text.replaceAll(rePub, (match, pubID) => {
-            if (references.has(pubID)) {
-                const pub = references.get(pubID);
-                return `[cite:${pub.pmid}]`
+        const text = this.rawText.replaceAll(
+            REGEX_PUB,
+            (match, pubID) => {
+                if (references.has(pubID)) {
+                    const pub = references.get(pubID);
+                    return `[cite:${pub.pmid}]`
+                }
+
+                return match;
             }
+        );
 
-            return match;
-        });
+        const menu = this.element.querySelector('.ui.bottom.menu');
+
+        // Display bottom menu
+        menu.classList.remove('hidden');
+
+        // Open editor
+        const segment = this.element.querySelector('.segment');
+        segment.innerHTML = `
+            <div class="ui form">
+                <div class="field">
+                    <label>Reason for update</label>
+                    <select>
+                    <option value="Annotation updated" selected>Annotation</option>
+                    <option value="Cross-references updated">Cross-references</option>
+                    <option value="References updated">Literature references</option>
+                    <option value="Spelling updated">Typos, grammar errors, spelling mistakes</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <textarea rows="15"></textarea>
+                </div>
+                <div class="ui error message"></div>
+            </div>
+        `;
+
+        const textarea = this.element.querySelector('.segment textarea');
+        textarea.value = text;
+        this.rawText = textarea.value;  // TODO: Do we need this? Try with weird characters to see if the textarea reformat them.
+        this.editorIsOpen = true;
+    }
+
+    closeEditor() {
+        if (!this.editorIsOpen) return;
+
+        // Hide bottom menu
+        this.element.querySelector('.ui.bottom.menu').classList.add('hidden');
+
+        // Restore formatted annotation
+        const segment = this.element.querySelector('.segment');
+        segment.innerHTML = this.formattedText;
+
+        // recreate highlight even listeners for THIS annotation only
+        addHighlightEvenListeners(segment);
+        this.editorIsOpen = false;
+    }
+
+    reorder(entryAccession, direction) {
+        const url = `/api/entry/${entryAccession}/annotation/${this.id}/order/${direction}/`;
+        fetch(url, { method: 'POST' })
+            .then(response => response.json())
+            .then(object => {
+                if (object.status)
+                    refresh(entryAccession).then(() => { $('.ui.sticky').sticky(); });
+                else
+                    modals.error(object.error.title, object.error.message);
+            });
+    }
+
+    saveChanges(entryAccession, reason) {
+        let text = this.rawText;
+        if (!reason) {
+            if (this.editorIsOpen) {
+                text = this.element.querySelector('textarea').value;
+
+                const select = this.element.querySelector('select');
+                reason = select.options[select.selectedIndex].value;
+
+                if (reason.length)
+                    select.parentNode.classList.remove('error');
+                else {
+                    select.parentNode.classList.add('error');
+                }
+            } else {
+                return;
+            }
+        }
+
+        let isLLM = this.isLLM;
+        let isReviewed = isLLM;
+
+        if (reason === 'Reviewed') {
+            // Nothing changes (`isReviewed` already implied to be true)
+        } else if (reason === 'Curated') {
+            isLLM = false;
+            isReviewed = false;
+        }
+
+        const options = {
+            method: 'POST',
+            headers: {
+                'Content-type': 'application/x-www-form-urlencoded; charset=UTF-8'
+            },
+            body: [
+                `text=${encodeURIComponent(text)}`,
+                `reason=${reason}`,
+                `llm=${isLLM ? 'true' : 'false'}`,
+                `checked=${isReviewed ? 'true' : 'false'}`,
+            ].join('&')
+        };
+
+        fetch(`/api/annotation/${this.id}/`, options)
+            .then(response => response.json())
+            .then((result) => {
+                if (result.status) {
+                    refresh(entryAccession)
+                        .then(() => {
+                            $('.ui.sticky').sticky();
+                        });
+                } else {
+                    console.error(result);
+                    // const form = this.element.querySelector('.ui.form');
+                    // // Escape lesser/greater signs because if the error message contains "<p>" it will be interpreted
+                    // form.querySelector('.ui.message').innerHTML = '<div class="header">'+ result.error.title +'</div><p>'+ result.error.message.replace(/</g, '&lt;').replace(/>/g, '&gt;') +'</p>';
+                    // select.parentNode.classList.add('error');
+                    // form.classList.add('error');
+                }
+            });
     }
 }
 
