@@ -956,7 +956,7 @@ def update_annotation(ann_id):
                     }
                 }), 500
 
-    comment += (f" updated by {user['name'].split()[0]} "
+    comment += (f" by {user['name'].split()[0]} "
                 f"on {datetime.now():%Y-%m-%d %H:%M:%S}")
 
     ann.strip()
