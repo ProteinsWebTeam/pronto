@@ -464,7 +464,7 @@ class Annotation {
             llmItem = `
                 <div class="ui floating dropdown item">
                     <i class="magic icon"></i>
-                    AI &middot; ${this.isReviewed ? 'Reviewed' : 'Unreviewed'}
+                    AI/${this.isReviewed ? 'Reviewed' : 'Unreviewed'}
                     <i class="dropdown icon"></i>
                     <div class="menu">
                         ${subItems}
