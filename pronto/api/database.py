@@ -63,6 +63,11 @@ def get_signatures(db_name):
         llm = None
 
     try:
+        past_integrated = bool(int(request.args["pastintegrated"]))
+    except (KeyError, ValueError):
+        past_integrated = None
+
+    try:
         commented = bool(int(request.args["commented"]))
     except (KeyError, ValueError):
         commented = None
@@ -178,7 +183,8 @@ def get_signatures(db_name):
           E.CHECKED,
           C.VALUE,
           C.NAME,
-          C.CREATED_ON
+          C.CREATED_ON,
+          CASE WHEN EA.METHOD_AC IS NOT NULL THEN 1 ELSE 0 END AS PastIntegrated
         FROM INTERPRO.CV_DATABASE D
         INNER JOIN INTERPRO.METHOD M
           ON D.DBCODE = M.DBCODE
@@ -186,6 +192,7 @@ def get_signatures(db_name):
           ON M.METHOD_AC = EM.METHOD_AC
         LEFT OUTER JOIN INTERPRO.ENTRY E 
           ON E.ENTRY_AC = EM.ENTRY_AC
+        LEFT OUTER JOIN INTERPRO.ENTRY2METHOD_AUDIT EA ON M.METHOD_AC = EA.METHOD_AC
         LEFT OUTER JOIN (
           SELECT
             C.METHOD_AC,
@@ -214,7 +221,7 @@ def get_signatures(db_name):
         try:
             info = ora_signatures[acc]
         except KeyError:
-            info = [None] * 7
+            info = [None] * 8
 
         entry_acc = info[0]
         type_code = info[1]
@@ -224,6 +231,14 @@ def get_signatures(db_name):
         comment_text = info[4]
         comment_author = info[5]
         comment_date = info[6]
+        is_past_integrated = info[7] == 1
+
+
+        if past_integrated is True and not is_past_integrated:
+            continue
+        elif past_integrated is False and is_past_integrated:
+            continue
+
 
         if integrated is True and not entry_acc:
             continue
@@ -268,6 +283,7 @@ def get_signatures(db_name):
                 "author": comment_author,
                 "date": comment_date.strftime("%d %b %Y at %H:%M"),
             } if comment_text else None,
+            "past_integrated": is_past_integrated
         })
 
     num_results = len(results)
@@ -305,6 +321,7 @@ def get_signatures(db_name):
         "count": num_results,
         "database": {"name": db_full_name, "version": db_version},
     })
+
 
 
 @bp.route("/<db_name>/unintegrated/")
