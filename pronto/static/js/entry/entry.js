@@ -53,14 +53,13 @@ function getEntry(accession) {
                     </div>
                 `;
                 document.querySelector('input[name="name"]').dataset.value = entry.name;
-                document.querySelector('input[name="short_name"]').dataset.value = entry.short_name;
+                document.querySelector('input[name="short-name"]').dataset.value = entry.short_name;
                 document.querySelector('select[name="type"]').dataset.value = entry.type.code;
                 document.querySelector('input[name="checked"]').checked = entry.status.checked;
-                if (entry.status.llm) {
-                    const field = document.getElementById('llm-field');
-                    field.classList.remove('hidden');
-                    field.querySelector('input[name="llm-reviewed"]').checked = entry.status.reviewed;
-                }
+                document.querySelector('input[name="llm-reviewed"]').checked = entry.status.reviewed;
+                document.querySelector('input[name="curated"]').checked = !entry.status.llm;
+                document.querySelector('input[name="llm"]').checked = entry.status.llm;
+                document.getElementById('llm-fields').style.display = entry.status.llm ? '' : 'none';
                 const statistics = document.getElementById('statistics');
                 statistics.classList.add(entry.type.code);
                 statistics.querySelector('[data-statistic="type"]').innerHTML = formatType(entry.type.name);
@@ -223,7 +222,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const name = elem.getAttribute('name');
                 const value = elem.dataset.value;
 
-                if (name === 'name' || name === 'short_name')
+                if (name === 'name' || name === 'short-name')
                     elem.value = value;
                 else if (name === 'type')
                     $(elem).dropdown('set selected', value);
@@ -264,6 +263,7 @@ document.addEventListener('DOMContentLoaded', () => {
         $(segment.querySelector('.ui.form')).form({
             fields: fields,
             onSuccess: function (event, fields) {
+                fields.llm = !fields.curated;
                 const errMsg = segment.querySelector('.ui.message');
                 const options = {
                     method: 'POST',
