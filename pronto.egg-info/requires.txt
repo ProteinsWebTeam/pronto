@@ -1,0 +1,4 @@
+oracledb==1.4.1
+Flask~=2.3
+mysqlclient==2.2.0
+psycopg[binary]~=3.1

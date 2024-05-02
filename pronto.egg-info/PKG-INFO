@@ -1,0 +1,8 @@
+Metadata-Version: 2.1
+Name: pronto
+Version: 2.7.1
+License-File: LICENSE
+Requires-Dist: oracledb==1.4.1
+Requires-Dist: Flask~=2.3
+Requires-Dist: mysqlclient==2.2.0
+Requires-Dist: psycopg[binary]~=3.1

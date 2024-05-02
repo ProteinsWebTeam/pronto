@@ -183,8 +183,8 @@ def get_signatures(db_name):
           E.CHECKED,
           C.VALUE,
           C.NAME,
-          C.CREATED_ON,
-          CASE WHEN EA.METHOD_AC IS NOT NULL THEN 1 ELSE 0 END AS PastIntegrated
+          C.CREATED_ON, 
+          NVL(EA.NUM_ENTRIES, 0)
         FROM INTERPRO.CV_DATABASE D
         INNER JOIN INTERPRO.METHOD M
           ON D.DBCODE = M.DBCODE
@@ -192,7 +192,10 @@ def get_signatures(db_name):
           ON M.METHOD_AC = EM.METHOD_AC
         LEFT OUTER JOIN INTERPRO.ENTRY E 
           ON E.ENTRY_AC = EM.ENTRY_AC
-        LEFT OUTER JOIN INTERPRO.ENTRY2METHOD_AUDIT EA ON M.METHOD_AC = EA.METHOD_AC
+        LEFT OUTER JOIN (
+          SELECT METHOD_AC, COUNT(DISTINCT ENTRY_AC) AS NUM_ENTRIES
+          FROM INTERPRO.ENTRY2METHOD_AUDIT GROUP BY METHOD_AC
+          ) EA ON M.METHOD_AC = EA.METHOD_AC
         LEFT OUTER JOIN (
           SELECT
             C.METHOD_AC,
@@ -231,14 +234,12 @@ def get_signatures(db_name):
         comment_text = info[4]
         comment_author = info[5]
         comment_date = info[6]
-        is_past_integrated = info[7] == 1
-
+        is_past_integrated = bool(info[7]) > 0
 
         if past_integrated is True and not is_past_integrated:
             continue
         elif past_integrated is False and is_past_integrated:
             continue
-
 
         if integrated is True and not entry_acc:
             continue
@@ -282,8 +283,7 @@ def get_signatures(db_name):
                 "text": comment_text,
                 "author": comment_author,
                 "date": comment_date.strftime("%d %b %Y at %H:%M"),
-            } if comment_text else None,
-            "past_integrated": is_past_integrated
+            } if comment_text else None
         })
 
     num_results = len(results)
@@ -321,7 +321,6 @@ def get_signatures(db_name):
         "count": num_results,
         "database": {"name": db_full_name, "version": db_version},
     })
-
 
 
 @bp.route("/<db_name>/unintegrated/")
