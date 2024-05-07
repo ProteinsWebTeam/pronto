@@ -194,8 +194,9 @@ def get_signatures(db_name):
           ON E.ENTRY_AC = EM.ENTRY_AC
         LEFT OUTER JOIN (
           SELECT METHOD_AC, COUNT(DISTINCT ENTRY_AC) AS NUM_ENTRIES
-          FROM INTERPRO.ENTRY2METHOD_AUDIT GROUP BY METHOD_AC
-          ) EA ON M.METHOD_AC = EA.METHOD_AC
+          FROM INTERPRO.ENTRY2METHOD_AUDIT
+          GROUP BY METHOD_AC
+        ) EA ON M.METHOD_AC = EA.METHOD_AC
         LEFT OUTER JOIN (
           SELECT
             C.METHOD_AC,
@@ -234,7 +235,7 @@ def get_signatures(db_name):
         comment_text = info[4]
         comment_author = info[5]
         comment_date = info[6]
-        is_past_integrated = bool(info[7]) > 0
+        is_past_integrated = info[7] is not None and info[7] > 0
 
         if past_integrated is True and not is_past_integrated:
             continue
