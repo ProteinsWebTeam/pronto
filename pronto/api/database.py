@@ -63,6 +63,11 @@ def get_signatures(db_name):
         llm = None
 
     try:
+        past_integrated = bool(int(request.args["pastintegrated"]))
+    except (KeyError, ValueError):
+        past_integrated = None
+
+    try:
         commented = bool(int(request.args["commented"]))
     except (KeyError, ValueError):
         commented = None
@@ -178,7 +183,8 @@ def get_signatures(db_name):
           E.CHECKED,
           C.VALUE,
           C.NAME,
-          C.CREATED_ON
+          C.CREATED_ON, 
+          NVL(EA.NUM_ENTRIES, 0)
         FROM INTERPRO.CV_DATABASE D
         INNER JOIN INTERPRO.METHOD M
           ON D.DBCODE = M.DBCODE
@@ -186,6 +192,11 @@ def get_signatures(db_name):
           ON M.METHOD_AC = EM.METHOD_AC
         LEFT OUTER JOIN INTERPRO.ENTRY E 
           ON E.ENTRY_AC = EM.ENTRY_AC
+        LEFT OUTER JOIN (
+          SELECT METHOD_AC, COUNT(DISTINCT ENTRY_AC) AS NUM_ENTRIES
+          FROM INTERPRO.ENTRY2METHOD_AUDIT
+          GROUP BY METHOD_AC
+        ) EA ON M.METHOD_AC = EA.METHOD_AC
         LEFT OUTER JOIN (
           SELECT
             C.METHOD_AC,
@@ -214,7 +225,7 @@ def get_signatures(db_name):
         try:
             info = ora_signatures[acc]
         except KeyError:
-            info = [None] * 7
+            info = [None] * 8
 
         entry_acc = info[0]
         type_code = info[1]
@@ -224,6 +235,12 @@ def get_signatures(db_name):
         comment_text = info[4]
         comment_author = info[5]
         comment_date = info[6]
+        is_past_integrated = info[7] is not None and info[7] > 0
+
+        if past_integrated is True and not is_past_integrated:
+            continue
+        elif past_integrated is False and is_past_integrated:
+            continue
 
         if integrated is True and not entry_acc:
             continue
@@ -267,7 +284,7 @@ def get_signatures(db_name):
                 "text": comment_text,
                 "author": comment_author,
                 "date": comment_date.strftime("%d %b %Y at %H:%M"),
-            } if comment_text else None,
+            } if comment_text else None
         })
 
     num_results = len(results)
