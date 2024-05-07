@@ -33,7 +33,7 @@ function fmtSignature(s) {
 function fmtEntry(e) {
     if (e !== null) {
         return `
-            <td>
+            <td class="nowrap">
                 <span class="ui circular mini label type ${e.type.code}">${e.type.code}</span>
                 <a href="/entry/${e.accession}/">${e.accession} &middot; ${e.short_name}</a>
             </td>
@@ -79,7 +79,7 @@ function getSignatures() {
             if (object.count) {
                 for (const signature of object.results) {
                     html += `<tr data-id="${signature.accession}">
-                             <td>${fmtSignature(signature)}</td>
+                             <td class="nowrap">${fmtSignature(signature)}</td>
                              ${fmtEntry(signature.entry)}
                     `;
 
