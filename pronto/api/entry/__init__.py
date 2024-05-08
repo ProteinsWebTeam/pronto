@@ -456,6 +456,11 @@ def create_entry():
     except KeyError:
         is_checked = False
 
+    try:
+        import_description = request.json["import_description"]
+    except KeyError:
+        import_description = False
+
     entry_signatures = list(
         dict.fromkeys(request.json.get("signatures", [])).keys()
     )
@@ -724,12 +729,13 @@ def create_entry():
                 [(entry_acc, pub_id) for pub_id in new_references]
             )
 
-        if entry_llm:
+        if import_description:
             pg_con = utils.connect_pg(utils.get_pg_url())
             with pg_con.cursor() as pg_cur:
+                col = "llm_abstract" if entry_llm else "abstract"
                 pg_cur.execute(
-                    """
-                    SELECT s.llm_abstract
+                    f"""
+                    SELECT s.{col}
                     FROM signature s
                     WHERE s.accession = %s
                     """,
@@ -743,10 +749,10 @@ def create_entry():
                 anno_text,
                 con,
                 user,
-                is_llm=True,
+                is_llm=entry_llm,
                 is_checked=False
             )
-            if code != 200:
+            if anno_id is None:
                 return jsonify(response), code
 
             response, code = relate_entry_to_anno(anno_id, entry_acc, con)
