@@ -384,12 +384,33 @@ def insert_annotation(
             400,  # could be 500 (if INSERT failed)
         )
 
+    ann.strip()
+    ann.wrap()
+    text = ann.text
+
+    cur.execute(
+        """
+        SELECT ANN_ID
+        FROM INTERPRO.COMMON_ANNOTATION
+        WHERE TEXT = :1
+        """,
+        [text]
+    )
+    row = cur.fetchone()
+    if row:
+        ann_id, = row
+        return (
+            ann_id,
+            {
+                "status": True,
+                "id": ann_id
+            },
+            200,
+        )
+
     action = "Imported" if is_llm else "Created"
     comment = (f"{action} by {user['name'].split()[0]} "
                f"on {datetime.now():%Y-%m-%d %H:%M:%S}")
-
-    ann.strip()
-    ann.wrap()
     ann_id = cur.var(STRING)
     try:
         cur.execute(
@@ -399,48 +420,27 @@ def insert_annotation(
             VALUES (INTERPRO.NEW_ANN_ID(), :1, :2, :3, :4)
             RETURNING ANN_ID INTO :5
             """,
-            [ann.text, comment, "Y" if is_llm else "N",
+            [text, comment, "Y" if is_llm else "N",
              "Y" if is_checked else "N", ann_id]
         )
     except DatabaseError as exc:
-        error, = exc.args
-        if error.code == 1:
-            # ORA-00001: unique constraint violated
-            cur.execute(
-                """
-                SELECT ANN_ID
-                FROM INTERPRO.COMMON_ANNOTATION
-                WHERE TEXT = :1
-                """,
-                [text]
-            )
-            ann_id, = cur.fetchone()
+        # error, = exc.args
+        # if error.code == 1:
+        #     # ORA-00001: unique constraint violated
+        #     pass
 
-            return (
-                None,
-                {
-                    "status": False,
-                    "error": {
-                        "title": "Database error",
-                        "message": f"Duplicate of {ann_id}"
-                    }
-                },
-                500,
-            )
-        else:
-            return (
-                None,
-                {
-                    "status": False,
-                    "error": {
-                        "title": "Database error",
-                        "message": f"The annotation could not be created: {exc}."
-                    }
-                },
-                500,
-            )
+        return (
+            None,
+            {
+                "status": False,
+                "error": {
+                    "title": "Database error",
+                    "message": f"The annotation could not be created: {exc}."
+                }
+            },
+            500,
+        )
     else:
-        con.commit()
         ann_id = ann_id.getvalue()[0]
         return (
             ann_id,
@@ -494,6 +494,9 @@ def create_annotation():
         is_llm,
         is_checked,
     )
+
+    if anno_id is not None:
+        con.commit()
 
     con.close()
     return jsonify(err_obj), http_status

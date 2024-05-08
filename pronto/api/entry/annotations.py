@@ -159,7 +159,6 @@ def relate_entry_to_anno(
             }
         }, 500
     else:
-        con.commit()
         return {
             "status": True
         }, 200
@@ -186,6 +185,9 @@ def link_annotation(accession, ann_id):
         accession,
         con
     )
+
+    if http_status == 200:
+        con.commit()
 
     con.close()
     return err_obj, http_status
