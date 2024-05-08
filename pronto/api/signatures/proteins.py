@@ -190,12 +190,12 @@ def get_proteins_alt(accessions):
                 [violate_term_id]
             )
             for rel_type, left_num, right_num in cur.fetchall():
-                if rel_type == "only_in_taxon":
-                    only_in.append("taxon_left_num NOT BETWEEN %s AND %s")
-                    only_in_params += [left_num, right_num]
-                else:
+                if rel_type == "never_in_taxon":
                     tax_filters.append("taxon_left_num BETWEEN %s AND %s")
                     tax_params += [left_num, right_num]
+                else:
+                    only_in.append("taxon_left_num NOT BETWEEN %s AND %s")
+                    only_in_params += [left_num, right_num]
 
             if only_in:
                 tax_filters.append(f"({' AND '.join(only_in)})")
