@@ -100,7 +100,7 @@ function render(accession, terms, divID) {
                                     </tr>`;
 
                     for (const constraint of result.constraint) {
-                        const constType = constraint.type === 'in_taxon' ? 'Only in' : 'Never in';
+                        const constType = constraint.type === 'never_in_taxon' ? 'Never in' : 'Only in';
                         html += `<tr>
                                 <td>${constType} ${constraint.taxon.name}</td>
                                 <td>${constraint.matches.reviewed.toLocaleString()}</td>
