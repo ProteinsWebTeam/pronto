@@ -258,7 +258,7 @@ def get_term_constraints(accession, term_id):
             if constraint["type"] == "never_in_taxon":
                 if left_num <= taxon_left_num <= right_num:
                     is_ok = False
-                else:
+
                     constraint["matches"]["total"] += 1
                     if is_reviewed:
                         constraint["matches"]["reviewed"] += 1
