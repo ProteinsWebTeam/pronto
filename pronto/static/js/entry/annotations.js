@@ -3,6 +3,8 @@ import * as dimmer from "../ui/dimmer.js";
 import * as modals from "../ui/modals.js"
 import {toggleErrorMessage} from "../ui/utils.js";
 
+const REGEX_PUB = /\[cite:(PUB\d+)\]/gi;
+
 async function getSignature(accession) {
     const response = await fetch(`/api/signature/${accession}/`);
     if (response.ok)
@@ -43,7 +45,7 @@ export async function create(accession, text, isLLM) {
         text = text.replaceAll(/\bswiss:([a-z0-9]+)\b/gi, "[swissprot:$1]");
         textarea.value = text;
     }
-    // textarea.readOnly = isLLM;
+    textarea.readOnly = isLLM;
 
     $(modal)
         .modal({
@@ -188,94 +190,38 @@ export function refresh(accession) {
     return fetch(`/api/entry/${accession}/annotations/`)
         .then(response => response.json())
         .then(results => {
-            const rePub = /\[cite:(PUB\d+)\]/gi;
             const mainRefs = [];
-            const annotations = new Map();
+            const annotations = [];
             const references = new Map(Object.entries(results.references));
             const rights = new Map();
             let html = '';
 
             for (let i = 0; i < results.annotations.length; i++) {
-                const annotation = results.annotations[i];
-                let text = annotation.text;
+                const annotationApi = results.annotations[i];
+                const annotationClient = new Annotation(
+                    annotationApi.id,
+                    annotationApi.text,
+                    annotationApi.is_llm,
+                    annotationApi.is_checked,
+                    annotationApi.comment,
+                    annotationApi.num_entries,
+                    annotationApi.cross_references,
+                    results.annotations.length > 1,
+                    results.annotations.length > 1  // && annotation.num_entries === 1
+                );
+                annotations.push(annotationClient);
 
-                annotations.set(
-                    annotation.id, {
-                        text: text,
-                        entries: annotation.num_entries,
-                        isLLM: annotation.is_llm,
-                    });
-
-                text = text.replaceAll(rePub, (match, pubID) => {
-                    if (references.has(pubID)) {
-                        let i = mainRefs.indexOf(pubID);
-                        if (i === -1) {
-                            // First occurence of the reference in any annotation
-                            mainRefs.push(pubID);
-                            i = mainRefs.length;
-                        } else
-                            i++;
-
-                        return `<a data-ref href="#${pubID}">${i}</a>`
-                    }
-
-                    return match;
-                });
-
-                // Replace cross-ref tags by links
-                for (const xref of annotation.cross_references) {
-                    const pattern = xref.match.replace('[', '\\[').replace(']', '\\]');
-                    const regex = new RegExp(pattern, 'g');
-                    text = text.replace(regex, `<a target="_blank" href="${xref.url}">${xref.id}<i class="external icon"></i></a>`);
-                }
-
-                if (previewMode)
-                    html += `<div class="ui vertical segment annotation">${text}</div>`;
-                else {
-                    rights.set(annotation.id, {
-                        unlink: results.annotations.length > 1,
-                        delete: results.annotations.length > 1  // && annotation.num_entries === 1
-                    });
-
-                    let llmAction = '';
-                    let sourceIcon = 'user';
-                    if (annotation.is_llm) {
-                        sourceIcon = 'robot';
-                        if (annotation.is_checked)
-                            llmAction = '<a data-action="review" class="disabled item"><abbr title="Approve annotation"><i class="eye fitted icon"></i></abbr></a>';
-                        else
-                            llmAction = '<a data-action="review" class="item"><abbr title="Approve annotation"><i class="eye slash fitted icon"></i></abbr></a>';
-                    }
-
-                    html += `
-                        <div id="${annotation.id}" class="annotation">
-                        <div class="ui top attached mini menu">
-                        <a data-action="edit" class="item"><abbr title="Edit annotation"><i class="edit fitted icon"></i></abbr></a>
-                        <a data-action="moveup" class="${i === 0 ? 'disabled' : ''} item"><abbr title="Move annotation up"><i class="arrow up fitted icon"></i></abbr></a>
-                        <a data-action="movedown" class="${i + 1 === results.annotations.length ? 'disabled' : ''} item"><abbr title="Move annotation down"><i class="arrow down fitted icon"></i></abbr></a>
-                        <a data-action="unlink" class="item"><abbr title="Unlink annotation"><i class="unlink fitted icon"></i></abbr></a>
-                        <a data-action="delete" class="item"><abbr title="Delete annotation"><i class="trash fitted icon"></i></abbr></a>
-                        <div class="right menu">
-                            <span class="selectable item"><i class="${sourceIcon} icon"></i> ${annotation.id}</span>
-                            ${llmAction}
-                            ${annotation.comment ? '<span class="item">'+annotation.comment+'</span>' : ''}
-                            <a data-action="list" class="item"><i class="list icon"></i> Associated to ${annotation.num_entries} ${annotation.num_entries === 1 ? 'entry' : 'entries'}</a>
-                        </div>
-                        </div>
-                        <div class="ui attached segment">${text}</div>
-                        <div class="hidden ui borderless bottom attached mini menu" data-id="${annotation.id}">
-                            <div class="right menu">
-                                <div class="item"><a data-action="cancel" class="ui basic secondary button">Cancel</a></div>
-                                <div class="item"><a data-action="save" class="ui primary button">Save</a></div>
-                            </div>
-                        </div>
-                        </div>
-                    `;
-                }
+                html += annotationClient.createEditor(
+                    i === 0,
+                    i + 1 === results.annotations.length,
+                    references,
+                    mainRefs,
+                    previewMode
+                );
             }
 
             let elem = document.querySelector('#annotations > .content');
-            if (annotations.size)
+            if (annotations.length > 0)
                 elem.innerHTML = html;
             else
                 elem.innerHTML = `
@@ -319,11 +265,11 @@ export function refresh(accession) {
 
             // Update stats
             for (const elem of document.querySelectorAll('[data-statistic="annotations"]')) {
-                elem.innerHTML = annotations.size.toLocaleString();
+                elem.innerHTML = annotations.length.toLocaleString();
             }
 
             for (const elem of document.querySelectorAll('[data-statistic="references"]')) {
-                elem.innerHTML = mainRefs.length;
+                elem.innerHTML = mainRefs.length.toLocaleString();
             }
 
             // Highlight selected references
@@ -331,70 +277,24 @@ export function refresh(accession) {
                 addHighlightEvenListeners(elem);
             }
 
-            // Event listener on actions
-            annotationEditor.reset();
-            for (const elem of document.querySelectorAll('.annotation a[data-action]:not(.disabled)')) {
-                if (elem.dataset.action === 'review') {
-                    elem.addEventListener('mouseenter', (e,) => {
-                        e.currentTarget.querySelector('i').className = 'eye fitted icon';
-                    });
+            annotations.forEach((annotation) => {
+                annotation.listenActionEvent(accession, references);
+            });
 
-                    elem.addEventListener('mouseleave', (e,) => {
-                        e.currentTarget.querySelector('i').className = 'eye slash fitted icon';
-                    });
-                }
+            // Init actions tooltips/popups
+            $('.popup.item').popup({
+                position  : 'top center',
+                variation: 'very wide inverted',
+                delay: {
+                    show: 50,
+                    hide: 70
+                },
+            });
 
-                elem.addEventListener('click', e => {
-                    const annID = e.currentTarget.closest('.annotation').getAttribute('id');
-                    const action = e.currentTarget.dataset.action;
-                    const annotation = annotations.get(annID);
-                    if (action === 'edit')
-                        annotationEditor.open(annID, annotation.text, references);
-                    else if (action === 'movedown')
-                        annotationEditor.reorder(accession, annID, 'down');
-                    else if (action === 'moveup')
-                        annotationEditor.reorder(accession, annID, 'up');
-                    else if (action === 'unlink') {
-                        if (rights.get(annID).unlink)
-                            unlink(accession, annID);
-                        else {
-                            modals.error(
-                                `Cannot unlink ${annID}`,
-                                `${annID} is the only annotation associated to ${accession}. Please make sure that ${accession} has at least one other annotation.`
-                            );
-                        }
-                    }
-                    else if (action === 'delete') {
-                        if (rights.get(annID).delete) {
-                            remove(annID, annotation.entries).then((status,) => {
-                                if (status)
-                                    refresh(accession).then(() => {$('.ui.sticky').sticky();});
-                            });
-                        } else {
-                            modals.error(
-                                `Cannot remove ${annID}`,
-                                `${annID} cannot be removed, either because it is associated to more than one entry, or because it is the only annotation associated to ${accession}. Please make sure that ${annID} is associated to ${accession} only, and that ${accession} has at least one other annotation.`
-                            );
-                        }
-                    } else if (action === 'save') {
-                        if (annotation.entries > 1) {
-                            modals.ask(
-                                'Save changes?',
-                                'This annotation is used by <strong>' + annotation.entries + ' entries</strong>. Changes will be visible in all entries.',
-                                'Save',
-                                () => annotationEditor.save(accession, annID, annotation.isLLM)
-                            );
-
-                        } else
-                            annotationEditor.save(accession, annID, annotation.isLLM);
-                    } else if (action === 'cancel')
-                        annotationEditor.close();
-                    else if (action === 'list')
-                        getAnnotationEntries(annID);
-                    else if (action === 'review')
-                        annotationEditor.approve(accession, annID);
-                });
-            }
+            $('.ui.dropdown').dropdown();
+        })
+        .catch((error) => {
+            console.error(error);
         });
 }
 
@@ -489,78 +389,244 @@ export function search(accession, query) {
         });
 }
 
-const annotationEditor = {
-    element: null,
-    textareaText: null,
-    textFormatted: null,
-    reset: function () {
-        this.element = null;
-        this.textareaText = null;
-        this.textFormatted = null;
-    },
-    open: function (annID, text, references) {
-        const element = document.getElementById(annID);
-        const rePub = /\[cite:(PUB\d+)\]/gi;
-        let segment;
+class Annotation {
+    constructor(id, text, isLLM, isReviewed, comment, numEntries, xrefs, canUnlink, canDelete) {
+        this.id = id;
+        this.rawText = text;
+        this.formattedText = null;
+        this.isLLM = isLLM;
+        this.isReviewed = isReviewed;
+        this.comment = comment;
+        this.numEntries = numEntries;
+        this.xrefs = xrefs;
+        this.canUnlink = canUnlink;
+        this.canDelete = canDelete;
+        this.editorIsOpen = false;
+    }
 
-        text = text.replaceAll(rePub, (match, pubID) => {
-            if (references.has(pubID)) {
-                const pub = references.get(pubID);
-                return `[cite:${pub.pmid}]`
+    get element() {
+        return document.getElementById(this.id);
+    }
+
+    createEditor(isFirst, isLast, references, mainRefs, previewMode) {
+        let text = this.rawText.replaceAll(
+            REGEX_PUB,
+            (match, pubID) => {
+                if (references.has(pubID)) {
+                    let i = mainRefs.indexOf(pubID);
+                    if (i === -1) {
+                        // First occurence of the reference in any annotation
+                        mainRefs.push(pubID);
+                        i = mainRefs.length;
+                    } else
+                        i++;
+
+                    return `<a data-ref href="#${pubID}">${i}</a>`
+                }
+
+                return match;
             }
+        );
 
-            return match;
-        });
-
-        if (this.element === element)
-            return;  // Current annotation is being edited: carry on
-        else if (this.element !== null) {
-            // Another annotation is already being edited
-            const textareaText = this.element.querySelector('.segment textarea').value;
-
-            if (textareaText !== this.textareaText) {
-                /*
-                    Annotation has been changed:
-                    need to save or discard changes before editing another annotation
-                 */
-                modals.error(
-                    'Cannot edit multiple annotations',
-                    'Another annotation is being edited. Please save or discard changes before editing a second annotation.'
-                );
-                return;
-            }
-            else {
-                // Edited but not changed: just replace by formatted annotation and move on
-                this.close();
-            }
+        // Replace cross-ref tags by links
+        for (const xref of this.xrefs) {
+            const pattern = xref.match
+                .replace('[', '\\[')
+                .replace(']', '\\]');
+            const regex = new RegExp(pattern, 'g');
+            text = text.replace(
+                regex,
+                `<a target="_blank" href="${xref.url}">${xref.id}<i class="external icon"></i></a>`
+            );
         }
 
-        this.element = element;
+        this.formattedText = text;
+        if (previewMode)
+            return `<div class="ui vertical segment annotation">${text}</div>`;
+
+        let llmItem = '';
+        if (this.isLLM) {
+            let subItems = '';
+            if (!this.isReviewed) {
+                subItems += `
+                    <a data-action="mark-as-reviewed" class="item">
+                        <i class="check icon"></i> Mark as reviewed
+                    </a>
+                `;
+            }
+
+            subItems += `
+                <a data-action="mark-as-curated" class="item">
+                    <i class="user icon"></i> Mark as curated
+                </a>
+            `;
+
+            llmItem = `
+                <div class="ui floating dropdown item">
+                    <i class="magic icon"></i>
+                    AI/${this.isReviewed ? 'Reviewed' : 'Unreviewed'}
+                    <i class="dropdown icon"></i>
+                    <div class="menu">
+                        ${subItems}
+                    </div>
+                </div>
+            `;
+        } else {
+            llmItem = '<span class="item"><i class="user icon"></i> Curated</span>';
+        }
+
+        return `
+            <div id="${this.id}" class="annotation">
+                <div class="ui top attached mini menu">
+                    <span class="selectable popup item" data-content="${this.comment || 'N/A'}">
+                        ${this.id}
+                    </span>
+                    <a data-action="edit" class="item">
+                        <i class="edit icon"></i> Edit
+                    </a>
+                    <a data-action="moveup" class="${isFirst ? 'disabled' : ''} item">
+                        <i class="arrow up icon"></i> Move up
+                    </a>
+                    <a data-action="movedown" class="${isLast ? 'disabled' : ''} item">
+                        <i class="arrow down icon"></i> Move down
+                    </a>
+                    <a data-action="unlink" class="item">
+                        <i class="unlink icon"></i> Unlink
+                    </a>
+                    <a data-action="delete" class="item">
+                        <i class="trash icon"></i> Delete
+                    </a>
+                    ${llmItem}
+                    <div class="right menu">
+                        <a data-action="list-entries" class="item"><i class="list icon"></i>
+                        Associated to ${this.numEntries} ${this.numEntries === 1 ? 'entry' : 'entries'}</a>
+                    </div>
+                </div>
+                <div class="ui attached segment">${text}</div>
+                <div class="hidden ui borderless bottom attached mini menu" data-id="${this.id}">
+                    <div class="right menu">
+                        <div class="item"><a data-action="cancel" class="ui basic secondary button">Cancel</a></div>
+                        <div class="item"><a data-action="save" class="ui primary button">Save</a></div>
+                    </div>
+                </div>
+            </div>        
+        `;
+    }
+
+    listenActionEvent(entryAccession, references) {
+        const elements = this.element.querySelectorAll('a[data-action]:not(.disabled)');
+        for (const element of elements) {
+            element.addEventListener('click', (e) => {
+                const action = e.currentTarget.dataset.action;
+                if (action === 'edit') {
+                    this.openEditor(references);
+                } else if (action === 'moveup') {
+                    this.reorder(entryAccession, 'up');
+                } else if (action === 'movedown') {
+                    this.reorder(entryAccession, 'down');
+                } else if (action === 'unlink') {
+                    if (this.canUnlink) {
+                        unlink(entryAccession, this.id);
+                    } else {
+                        modals.error(
+                            `Cannot unlink ${this.id}`,
+                            `${this.id} is the only annotation associated to ${entryAccession}. 
+                            Please make sure that ${entryAccession} has at least one other annotation.`
+                        );
+                    }
+                } else if (action === 'delete') {
+                    if (this.canDelete) {
+                        remove(this.id, this.numEntries)
+                            .then((status,) => {
+                                    if (status) {
+                                        refresh(entryAccession)
+                                            .then(() => {
+                                                $('.ui.sticky').sticky();
+                                            });
+                                    }
+                                }
+                            );
+                    } else {
+                        modals.error(
+                            `Cannot unlink ${this.id}`,
+                            `${this.id} is the only annotation associated to ${entryAccession}. 
+                            Please make sure that ${entryAccession} has at least one other annotation.`
+                        );
+                    }
+                } else if (['mark-as-reviewed', 'mark-as-curated', 'save'].includes(action)) {
+                    let header;
+                    let reason;
+                    switch (action) {
+                        case 'mark-as-reviewed': {
+                            header = 'Mark as reviewed';
+                            reason = 'Reviewed';
+                            break;
+                        }
+                        case 'mark-as-curated': {
+                            header = 'Mark as curated';
+                            reason = 'Curated';
+                            break;
+                        }
+                        case 'save': {
+                            header = 'Save changes';
+                            reason = null;
+                            break
+                        }
+                    }
+
+                    if (this.numEntries > 1) {
+                        modals.ask(
+                            header,
+                            `This annotation is used by <strong>${this.numEntries} entries</strong>. Changes will be visible in all entries.`,
+                            'Save',
+                            () => {
+                                this.saveChanges(entryAccession, reason);
+                            }
+                        );
+                    } else {
+                        this.saveChanges(entryAccession, reason);
+                    }
+                } else if (action === 'list-entries') {
+                    getAnnotationEntries(this.id);
+                } else if (action === 'cancel') {
+                    this.closeEditor();
+                }
+            });
+        }
+    }
+
+    openEditor(references) {
+        if (this.editorIsOpen)
+            return;
+
+        const text = this.rawText.replaceAll(
+            REGEX_PUB,
+            (match, pubID) => {
+                if (references.has(pubID)) {
+                    const pub = references.get(pubID);
+                    return `[cite:${pub.pmid}]`
+                }
+
+                return match;
+            }
+        );
 
         const menu = this.element.querySelector('.ui.bottom.menu');
-
-        // // Reset error message
-        // const msg = menu.querySelector('.item.message');
-        // msg.className = 'item message';
-        // msg.innerHTML = null;
 
         // Display bottom menu
         menu.classList.remove('hidden');
 
-        // Save formatted annotation
-        segment = this.element.querySelector('.segment');
-        this.textFormatted = segment.innerHTML;
-
-        // Display raw annotation
+        // Open editor
+        const segment = this.element.querySelector('.segment');
         segment.innerHTML = `
             <div class="ui form">
                 <div class="field">
                     <label>Reason for update</label>
                     <select>
-                    <option value="Annotation" selected>Annotation</option>
-                    <option value="Cross-references">Cross-references</option>
-                    <option value="References">Literature references</option>
-                    <option value="Spelling">Typos, grammar errors, spelling mistakes</option>
+                    <option value="Annotation updated" selected>Annotation</option>
+                    <option value="Cross-references updated">Cross-references</option>
+                    <option value="References updated">Literature references</option>
+                    <option value="Spelling updated">Typos, grammar errors, spelling mistakes</option>
                     </select>
                 </div>
                 <div class="field">
@@ -572,54 +638,64 @@ const annotationEditor = {
 
         const textarea = this.element.querySelector('.segment textarea');
         textarea.value = text;
-        // If the annotation contains weird characters, they may be reformatted, so we read back from textarea
-        this.textareaText = textarea.value;
-    },
-    close: function () {
-        if (this.element === null) return;
+        this.rawText = textarea.value;  // TODO: Do we need this? Try with weird characters to see if the textarea reformat them.
+        this.editorIsOpen = true;
+    }
+
+    closeEditor() {
+        if (!this.editorIsOpen) return;
 
         // Hide bottom menu
         this.element.querySelector('.ui.bottom.menu').classList.add('hidden');
 
         // Restore formatted annotation
         const segment = this.element.querySelector('.segment');
-        segment.innerHTML = this.textFormatted;
+        segment.innerHTML = this.formattedText;
 
         // recreate highlight even listeners for THIS annotation only
         addHighlightEvenListeners(segment);
+        this.editorIsOpen = false;
+    }
 
-        this.reset();
-    },
-    reorder: function(accession, annID, direction) {
-        fetch(`/api/entry/${accession}/annotation/${annID}/order/${direction}/`, { method: 'POST' })
+    reorder(entryAccession, direction) {
+        const url = `/api/entry/${entryAccession}/annotation/${this.id}/order/${direction}/`;
+        fetch(url, { method: 'POST' })
             .then(response => response.json())
             .then(object => {
                 if (object.status)
-                    refresh(accession).then(() => { $('.ui.sticky').sticky(); });
+                    refresh(entryAccession).then(() => { $('.ui.sticky').sticky(); });
                 else
                     modals.error(object.error.title, object.error.message);
             });
-    },
-    save: function (accession, annID, isLLM) {
-        if (this.element === null) return;
+    }
 
-        const select = this.element.querySelector('select');
-        const reason = select.options[select.selectedIndex].value;
+    saveChanges(entryAccession, reason) {
+        let text = this.rawText;
+        if (!reason) {
+            if (this.editorIsOpen) {
+                text = this.element.querySelector('textarea').value;
 
-        if (reason.length)
-            select.parentNode.classList.remove('error');
-        else {
-            select.parentNode.classList.add('error');
-            return;
+                const select = this.element.querySelector('select');
+                reason = select.options[select.selectedIndex].value;
+
+                if (reason.length)
+                    select.parentNode.classList.remove('error');
+                else {
+                    select.parentNode.classList.add('error');
+                }
+            } else {
+                return;
+            }
         }
 
-        // Raw text to save
-        const textarea = this.element.querySelector('textarea');
-        const textareaText = textarea.value;
-        if (textareaText === this.textareaText) {
-            // Text did not change: close
-            this.close();
-            return;
+        let isLLM = this.isLLM;
+        let isReviewed = isLLM;
+
+        if (reason === 'Reviewed') {
+            // Nothing changes (`isReviewed` already implied to be true)
+        } else if (reason === 'Curated') {
+            isLLM = false;
+            isReviewed = false;
         }
 
         const options = {
@@ -628,40 +704,40 @@ const annotationEditor = {
                 'Content-type': 'application/x-www-form-urlencoded; charset=UTF-8'
             },
             body: [
-                `text=${encodeURIComponent(textareaText)}`,
+                `text=${encodeURIComponent(text)}`,
                 `reason=${reason}`,
                 `llm=${isLLM ? 'true' : 'false'}`,
-                // Assume the curator approves the annotation, since they update it:
-                `checked=${isLLM ? 'true' : 'false'}`,
+                `checked=${isReviewed ? 'true' : 'false'}`,
             ].join('&')
         };
 
-        // Update annotation
-        fetch(`/api/annotation/${annID}/`, options)
+        fetch(`/api/annotation/${this.id}/`, options)
             .then(response => response.json())
-            .then(result => {
-                if (result.status)
-                    refresh(accession).then(() => { $('.ui.sticky').sticky(); });
-                else {
-                    const form = this.element.querySelector('.ui.form');
+            .then((result) => {
+                if (result.status) {
+                    refresh(entryAccession)
+                        .then(() => {
+                            $('.ui.sticky').sticky();
+                        });
+                } else {
+                    const title = result.error.title;
                     // Escape lesser/greater signs because if the error message contains "<p>" it will be interpreted
-                    form.querySelector('.ui.message').innerHTML = '<div class="header">'+ result.error.title +'</div><p>'+ result.error.message.replace(/</g, '&lt;').replace(/>/g, '&gt;') +'</p>';
-                    select.parentNode.classList.add('error');
-                    form.classList.add('error');
+                    const message = result.error.message.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+                    if (this.editorIsOpen) {
+                        const form = this.element.querySelector('.ui.form');
+                        form.querySelector('.ui.message').innerHTML = `
+                            <div class="header">${title}</div>
+                            <p>${message}</p>
+                        `;
+                        form.classList.add('error');
+                    } else {
+                        modals.error(title, message);
+                    }
                 }
             });
-    },
-    approve: function (accession, annID) {
-        fetch(`/api/annotation/${annID}/review/`, { method: 'POST' })
-            .then((response,) => response.json())
-            .then((result,) => {
-                if (result.status)
-                    refresh(accession).then(() => { $('.ui.sticky').sticky(); });
-                else
-                    modals.error(result.error.title, result.error.message);
-            });
     }
-};
+}
 
 function getAnnotationEntries(annID) {
     fetch(`/api/annotation/${annID}/entries/`)

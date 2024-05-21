@@ -31,48 +31,54 @@ function getEntry(accession) {
     }))
         .then(
             (entry,) => {
-                document.title = `${entry.name} (${entry.accession}) | Pronto`;
-                document.querySelector('h1.ui.header').innerHTML = `
-                    ${entry.name}
-                    <div class="sub header">${entry.short_name} (${entry.accession})</div>
-                `;
-                document.querySelector('input[name="name"]').dataset.value = entry.name;
-                document.querySelector('input[name="short_name"]').dataset.value = entry.short_name;
-                document.querySelector('select[name="type"]').dataset.value = entry.type.code;
-                document.querySelector('input[name="checked"]').checked = entry.status.checked;
+                document.title = `${entry.name} - ${entry.accession} | Pronto`;
 
-                if (entry.status.llm) {
-                    const field = document.getElementById('llm-field');
-                    field.classList.remove('hidden');
-                    field.querySelector('input[name="llm-reviewed"]').checked = entry.status.reviewed;
+                let status;
+                if (!entry.status.llm) {
+                    status = '<i class="user icon"></i> Curated';
+                } else if (entry.status.reviewed) {
+                    status = '<i class="magic icon"></i> AI/Reviewed';
+                } else {
+                    status = '<i class="magic icon"></i> AI/Unreviewed';
                 }
 
+                document.querySelector('h1.ui.header').innerHTML = `
+                    ${entry.name}
+                    <div class="sub header">
+                        ${entry.short_name}
+                        &nbsp;&middot;&nbsp;
+                        ${entry.accession}
+                        &nbsp;&middot;&nbsp;
+                        ${status}
+                    </div>
+                `;
+                document.querySelector('input[name="name"]').dataset.value = entry.name;
+                document.querySelector('input[name="short-name"]').dataset.value = entry.short_name;
+                document.querySelector('select[name="type"]').dataset.value = entry.type.code;
+                document.querySelector('input[name="checked"]').checked = entry.status.checked;
+                document.querySelector('input[name="llm-reviewed"]').checked = entry.status.reviewed;
+                document.querySelector('input[name="curated"]').checked = !entry.status.llm;
+                document.querySelector('input[name="llm"]').checked = entry.status.llm;
+                document.getElementById('llm-fields').style.display = entry.status.llm ? '' : 'none';
                 const statistics = document.getElementById('statistics');
                 statistics.classList.add(entry.type.code);
                 statistics.querySelector('[data-statistic="type"]').innerHTML = formatType(entry.type.name);
-                if (!entry.status.llm)
-                    statistics.querySelector('[data-statistic="source"]').innerHTML = `<i class="user icon"></i>`;
-                else if (entry.status.reviewed)
-                    statistics.querySelector('[data-statistic="source"]').innerHTML = `<i class="robot icon"></i>&nbsp;<i class="eye outline icon"></i>`;
-                else
-                    statistics.querySelector('[data-statistic="source"]').innerHTML = `<i class="robot icon"></i>&nbsp;<i class="eye slash outline icon"></i>`;
-
                 statistics.querySelector('[data-statistic="checked"]').innerHTML = `<i class="${entry.status.checked ? 'check' : 'times'} icon"></i>`;
                 document.getElementById('public-website').href = `//www.ebi.ac.uk/interpro/entry/InterPro/${entry.accession}`;
                 document.querySelector('.ui.feed').innerHTML = `
-                <div class="event">
-                    <div class="content">
-                        <div class="date">${entry.last_modification.date}</div>
-                        <a class="user">${entry.last_modification.user}</a> edited this entry
+                    <div class="event">
+                        <div class="content">
+                            <div class="date">${entry.last_modification.date}</div>
+                            <a class="user">${entry.last_modification.user}</a> edited this entry
+                        </div>
                     </div>
-                </div>
-                <div class="event">
-                    <div class="content">
-                        <div class="date">${entry.creation.date}</div>
-                        <a class="user">${entry.creation.user}</a> created this entry
+                    <div class="event">
+                        <div class="content">
+                            <div class="date">${entry.creation.date}</div>
+                            <a class="user">${entry.creation.user}</a> created this entry
+                        </div>
                     </div>
-                </div>
-            `;
+                `;
 
                 const promises = [
                     annotations.refresh(entry.accession),
@@ -216,7 +222,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const name = elem.getAttribute('name');
                 const value = elem.dataset.value;
 
-                if (name === 'name' || name === 'short_name')
+                if (name === 'name' || name === 'short-name')
                     elem.value = value;
                 else if (name === 'type')
                     $(elem).dropdown('set selected', value);
@@ -257,6 +263,7 @@ document.addEventListener('DOMContentLoaded', () => {
         $(segment.querySelector('.ui.form')).form({
             fields: fields,
             onSuccess: function (event, fields) {
+                fields.llm = !fields.curated;
                 const errMsg = segment.querySelector('.ui.message');
                 const options = {
                     method: 'POST',

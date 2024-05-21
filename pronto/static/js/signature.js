@@ -59,7 +59,7 @@ function getPredictions(accession) {
                         html += `<div class="item">
                             <div class="content">
                             <span class="ui circular mini label type ${signature.entry.type}">${signature.entry.type}</span>
-                            ${signature.entry.llm ? '<i class="robot icon"></i>' : ''}
+                            ${signature.entry.llm ? '<i class="magic icon"></i>' : ''}
                             <a href="/entry/${signature.entry.accession}">${signature.entry.accession} (${signature.entry.name})</a>
                             </div>
                          </div>
@@ -136,7 +136,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 html += `<span class="ui small circular label type ${result.entry.type}">${result.entry.type}</span>
-                         ${result.entry.llm ? '<i class="robot icon"></i>' : ''}
+                         ${result.entry.llm ? '<i class="magic icon"></i>' : ''}
                          <a href="/entry/${result.entry.accession}/">${result.entry.accession}</a>`;
             }
 
@@ -167,7 +167,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 html += `<div class="item">
                             <div class="content">
                             <span class="ui circular mini label type ${result.entry.type}">${result.entry.type}</span>
-                            ${result.entry.llm ? '<i class="robot icon"></i>' : ''}
+                            ${result.entry.llm ? '<i class="magic icon"></i>' : ''}
                             <a href="/entry/${result.entry.accession}">${result.entry.accession} (${result.entry.name})</a>
                             </div>
                          </div>

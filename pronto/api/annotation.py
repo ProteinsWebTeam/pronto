@@ -721,28 +721,6 @@ def update_annotation(ann_id):
 
     con = utils.connect_oracle_auth(user)
     cur = con.cursor()
-    if not ann.validate_encoding(load_global_exceptions(cur, "encoding")):
-        cur.close()
-        con.close()
-        return jsonify({
-            "status": False,
-            "error": {
-                "title": "Text error",
-                "message": ann.error
-            }
-        }), 400
-
-    if not ann.update_references(cur):
-        cur.close()
-        con.close()
-        return jsonify({
-            "status": False,
-            "error": {
-                "title": "Text error",
-                "message": ann.error
-            }
-        }), 400  # could be 500 (if INSERT failed)
-
     cur.execute(
         """
         SELECT TEXT, LLM
@@ -766,13 +744,34 @@ def update_annotation(ann_id):
     current_text = row[0]
     is_currently_llm = row[1] == "Y"
 
-    # TODO: remove following block if allowing to change LLM->human
-    if is_currently_llm != is_llm:
+    if not ann.validate_encoding(load_global_exceptions(cur, "encoding")):
+        cur.close()
+        con.close()
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Text error",
+                "message": ann.error
+            }
+        }), 400
+    elif not ann.update_references(cur):
+        cur.close()
+        con.close()
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Text error",
+                "message": ann.error
+            }
+        }), 400  # could be 500 (if INSERT failed)
+
+    if is_llm and not is_currently_llm:
         return jsonify({
             "status": False,
             "error": {
                 "title": "Action not permitted",
-                "message": f"Changing the origin of annotations is forbidden."
+                "message": "It is not allowed to mark a human-curated "
+                           "annotation as LLM-generated."
             }
         }), 403
 
@@ -959,7 +958,7 @@ def update_annotation(ann_id):
                     }
                 }), 500
 
-    comment += (f" updated by {user['name'].split()[0]} "
+    comment += (f" by {user['name'].split()[0]} "
                 f"on {datetime.now():%Y-%m-%d %H:%M:%S}")
 
     ann.strip()
