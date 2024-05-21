@@ -531,7 +531,7 @@ function renderRecentEntries(entries) {
             <td>${signatures}</td>
             <td>${checkbox.createDisabled(entry.checked)}</td>
             <td>${entry.date}</td>
-            <td><i class="${entry.llm ? 'robot' : 'user'} icon"></i>${entry.user}</td>
+            <td><i class="${entry.llm ? 'magic' : 'user'} icon"></i>${entry.user}</td>
             <td>
         `;
 
@@ -746,7 +746,7 @@ async function getSanityCheck() {
             count += 1
 
             const acc = error.annotation !== null ? error.annotation : error.entry;
-            const iconClass = error.llm ? 'robot' : 'user';
+            const iconClass = error.llm ? 'magic' : 'user';
             html += `
                 <tr>
                 <td class="left marked ${error.resolution.date === null ? 'red' : 'green'}">${count}</td>

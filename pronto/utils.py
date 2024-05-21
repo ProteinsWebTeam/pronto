@@ -263,7 +263,7 @@ class DefaultDatabase:
 
 
 class CathGene3D:
-    home = 'http://www.cathdb.info'
+    home = 'https://www.cathdb.info/version/v4_3_0/'
     color = '#d9417c'
 
     def gen_link(self, acc: str):
@@ -281,7 +281,7 @@ class Cdd:
 
 
 class FunFam:
-    home = '//www.cathdb.info'
+    home = 'https://www.cathdb.info/version/v4_3_0/'
     color = '#d9417c'
 
     def gen_link(self, acc: str):

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/semantic.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/semantic.min.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/protein.css') }}">
     <style>
@@ -49,16 +49,27 @@
                                     <label>Show only Swiss-Prot/reviewed proteins</label>
                                 </div>
                             </div>
-                            <div class="hidden field">
+                            <div class="field">
                                 <div class="ui checkbox">
                                     <input type="checkbox" name="dom-orgs">
-                                    <label>Show domain organisations</label>
+                                    <label>
+                                        Show domain organisations
+                                        <span
+                                                data-tooltip="Group sequences by their domain arrangement.
+                                                              All matches, including non-typical domains and repeats,
+                                                              are used to calculate domain organisations."
+                                                data-position="top center"
+                                                data-variation="wide fixed"
+                                                data-inverted="">
+                                            <i class="question circle icon"></i>
+                                        </span>
+                                    </label>
                                 </div>
                             </div>
                             <div class="field">
                                 <div class="ui checkbox">
                                     <input type="checkbox" name="filter-matches">
-                                    <label>Show protein matches for observed signatures only</label>
+                                    <label>Show protein matches for query signature(s) only</label>
                                 </div>
                             </div>
                         </div>
@@ -112,7 +123,7 @@
 </div>
 
 <script src="{{ url_for('static', filename='vendor/jquery.min.js') }}"></script>
-<script src="{{ url_for('static', filename='vendor/semantic.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/semantic.min.js') }}"></script>
 <script src="{{ url_for('static', filename='js/signatures/proteins.js') }}" type="module"></script>
 </body>
 </html>

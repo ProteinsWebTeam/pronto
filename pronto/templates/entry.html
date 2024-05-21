@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/semantic.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/semantic.min.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/entry.css') }}">
     <title>Pronto</title>
@@ -18,7 +18,7 @@
             <a class="ui left corner label">
                 <i class="pencil icon"></i>
             </a>
-            <div class="ui eight mini statistics">
+            <div class="ui seven mini statistics">
                 <div class="statistic">
                     <div class="label">Type</div>
                     <div data-statistic="type" class="value"></div>
@@ -44,10 +44,6 @@
                     <a data-statistic="references" href="#references" class="value"></a>
                 </div>
                 <div class="statistic">
-                    <div class="label">Source</div>
-                    <div data-statistic="source" class="value"></div>
-                </div>
-                <div class="statistic">
                     <div class="label">Checked</div>
                     <div data-statistic="checked" class="value"></div>
                 </div>
@@ -65,7 +61,7 @@
                     </div>
                     <div class="three wide required field">
                         <label>Short name</label>
-                        <input name="short_name" placeholder="Entry short name" type="text" maxlength="30" data-countdown>
+                        <input name="short-name" placeholder="Entry short name" type="text" maxlength="30" data-countdown>
                         <p class="help-text"></p>
                     </div>
                     <div class="three wide required field">
@@ -86,13 +82,27 @@
                 <div class="field">
                     <div class="ui checkbox">
                         <input type="checkbox" name="checked">
-                        <label>Checked (make public on the next release)</label>
+                        <label>Checked: this entry will be made public in the next release</label>
                     </div>
                 </div>
-                <div id="llm-field" class="hidden field">
-                    <div class="ui checkbox">
-                        <input type="checkbox" name="llm-reviewed">
-                        <label>Reviewed (curators approve this AI-generated entry)</label>
+                <div id="llm-fields">
+                    <h4 class="ui dividing header">AI-generated entry</h4>
+                    <div class="field">
+                        <div class="ui checkbox">
+                            <input type="checkbox" name="llm-reviewed">
+                            <label>Reviewed: this entry <strong>and its annotations</strong> will be marked as reviewed</label>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <div class="ui checkbox">
+                            <input type="checkbox" name="curated">
+                            <label>Curated: this entry <strong>and its annotations</strong> will be marked as curated</label>
+                        </div>
+                    </div>
+                    <div class="hidden field">
+                        <div class="ui checkbox">
+                            <input type="checkbox" name="llm">
+                        </div>
                     </div>
                 </div>
 
@@ -425,7 +435,7 @@ A second paragraph after an empty line.
 </div>
 
 <script src="{{ url_for('static', filename='vendor/jquery.min.js') }}"></script>
-<script src="{{ url_for('static', filename='vendor/semantic.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/semantic.min.js') }}"></script>
 <script src="{{ url_for('static', filename='js/entry/entry.js') }}" type="module"></script>
 </body>
 </html>

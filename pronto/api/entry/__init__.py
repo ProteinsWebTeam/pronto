@@ -1,4 +1,5 @@
 import re
+from datetime import datetime
 
 
 import oracledb
@@ -109,8 +110,9 @@ def update_entry(accession):
     try:
         entry_type = request.json["type"].strip()
         entry_name = request.json["name"].strip()
-        entry_short_name = request.json["short_name"].strip()
+        entry_short_name = request.json["short-name"].strip()
         entry_checked = bool(request.json["checked"])
+        entry_llm = bool(request.json["llm"])
         entry_llm_reviewed = bool(request.json["llm-reviewed"])
     except KeyError:
         return jsonify({
@@ -147,6 +149,8 @@ def update_entry(accession):
                            "spaces."
             }
         }), 400
+    elif not entry_llm:
+        entry_llm_reviewed = False
 
     errors = set()
     for char in entry_name:
@@ -230,24 +234,89 @@ def update_entry(accession):
             }
         }), 400
 
-    core_info = list(row[:4])
-    llm_info = tuple(row[4:])
-    if llm_info == ("Y", "Y") and not entry_llm_reviewed:
+    row = list(row)
+    current_name = row[1]
+    current_short_name = row[2]
+    is_llm = row[4] == "Y"
+    is_llm_reviewed = row[5] == "Y"
+
+    if not is_llm and entry_llm:
+        # Human -> AI: not allowed
+        cur.close()
+        con.close()
         return jsonify({
             "status": False,
             "error": {
                 "title": "Action not permitted",
-                "message": f"{accession} is an LLM-generated entry that "
+                "message": f"{accession} is a human-curated entry, "
+                           f"it cannot be marked as AI-generated."
+            }
+        }), 400
+    elif entry_llm and not entry_llm_reviewed and is_llm_reviewed:
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Action not permitted",
+                "message": f"{accession} is an AI-generated entry that "
                            f"has already been reviewed. "
                            f"Unreviewing is not permitted."
             }
         }), 400
 
-    params = [entry_type, entry_name, entry_short_name,
-              "Y" if entry_checked else "N",
-              "Y" if entry_llm_reviewed else "N"]
-    if params == core_info + [llm_info[1]]:
-        # Nothing to do
+    commit = False
+    if not entry_llm or entry_llm_reviewed:
+        if not entry_llm:
+            set_sql = "LLM = 'N', CHECKED = 'N'"
+            where_sql = "LLM = 'Y'"
+            action = "Curated"
+        else:
+            set_sql = "CHECKED = 'Y'"
+            where_sql = "LLM = 'Y' AND CHECKED = 'N'"
+            action = "Reviewed"
+
+        comment = (f"{action} by {user['name'].split()[0]} "
+                   f"on {datetime.now():%Y-%m-%d %H:%M:%S}")
+
+        try:
+            cur.execute(
+                f"""
+                UPDATE INTERPRO.COMMON_ANNOTATION
+                SET {set_sql}, COMMENTS = :1
+                WHERE ANN_ID IN (
+                    SELECT ANN_ID
+                    FROM INTERPRO.ENTRY2COMMON
+                    WHERE ENTRY_AC = :2
+                )
+                AND {where_sql}
+                """,
+                [comment, accession]
+            )
+        except oracledb.DatabaseError as exc:
+            cur.close()
+            con.close()
+            return jsonify({
+                "status": False,
+                "error": {
+                    "title": "Database error",
+                    "message": f"Could not mark AI-generated annotations "
+                               f"as reviewed for entry {accession}: {exc}."
+                }
+            }), 500
+        else:
+            commit = True
+
+    unchanged = True
+    for now, new in zip(row, [entry_type, entry_name, entry_short_name,
+                              "Y" if entry_checked else "N",
+                              "Y" if entry_llm else "N",
+                              "Y" if entry_llm_reviewed else "N"]):
+        if now != new:
+            unchanged = False
+            break
+
+    if unchanged:
+        if commit:
+            con.commit()
         cur.close()
         con.close()
         return jsonify({"status": True})
@@ -301,6 +370,12 @@ def update_entry(accession):
                 }
             }), 409
 
+    if (is_llm and
+            (current_name != entry_name or
+             current_short_name != entry_short_name)):
+        # LLM and difference in name/short name: mark as reviewed
+        entry_llm_reviewed = True
+
     try:
         cur.execute(
             """
@@ -309,12 +384,17 @@ def update_entry(accession):
                 NAME = :2, 
                 SHORT_NAME = :3, 
                 CHECKED = :4,
-                LLM_CHECKED = :5,
+                LLM = :5,
+                LLM_CHECKED = :6,
                 TIMESTAMP = SYSDATE,
                 USERSTAMP = USER
-            WHERE ENTRY_AC = :6
+            WHERE ENTRY_AC = :7
             """,
-            [*params, accession]
+            [entry_type, entry_name, entry_short_name,
+             "Y" if entry_checked else "N",
+             "Y" if entry_llm else "N",
+             "Y" if entry_llm_reviewed else "N",
+             accession]
         )
     except oracledb.DatabaseError as exc:
         return jsonify({
@@ -455,6 +535,11 @@ def create_entry():
         is_checked = request.json["is_checked"]
     except KeyError:
         is_checked = False
+
+    try:
+        import_description = request.json["import_description"]
+    except KeyError:
+        import_description = False
 
     entry_signatures = list(
         dict.fromkeys(request.json.get("signatures", [])).keys()
@@ -724,12 +809,13 @@ def create_entry():
                 [(entry_acc, pub_id) for pub_id in new_references]
             )
 
-        if entry_llm:
+        if import_description:
             pg_con = utils.connect_pg(utils.get_pg_url())
             with pg_con.cursor() as pg_cur:
+                col = "llm_abstract" if entry_llm else "abstract"
                 pg_cur.execute(
-                    """
-                    SELECT s.llm_abstract
+                    f"""
+                    SELECT s.{col}
                     FROM signature s
                     WHERE s.accession = %s
                     """,
@@ -743,10 +829,10 @@ def create_entry():
                 anno_text,
                 con,
                 user,
-                is_llm=True,
+                is_llm=entry_llm,
                 is_checked=False
             )
-            if code != 200:
+            if anno_id is None:
                 return jsonify(response), code
 
             response, code = relate_entry_to_anno(anno_id, entry_acc, con)
