@@ -13,7 +13,7 @@ def get_requires():
 
 setup(
     name="pronto",
-    version="2.7.1",
+    version="2.8.0",
     packages=find_packages(),
     include_package_data=True,
     zip_safe=False,
