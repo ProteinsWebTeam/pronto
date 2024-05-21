@@ -235,6 +235,8 @@ def update_entry(accession):
         }), 400
 
     row = list(row)
+    current_name = row[1]
+    current_short_name = row[2]
     is_llm = row[4] == "Y"
     is_llm_reviewed = row[5] == "Y"
 
@@ -303,11 +305,16 @@ def update_entry(accession):
         else:
             commit = True
 
-    params = [entry_type, entry_name, entry_short_name,
-              "Y" if entry_checked else "N",
-              "Y" if entry_llm else "N",
-              "Y" if entry_llm_reviewed else "N"]
-    if params == row:
+    unchanged = True
+    for now, new in zip(row, [entry_type, entry_name, entry_short_name,
+                              "Y" if entry_checked else "N",
+                              "Y" if entry_llm else "N",
+                              "Y" if entry_llm_reviewed else "N"]):
+        if now != new:
+            unchanged = False
+            break
+
+    if unchanged:
         if commit:
             con.commit()
         cur.close()
@@ -363,6 +370,12 @@ def update_entry(accession):
                 }
             }), 409
 
+    if (is_llm and
+            (current_name != entry_name or
+             current_short_name != entry_short_name)):
+        # LLM and difference in name/short name: mark as reviewed
+        entry_llm_reviewed = True
+
     try:
         cur.execute(
             """
@@ -377,7 +390,11 @@ def update_entry(accession):
                 USERSTAMP = USER
             WHERE ENTRY_AC = :7
             """,
-            [*params, accession]
+            [entry_type, entry_name, entry_short_name,
+             "Y" if entry_checked else "N",
+             "Y" if entry_llm else "N",
+             "Y" if entry_llm_reviewed else "N",
+             accession]
         )
     except oracledb.DatabaseError as exc:
         return jsonify({
