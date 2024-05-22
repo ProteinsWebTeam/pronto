@@ -216,6 +216,18 @@ def integrate_signature(e_acc, s_acc):
                 }
             }), 500
 
+    pe_match_result, code = check_annotation(from_entry, cur, con, "Previous entry")
+    if pe_match_result:
+        return pe_match_result, code
+
+    e_match_result, code = check_annotation(e_acc, cur, con, "Entry")
+    if e_match_result:
+        return e_match_result, code
+
+    s_match_result, code = check_annotation(s_acc, cur, con, "Signature")
+    if s_match_result:
+        return s_match_result, code
+
     try:
         cur.execute(
             """
@@ -317,6 +329,14 @@ def unintegrate_signature(e_acc, s_acc):
             }
         }), 409
 
+    e_match_result, code = check_annotation(e_acc, cur, con, "Entry")
+    if e_match_result:
+        return e_match_result, code
+
+    s_match_result, code = check_annotation(s_acc, cur, con, "Signature")
+    if s_match_result:
+        return s_match_result, code
+
     try:
         cur.execute(
             """
@@ -385,3 +405,34 @@ def get_signatures_annotations(accession):
     cur.close()
     con.close()
     return jsonify(signatures)
+
+
+def check_annotation(acc, cur, con, acc_type):
+    search_acc = '%' + acc + '%'
+
+    cur.execute("""SELECT A.TEXT, S.CT, A.ANN_ID, E.ENTRY_AC
+    FROM INTERPRO.COMMON_ANNOTATION A
+    INNER JOIN INTERPRO.ENTRY2COMMON E ON A.ANN_ID = E.ANN_ID
+    LEFT OUTER JOIN (SELECT ANN_ID, COUNT(*) CT
+    FROM INTERPRO.ENTRY2COMMON GROUP BY ANN_ID) S ON A.ANN_ID = S.ANN_ID
+    WHERE A.TEXT LIKE :acc""", [search_acc])
+
+    accessions = set()
+    row = cur.fetchone()
+    if not row:
+        return
+
+    if row:
+        for each in cur.fetchall():
+            entry_acc = each[3]
+            accessions.add(entry_acc)
+    if accessions:
+
+        cur.close()
+        con.close()
+        return jsonify({"status": False, "error": {
+            "title": f"{acc_type} referenced",
+            "message": f"{acc_type} accession, {acc}, referenced in: {accessions}"
+            }
+        }), 500
+
