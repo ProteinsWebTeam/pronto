@@ -252,9 +252,9 @@ def integrate_signature(e_acc, s_acc):
         }), 500
     else:
         con.commit()
-        annotation_match = check_annotation([e_acc, from_acc, s_acc], cur)
+        annotation_match = check_annotation([e_acc, from_entry, s_acc], cur)
         return jsonify({
-            "status": True, 'data': annotation_match
+            "status": True, "data": annotation_match
         }), 200
     finally:
         cur.close()
@@ -340,7 +340,7 @@ def unintegrate_signature(e_acc, s_acc):
         con.commit()
         annotation_match = check_annotation([e_acc, s_acc], cur)
         return jsonify({
-            "status": True, 'data': annotation_match
+            "status": True, "data": annotation_match
         }), 200
     finally:
         cur.close()
