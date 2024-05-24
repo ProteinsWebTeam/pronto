@@ -4,7 +4,7 @@
 @import "types.css";
 
 @media screen and (min-width: 1384px){
-    .ui.ui.ui.ui.container {
+    .ui.ui.ui.ui.container:not(.fluid) {
         max-width: 1344px;
         width: 1344px;
     }
