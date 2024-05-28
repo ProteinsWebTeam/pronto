@@ -1,6 +1,6 @@
 import re
 
-from oracledb import DatabaseError
+from oracledb import Cursor, DatabaseError
 from flask import jsonify, request
 
 from pronto import auth, utils
