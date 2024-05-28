@@ -1,6 +1,6 @@
 import re
 
-from oracledb import DatabaseError
+from oracledb import Cursor, DatabaseError
 from flask import jsonify, request
 
 from pronto import auth, utils
@@ -252,8 +252,10 @@ def integrate_signature(e_acc, s_acc):
         }), 500
     else:
         con.commit()
+        annotation_match = check_annotation([e_acc, from_entry, s_acc], cur)
         return jsonify({
-            "status": True
+            "status": True, 
+            "annotations": annotation_match,
         }), 200
     finally:
         cur.close()
@@ -337,8 +339,10 @@ def unintegrate_signature(e_acc, s_acc):
         }), 500
     else:
         con.commit()
+        annotation_match = check_annotation([e_acc, s_acc], cur)
         return jsonify({
-            "status": True,
+            "status": True, 
+            "annotations": annotation_match,
         }), 200
     finally:
         cur.close()
@@ -385,3 +389,19 @@ def get_signatures_annotations(accession):
     cur.close()
     con.close()
     return jsonify(signatures)
+
+
+def check_annotation(accessions: list[str], cur: Cursor)  -> list[str]:
+    search_acc = ['%' + acc + '%' for acc in acclist]
+    cur.execute(
+        f"""
+        SELECT ANN_ID
+        FROM INTERPRO.COMMON_ANNOTATION
+        WHERE ANN_ID IN (
+            SELECT DISTINCT ANN_ID FROM INTERPRO.ENTRY2COMMON
+        )
+        AND ({' OR '.join(["TEXT LIKE :1"] * len(search_acc))})
+        """,
+        search_acc
+    )
+    return [row[0] for row in cur.fetchall()]
