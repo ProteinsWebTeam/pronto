@@ -254,7 +254,8 @@ def integrate_signature(e_acc, s_acc):
         con.commit()
         annotation_match = check_annotation([e_acc, from_entry, s_acc], cur)
         return jsonify({
-            "status": True, "data": annotation_match
+            "status": True, 
+            "annotations": annotation_match,
         }), 200
     finally:
         cur.close()
@@ -340,7 +341,8 @@ def unintegrate_signature(e_acc, s_acc):
         con.commit()
         annotation_match = check_annotation([e_acc, s_acc], cur)
         return jsonify({
-            "status": True, "data": annotation_match
+            "status": True, 
+            "annotations": annotation_match,
         }), 200
     finally:
         cur.close()
@@ -389,17 +391,17 @@ def get_signatures_annotations(accession):
     return jsonify(signatures)
 
 
-def check_annotation(acclist, cur):
+def check_annotation(accessions: list[str], cur: Cursor)  -> list[str]:
     search_acc = ['%' + acc + '%' for acc in acclist]
-    cur.execute(f"""SELECT A.ANN_ID, max(S.CT)
-    FROM INTERPRO.COMMON_ANNOTATION A
-    INNER JOIN INTERPRO.ENTRY2COMMON E ON A.ANN_ID = E.ANN_ID
-    LEFT OUTER JOIN (SELECT ANN_ID, COUNT(*) CT
-    FROM INTERPRO.ENTRY2COMMON GROUP BY ANN_ID) S ON A.ANN_ID = S.ANN_ID
-    WHERE {' OR '.join(["A.TEXT LIKE :1"] * len(acclist))}
-    GROUP BY A.ANN_ID""""", search_acc)
-    accessions = []
-    for each in cur.fetchall():
-        ann_id = each[0]
-        accessions.append(ann_id)
-    return accessions
+    cur.execute(
+        f"""
+        SELECT ANN_ID
+        FROM INTERPRO.COMMON_ANNOTATION
+        WHERE ANN_ID IN (
+            SELECT DISTINCT ANN_ID FROM INTERPRO.ENTRY2COMMON
+        )
+        AND ({' OR '.join(["TEXT LIKE :1"] * len(search_acc))})
+        """,
+        search_acc
+    )
+    return [row[0] for row in cur.fetchall()]
