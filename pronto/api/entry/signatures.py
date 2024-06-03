@@ -1,5 +1,3 @@
-import re
-
 from oracledb import Cursor, DatabaseError
 from flask import jsonify, request
 
@@ -252,7 +250,7 @@ def integrate_signature(e_acc, s_acc):
         }), 500
     else:
         con.commit()
-        annotation_match = check_annotation([e_acc, from_entry, s_acc], cur)
+        annotation_match = check_annotation([e_acc, s_acc], cur)
         return jsonify({
             "status": True, 
             "annotations": annotation_match,
@@ -391,8 +389,8 @@ def get_signatures_annotations(accession):
     return jsonify(signatures)
 
 
-def check_annotation(accessions: list[str], cur: Cursor)  -> list[str]:
-    search_acc = ['%' + acc + '%' for acc in acclist]
+def check_annotation(accessions: list[str], cur: Cursor) -> list[str]:
+    filters = ["INSTR(TEXT, :1) > 0" for _ in accessions]
     cur.execute(
         f"""
         SELECT ANN_ID
@@ -400,8 +398,8 @@ def check_annotation(accessions: list[str], cur: Cursor)  -> list[str]:
         WHERE ANN_ID IN (
             SELECT DISTINCT ANN_ID FROM INTERPRO.ENTRY2COMMON
         )
-        AND ({' OR '.join(["TEXT LIKE :1"] * len(search_acc))})
+        AND ({' OR '.join(filters)})
         """,
-        search_acc
+        accessions
     )
     return [row[0] for row in cur.fetchall()]
