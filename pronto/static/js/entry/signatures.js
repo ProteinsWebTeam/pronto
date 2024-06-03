@@ -1,6 +1,30 @@
+import * as dimmer from "../ui/dimmer.js"
 import * as modals from "../ui/modals.js";
 import { initPopups, createPopup } from '../ui/comments.js';
 import {refresh as refreshReferences} from "./references.js";
+
+function openInTextReferencesModal(entry, signature, annotations) {
+    const listItems = annotations.map((annotation) => {
+        return `<li class="item"><a href="/search/?q=${annotation}">${annotation}</a></li>`;
+    }).join('');
+    const content = `
+        <p>
+            References to <strong>${entry}</strong> or <strong>${signature}</strong> are found in ${annotations.length} annotations: 
+        </p>
+        <ul class="ui bulleted list">${listItems}</ul>
+    `;
+
+    $.modal({
+        title: '<i class="yellow exclamation triangle icon"></i> In-text references found',
+        class: 'tiny',
+        closeIcon: true,
+        content: content,
+        actions: [{
+          text: 'Close',
+          class: 'cancel'
+        }]
+    }).modal('show');
+}
 
 export function integrate(entryAcc, signatureAcc, confirmed) {
     const options = {
@@ -13,9 +37,11 @@ export function integrate(entryAcc, signatureAcc, confirmed) {
     if (confirmed)
         options.body = 'confirmed';
 
+    dimmer.on();
     fetch(`/api/entry/${entryAcc}/signature/${signatureAcc}/`, options)
         .then(response => response.json())
         .then(result => {
+            dimmer.off();
             if (!result.status)
                 modals.error(result.error.title, result.error.message);
             else if (result.confirm_for !== undefined) {
@@ -35,6 +61,10 @@ export function integrate(entryAcc, signatureAcc, confirmed) {
                     refreshReferences(entryAcc)
                 ]).then(() => {
                     $('.ui.sticky').sticky();
+
+                    if (result.annotations.length > 0) {
+                        openInTextReferencesModal(entryAcc, signatureAcc, result.annotations);
+                    }
                 });
             }
         });
@@ -53,11 +83,18 @@ function unintegrate(entryAcc, signatureAcc, inUnirule) {
         message,
         'Yes',
         () => {
+            dimmer.on();
             fetch(`/api/entry/${entryAcc}/signature/${signatureAcc}/`, {method: 'DELETE'})
                 .then(response => response.json())
                 .then(result => {
+                    dimmer.off();
                     if (result.status)
-                        refresh(entryAcc).then(() => {$('.ui.sticky').sticky();});
+                        refresh(entryAcc).then(() => {
+                            $('.ui.sticky').sticky();
+                            if (result.annotations.length > 0) {
+                                openInTextReferencesModal(entryAcc, signatureAcc, result.annotations);
+                            }
+                        });
                     else
                         modals.error(result.error.title, result.error.message);
                 });
