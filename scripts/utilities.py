@@ -12,9 +12,8 @@ from typing import List, Optional
 
 logger = logging.getLogger(__name__)
 
-
 DATABASES = ["panther", "ncbifam", "cathgene3d"]
-
+AUTO_TYPE = ["cdd", "duf", "ai"]
 
 def clean_url(url):
     return url.rstrip("/")
@@ -43,15 +42,6 @@ def build_parser(argv: Optional[List] = None):
     )
 
     parser.add_argument(
-        "--databases",
-        type=str.lower,
-        nargs="+",
-        choices=DATABASES,
-        default=DATABASES,
-        help="Member databases to integrate ai generated signatures from. Default: ALL"
-    )
-
-    parser.add_argument(
         "--pronto",
         type=clean_url,
         default="http://pronto.ebi.ac.uk:5000",
@@ -71,6 +61,22 @@ def build_parser(argv: Optional[List] = None):
         type=int,
         default=10,
         help="Seconds timeout limit for connection to pronto",
+    )
+
+    parser.add_argument(
+        "--databases",
+        type=str.lower,
+        nargs="+",
+        choices=DATABASES,
+        default=None,
+        help="Member databases to integrate ai generated signatures from. Default: None",
+    )
+
+    parser.add_argument(
+        "auto_integrate",
+        type=str.lower,
+        choices=AUTO_TYPE,
+        help="Type of auto-integration",
     )
 
     if argv is None:
@@ -95,10 +101,10 @@ def check_login_details() -> tuple[str, str]:
     """Check if the environment variables for the users pronto credentials
     username and password are available"""
     username, password = None, None
-    if os.getenv('PRONTO_USER'):
-        username = os.getenv('PRONTO_USER')
-    if os.getenv('PRONTO_PWD'):
-        password = os.getenv('PRONTO_PWD')
+    if os.getenv("PRONTO_USER"):
+        username = os.getenv("PRONTO_USER")
+    if os.getenv("PRONTO_PWD"):
+        password = os.getenv("PRONTO_PWD")
 
     if not username or not password:
         logger.error(
