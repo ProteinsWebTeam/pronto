@@ -541,6 +541,11 @@ def create_entry():
     except KeyError:
         import_description = False
 
+    try:
+        clean_pub_id = request.json["clean_pub_id"]
+    except KeyError:
+        clean_pub_id = False
+
     entry_signatures = list(
         dict.fromkeys(request.json.get("signatures", [])).keys()
     )
@@ -825,6 +830,11 @@ def create_entry():
 
             pg_con.close()
             anno_text = row[0]
+
+            if clean_pub_id:
+                clean_text = re.sub(r"(?:\[(cite:[^\],]+)\])", "", anno_text)
+                anno_text = re.sub(r"\[(?:, )*\]", "", clean_text)
+
             anno_id, response, code = annotation.insert_annotation(
                 anno_text,
                 con,

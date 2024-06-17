@@ -6,6 +6,10 @@ import argparse
 import logging
 import os
 import sys
+import tomllib
+from datetime import datetime
+import openai
+import json
 
 from typing import List, Optional
 
@@ -79,6 +83,13 @@ def build_parser(argv: Optional[List] = None):
         help="Type of auto-integration",
     )
 
+    parser.add_argument(
+        "--cdd_template",
+        type=str,
+        default=None,
+        help="Template file to generate alternative CDD name if CDD description is too long for entry name",
+    )
+
     if argv is None:
         return parser
     else:
@@ -115,3 +126,97 @@ def check_login_details() -> tuple[str, str]:
         sys.exit(1)
 
     return username, password
+
+
+def generate_names(template, payload):
+    prompt = make_prompt(payload)
+    system, user = make_user(prompt, template)
+    content, to_dump, request = make_summary(payload, system, user, prompt, 0.2)
+    long_name = content["names"][0]
+    return long_name
+
+
+def make_prompt(info: dict, merge: bool = False) -> str:
+    cdd_info = info
+    ctx = f"```json\n{json.dumps(cdd_info)}\n```"
+    # print(ctx)
+    return ctx
+
+
+def make_summary(
+        info, system, user_message, prompt, temp: float
+) -> tuple[dict, dict, bool]:
+    to_dump = {}
+    content = {}
+
+    client = openai.OpenAI()
+    model = "gpt-4o"
+
+    accession = info["accession"]
+    print(
+        f"{datetime.now():%Y-%m-%d %H:%M:%S}: {accession}", file=sys.stderr, flush=True
+    )
+
+    messages = [
+        {"role": "system", "content": system},
+        {"role": "user", "content": user_message},
+    ]
+
+    while True:
+        try:
+            completion = client.chat.completions.create(
+                messages=messages,
+                model=model,
+                response_format={"type": "json_object"},
+                temperature=temp,
+            )
+        except openai.NotFoundError:
+            raise
+        except openai.BadRequestError:
+            requested = True
+            break
+        except openai.OpenAIError:
+            raise
+        else:
+            response = completion.model_dump(exclude_unset=True)
+            requested = True
+
+            content = load_content(response)
+            if content:
+                to_dump = {
+                    "accession": info["accession"],
+                    "model": model,
+                    "temperature": temp,
+                    "prompt": prompt,
+                    "response": response,
+                }
+
+            break
+
+    return content, to_dump, requested
+
+
+def make_user(prompt, templatefile):
+    with open(templatefile, "rb") as fh:
+        template = tomllib.load(fh)
+        before = template["before"].strip()
+        after = template["after"].strip()
+        system = template["system"].strip()
+    #
+    user = prompt
+
+    if before:
+        user = f"{before}\n{user}"
+
+    if after:
+        user = f"{user}\n{after}"
+
+    return user, system
+
+
+def load_content(response: dict) -> dict | None:
+    choice = response["choices"][0]
+    if choice["finish_reason"] == "stop":
+        return json.loads(choice["message"]["content"])
+    else:
+        return None

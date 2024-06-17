@@ -14,6 +14,7 @@ from utilities import (
     build_parser,
     check_login_details,
     check_url,
+    generate_names,
 )
 
 
@@ -187,7 +188,17 @@ def create_entries(
                 ):
                     long_name = description
                     short_name = candidate
-
+                elif description and len(candidate) < 30 and args.cdd_template:
+                    sig_details = {
+                        "description": description,
+                        "abstract": abstract,
+                        "short_name": candidate,
+                        "accession": sig_acc,
+                    }
+                    long_name = generate_names(
+                        args.cdd_template, sig_details
+                    )
+                    short_name = candidate
                 else:
                     continue
                 if abstract:
@@ -200,8 +211,9 @@ def create_entries(
                         "is_llm_reviewed": False,
                         "signatures": [sig_acc],
                         "import_description": True,
+                        "clean_pub_id": True,
                     }
-                    print(payload)
+
                 else:
                     continue
 
