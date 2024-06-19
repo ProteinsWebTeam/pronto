@@ -6,6 +6,9 @@ import argparse
 import requests
 import sys
 import time
+import re
+from werkzeug.datastructures import MultiDict
+import json
 
 from typing import List, Optional
 
@@ -85,13 +88,15 @@ def make_query(args) -> str:
     return search_url
 
 
-def get_cdd_list(accession: str, host: str, s: requests.Session) -> tuple[None | str, None | str, None | str,]:
+def get_cdd_list(accession: str, host: str, s: requests.Session) -> tuple[
+    None | str,
+    None | str,
+    None | str,
+]:
     signature = s.get(f"{host}/api/signature/{accession}/")
     candidate = None
     if signature.status_code != 200:
-        logger.error(
-            "Could not retrieve data for signature %s", accession
-        )
+        logger.error("Could not retrieve data for signature %s", accession)
         return candidate, None, None
 
     proteins = signature.json()["proteins"]
@@ -147,6 +152,7 @@ def create_entries(
 ) -> None:
 
     submission_url = f"{args.pronto}/api/entry/"
+    annotation_url = f"{args.pronto}/api/annotation/"
 
     sigs_query = s.get(make_query(args))
 
@@ -178,26 +184,22 @@ def create_entries(
         sig_type = signature["type"]["code"]
         sig_url = f"{args.pronto}/api/signature/{sig_acc}/"
 
+        anno_payload = {}
+        print(sig_count)
         if args.auto_integrate == "cdd":
             candidate, description, abstract = get_cdd_list(sig_acc, args.pronto, s)
             if candidate:
-                if (
-                    description
-                    and len(description) < 100
-                    and len(candidate) < 30
-                ):
+                if description and len(description) < 100 and len(candidate) < 30:
                     long_name = description
                     short_name = candidate
                 elif description and len(candidate) < 30 and args.cdd_template:
                     sig_details = {
                         "description": description,
-                        "abstract": abstract,
                         "short_name": candidate,
+                        "abstract": abstract,
                         "accession": sig_acc,
                     }
-                    long_name = generate_names(
-                        args.cdd_template, sig_details
-                    )
+                    long_name = generate_names(args.cdd_template, sig_details)
                     short_name = candidate
                 else:
                     continue
@@ -210,9 +212,17 @@ def create_entries(
                         "is_llm": False,
                         "is_llm_reviewed": False,
                         "signatures": [sig_acc],
-                        "import_description": True,
-                        "clean_pub_id": True,
+                        "import_description": False,
                     }
+
+                    # clean abstract
+                    anno_text = re.sub(r"(?:\[(cite:[^\],]+)\])", "", abstract)
+                    anno_text = re.sub(r"\[(?:, )*\]", "", anno_text)
+                    anno_text = re.sub(r" </p>", "</p>", anno_text)
+                    anno_payload = MultiDict(
+                        [("text", anno_text), ("llm", "false"), ("checked", "false")]
+                    )
+                    anno_payload = anno_payload.to_dict(flat=False)
 
                 else:
                     continue
@@ -224,9 +234,7 @@ def create_entries(
                 logger.error("Could not retrieve data for signature %s", sig_acc)
                 continue
 
-            long_name = (
-                f"Domain of unknown function ({sig_response.json()['name']})"
-            )
+            long_name = f"Domain of unknown function ({sig_response.json()['name']})"
 
             if sig_response.json()["abstract"]:
                 payload = {
@@ -362,6 +370,54 @@ def create_entries(
                     submission_response.status_code,
                     submission_url,
                 )
+
+            if submission_response.status_code == 200:
+                if anno_payload:
+                    annotation_response = s.put(
+                        annotation_url,
+                        data=anno_payload,
+                    )
+
+                    if annotation_response.status_code == 400:
+                        logger.error(
+                            "Error (HTTP code: %s) Failed to add annotation to new entry for signature '%s'\n%s",
+                            "due to annotation text error",
+                            annotation_response.status_code,
+                            sig_acc,
+                            annotation_response.text,
+                        )
+                    elif annotation_response.status_code == 500:
+                        logger.error(
+                            "Error (HTTP code: %s) Failed to add annotation to new entry for signature '%s'\n%s",
+                            "due to database error",
+                            annotation_response.status_code,
+                            sig_acc,
+                            annotation_response.text,
+                        )
+                    elif annotation_response.status_code != 200:
+                        logger.warning(
+                            "Failed to add annotation to %s:\n%s\nResponse code: %s\nURL: %s",
+                            sig_acc,
+                            annotation_response.text,
+                            annotation_response.status_code,
+                            annotation_url,
+                        )
+                    else:
+                        anno_id = json.loads(annotation_response.text)["id"]
+                        entry_acc = json.loads(submission_response.text)["accession"]
+                        link_url = (
+                            f"{args.pronto}/api/entry/{entry_acc}/annotation/{anno_id}"
+                        )
+                        link_response = s.put(link_url)
+                        if link_response.status_code != 200:
+                            logger.error(
+                                "Failed to link annotation %s to entry %s\n Response code: %s\nURL: %s",
+                                anno_id,
+                                entry_acc,
+                                link_response.status_code,
+                                link_url,
+                                link_response.text,
+                            )
 
             time.sleep(args.request_pause)
 

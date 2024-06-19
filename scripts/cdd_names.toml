@@ -5,13 +5,10 @@ before = """
 """
 
 after = """
-Using the short name and the information provided above, provide a name for the protein family. The output must be a raw JSON string with the following properties:
+Using the information provided above, provide a name for the protein family. The output must be a raw JSON string with the following properties:
 * names: a list of 3 similar names for the family, each name must be 100 characters or less.
 
-
 Please follow these rules:
-* Do not include the number of Swiss-Prot proteins comprised in the family.
-* Do not directly quote annotations.
 * The name must not end with'fam', or 'family'.
 * The name must not end with 'super', or 'superfamily'.
 * The name must not contain any taxonomic information.
@@ -19,14 +16,5 @@ Please follow these rules:
 * If the name contains 'domain-containing', it must be followed by 'protein', i.e. 'domain-containing protein'.
 * The name must not contain repetitions, e.g. "Nectin and Nectin-like" must be replaced by "Nectin-like".
 * The name must not contain underscores unless it is part of a gene name.
-
-Here are some examples of names and short names to help you generating the name:
-* Ribosomal protein S1-like -> Ribosomal_protein_S1-like
-* Retinoid X receptor/HNF4 -> Retinoid-X_rcpt/HNF4
-* Aldo-keto reductase family 1 member C -> AKR1C
-* Transmembrane protein 230/134 -> TMEM_230/134
-* A-kinase anchor protein 6/Centrosomal protein of 68kDa > AKAP6/CEP68
-* Geranylgeranyl transferase type-1 subunit beta -> GGTase_I_beta
-* Prion protein -> Prion
 
 If the function(s) cannot be determined solely based on the provided information, the value of all properties must be null."""

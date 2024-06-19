@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 DATABASES = ["panther", "ncbifam", "cathgene3d"]
 AUTO_TYPE = ["cdd", "duf", "ai"]
 
+
 def clean_url(url):
     return url.rstrip("/")
 
@@ -49,7 +50,7 @@ def build_parser(argv: Optional[List] = None):
         "--pronto",
         type=clean_url,
         default="http://pronto.ebi.ac.uk:5000",
-        help="URL of pronto - used to connect to the pronto API."
+        help="URL of pronto - used to connect to the pronto API.",
     )
     # test deployment - http://pronto-tst.ebi.ac.uk:5000
 
@@ -102,8 +103,10 @@ def check_url(args: argparse.Namespace) -> None:
     :param args: cli args parser
     """
     if args.pronto.startswith("http://pronto.ebi.ac.uk:5000"):
-        response = input("About to connect to the live pronto server. Do you want to proceed? [y/N]")
-        if response.lower() not in ['y', 'yes']:
+        response = input(
+            "About to connect to the live pronto server. Do you want to proceed? [y/N]"
+        )
+        if response.lower() not in ["y", "yes"]:
             logger.warning("Opt to not continue. Terminating program.")
             sys.exit(1)
 
@@ -128,25 +131,29 @@ def check_login_details() -> tuple[str, str]:
     return username, password
 
 
-def generate_names(template, payload):
+def generate_names(template: str, payload: dict) -> str | None:
+    long_name = None
     prompt = make_prompt(payload)
     system, user = make_user(prompt, template)
-    content, to_dump, request = make_summary(payload, system, user, prompt, 0.2)
-    long_name = content["names"][0]
+    content = make_summary(payload, system, user, 0.2)
+    if content["names"]:
+        long_name = content["names"][0]
     return long_name
 
 
-def make_prompt(info: dict, merge: bool = False) -> str:
+def make_prompt(info: dict) -> str:
     cdd_info = info
-    ctx = f"```json\n{json.dumps(cdd_info)}\n```"
-    # print(ctx)
+    ctx = "```\n"
+    for k, v in cdd_info.items():
+        if k != "accession":
+            ctx += "* " + str(k) + ": " + str(v) + "\n"
+    ctx += "```"
     return ctx
 
 
 def make_summary(
-        info, system, user_message, prompt, temp: float
-) -> tuple[dict, dict, bool]:
-    to_dump = {}
+    info: dict, system: str, user_message: str, temp: float
+) -> dict | None:
     content = {}
 
     client = openai.OpenAI()
@@ -173,36 +180,23 @@ def make_summary(
         except openai.NotFoundError:
             raise
         except openai.BadRequestError:
-            requested = True
             break
         except openai.OpenAIError:
             raise
         else:
             response = completion.model_dump(exclude_unset=True)
-            requested = True
-
             content = load_content(response)
-            if content:
-                to_dump = {
-                    "accession": info["accession"],
-                    "model": model,
-                    "temperature": temp,
-                    "prompt": prompt,
-                    "response": response,
-                }
-
             break
 
-    return content, to_dump, requested
+    return content
 
 
-def make_user(prompt, templatefile):
+def make_user(prompt, templatefile) -> tuple[str, str]:
     with open(templatefile, "rb") as fh:
         template = tomllib.load(fh)
         before = template["before"].strip()
         after = template["after"].strip()
         system = template["system"].strip()
-    #
     user = prompt
 
     if before:
