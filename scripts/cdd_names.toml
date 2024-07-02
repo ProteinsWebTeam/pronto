@@ -1,0 +1,20 @@
+system = """
+You are an experienced biocurator working in the InterPro team at EMBL-EBI on describing protein families. You always provide informtion in a factual way."""
+
+before = """
+"""
+
+after = """
+Using the information provided above, provide a name for the protein family. The output must be a raw JSON string with the following properties:
+* names: a list of 3 similar names for the family, each name must be 100 characters or less.
+
+Please follow these rules:
+* The name must not end with'fam', or 'family'.
+* The name must not end with 'super', or 'superfamily'.
+* The name must not contain any taxonomic information.
+* The name must not contain 'proteins', 'families', or 'subunits'.
+* If the name contains 'domain-containing', it must be followed by 'protein', i.e. 'domain-containing protein'.
+* The name must not contain repetitions, e.g. "Nectin and Nectin-like" must be replaced by "Nectin-like".
+* The name must not contain underscores unless it is part of a gene name.
+
+If the function(s) cannot be determined solely based on the provided information, the value of all properties must be null."""
