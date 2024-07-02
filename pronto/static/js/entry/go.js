@@ -31,6 +31,18 @@ export function link(accession, termID) {
         });
 }
 
+async function fetchConstraints(entryAccession, goID) {
+    const response = await fetch(`/api/entry/${entryAccession}/go/${goID}/`);
+    return await response.json();
+}
+
+async function updateConstraintsLabel(entryAccession, goID) {
+    const result = await fetchConstraints(entryAccession, goID);
+    if (result.violations.total > 0) {
+        document.querySelector(`[data-term="${goID}"]`).classList.remove('basic');
+    }
+}
+
 function render(accession, terms, divID) {
     const div = document.getElementById(divID);
     if (terms.length === 0) {
@@ -39,6 +51,7 @@ function render(accession, terms, divID) {
     }
 
     let html = '<ul class="ui list">';
+    const promises = [];
     for (const term of terms) {
         html += `
             <li class="item">
@@ -48,9 +61,10 @@ function render(accession, terms, divID) {
         `;
 
         if (term.taxon_constraints > 0) {
-            html += `&nbsp;<span class="ui tiny red label button" data-entry="${accession}" data-term="${term.id}">Taxon constraints 
+            html += `&nbsp;<span class="ui tiny basic red label button" data-entry="${accession}" data-term="${term.id}">Taxon constraints 
             <span class="detail">${term.taxon_constraints}</span>
             </span>`;
+            promises.push(updateConstraintsLabel(accession, term.id));
         }
 
         if (term.is_obsolete)
@@ -79,8 +93,7 @@ function render(accession, terms, divID) {
             const term = e.currentTarget.dataset.term;
 
             dimmer.on();
-            fetch(`/api/entry/${acc}/go/${term}/`)
-                .then(response => response.json())
+            fetchConstraints(acc, term)
                 .then(result => {
                     const signatures = result.signatures.join('/');
                     let html = `<table class="ui definition celled table">
@@ -95,8 +108,16 @@ function render(accession, terms, divID) {
 
                                     <tr>
                                     <td>Violations summary</td>
-                                    <td><a href="/signatures/${signatures}/proteins/?violate-go=${term}&reviewed">${result.violations.reviewed.toLocaleString()}</a></td>
-                                    <td><a href="/signatures/${signatures}/proteins/?violate-go=${term}">${result.violations.total.toLocaleString()}</a></td>
+                                    <td>
+                                        <a href="/signatures/${signatures}/proteins/?violate-go=${term}&reviewed&filtermatches">
+                                            ${result.violations.reviewed.toLocaleString()}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        <a href="/signatures/${signatures}/proteins/?violate-go=${term}&filtermatches">
+                                            ${result.violations.total.toLocaleString()}
+                                        </a>
+                                    </td>
                                     </tr>`;
 
                     for (const constraint of result.constraint) {
