@@ -493,7 +493,8 @@ def get_signature_predictions(accession):
               d.name_long,
               c.num_collocations,
               c.num_overlaps,
-              COALESCE(p.num_residue_overlaps, 0)
+              COALESCE(p.num_residue_overlaps, 0),
+              c.num_reviewed_res_overlaps
             FROM interpro.comparison c
             INNER JOIN interpro.signature s
               ON c.signature_acc_2 = s.accession
@@ -516,12 +517,16 @@ def get_signature_predictions(accession):
               d.name_long,
               p.num_collocations,
               p.num_protein_overlaps,
-              p.num_residue_overlaps
+              p.num_residue_overlaps,
+              c.num_reviewed_res_overlaps
             FROM interpro.prediction p
             INNER JOIN interpro.signature s
               ON p.signature_acc_2 = s.accession
             INNER JOIN interpro.database d
               ON s.database_id = d.id
+            INNER JOIN interpro.comparison c
+              on (c.signature_acc_1 = p.signature_acc_1
+                  AND c.signature_acc_2 = p.signature_acc_2)
             WHERE p.signature_acc_1 = %s
             """, [accession]
         )
@@ -536,6 +541,7 @@ def get_signature_predictions(accession):
         collocations = row[5]
         protein_overlaps = row[6]
         residue_overlaps = row[7]
+        reviewed_res_overlaps = row[8]
 
         p = utils.Prediction(q_proteins, t_proteins, protein_overlaps)
         if p.relationship is None and not all_collocations:
@@ -567,6 +573,7 @@ def get_signature_predictions(accession):
             "proteins": t_proteins,
             "collocations": collocations,
             "overlaps": protein_overlaps,
+            "reviewed_residue_overlaps": reviewed_res_overlaps,
             "similarity": p.similarity,
             "containment": p.containment,
             "relationship": p.relationship,
