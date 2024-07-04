@@ -101,8 +101,8 @@ def get_analysis(name: str, version: str):
 
     cur.execute(
         f"""
-        SELECT J.START_TIME, J.END_TIME, J.CPU_TIME, J.LIM_MEMORY, J.MAX_MEMORY,
-               J.SEQUENCES
+        SELECT J.START_TIME, J.END_TIME, NVL(J.CPU_TIME, 0), J.LIM_MEMORY, 
+               NVL(J.MAX_MEMORY, 0), J.SEQUENCES
         FROM INTERPRO.ISPRO_ANALYSIS A
         INNER JOIN INTERPRO.ISPRO_ANALYSIS_JOBS J ON A.ID = J.ANALYSIS_ID
         WHERE LOWER(A.NAME) {name_cond} :1 
