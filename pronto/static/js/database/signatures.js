@@ -146,23 +146,45 @@ document.addEventListener('DOMContentLoaded', () => {
     updateHeader();
     getSignatures();
 
-    const url = new URL(location.href);
-    const radios = document.querySelectorAll('input[type=radio]');
+    const inputs = document.querySelectorAll('.ui.form input');
 
-    for (const radio of radios) {
-        radio.addEventListener('change', e => {
-            if (radio.value)
-                url.searchParams.set(radio.name, radio.value);
+    for (const input of inputs) {
+        input.addEventListener('change', e => {
+            const type = e.currentTarget.type;
+            const key = e.currentTarget.name;
+            const value = e.currentTarget.value;
+            const checked = e.currentTarget.checked;
+            const url = new URL(location.href);
+
+            if (type === "radio" || (type === "checkbox" && checked))
+                url.searchParams.set(key, value);
             else
-                url.searchParams.delete(radio.name);
+                url.searchParams.delete(key);
+
+            url.searchParams.delete('page');
+            url.searchParams.delete('page_size');
             history.replaceState(null, null, url.toString());
             getSignatures();
         });
     }
 
-    for (const key of new Set(Array.from(radios, x => x.name))) {
-        if (url.searchParams.has(key))
-            document.querySelector(`input[type=radio][name="${key}"][value="${url.searchParams.get(key)}"]`).checked = true;
+    const url = new URL(location.href);
+    for (const input of inputs) {
+        const key = input.name;
+
+        if (url.searchParams.has(key)) {
+            const value = url.searchParams.get(key);
+
+            let selector = null;
+            if (input.type === "checkbox") {
+                selector = `input[type="checkbox"][name="${key}"]`;
+            } else if (value === input.value) {
+                selector = `input[type="radio"][name="${key}"][value="${value}"]`;
+            }
+
+            if (selector !== null)
+                document.querySelector(selector).checked = true;
+        }
     }
 
     searchbox.init(

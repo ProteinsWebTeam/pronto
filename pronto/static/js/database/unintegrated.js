@@ -187,6 +187,25 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    const url = new URL(location.href);
+    for (const input of inputs) {
+        const key = input.name;
+
+        if (url.searchParams.has(key)) {
+            const value = url.searchParams.get(key);
+
+            let selector = null;
+            if (input.type === "checkbox") {
+                selector = `input[type="checkbox"][name="${key}"]`;
+            } else if (value === input.value) {
+                selector = `input[type="radio"][name="${key}"][value="${value}"]`;
+            }
+
+            if (selector !== null)
+                document.querySelector(selector).checked = true;
+        }
+    }
+
     document.querySelector('.ui.comments form button')
         .addEventListener('click', e => {
             e.preventDefault();
