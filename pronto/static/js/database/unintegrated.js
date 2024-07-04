@@ -166,7 +166,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 .transition('fade');
         });
 
-    for (const input of document.querySelectorAll('.ui.form input')) {
+    const inputs = document.querySelectorAll('.ui.form input');
+    for (const input of inputs) {
         input.addEventListener('change', (e, ) => {
             const type = e.currentTarget.type;
             const key = e.currentTarget.name;
