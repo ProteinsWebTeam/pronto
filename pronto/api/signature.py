@@ -573,7 +573,6 @@ def get_signature_predictions(accession):
             "proteins": t_proteins,
             "collocations": collocations,
             "overlaps": protein_overlaps,
-            "reviewed_residue_overlaps": reviewed_res_overlaps,
             "similarity": p.similarity,
             "containment": p.containment,
             "relationship": p.relationship,
@@ -582,6 +581,7 @@ def get_signature_predictions(accession):
                 "similarity": pr.similarity,
                 "containment": pr.containment,
                 "relationship": pr.relationship,
+                "reviewed_overlaps": reviewed_res_overlaps
             }
         }
     cur.close()
