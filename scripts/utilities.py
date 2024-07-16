@@ -6,14 +6,18 @@ import argparse
 import logging
 import os
 import sys
+import tomllib
+from datetime import datetime
+import openai
+import json
 
 from typing import List, Optional
 
 
 logger = logging.getLogger(__name__)
 
-
 DATABASES = ["panther", "ncbifam", "cathgene3d"]
+AUTO_TYPE = ["cdd", "duf", "ai"]
 
 
 def clean_url(url):
@@ -43,19 +47,10 @@ def build_parser(argv: Optional[List] = None):
     )
 
     parser.add_argument(
-        "--databases",
-        type=str.lower,
-        nargs="+",
-        choices=DATABASES,
-        default=DATABASES,
-        help="Member databases to integrate ai generated signatures from. Default: ALL"
-    )
-
-    parser.add_argument(
         "--pronto",
         type=clean_url,
         default="http://pronto.ebi.ac.uk:5000",
-        help="URL of pronto - used to connect to the pronto API."
+        help="URL of pronto - used to connect to the pronto API.",
     )
     # test deployment - http://pronto-tst.ebi.ac.uk:5000
 
@@ -73,6 +68,29 @@ def build_parser(argv: Optional[List] = None):
         help="Seconds timeout limit for connection to pronto",
     )
 
+    parser.add_argument(
+        "--databases",
+        type=str.lower,
+        nargs="+",
+        choices=DATABASES,
+        default=None,
+        help="Member databases to integrate ai generated signatures from. Default: None",
+    )
+
+    parser.add_argument(
+        "auto_integrate",
+        type=str.lower,
+        choices=AUTO_TYPE,
+        help="Type of auto-integration",
+    )
+
+    parser.add_argument(
+        "--cdd_template",
+        type=str,
+        default=None,
+        help="Template file to generate alternative CDD name if CDD description is too long for entry name",
+    )
+
     if argv is None:
         return parser
     else:
@@ -85,8 +103,10 @@ def check_url(args: argparse.Namespace) -> None:
     :param args: cli args parser
     """
     if args.pronto.startswith("http://pronto.ebi.ac.uk:5000"):
-        response = input("About to connect to the live pronto server. Do you want to proceed? [y/N]")
-        if response.lower() not in ['y', 'yes']:
+        response = input(
+            "About to connect to the live pronto server. Do you want to proceed? [y/N]"
+        )
+        if response.lower() not in ["y", "yes"]:
             logger.warning("Opt to not continue. Terminating program.")
             sys.exit(1)
 
@@ -95,10 +115,10 @@ def check_login_details() -> tuple[str, str]:
     """Check if the environment variables for the users pronto credentials
     username and password are available"""
     username, password = None, None
-    if os.getenv('PRONTO_USER'):
-        username = os.getenv('PRONTO_USER')
-    if os.getenv('PRONTO_PWD'):
-        password = os.getenv('PRONTO_PWD')
+    if os.getenv("PRONTO_USER"):
+        username = os.getenv("PRONTO_USER")
+    if os.getenv("PRONTO_PWD"):
+        password = os.getenv("PRONTO_PWD")
 
     if not username or not password:
         logger.error(
@@ -109,3 +129,88 @@ def check_login_details() -> tuple[str, str]:
         sys.exit(1)
 
     return username, password
+
+
+def generate_names(template: str, payload: dict) -> str | None:
+    long_name = None
+    prompt = make_prompt(payload)
+    system, user = make_user(prompt, template)
+    content = make_summary(payload, system, user, 0.2)
+    if content["names"]:
+        long_name = content["names"][0]
+    return long_name
+
+
+def make_prompt(info: dict) -> str:
+    cdd_info = info
+    ctx = "```\n"
+    for k, v in cdd_info.items():
+        if k != "accession":
+            ctx += "* " + str(k) + ": " + str(v) + "\n"
+    ctx += "```"
+    return ctx
+
+
+def make_summary(
+    info: dict, system: str, user_message: str, temp: float
+) -> dict | None:
+    content = {}
+
+    client = openai.OpenAI()
+    model = "gpt-4o"
+
+    accession = info["accession"]
+    print(
+        f"{datetime.now():%Y-%m-%d %H:%M:%S}: {accession}", file=sys.stderr, flush=True
+    )
+
+    messages = [
+        {"role": "system", "content": system},
+        {"role": "user", "content": user_message},
+    ]
+
+    while True:
+        try:
+            completion = client.chat.completions.create(
+                messages=messages,
+                model=model,
+                response_format={"type": "json_object"},
+                temperature=temp,
+            )
+        except openai.NotFoundError:
+            raise
+        except openai.BadRequestError:
+            break
+        except openai.OpenAIError:
+            raise
+        else:
+            response = completion.model_dump(exclude_unset=True)
+            content = load_content(response)
+            break
+
+    return content
+
+
+def make_user(prompt, templatefile) -> tuple[str, str]:
+    with open(templatefile, "rb") as fh:
+        template = tomllib.load(fh)
+        before = template["before"].strip()
+        after = template["after"].strip()
+        system = template["system"].strip()
+    user = prompt
+
+    if before:
+        user = f"{before}\n{user}"
+
+    if after:
+        user = f"{user}\n{after}"
+
+    return user, system
+
+
+def load_content(response: dict) -> dict | None:
+    choice = response["choices"][0]
+    if choice["finish_reason"] == "stop":
+        return json.loads(choice["message"]["content"])
+    else:
+        return None
