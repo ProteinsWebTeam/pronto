@@ -112,6 +112,7 @@ def get_analysis(name: str, version: str):
           AND J.SUCCESS = 'Y'
           AND J.SEQUENCES IS NOT NULL
           AND J.SEQUENCES > 0
+          AND (J.CPU_TIME > 0 AND J.LIM_MEMORY IS NOT NULL)
         """,
         params
     )
