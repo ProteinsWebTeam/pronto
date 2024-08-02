@@ -104,6 +104,11 @@ def get_signatures(db_name):
 
     search_query = request.args.get("search", "").strip()
     details = "details" in request.args
+    if "with-abstract" in request.args:
+        abstract_filter = ("AND (abstract IS NOT NULL "
+                           "OR llm_abstract IS NOT NULL)")
+    else:
+        abstract_filter = ""
 
     con = utils.connect_pg()
     cur = con.cursor()
@@ -127,10 +132,10 @@ def get_signatures(db_name):
 
     db_identifier, db_full_name, db_version = row
 
-    sql = """
+    sql = f"""
         SELECT accession, name, type, num_sequences
         FROM interpro.signature
-        WHERE database_id = %s
+        WHERE database_id = %s {abstract_filter}
     """
 
     if search_query:
@@ -415,11 +420,11 @@ def get_unintegrated(db_name):
             400
         )
 
-    try:
-        request.args["with-abstract"]
-        sig_desc = "AND ((abstract IS NOT NULL) OR (llm_abstract IS NOT NULL))"
-    except KeyError:
-        sig_desc = ""
+    if "with-abstract" in request.args:
+        abstract_filter = ("AND (abstract IS NOT NULL "
+                           "OR llm_abstract IS NOT NULL)")
+    else:
+        abstract_filter = ""
 
     con = utils.connect_oracle()
     cur = con.cursor()
@@ -474,12 +479,12 @@ def get_unintegrated(db_name):
 
     db_identifier, db_full_name, db_version = row
     cur.execute(
-        """
+        f"""
         SELECT accession, type, num_complete_sequences, 
             num_complete_single_domain_sequences, num_residues
         FROM signature
-        WHERE database_id = %s
-        """  + sig_desc,
+        WHERE database_id = %s {abstract_filter}
+        """,
         [db_identifier]
     )
 

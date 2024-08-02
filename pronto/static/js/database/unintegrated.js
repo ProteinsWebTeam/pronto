@@ -166,7 +166,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 .transition('fade');
         });
 
-    for (const input of document.querySelectorAll('.ui.form input')) {
+    const inputs = document.querySelectorAll('.ui.form input');
+    for (const input of inputs) {
         input.addEventListener('change', (e, ) => {
             const type = e.currentTarget.type;
             const key = e.currentTarget.name;
@@ -185,6 +186,25 @@ document.addEventListener('DOMContentLoaded', () => {
             history.replaceState(null, document.title, url.toString());
             getSignatures();
         });
+    }
+
+    const url = new URL(location.href);
+    for (const input of inputs) {
+        const key = input.name;
+
+        if (url.searchParams.has(key)) {
+            const value = url.searchParams.get(key);
+
+            let selector = null;
+            if (input.type === "checkbox") {
+                selector = `input[type="checkbox"][name="${key}"]`;
+            } else if (value === input.value) {
+                selector = `input[type="radio"][name="${key}"][value="${value}"]`;
+            }
+
+            if (selector !== null)
+                document.querySelector(selector).checked = true;
+        }
     }
 
     document.querySelector('.ui.comments form button')
