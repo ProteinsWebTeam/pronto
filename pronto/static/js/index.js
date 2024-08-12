@@ -901,9 +901,10 @@ async function getInterProScanAnalyses(progressBar, fromUpi, toUpi, numSequences
 
     const promises = activeAnalyses.map((x) => getInterProScanAnalysis(x.name, x.version, fromUpi, toUpi, numSequences));
     const results = await trackProgress(promises);
+    const okResults = results.filter((x) => x !== null);
 
     const sequenceCounts = [];
-    results
+    okResults
         .filter((x) => x.name !== 'SignalP')
         .forEach((x) => {
             if (!sequenceCounts.includes(x.proteins.count)) {
@@ -925,7 +926,7 @@ async function getInterProScanAnalyses(progressBar, fromUpi, toUpi, numSequences
     }
 
 
-    sessionStorage.setItem('jobs', JSON.stringify(results));
+    sessionStorage.setItem('jobs', JSON.stringify(okResults));
 }
 
 async function getInterProScanAnalysis(name, version, fromUpi, toUpi, numSequences) {
@@ -937,7 +938,10 @@ async function getInterProScanAnalysis(name, version, fromUpi, toUpi, numSequenc
     }
 
     const response = await fetch(`/api/interproscan/${name}/${version}/?${params.toString()}`);
-    return await response.json();
+    if (response.ok)
+        return await response.json();
+    else
+        return null;
 }
 
 function plotJobTimeChart() {
