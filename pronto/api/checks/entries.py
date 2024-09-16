@@ -113,15 +113,13 @@ def ck_forbidden_terms(entries: LoT, terms: LoS, exceptions: DoS) -> Err:
 def ck_integration(cur: Cursor) -> Err:
     cur.execute(
         """
-        SELECT E.ENTRY_AC
-        FROM INTERPRO.ENTRY E
-        INNER JOIN (
-            SELECT ENTRY_AC, COUNT(*) AS CNT
-            FROM INTERPRO.ENTRY2METHOD
-            GROUP BY ENTRY_AC
-        ) EM ON E.ENTRY_AC = EM.ENTRY_AC
-        WHERE E.CHECKED = 'Y' AND EM.CNT = 0
-        ORDER BY E.ENTRY_AC
+        SELECT ENTRY_AC
+        FROM INTERPRO.ENTRY
+        WHERE CHECKED = 'Y'
+        MINUS
+        SELECT DISTINCT ENTRY_AC
+        FROM INTERPRO.ENTRY2METHOD
+        ORDER BY ENTRY_AC
         """
     )
     return [(acc, None) for acc, in cur]
