@@ -84,7 +84,7 @@ export function updateHeader(signatureAcc) {
                 const signaturesForm = document.getElementById('new-entry-signatures');
                 const signatures = new Map();
                 const errMsg = modal.querySelector('.ui.message');
-                let existing_ai_warning = false;
+                let entryIsReviewedLLM = false;
 
                 $(signaturesForm).form({
                     fields: { accession: 'empty' },
@@ -118,7 +118,7 @@ export function updateHeader(signatureAcc) {
                                 let name = signature.name;
                                 let description = signature.description;
                                 let useAIAnnotations = false;
-                                if ((name == null || description == null) && signature.llm_name !== null && signature.llm_description !== null) {
+                                if ((name === null || description === null) && signature.llm_name !== null && signature.llm_description !== null) {
                                     name = signature.llm_name;
                                     description = signature.llm_description;
                                     useAIAnnotations = true;
@@ -178,28 +178,24 @@ export function updateHeader(signatureAcc) {
                                         if (signatures.size > 0) {
                                             const row = elem.closest('tr');
                                             row.parentNode.removeChild(row);
-                                        } else
+                                        } else {
+                                            // No signature: reset form
+                                            $(infoForm).form('reset');
                                             tbody.innerHTML = '<tr><td class="center aligned" colspan="8">No signatures</td></tr>';
+                                        }
                                     });
                                 }
 
-                                // Only apply AI generated tag (and thus warning)
-                                // depending on the first entry only here
-                                if (useAIAnnotations && signatures.size < 2) {
-                                    existing_ai_warning = true;
+                                if ((signatures.size === 1 && useAIAnnotations) || entryIsReviewedLLM) {
+                                    // Multiple signatures: use first one to decide whether the entry is AI-generated
+                                    entryIsReviewedLLM = true;
+                                    document.querySelector('input[name="is-llm"]').checked = true;
+                                    const firstAccession = [...signatures.keys()][0];
                                     toggleErrorMessage(
                                         errMsg,
                                         {
                                             title: 'This entry will be marked as AI-generated',
-                                            message: `The name, short name, and description of <strong>${signature.accession}</strong> have been generated using AI.`,
-                                        }
-                                    )
-                                } else if (existing_ai_warning) {
-                                    toggleErrorMessage(
-                                        errMsg,
-                                        {
-                                            title: 'This entry will be marked as AI-generated',
-                                            message: `The name, short name, and description of the first signature have been generated using AI.`,
+                                            message: `The name, short name, and description of <strong>${firstAccession}</strong> have been generated using AI.`,
                                         }
                                     )
                                 } else {
@@ -221,7 +217,7 @@ export function updateHeader(signatureAcc) {
                         }
 
                         fields.signatures = [...signatures.keys()];
-                        fields.is_llm = existing_ai_warning;
+                        fields.is_llm = document.querySelector('input[name="is-llm"]').checked;
 
                         const options = {
                             method: 'PUT',
