@@ -16,6 +16,7 @@ export async function create(accession, text, isLLM) {
     const modal = document.getElementById('new-annotation');
     const msg = modal.querySelector('.message');
     const textarea = modal.querySelector('textarea');
+    const checkbox = modal.querySelector('input[name="is-llm"]');
 
     if (text !== undefined && text !== null) {
         const pfams = new Map();
@@ -45,7 +46,7 @@ export async function create(accession, text, isLLM) {
         text = text.replaceAll(/\bswiss:([a-z0-9]+)\b/gi, "[swissprot:$1]");
         textarea.value = text;
     }
-    textarea.readOnly = isLLM;
+    checkbox.checked = isLLM;
 
     $(modal)
         .modal({
@@ -62,8 +63,8 @@ export async function create(accession, text, isLLM) {
                     },
                     body: [
                         `text=${encodeURIComponent(modal.querySelector('textarea').value)}`,
-                        `llm=${isLLM ? 'true' : 'false'}`,
-                        `checked=${isLLM ? 'true' : 'false'}`
+                        `llm=${checkbox.checked ? 'true' : 'false'}`,
+                        `checked=${checkbox.checked ? 'true' : 'false'}`
                     ].join('&')
                 };
 
@@ -110,9 +111,9 @@ export function getSignaturesAnnotations(accession) {
             if (signatures.length > 0) {
                 for (const signature of signatures) {
                     html += `
-                            <div class="ui top attached mini menu">
-                            <a class="header item" href="/signature/${signature.accession}/">${signature.accession}</a>
-                        `;
+                        <div class="ui top attached mini menu">
+                        <a class="header item" href="/signature/${signature.accession}/">${signature.accession}</a>
+                    `;
 
                     if (signature.name !== null)
                         html += `<span class="item">${signature.name}</span>`;
@@ -172,8 +173,8 @@ export function getSignaturesAnnotations(accession) {
                         return;
 
                     $(modal).modal('hide');
-                    const annInfo = signatureAnnotations.get(key);
-                    create(accession, annInfo.text, annInfo.llm);
+                    const {text, llm} = signatureAnnotations.get(key);
+                    create(accession, text, llm);
                 });
             }
 
@@ -349,8 +350,8 @@ export function search(accession, query) {
                     if (action === 'list')
                         getAnnotationEntries(annID);
                     else if (action === 'copy') {
-                        const annInfo = annotations.get(annID);
-                        create(accession, annInfo.text, annInfo.llm);
+                        const {text, llm} = annotations.get(annID);
+                        create(accession, text, llm);
                     }
                     else if (action === 'link') {
                         actionButton.classList.add('disabled');

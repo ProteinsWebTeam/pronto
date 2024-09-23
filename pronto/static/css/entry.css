@@ -81,6 +81,7 @@ Preview mode: no horizontal line between annotations, but a simple padding (like
     min-height: 150px;
     max-height: none;
     padding: .5rem;
+    margin-bottom: 1em;
 }
 
 .hl-search {
