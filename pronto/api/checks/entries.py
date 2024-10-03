@@ -38,14 +38,24 @@ def ck_abbreviations(entries: LoT, terms: LoS, exceptions: DoS) -> Err:
     return errors
 
 
-def ck_domain_in_family(cur: Cursor) -> Err:
+def ck_type_name_combination(cur: Cursor) -> Err:
     cur.execute(
         """
         SELECT ENTRY_AC, NAME
         FROM INTERPRO.ENTRY
-        WHERE ENTRY_TYPE='F'
-        AND CHECKED = 'Y'
-        AND (NAME LIKE '%-terminal' OR NAME LIKE '%-terminal domain')
+        WHERE ENTRY_TYPE = 'F'
+          AND CHECKED = 'Y'
+          AND LLM = 'N'
+          AND (NAME LIKE '%-terminal' 
+               OR NAME LIKE '%-terminal domain'
+               OR NAME LIKE '%Domain%')
+        UNION ALL
+        SELECT ENTRY_AC, NAME
+        FROM INTERPRO.ENTRY
+        WHERE ENTRY_TYPE = 'D'
+          AND CHECKED = 'Y'
+          AND LLM = 'N'
+          AND NAME LIKE '%Family%'       
         """
     )
 
@@ -517,8 +527,8 @@ def check(ora_cur: Cursor, pg_url: str):
     for item in ck_abbreviations(entries, terms, exceptions):
         yield "abbreviation", item
 
-    for item in ck_domain_in_family(ora_cur):
-        yield "domain_in_family_name", item
+    for item in ck_type_name_combination(ora_cur):
+        yield "invalid_type_name", item
 
     exceptions = load_exceptions(ora_cur, "acc_in_name", "ENTRY_AC", "TERM")
     for item in ck_acc_in_name(entries, exceptions):

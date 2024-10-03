@@ -36,10 +36,11 @@ CHECKS = {
         "terms": True,
         "exceptions": 't'
     },
-    "domain_in_family_name": {
-        "name": "Domain in family entry name",
-        "description": "Entry names of family cannot contain a domain",
-        "label": "Domain in family entry name",
+    "invalid_type_name": {
+        "name": "Invalid entry type-name combination",
+        "description": "The names of entries of the family type cannot "
+                       "contain the word 'domain' and vice versa.",
+        "label": "Invalid entry type-name combination",
         "terms": False,
         "exceptions": None
     },
