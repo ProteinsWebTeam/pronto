@@ -423,9 +423,8 @@ async function getInterPro2GO() {
             <tr>
             <td>
                 <span class="ui circular mini label type ${obj.entry.type}">${obj.entry.type}</span>
-                <a href="/entry/${obj.entry.accession}/">${obj.entry.accession}</a>
-                <br>
-                ${obj.entry.short_name}
+                <a href="/entry/${obj.entry.accession}/">${obj.entry.short_name}</a><br>
+                ${obj.entry.name}
             </td>
             <td>
                 <span class="ui circular mini basic type label ${labelColor}">${label}</span>
