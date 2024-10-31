@@ -525,9 +525,8 @@ function renderRecentEntries(entries) {
             <td>${count}</td>
             <td>
                 <span class="ui circular mini label type ${entry.type}">${entry.type}</span>
-                <a href="/entry/${entry.accession}/">${entry.accession}</a>
+                <a href="/entry/${entry.accession}/">${entry.short_name}</a> &middot; ${entry.name}
             </td>
-            <td>${entry.short_name}</td>
             <td>${signatures}</td>
             <td>${checkbox.createDisabled(entry.checked)}</td>
             <td>${entry.date}</td>
@@ -542,9 +541,9 @@ function renderRecentEntries(entries) {
     }
 
     if (html.length === 0)
-        html = '<tr><td colspan="6" class="center aligned">No entries found</td></tr>';
+        html = '<tr><td colspan="7" class="center aligned">No entries found</td></tr>';
 
-    tab.querySelector('thead th:first-child').innerHTML = `${count.toLocaleString()} entr${count === 1 ? 'y' : 'ies'}`;
+    tab.querySelector('thead th:first-child').innerHTML = `# ${count.toLocaleString()}`;
     tab.querySelector('tbody').innerHTML = html;
 
     initPopups({
