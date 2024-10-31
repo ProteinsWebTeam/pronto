@@ -125,10 +125,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 html += accession;
             html += '<i class="external icon"></i></a>';
 
-            // html += ' &mdash; ' + result.proteins.complete.toLocaleString() +' proteins';
-
             if (result.entry) {
-                html += '&nbsp;&mdash;&nbsp;';
+                html += '&nbsp;&middot;&nbsp;';
                 if (result.entry.hierarchy.length > 0) {
                     const parent = result.entry.hierarchy[result.entry.hierarchy.length-1];
                     html += `<a href="/entry/${parent.accession}">${parent.accession}</a>
