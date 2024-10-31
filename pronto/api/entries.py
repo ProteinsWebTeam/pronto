@@ -243,7 +243,7 @@ def get_recent_entries():
     cur.execute(
         """
         SELECT
-          E.ENTRY_AC, E.ENTRY_TYPE, E.SHORT_NAME, A.TIMESTAMP, 
+          E.ENTRY_AC, E.ENTRY_TYPE, E.SHORT_NAME, E.NAME, A.TIMESTAMP, 
           NVL(U.NAME, A.DBUSER), E.CHECKED, E.LLM, NVL(EC.CNT, 0), 
           NVL(MC.CNT, 0), EM.ACCESSIONS
         FROM INTERPRO.ENTRY E
@@ -288,12 +288,13 @@ def get_recent_entries():
             "accession": row[0],
             "type": row[1],
             "short_name": row[2],
-            "date": row[3].strftime("%d %b %Y"),
-            "user": row[4],
-            "checked": row[5] == "Y",
-            "llm": row[6] == "Y",
-            "comments": {"entry": row[7], "signatures": row[8]},
-            "signatures": sorted(row[9].split(',')) if row[9] else []
+            "name": row[3],
+            "date": row[4].strftime("%d %b %Y"),
+            "user": row[5],
+            "checked": row[6] == "Y",
+            "llm": row[7] == "Y",
+            "comments": {"entry": row[8], "signatures": row[9]},
+            "signatures": sorted(row[10].split(',')) if row[10] else []
         })
     cur.close()
     con.close()
