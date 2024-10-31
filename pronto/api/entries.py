@@ -329,11 +329,11 @@ def get_recent_go_terms():
 
     cur.execute(
         """
-        SELECT A.ENTRY_AC, A.SHORT_NAME, A.ENTRY_TYPE, A.GO_ID,
+        SELECT A.ENTRY_AC, A.SHORT_NAME, A.NAME, A.ENTRY_TYPE, A.GO_ID,
                A.TIMESTAMP, NVL(U.NAME, A.DBUSER)
         FROM (
-            SELECT E.ENTRY_AC, E.SHORT_NAME, E.ENTRY_TYPE, A.GO_ID, A.ACTION,
-                   A.TIMESTAMP, A.DBUSER, ROW_NUMBER() OVER (
+            SELECT E.ENTRY_AC, E.SHORT_NAME, E.NAME, E.ENTRY_TYPE, A.GO_ID, 
+                   A.ACTION, A.TIMESTAMP, A.DBUSER, ROW_NUMBER() OVER (
                        PARTITION BY E.ENTRY_AC, A.GO_ID
                        ORDER BY A.TIMESTAMP DESC
                    ) RN
@@ -342,8 +342,7 @@ def get_recent_go_terms():
             WHERE A.TIMESTAMP >= :1
         ) A
         LEFT OUTER JOIN INTERPRO.PRONTO_USER U ON A.DBUSER = U.DB_USER
-        WHERE A.RN = 1
-        AND A.ACTION = 'I'
+        WHERE A.RN = 1 AND A.ACTION = 'I'
         ORDER BY A.TIMESTAMP DESC
         """,
         (date,),
@@ -356,11 +355,12 @@ def get_recent_go_terms():
                 "entry": {
                     "accession": row[0],
                     "short_name": row[1],
-                    "type": row[2]
+                    "name": row[2],
+                    "type": row[3]
                 },
-                "term": terms[row[3]],
-                "date": row[4].strftime("%d %b %Y"),
-                "user": row[5],
+                "term": terms[row[4]],
+                "date": row[5].strftime("%d %b %Y"),
+                "user": row[6],
             }
         )
     cur.close()
