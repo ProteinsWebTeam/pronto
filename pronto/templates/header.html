@@ -1,20 +1,18 @@
 <header>
-    <div class="ui menu">
+    <div class="ui embl green inverted menu">
         <div class="ui container">
             <a href="/" class="header item">Pronto!</a>
             <div class="item">
-                <div id="new-entry-btn" class="ui primary compact button">New entry</div>
+                <div id="new-entry-btn" class="ui basic inverted compact button">New entry</div>
             </div>
             <a href="/proteome/" class="item">Coverage</a>
             <div id="pronto-info" class="left menu"></div>
             <div class="right menu">
                 <div class="item">
-                    <form class="ui action input" action="/search/" method="get" role="search" autocomplete="off">
-                        <input name="q" placeholder="Search&hellip;" type="text" value="">
-                        <button class="ui basic icon button">
-                            <i class="search icon"></i>
-                        </button>
-                    </form>
+                    <div id="header-search" class="ui icon input">
+                      <input type="text" placeholder="Search...">
+                      <i class="circular search link icon"></i>
+                    </div>
                 </div>
                 <div id="tasks" class="ui icon simple dropdown item">
                     <i class="tasks icon"></i>

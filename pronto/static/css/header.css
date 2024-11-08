@@ -7,6 +7,19 @@ header > .ui.menu:last-child {
     margin-bottom: 1rem;
 }
 
+.ui.ui.inverted.embl.green.menu {
+    /*background-color: #18974C;*/
+    background-color: #73b360;
+}
+
+.ui.embl.inverted.menu .item {
+    color: #fff;
+}
+
+.ui.ui.inverted.embl.green.menu .dropdown .menu > .item > a {
+  color: #4183c4;;
+}
+
 header > .ui.menu .item > .ui.label:only-child {
     margin-left: 0;
 }
