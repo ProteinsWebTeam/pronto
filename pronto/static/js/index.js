@@ -653,9 +653,8 @@ async function getUncheckedEntries() {
                 <tr>
                 <td>
                     <span class="ui circular mini label type ${entry.type}">${entry.type}</span>
-                    <a href="/entry/${entry.accession}/">${entry.accession}</a>
+                    <a href="/entry/${entry.accession}/">${entry.short_name}</a>
                 </td>
-                <td>${entry.short_name}</td>
                 <td>${entry.created_date}</td>
                 <td>${entry.update_date}</td>
                 <td class="right aligned">
@@ -669,7 +668,7 @@ async function getUncheckedEntries() {
         }
 
         if (entries.length === 0)
-            html = '<tr><td colspan="5" class="center aligned">No results found</td></tr>';
+            html = '<tr><td colspan="4" class="center aligned">No results found</td></tr>';
 
         tab.querySelector('tbody').innerHTML = html;
         tab.querySelector('thead > tr:first-child > th:first-child').innerHTML = `${entries.length} entries`;
