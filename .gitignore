@@ -2,3 +2,4 @@ __pycache__/
 *.py[cod]
 config.local.cfg
 .vscode
+*.egg-info
