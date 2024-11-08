@@ -25,12 +25,16 @@ export async function renderTaskList() {
     return Promise.resolve(tasks);
 }
 
-export function updateHeader(signatureAcc) {
-    document.querySelector('header form').addEventListener('submit', e => {
-        if (!e.currentTarget.querySelector('input').value.trim().length)
-            e.preventDefault();
-    });
+function submitSearch(text) {
+    if (!text || text.length === 0)
+        return
 
+    const url = new URL(`${location.origin}/search`);
+    url.searchParams.set('q', text);
+    window.location = url.toString();
+}
+
+export function updateHeader(signatureAcc) {
     return new Promise(((resolve,) => {
         fetch('/api/')
             .then(response => response.json())
@@ -64,6 +68,20 @@ export function updateHeader(signatureAcc) {
                     item.innerHTML = '<i class="sign in icon"></i>&nbsp;Log in</a>';
                     menu.appendChild(item);
                 }
+
+                // Init search bar
+                document.querySelector('#header-search input')
+                    .addEventListener('keyup' , (e,) => {
+                        if (e.key !== 'Enter')
+                            return;
+
+                        submitSearch(e.currentTarget.value.trim());
+                    });
+                document.querySelector('#header-search i.search.link.icon')
+                    .addEventListener('click', (e,) => {
+                        const input = e.currentTarget.parentNode.querySelector('input');
+                        submitSearch(input.value.trim());
+                    });
 
                 const modal = document.getElementById('new-entry-modal');
                 $(modal.querySelector('.ui.dropdown')).dropdown();
