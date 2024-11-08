@@ -19,6 +19,14 @@ export async function create(accession, text, isLLM) {
     const checkbox = modal.querySelector('input[name="is-llm"]');
 
     if (text !== undefined && text !== null) {
+        /*
+            Ensure there are a single space after the comma between citations
+            (?=\[cite:PUB\d+\]) a positive lookahead that ensures
+                the next part is another citation, without capturing it
+         */
+        const pattern = /(\[cite:PUB\d+\])\s*,\s*(?=\[cite:PUB\d+\])/g;
+        text = text.replaceAll(pattern, '$1, ');
+
         const pfams = new Map();
         const promises = [];
         for (const [_, pfamAcc] of [...text.matchAll(/\bPfam:(PF\d+)\b/gi)]) {
