@@ -14,10 +14,46 @@ export function fetchProtein(proteinAccession, matches) {
         .then(protein => protein);
 }
 
-export async function hasAlphaFold(accession) {
-    const response = await fetch(`https://alphafold.ebi.ac.uk/api/prediction/${accession}`);
+export function structureTypeToURL(urlType, structureType, accession) {
+    const structureTypeToUrlMap = {
+        "api": {
+            "alphafold": `https://alphafold.ebi.ac.uk/api/prediction/${accession}`,
+            "bfvd": `https://bfvd.foldseek.com/api/structure/${accession}`
+        },
+        "browser": {
+            "alphafold": `https://alphafold.ebi.ac.uk/entry/${accession}`,
+            "bfvd": `https://bfvd.foldseek.com/cluster/${accession}`
+        }
+    }
+
+    return structureTypeToUrlMap[urlType][structureType]
+}
+
+export async function hasExternalStructure(accession, type) {
+    const url = structureTypeToURL("api", type, accession)
+    const response = await fetch(url);
     return response.status === 200;
 }
+
+export async function addExternalStructureLink(hasStructure, type, accession) {
+    if (hasStructure) {
+        const wait = (ms) => {
+            setTimeout(() => {
+                const span = document.querySelector(`[data-${type}="${accession}"]`);
+                if (span !== null) {
+                    span.innerHTML = `
+                        <a target="_blank" href=${structureTypeToURL("browser", type, accession)}>${type === "alphafold" ? "Alphafold" : "BFVD"}<i class="external icon"></i></a> 
+                        &mdash;
+                    `;
+                } else {
+                    wait(500);
+                }
+            }, ms);
+        };
+        wait(0);
+    }
+}
+
 
 export function genProtHeader(protein) {
     let html = `
@@ -28,29 +64,13 @@ export function genProtHeader(protein) {
             <a target="_blank" href="${genLink(protein.accession, protein.is_reviewed)}">${protein.is_reviewed ? 'reviewed' : 'unreviewed'}<i class="external icon"></i></a>
             &mdash;
             <span data-alphafold="${protein.accession}"></span>
+            <span data-bfvd="${protein.accession}"></span>
     `;
 
-    hasAlphaFold(protein.accession).then((hasAF) => {
-        if (hasAF) {
-            const wait = (ms) => {
-                setTimeout(() => {
-                    const span = document.querySelector(`[data-alphafold="${protein.accession}"]`);
-                    if (span !== null) {
-                        span.innerHTML = `
-                            <a target="_blank" href="https://alphafold.ebi.ac.uk/entry/${protein.accession}">Alphafold<i class="external icon"></i></a> 
-                            &mdash;
-                        `;
-                    } else {
-                        wait(500);
-                    }
-                }, ms);
-            };
+    hasExternalStructure(protein.accession, "alphafold").then((hasAF) => { addExternalStructureLink(hasAF, "alphafold", protein.accession) })
+    hasExternalStructure(protein.accession, "bfvd").then((hasBFVD) => { addExternalStructureLink(hasBFVD, "bfvd", protein.accession) })
 
-            wait(0);
-        }
-    });
-
-    html +=`
+    html += `
             Organism: <em>${protein.organism.name}</em>
             &mdash;
             Length: ${protein.length} AA

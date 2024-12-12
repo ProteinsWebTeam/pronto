@@ -1,5 +1,5 @@
 import { setClass } from "./utils.js";
-import { fetchProtein, genLink, renderMatches, hasAlphaFold } from "./proteins.js";
+import { fetchProtein, genLink, renderMatches, hasExternalStructure, addExternalStructureLink } from "./proteins.js";
 import * as pagination from "./pagination.js";
 import * as dimmer from "./dimmer.js";
 
@@ -114,24 +114,7 @@ export function showProteinsModal(accession, params, getMatches) {
 }
 
 function updateAlphaFoldLink(accession) {
-    hasAlphaFold(accession).then((hasAF) => {
-        const wait = (ms) => {
-            setTimeout(() => {
-                const td = document.querySelector(`[data-alphafold="${accession}"]`);
-                if (td === null)
-                    wait(500);
-                else if (hasAF) {
-                    td.innerHTML = `
-                        <a target="_blank" href="https://alphafold.ebi.ac.uk/entry/${accession}">Alphafold<i class="external icon"></i></a>
-                    `;
-                } else {
-                    td.innerHTML = 'No AlphaFold';
-                }
-            }, ms);
-        };
-
-        wait(0);
-    });
+    hasExternalStructure(accession, "alphafold").then((hasAF) => { addExternalStructureLink(hasAF, "alphafold", accession) })
 }
 
 async function getProteins(accession, url, getMatches) {
@@ -164,6 +147,7 @@ async function getProteins(accession, url, getMatches) {
                 ${protein.is_spurious ? '<span class="ui red text"> <i class="warning icon"></i ></span>' : ''}
             </td>
             <td class="collapsing" data-alphafold="${protein.accession}"></td>
+            <span data-bfvd="${protein.accession}"></span>
             `;
 
         html += `
