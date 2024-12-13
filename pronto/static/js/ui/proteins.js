@@ -29,7 +29,7 @@ export function structureTypeToURL(urlType, structureType, accession) {
     return structureTypeToUrlMap[urlType][structureType]
 }
 
-export async function setExternalStructureLink(type, accession, representativeAccession = null) {
+export async function setExternalStructureLink(type, accession) {
 
     const wait = (ms) => {
         setTimeout(() => {
@@ -38,7 +38,7 @@ export async function setExternalStructureLink(type, accession, representativeAc
                 if (type){
                     const linkContent = type === "alphafold" ? "Alphafold" : "BFVD" 
                     htmlElement.innerHTML = `
-                    <a target="_blank" href=${structureTypeToURL("browser", type, representativeAccession ? representativeAccession : accession)}>
+                    <a target="_blank" href=${structureTypeToURL("browser", type, accession)}>
                         ${linkContent}<i class="external icon"></i>
                     </a>
                     ${htmlElement.tagName.toLowerCase() === "td" ? '' : '&mdash;'}`
@@ -62,7 +62,7 @@ export async function hasExternalStructure(accession, type) {
     // Find representative accession for the current signature accession
     if (type === "bfvd") {
         const bfvdData = await response.json()
-        return bfvdData[0]["rep_accession"] ? bfvdData[0]["rep_accession"] : null
+        return bfvdData[0]["rep_accession"] ? true : false
     }
 
     return response.status === 200;
@@ -72,9 +72,9 @@ export async function getExternalStructureSources(accession) {
     hasExternalStructure(accession, "alphafold").then((hasAF) => { 
         if (hasAF) setExternalStructureLink("alphafold", accession) 
         else {
-            hasExternalStructure(accession, "bfvd").then((representativeAccession) => {
-                if (representativeAccession) {
-                    setExternalStructureLink("bfvd", accession, representativeAccession)
+            hasExternalStructure(accession, "bfvd").then((hasBFVD) => {
+                if (hasBFVD) {
+                    setExternalStructureLink("bfvd", accession)
                 }
                 else setExternalStructureLink(null, accession)
             })
