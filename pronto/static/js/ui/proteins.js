@@ -18,7 +18,7 @@ export function structureTypeToURL(urlType, structureType, accession) {
     const structureTypeToUrlMap = {
         "api": {
             "alphafold": `https://alphafold.ebi.ac.uk/api/prediction/${accession}`,
-            "bfvd": `https://bfvd.foldseek.com/api/structure/${accession}`
+            "bfvd": `https://bfvd.foldseek.com/api/${accession}`,
         },
         "browser": {
             "alphafold": `https://alphafold.ebi.ac.uk/entry/${accession}`,
@@ -29,31 +29,58 @@ export function structureTypeToURL(urlType, structureType, accession) {
     return structureTypeToUrlMap[urlType][structureType]
 }
 
+export async function setExternalStructureLink(type, accession, representativeAccession = null) {
+
+    const wait = (ms) => {
+        setTimeout(() => {
+            const htmlElement = document.querySelector(`[data-external-structure="${accession}"]`);
+            if (htmlElement !== null) {
+                if (type){
+                    const linkContent = type === "alphafold" ? "Alphafold" : "BFVD" 
+                    htmlElement.innerHTML = `
+                    <a target="_blank" href=${structureTypeToURL("browser", type, representativeAccession ? representativeAccession : accession)}>
+                        ${linkContent}<i class="external icon"></i>
+                    </a>
+                    ${htmlElement.tagName.toLowerCase() === "td" ? '' : '&mdash;'}`
+                }
+                else {
+                    htmlElement.innerHTML = `No predicted structure`;
+                }
+            } else {
+                wait(500);
+            }
+        }, ms);
+    };
+    wait(0);
+}
+
 export async function hasExternalStructure(accession, type) {
+
     const url = structureTypeToURL("api", type, accession)
     const response = await fetch(url);
+
+    // Find representative accession for the current signature accession
+    if (type === "bfvd") {
+        const bfvdData = await response.json()
+        return bfvdData[0]["rep_accession"] ? bfvdData[0]["rep_accession"] : null
+    }
+
     return response.status === 200;
 }
 
-export async function addExternalStructureLink(hasStructure, type, accession) {
-    if (hasStructure) {
-        const wait = (ms) => {
-            setTimeout(() => {
-                const span = document.querySelector(`[data-${type}="${accession}"]`);
-                if (span !== null) {
-                    span.innerHTML = `
-                        <a target="_blank" href=${structureTypeToURL("browser", type, accession)}>${type === "alphafold" ? "Alphafold" : "BFVD"}<i class="external icon"></i></a> 
-                        &mdash;
-                    `;
-                } else {
-                    wait(500);
+export async function getExternalStructureSources(accession) {
+    hasExternalStructure(accession, "alphafold").then((hasAF) => { 
+        if (hasAF) setExternalStructureLink("alphafold", accession) 
+        else {
+            hasExternalStructure(accession, "bfvd").then((representativeAccession) => {
+                if (representativeAccession) {
+                    setExternalStructureLink("bfvd", accession, representativeAccession)
                 }
-            }, ms);
-        };
-        wait(0);
-    }
+                else setExternalStructureLink(null, accession)
+            })
+        }
+    })
 }
-
 
 export function genProtHeader(protein) {
     let html = `
@@ -63,12 +90,10 @@ export function genProtHeader(protein) {
             &mdash;
             <a target="_blank" href="${genLink(protein.accession, protein.is_reviewed)}">${protein.is_reviewed ? 'reviewed' : 'unreviewed'}<i class="external icon"></i></a>
             &mdash;
-            <span data-alphafold="${protein.accession}"></span>
-            <span data-bfvd="${protein.accession}"></span>
+            <span data-external-structure="${protein.accession}"></span>
     `;
 
-    hasExternalStructure(protein.accession, "alphafold").then((hasAF) => { addExternalStructureLink(hasAF, "alphafold", protein.accession) })
-    hasExternalStructure(protein.accession, "bfvd").then((hasBFVD) => { addExternalStructureLink(hasBFVD, "bfvd", protein.accession) })
+    getExternalStructureSources(protein.accession)
 
     html += `
             Organism: <em>${protein.organism.name}</em>

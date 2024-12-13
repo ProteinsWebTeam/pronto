@@ -1,5 +1,5 @@
 import { setClass } from "./utils.js";
-import { fetchProtein, genLink, renderMatches, hasExternalStructure, addExternalStructureLink } from "./proteins.js";
+import { fetchProtein, genLink, renderMatches, getExternalStructureSources } from "./proteins.js";
 import * as pagination from "./pagination.js";
 import * as dimmer from "./dimmer.js";
 
@@ -113,9 +113,6 @@ export function showProteinsModal(accession, params, getMatches) {
     })
 }
 
-function updateAlphaFoldLink(accession) {
-    hasExternalStructure(accession, "alphafold").then((hasAF) => { addExternalStructureLink(hasAF, "alphafold", accession) })
-}
 
 async function getProteins(accession, url, getMatches) {
     dimmer.on();
@@ -146,8 +143,7 @@ async function getProteins(accession, url, getMatches) {
                 <a target="_blank" href="${genLink(protein.accession, protein.is_reviewed)}"><i class="${!protein.is_reviewed ? 'outline ' : ''}star icon"></i>${protein.accession}<i class="external icon"></i></a>
                 ${protein.is_spurious ? '<span class="ui red text"> <i class="warning icon"></i ></span>' : ''}
             </td>
-            <td class="collapsing" data-alphafold="${protein.accession}"></td>
-            <span data-bfvd="${protein.accession}"></span>
+            <td class="collapsing" data-external-structure="${protein.accession}"></td>
             `;
 
         html += `
@@ -170,7 +166,7 @@ async function getProteins(accession, url, getMatches) {
         } else
             html += `<td colspan="2"><em>${protein.organism.name}</em></td></tr>`;
 
-        updateAlphaFoldLink(protein.accession);
+        getExternalStructureSources(protein.accession)
     }
 
     const modal = document.getElementById('proteins-modal');
