@@ -585,6 +585,7 @@ def get_signature_predictions(accession):
                 "similarity": pr.similarity,
                 "containment": pr.containment,
                 "relationship": pr.relationship,
+                "overlaps": residue_overlaps,
                 "reviewed_overlaps": reviewed_res_overlaps
             }
         }
