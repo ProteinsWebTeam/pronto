@@ -30,6 +30,7 @@ def get_signature(accession):
           s.num_complete_sequences,
           s.num_reviewed_sequences,
           s.num_complete_reviewed_sequences,
+          s.num_residues,
           d.name,
           d.name_long,
           d.version
@@ -52,7 +53,7 @@ def get_signature(accession):
         }), 404
 
     # data populates signature table to new entry window
-    db = utils.get_database_obj(row[12])
+    db = utils.get_database_obj(row[13])
     result = {
         "accession": row[0],
         "name": row[1],  # --> short name
@@ -70,12 +71,15 @@ def get_signature(accession):
                 "complete": row[11]
             }
         },
+        "residues": {
+            "total": row[12]
+        },
         "database": {
-            "name": row[13],
+            "name": row[14],
             "home": db.home,
             "link": db.gen_link(accession),
             "color": db.color,
-            "version": row[14]
+            "version": row[15]
         },
         "entry": None,
     }
