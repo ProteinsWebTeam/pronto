@@ -271,6 +271,7 @@ export function updateHeader(signatureAcc) {
                                 signatures.clear();
                                 modal.querySelector('tbody').innerHTML = '<tr><td colspan="8" class="center aligned">No signatures</td></tr>';
                             }
+                            document.getElementById('new-entry-btn').blur();
                         },
                         onApprove: function ($element) {
                             $(infoForm).form('validate form');
@@ -292,6 +293,23 @@ export function updateHeader(signatureAcc) {
 
                         monitorTasks();
                     });
+
+                document.getElementById('fluid')
+                    .addEventListener('click', (e,) => {
+                        const bnt = e.currentTarget;
+                        const isActive = bnt.classList.contains('active');
+                        bnt.classList.toggle('active');
+                        bnt.blur();
+                        document.querySelectorAll('.ui.container')
+                            .forEach((elem,) => elem.classList.toggle('fluid'));
+                        localStorage.setItem('fluid', isActive ? 'no' : 'yes');
+                    });
+
+                if (localStorage.getItem('fluid') === 'yes') {
+                    document.getElementById('fluid').classList.add('active');
+                    document.querySelectorAll('.ui.container')
+                            .forEach((elem,) => elem.classList.toggle('fluid'));
+                }
 
                 resolve(object.user !== null);
             });

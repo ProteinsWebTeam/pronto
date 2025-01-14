@@ -17,7 +17,7 @@ header > .ui.menu:last-child {
 }
 
 .ui.ui.inverted.embl.green.menu .dropdown .menu > .item > a {
-  color: #4183c4;;
+    color: #4183c4;
 }
 
 header > .ui.menu .item > .ui.label:only-child {
@@ -31,6 +31,7 @@ header > .ui.menu .item > .ui.label:only-child {
 #not-ready.ui.menu .item {
     display: block;
     text-align: left;
+    padding-left: 1rem !important;
 }
 
 #not-ready .header {
