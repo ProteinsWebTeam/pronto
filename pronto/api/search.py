@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from flask import Blueprint, jsonify, request
 
 from pronto import utils
@@ -37,14 +35,20 @@ def search_term():
         FROM INTERPRO.ENTRY
         WHERE ENTRY_AC = :1
         OR UPPER(SHORT_NAME) = :2
-        """, (query, query.upper())
+        """,
+        [query, query.upper()]
     )
     row = cur.fetchone()
     if row:
         cur.close()
         con.close()
         accession, = row
-        return jsonify({"hit": {"accession": accession, "type": "entry"}})
+        return jsonify({
+            "results": [{
+                "accession": accession,
+                "type": "entry"
+            }]
+        })
 
     cur.execute(
         """
@@ -55,32 +59,47 @@ def search_term():
             WHERE ANN_ID = :1
         )
         WHERE ENTRY_AC IS NOT NULL
-        """, (query.upper(),)
+        """,
+        [query.upper()]
     )
     row = cur.fetchone()
     cur.close()
     con.close()
     if row:
         accession, = row
-        return jsonify({"hit": {"accession": accession, "type": "entry"}})
+        return jsonify({
+            "results": [{
+                "accession": accession,
+                "type": "entry"
+            }]
+        })
 
-    # Search protein/signature in PostgreSQL
+    # Search signature(s) in PostgreSQL
     con = utils.connect_pg()
     cur = con.cursor()
     cur.execute(
         """
-        SELECT accession
-        FROM signature
-        WHERE UPPER(accession) = %s
-        OR UPPER(name) = %s
-        """, (query.upper(), query.upper())
+        SELECT s.accession, s.name, s.description, d.name_long
+        FROM signature AS s
+        INNER JOIN interpro.database d on s.database_id = d.id
+        WHERE UPPER(s.accession) = %s
+        OR UPPER(s.name) = %s
+        """,
+        [query.upper(), query.upper()]
     )
-    row = cur.fetchone()
-    if row:
+    rows = cur.fetchall()
+    if rows:
         cur.close()
         con.close()
-        accession, = row
-        return jsonify({"hit": {"accession": accession, "type": "signature"}})
+        return jsonify({
+            "results": sorted([{
+                "accession": row[0],
+                "name": row[1],
+                "description": row[2],
+                "database": row[3],
+                "type": "signature"
+            } for row in rows], key=lambda x: x["accession"])
+        })
 
     cur.execute(
         """
@@ -88,13 +107,19 @@ def search_term():
         FROM protein
         WHERE accession = %s
         OR identifier = %s
-        """, (query.upper(), query.upper())
+        """,
+        [query.upper(), query.upper()]
     )
     row = cur.fetchone()
     cur.close()
     con.close()
     if row:
         accession, = row
-        return jsonify({"hit": {"accession": accession, "type": "protein"}})
+        return jsonify({
+            "results": [{
+                "accession": accession,
+                "type": "protein"
+            }]
+        })
 
-    return jsonify({"hit": None})
+    return jsonify({"results": []})

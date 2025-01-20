@@ -63,16 +63,28 @@ document.addEventListener('DOMContentLoaded', () => {
     const query = new URLSearchParams(location.search).get('q') || '';
 
     dimmer.on();
-    fetch(`/api/search?q=${query}`)
+    fetch(`/api/search/?q=${query}`)
         .then(response => response.json())
-        .then(result => {
-            if (result.hit !== null) {
+        .then(payload => {
+            if (payload.results.length === 1) {
                 // Direct hit from Pronto API
+                const hit = payload.results[0];
                 const form = document.createElement("form");
                 form.name = "redirectform";
-                form.action = `/${result.hit.type}/${result.hit.accession}/`;
+                form.action = `/${hit.type}/${hit.accession}/`;
                 document.body.appendChild(form);
                 document.redirectform.submit();
+            } else if (payload.results.length > 1) {
+                let html = "";
+                payload.results.forEach((item,) => {
+                    html += `<tr>
+                               <td><a href="/${item.type}/${item.accession}/">${item.accession}</a></td>
+                               <td>${item.database}</td>
+                               <td>${item.description}</td>
+                             </tr>`;
+                });
+                document.querySelector("#results tbody").innerHTML = html;
+                dimmer.off();
             } else {
                 // Fallback to EBI Search
                 callEBISearch(query, 1, 20);
