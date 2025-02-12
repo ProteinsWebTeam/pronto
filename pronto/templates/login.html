@@ -1,78 +1,87 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/semantic.min.css') }}" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
-    <title>Pronto</title>
-    <style>
-        body > .grid {
-            height: 75%;
-        }
+    <head>
+        <meta charset="UTF-8">
+        <link rel="stylesheet" href="{{ url_for('static', filename='vendor/semantic.min.css') }}" />
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+        <title>Pronto</title>
+        <style>
+            body > .grid {
+                height: 75%;
+            }
 
-        .column {
-            max-width: 400px;
-        }
+            .column {
+                max-width: 400px;
+            }
 
-        .ui.header {
-            color: #607D8B;
-        }
+            .ui.header {
+                color: #607D8B;
+            }
 
-        .ui.button {
-            color: #fff;
-            background-color: #607D8B;
-        }
+            .ui.button {
+                color: #fff;
+                background-color: #607D8B;
+            }
 
-        .ui.button:hover {
-            color: #fff;
-            background-color: #37474F;
-        }
-    </style>
-</head>
-<body>
+            .ui.button:hover {
+                color: #fff;
+                background-color: #37474F;
+            }
 
-{% include 'header.html' %}
+            .ui.form .field {
+                text-align: left;
+            }
+        </style>
+    </head>
+    <body>
+
+        {% include 'header.html' %}
 
 
-<div class="ui middle aligned center aligned grid">
-    <div class="column">
-        <h1 class="ui header">
-            Log in to Pronto
-        </h1>
-        <div class="ui raised segment">
-            <form class="ui form" method="post" action="/login/?next={{ referrer }}">
-                {% if error %}
-                <div class="ui visible error message">{{ error|safe }}</div>
-                {% endif %}
-
-                <div class="field">
-                    <div class="ui left icon input">
-                        {% if username %}
-                        <input name="username" placeholder="Username" type="text" required="required" value="{{ username }}">
-                        {% else %}
-                        <input name="username" placeholder="Username" type="text" required="required">
+        <div class="ui middle aligned center aligned grid">
+            <div class="column">
+                <h1 class="ui header">
+                    Log in to Pronto
+                </h1>
+                <div class="ui raised segment">
+                    <form class="ui form" method="post" action="/login/?next={{ referrer }}">
+                        {% if error %}
+                            <div class="ui visible error message">{{ error|safe }}</div>
                         {% endif %}
-                        <i class="user icon"></i>
-                    </div>
+
+                        <div class="field">
+                            <div class="ui left icon input">
+                                {% if username %}
+                                    <input name="username" placeholder="Username" type="text" required="required" value="{{ username }}">
+                                {% else %}
+                                    <input name="username" placeholder="Username" type="text" required="required">
+                                {% endif %}
+                                <i class="user icon"></i>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <div class="ui left icon input">
+                                <input name="password" placeholder="Password" type="password" required="required">
+                                <i class="lock icon"></i>
+                            </div>
+                        </div>
+                        <div class="inline field">
+                            <div class="ui checkbox">
+                                <input type="checkbox" name="remember">
+                                <label>Remember me</label>
+                            </div>
+                        </div>
+                        <button class="ui fluid submit button">
+                            <i class="sign in icon"></i>
+                            Log in
+                        </button>
+                    </form>
                 </div>
-                <div class="field">
-                    <div class="ui left icon input">
-                        <input name="password" placeholder="Password" type="password" required="required">
-                        <i class="lock icon"></i>
-                    </div>
-                </div>
-                <button class="ui fluid button" type="submit">
-                    <i class="sign in icon"></i>
-                    Log in
-                </button>
-            </form>
+            </div>
         </div>
 
-    </div>
-</div>
-
-<script src="{{ url_for('static', filename='vendor/jquery.min.js') }}"></script>
-<script src="{{ url_for('static', filename='vendor/semantic.min.js') }}"></script>
-<script src="{{ url_for('static', filename='js/login.js') }}" type="module"></script>
-</body>
+        <script src="{{ url_for('static', filename='vendor/jquery.min.js') }}"></script>
+        <script src="{{ url_for('static', filename='vendor/semantic.min.js') }}"></script>
+        <script src="{{ url_for('static', filename='js/login.js') }}" type="module"></script>
+    </body>
 </html>

@@ -26,10 +26,13 @@ def login():
     else:
         username = request.form["username"].strip().lower()
         password = request.form["password"].strip()
+        remember = len(request.form.get("remember", "")) > 0
         user = check_user(username, password)
 
         if user and user["active"]:
             session["user"] = user
+            if remember:
+                session.permanent = True
             return redirect(request.args.get("next", url_for("index")))
         else:
             return render_template(
