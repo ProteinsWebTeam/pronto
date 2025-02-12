@@ -45,8 +45,8 @@ export function updateHeader(signatureAcc) {
                     item = document.getElementById("not-ready");
                     item.className = "ui red inverted one item menu";
                     item.querySelector('.item').innerHTML = `
-                        <div class="header"><i class="warning sign icon"></i> Pronto is being updated</div>
-                        <p>Some pages may not work properly until the update is complete.</p>
+                        <div class="header"><i class="warning sign icon"></i> Pronto is currently being updated</div>
+                        <p>As a result, some pages may not function properly until the update is complete.</p>
                     `;
                 }
 
