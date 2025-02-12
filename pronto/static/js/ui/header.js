@@ -110,13 +110,14 @@ export function updateHeader(signatureAcc) {
                         const acc = fields.accession.trim();
                         fetch(`/api/signature/${acc}/`)
                             .then(response => {
-                                if (!response.ok)
-                                    throw new Error(
-                                        'Signature not found',
-                                        {
-                                            cause: `<strong>${acc}</strong> does not match any member database signature accession or name.`
-                                        }
-                                    );
+                                if (!response.ok) {
+
+                                    return response.json().then(errorData => {
+                                        throw new Error(errorData.error.title, {
+                                            cause: errorData.error.message,
+                                        });
+                                    });
+                                }
                                 return response.json();
                             })
                             .then(signature => {

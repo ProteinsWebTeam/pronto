@@ -2,6 +2,7 @@ from oracledb import Cursor, DatabaseError
 from flask import jsonify, request
 
 from pronto import auth, utils
+from pronto.api.signature import check_if_ncbifam_amr, ncbifam_amr_err_msg
 from . import bp
 
 
@@ -123,6 +124,9 @@ def integrate_signature(e_acc, s_acc):
                            f"not match any protein."
             }
         }), 400
+    
+    if check_if_ncbifam_amr(s_acc):
+        return jsonify(ncbifam_amr_err_msg(s_acc)), 400
 
     con = utils.connect_oracle_auth(user)
     cur = con.cursor()

@@ -4,3 +4,4 @@ config.local.cfg
 .vscode
 *.egg-info
 build/
+.DS_Store

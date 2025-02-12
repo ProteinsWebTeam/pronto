@@ -43,14 +43,17 @@ def get_signature(accession):
     row = cur.fetchone()
     cur.close()
     con.close()
-
+    
     if not row:
         return jsonify({
             "error": {
                 "title": "Signature not found",
-                "message": "Entry names cannot be longer than 100 characters."
+                "message": f"<strong>{accession}</strong> does not match any member database signature accession or name."
             }
         }), 404
+    
+    if check_if_ncbifam_amr(accession):
+        return jsonify(ncbifam_amr_err_msg(accession)), 400
 
     # data populates signature table to new entry window
     db = utils.get_database_obj(row[13])
@@ -647,3 +650,26 @@ class Sorter(object):
             key = "similarity"
 
         return i, j, -obj["residues"][key], -obj[key]
+
+
+def check_if_ncbifam_amr(method_ac):
+
+    con = utils.connect_oracle()
+    cur = con.cursor()
+    cur.execute(
+        f"""
+        SELECT *
+        FROM INTERPRO.NCBIFAM_AMR
+        WHERE METHOD_AC = '{method_ac}'"""
+    )
+
+    return len(cur.fetchall()) > 0
+
+def ncbifam_amr_err_msg(accession):
+    return {
+        "status": False,
+            "error": {
+                "title": "Can't integrate signature",
+                "message": f"<strong>{accession}</strong> is an NCBIfam AMR model."
+            }
+        }
