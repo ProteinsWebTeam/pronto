@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
-
 from datetime import datetime, timedelta, timezone
 
 from flask import Blueprint, jsonify, request
 
-from pronto import auth, utils
+from pronto import utils
 from pronto.api.database import get_latest_freeze
 
 
@@ -229,8 +227,6 @@ def get_signature_count():
 
 @bp.route("/news/")
 def get_recent_entries():
-    user = auth.get_user()
-
     con = utils.connect_oracle()
     cur = con.cursor()
     try:
