@@ -658,7 +658,7 @@ def check_if_ncbifam_amr(accession: str) -> bool:
     cur = con.cursor()
     cur.execute(
         f"""
-        SELECT *
+        SELECT COUNT(*)
         FROM INTERPRO.NCBIFAM_AMR
         WHERE METHOD_AC = :1
         """,
@@ -669,7 +669,7 @@ def check_if_ncbifam_amr(accession: str) -> bool:
     return cnt > 0
 
 
-def ncbifam_amr_err_msg(accession):
+def ncbifam_amr_err_msg(accession: str) -> dict:
     return {
         "status": False,
             "error": {
