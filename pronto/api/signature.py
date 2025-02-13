@@ -48,7 +48,7 @@ def get_signature(accession):
         return jsonify({
             "error": {
                 "title": "Signature not found",
-                "message": f"<strong>{accession}</strong> does not match any member database signature accession or name."
+                "message": f"{accession} does not match any member database signature accession or name."
             }
         }), 404
     
@@ -652,7 +652,7 @@ class Sorter(object):
         return i, j, -obj["residues"][key], -obj[key]
 
 
-def check_if_ncbifam_amr(method_ac):
+def check_if_ncbifam_amr(accession: str) -> bool:
 
     con = utils.connect_oracle()
     cur = con.cursor()
@@ -660,16 +660,20 @@ def check_if_ncbifam_amr(method_ac):
         f"""
         SELECT *
         FROM INTERPRO.NCBIFAM_AMR
-        WHERE METHOD_AC = '{method_ac}'"""
+        WHERE METHOD_AC = :1
+        """,
+        [accession]
     )
 
-    return len(cur.fetchall()) > 0
+    cnt, = cur.fetchone()
+    return cnt > 0
+
 
 def ncbifam_amr_err_msg(accession):
     return {
         "status": False,
             "error": {
                 "title": "Can't integrate signature",
-                "message": f"<strong>{accession}</strong> is an NCBIfam AMR model."
+                "message": f"{accession} is an NCBIfam AMR model."
             }
         }
