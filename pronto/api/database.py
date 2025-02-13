@@ -37,6 +37,7 @@ def get_latest_freeze(cur):
 
 @bp.route("/<db_name>/signatures/")
 def get_signatures(db_name):
+    db_name = db_name.lower()
     try:
         page = int(request.args["page"])
     except (KeyError, ValueError):
@@ -77,6 +78,11 @@ def get_signatures(db_name):
     except (KeyError, ValueError):
         filter_type = None
 
+    try:
+        new_since_prev_release = bool(int(request.args["new"]))
+    except (KeyError, ValueError):
+        new_since_prev_release = None
+
     order_by = request.args.get("sort-by", "accession").lower()
     if order_by not in ("accession", "proteins", "reviewed-proteins"):
         return (
@@ -110,9 +116,9 @@ def get_signatures(db_name):
     else:
         abstract_filter = ""
 
-    con = utils.connect_pg()
-    cur = con.cursor()
-    cur.execute(
+    pg_con = utils.connect_pg()
+    pg_cur = pg_con.cursor()
+    pg_cur.execute(
         """
         SELECT id, name_long, version
         FROM database
@@ -120,10 +126,10 @@ def get_signatures(db_name):
         """,
         [db_name]
     )
-    row = cur.fetchone()
+    row = pg_cur.fetchone()
     if not row:
-        cur.close()
-        con.close()
+        pg_cur.close()
+        pg_con.close()
         return jsonify({
             "results": [],
             "count": 0,
@@ -168,17 +174,34 @@ def get_signatures(db_name):
         sql += (f" ORDER BY num_reviewed_sequences {order_dir}, "
                 f"num_sequences {order_dir}")
 
-    cur.execute(sql, params)
-    pg_signatures = cur.fetchall()
-    cur.close()
-    con.close()
+    pg_cur.execute(sql, params)
+    pg_signatures = pg_cur.fetchall()
+    pg_cur.close()
+    pg_con.close()
 
-    con = utils.connect_oracle()
-    cur = con.cursor()
-    cur.execute("SELECT CODE, ABBREV FROM INTERPRO.CV_ENTRY_TYPE")
-    code2type = dict(cur.fetchall())
+    ora_con = utils.connect_oracle()
+    ora_cur = ora_con.cursor()
+    if new_since_prev_release is not None:
+        date = get_latest_freeze(ora_cur)
+        ora_cur.execute(
+            """
+            SELECT METHOD_AC
+            FROM INTERPRO.METHOD_AUDIT
+            WHERE TIMESTAMP >= :1 AND ACTION = 'I'
+            """,
+            [date]
+        )
+        new_signatures = {acc for acc, in ora_cur.fetchall()}
 
-    cur.execute(
+        if new_since_prev_release:
+            pg_signatures = [s for s in pg_signatures if s[0] in new_signatures]
+        else:
+            pg_signatures = [s for s in pg_signatures if s[0] not in new_signatures]
+
+    ora_cur.execute("SELECT CODE, ABBREV FROM INTERPRO.CV_ENTRY_TYPE")
+    code2type = dict(ora_cur.fetchall())
+
+    ora_cur.execute(
         """
         SELECT 
           M.METHOD_AC, 
@@ -221,9 +244,9 @@ def get_signatures(db_name):
         """,
         [db_name]
     )
-    ora_signatures = {row[0]: row[1:] for row in cur}
-    cur.close()
-    con.close()
+    ora_signatures = {row[0]: row[1:] for row in ora_cur}
+    ora_cur.close()
+    ora_con.close()
 
     results = []
     for acc, name, type_name, cnt in pg_signatures:
@@ -300,9 +323,9 @@ def get_signatures(db_name):
         accessions = [res["accession"] for res in results]
         counts = {}
 
-        con = utils.connect_mysql()
-        cur = con.cursor()
-        cur.execute(
+        my_con = utils.connect_mysql()
+        my_cur = my_con.cursor()
+        my_cur.execute(
             f"""
             SELECT accession, counts
             FROM webfront_entry
@@ -311,11 +334,11 @@ def get_signatures(db_name):
             accessions
         )
 
-        for row in cur:
+        for row in my_cur:
             counts[row[0]] = json.loads(row[1])["proteins"]
 
-        cur.close()
-        con.close()
+        my_cur.close()
+        my_con.close()
 
         for res in results:
             acc = res["accession"]
