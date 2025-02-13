@@ -1195,7 +1195,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 getInterPro2GoStats(),
                 getCitationsStats(),
                 getQuartelyStats(),
-                getRecentActivity(7, 0)
+                getRecentActivity(1, 0)
             ]).then(() => {
                 setClass(button, 'hidden', true);
                 setClass(button.parentNode.querySelector(':scope > .content'), 'hidden', false);
