@@ -674,6 +674,6 @@ def ncbifam_amr_err_msg(accession: str) -> dict:
         "status": False,
             "error": {
                 "title": "Can't integrate signature",
-                "message": f"{accession} is an NCBIfam AMR model."
+                "message": f"{accession} is an NCBIFAM AMR model."
             }
         }

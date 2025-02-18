@@ -210,7 +210,7 @@ function getGoTerms(accessions) {
                                 modal.querySelector('.ui.header').innerHTML = `PANTHER subfamilies: ${acc}/${term}`;
                             }
                             else if (acc.startsWith('G3DSA')) {
-                                modal.querySelector('.ui.header').innerHTML = `CATH-Gene3D Funfams: ${acc}/${term}`;
+                                modal.querySelector('.ui.header').innerHTML = `CATH-Funfams: ${acc}/${term}`;
                             }
                             modal.querySelector('.scrolling.content').innerHTML = html;
                             modal.querySelector('.actions a').setAttribute('href', `//www.ebi.ac.uk/QuickGO/term/${term}`);

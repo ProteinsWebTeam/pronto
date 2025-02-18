@@ -23,8 +23,8 @@ SIGNATURES = [
     r"SFLD[FGS]\d{4,}",     # SFLD
     r"SM\d{4,}",            # SMART
     r"SSF\d{4,}",           # SUPERFAMILY
-    r"NF\d{6}",             # NCBIfam
-    r"TIGR\d{4,}",          # NCBIfam
+    r"NF\d{6}",             # NCBIFAM
+    r"TIGR\d{4,}",          # NCBIFAM
     r"cd\d{4,}",            # CDD
     r"sd\d{4,}"             # CDD
 ]
@@ -262,6 +262,17 @@ class DefaultDatabase:
         return None
 
 
+class CathFunFam:
+    home = 'https://www.cathdb.info/version/v4_3_0/'
+    color = '#d9417c'
+
+    def gen_link(self, acc: str):
+        # G3DSA:3.40.640.10:FF:000006
+        m = re.match(r"G3DSA:([0-9.]+):FF:(\d+)", acc)
+        fam_acc, funfam_acc = m.groups()
+        return f"{self.home}/superfamily/{fam_acc}/funfam/{int(funfam_acc)}"
+
+
 class CathGene3D:
     home = 'https://www.cathdb.info/version/v4_3_0'
     color = '#d9417c'
@@ -278,17 +289,6 @@ class Cdd:
 
     def gen_link(self, acc: str):
         return f"{self.base}/cddsrv.cgi?uid={acc}"
-
-
-class FunFam:
-    home = 'https://www.cathdb.info/version/v4_3_0/'
-    color = '#d9417c'
-
-    def gen_link(self, acc: str):
-        # G3DSA:3.40.640.10:FF:000006
-        m = re.match(r"G3DSA:([0-9.]+):FF:(\d+)", acc)
-        fam_acc, funfam_acc = m.groups()
-        return f"{self.home}/superfamily/{fam_acc}/funfam/{int(funfam_acc)}"
 
 
 class Hamap:
@@ -384,7 +384,7 @@ class Superfamily:
         return self.home + '/cgi-bin/scop.cgi?ipid=' + acc
 
 
-class NCBIfam:
+class NCBIFAM:
     home = "https://www.ncbi.nlm.nih.gov/protfam/"
     color = '#a04867'
 
@@ -394,14 +394,14 @@ class NCBIfam:
 
 def get_database_obj(key: str):
     databases = {
+        "cathfunfam": CathFunFam,
         "cathgene3d": CathGene3D,
         "cath-gene3d": CathGene3D,
         "cdd": Cdd,
-        "funfam": FunFam,
         "hamap": Hamap,
         "mobidblt": MobiDbLite,
         "mobidb lite": MobiDbLite,
-        "ncbifam": NCBIfam,
+        "ncbifam": NCBIFAM,
         "panther": Panther,
         "pfam": Pfam,
         "pirsf": Pirsf,
