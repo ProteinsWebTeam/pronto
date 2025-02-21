@@ -496,6 +496,20 @@ def get_states() -> ProntoState:
     freeze_on = None
     con = connect_oracle()
     cur = con.cursor()
+    cur.execute(
+        """
+        UPDATE INTERPRO.PRONTO_STATES
+        SET ACTIVE = 'Y', ACTIVE_FROM = NULL
+        WHERE NAME = 'FROZEN'
+        AND ACTIVE = 'N'
+        AND ACTIVE_FROM IS NOT NULL
+        AND SYSDATE >= ACTIVE_FROM
+        """
+    )
+    if cur.rowcount:
+        print("updated!")
+        con.commit()
+
     cur.execute("SELECT NAME, ACTIVE, ACTIVE_FROM FROM INTERPRO.PRONTO_STATES")
     for name, active, active_from in cur.fetchall():
         if name == "UPDATING":
