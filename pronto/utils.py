@@ -498,9 +498,9 @@ def get_states() -> ProntoState:
     cur = con.cursor()
     cur.execute("SELECT NAME, ACTIVE, ACTIVE_FROM FROM INTERPRO.PRONTO_STATES")
     for name, active, active_from in cur.fetchall():
-        if name == "updating":
+        if name == "UPDATING":
             is_updating = active == "Y"
-        elif name == "frozen":
+        elif name == "FROZEN":
             is_frozen = active == "Y"
             freeze_on = active_from
 
