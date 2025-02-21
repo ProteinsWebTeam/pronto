@@ -194,6 +194,14 @@ def submit_proteome(proteome_id):
                 "message": "Please log in to perform this action."
             }
         }), 401
+    elif utils.get_states().frozen:
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Forbidden",
+                "message": "Curation is disabled due to release procedures."
+            }
+        }), 403
 
     try:
         proteome_name = _get_proteome(proteome_id)

@@ -53,6 +53,14 @@ def link_reference(accession, pmid):
                 "message": "Please log in to perform this operation."
             }
         }), 401
+    elif utils.get_states().frozen:
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Forbidden",
+                "message": "Curation is disabled due to release procedures."
+            }
+        }), 403
 
     con = utils.connect_oracle_auth(user)
     cur = con.cursor()
@@ -161,6 +169,14 @@ def unlink_reference(accession, pub_id):
                 "message": "Please log in to perform this action."
             }
         }), 401
+    elif utils.get_states().frozen:
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Forbidden",
+                "message": "Curation is disabled due to release procedures."
+            }
+        }), 403
 
     con = utils.connect_oracle_auth(user)
     cur = con.cursor()
@@ -205,6 +221,14 @@ def update_entry_citations(accession):
                 "message": "Please log in to perform this action."
             }
         }), 401
+    elif utils.get_states().frozen:
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Forbidden",
+                "message": "Curation is disabled due to release procedures."
+            }
+        }), 403
 
     sig_query = """
         SELECT METHOD_AC

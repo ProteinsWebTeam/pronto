@@ -106,6 +106,14 @@ def update_entry(accession):
                 "message": "Please log in to perform this action."
             }
         }), 401
+    elif utils.get_states().frozen:
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Forbidden",
+                "message": "Curation is disabled due to release procedures."
+            }
+        }), 403
 
     try:
         entry_type = request.json["type"].strip()
@@ -424,6 +432,14 @@ def delete_entry(accession):
                 "message": "Please log in to perform this action."
             }
         }), 401
+    elif utils.get_states().frozen:
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Forbidden",
+                "message": "Curation is disabled due to release procedures."
+            }
+        }), 403
 
     con = utils.connect_oracle_auth(user)
     cur = con.cursor()
@@ -511,6 +527,14 @@ def create_entry():
                 "message": "Please log in to perform this action."
             }
         }), 401
+    elif utils.get_states().frozen:
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Forbidden",
+                "message": "Curation is disabled due to release procedures."
+            }
+        }), 403
 
     try:
         entry_type = request.json["type"].strip()

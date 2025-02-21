@@ -97,6 +97,14 @@ def add_entry_comment(accession):
                 "message": "Please log in to perform this action."
             }
         }), 401
+    elif utils.get_states().frozen:
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Forbidden",
+                "message": "Curation is disabled due to release procedures."
+            }
+        }), 403
 
     content = request.get_json()
     text = content.get("text", "")
@@ -158,6 +166,14 @@ def delete_entry_comment(accession, commentid):
                 "message": "Please log in to perform this action."
             }
         }), 401
+    elif utils.get_states().frozen:
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Forbidden",
+                "message": "Curation is disabled due to release procedures."
+            }
+        }), 403
 
     con = utils.connect_oracle_auth(user)
     cur = con.cursor()

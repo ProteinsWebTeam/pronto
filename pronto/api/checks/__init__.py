@@ -95,7 +95,6 @@ def get_checks():
 
 @bp.route("/", methods=["PUT"])
 def submit_checks():
-
     user = auth.get_user()
     if not user:
         return jsonify({
@@ -105,6 +104,14 @@ def submit_checks():
                 "message": "Please log in to perform this action."
             }
         }), 401
+    elif utils.get_states().frozen:
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Forbidden",
+                "message": "Curation is disabled due to release procedures."
+            }
+        }), 403
 
     ora_ip_url = utils.get_oracle_url(user)
     ora_goa_url = utils.get_oracle_goa_url()
@@ -284,6 +291,14 @@ def resolve_error(run_id, err_id):
                 "message": "Please log in to perform this action."
             }
         }), 401
+    elif utils.get_states().frozen:
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Forbidden",
+                "message": "Curation is disabled due to release procedures."
+            }
+        }), 403
 
     con = utils.connect_oracle_auth(user)
     cur = con.cursor()
@@ -385,6 +400,14 @@ def add_term():
                 "message": "Please log in to perform this action."
             }
         }), 401
+    elif utils.get_states().frozen:
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Forbidden",
+                "message": "Curation is disabled due to release procedures."
+            }
+        }), 403
 
     try:
         ck_type = request.form["type"]
@@ -458,6 +481,14 @@ def delete_term():
                 "message": "Please log in to perform this action."
             }
         }), 401
+    elif utils.get_states().frozen:
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Forbidden",
+                "message": "Curation is disabled due to release procedures."
+            }
+        }), 403
 
     try:
         ck_type = request.form["type"]
@@ -515,6 +546,14 @@ def add_exception():
                 "message": "Please log in to perform this action."
             }
         }), 401
+    elif utils.get_states().frozen:
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Forbidden",
+                "message": "Curation is disabled due to release procedures."
+            }
+        }), 403
 
     try:
         ck_type = request.form["type"]
@@ -560,6 +599,14 @@ def delete_exception():
                 "message": "Please log in to perform this action."
             }
         }), 401
+    elif utils.get_states().frozen:
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Forbidden",
+                "message": "Curation is disabled due to release procedures."
+            }
+        }), 403
 
     try:
         exception_id = int(request.form["id"])

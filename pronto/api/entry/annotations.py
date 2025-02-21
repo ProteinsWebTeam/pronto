@@ -177,6 +177,14 @@ def link_annotation(accession, ann_id):
                 "message": "Please log in to perform this operation."
             }
         }), 401
+    elif utils.get_states().frozen:
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Forbidden",
+                "message": "Curation is disabled due to release procedures."
+            }
+        }), 403
 
     con = utils.connect_oracle_auth(user)
 
@@ -214,6 +222,14 @@ def unlink_annotation(accession, ann_id):
                 "message": "Please log in to perform this operation."
             }
         }), 401
+    elif utils.get_states().frozen:
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Forbidden",
+                "message": "Curation is disabled due to release procedures."
+            }
+        }), 403
 
     con = utils.connect_oracle_auth(user)
     cur = con.cursor()
@@ -277,6 +293,14 @@ def move_annotation(accession: str, ann_id: str, x: int):
                 "message": "Please log in to perform this operation."
             }
         }), 401
+    elif utils.get_states().frozen:
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Forbidden",
+                "message": "Curation is disabled due to release procedures."
+            }
+        }), 403
 
     con = utils.connect_oracle_auth(user)
     cur = con.cursor()

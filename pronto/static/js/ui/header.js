@@ -41,12 +41,26 @@ export function updateHeader(signatureAcc) {
             .then(object => {
                 let item;
                 document.getElementById("pronto-info").innerHTML = `<div class="item">UniProt ${object.uniprot}</div>`;
-                if (!object.ready) {
-                    item = document.getElementById("not-ready");
+                if (object?.states?.updating) {
+                    item = document.getElementById("global-notice");
                     item.className = "ui red inverted one item menu";
                     item.querySelector('.item').innerHTML = `
-                        <div class="header"><i class="warning sign icon"></i> Pronto is currently being updated</div>
-                        <p>As a result, some pages may not function properly until the update is complete.</p>
+                        <div class="header"><i class="warning sign icon"></i> Pronto is being updated</div>
+                        <p>The Pronto database is being updated as part of production procedures. As a result, some pages may not function properly until the update is complete.</p>
+                    `;
+                } else if (object?.states?.frozen) {
+                    item = document.getElementById("global-notice");
+                    item.className = "ui red inverted one item menu";
+                    item.querySelector('.item').innerHTML = `
+                        <div class="header"><i class="warning sign icon"></i> Curation is temporarily disabled</div>
+                        <p>Curation actions are currently unavailable due to release procedures.</p>
+                    `;
+                } else if (object?.states?.freeze_on) {
+                    item = document.getElementById("global-notice");
+                    item.className = "ui orange inverted one item menu";
+                    item.querySelector('.item').innerHTML = `
+                        <div class="header"><i class="warning sign icon"></i> Upcoming curation downtime</div>
+                        <p>Curation actions will be temporarily disabled due to release procedures on <strong>${object.states.freeze_on}</strong>. During this time, you will not be able to create, edit, or delete entries.</p>
                     `;
                 }
 
@@ -309,7 +323,7 @@ export function updateHeader(signatureAcc) {
                 if (localStorage.getItem('fluid') === 'yes') {
                     document.getElementById('fluid').classList.add('active');
                     document.querySelectorAll('.ui.container')
-                            .forEach((elem,) => elem.classList.toggle('fluid'));
+                        .forEach((elem,) => elem.classList.toggle('fluid'));
                 }
 
                 resolve(object.user !== null);

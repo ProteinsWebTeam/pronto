@@ -5,6 +5,7 @@ import uuid
 from typing import Callable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
+from datetime import datetime, timedelta
 
 import oracledb
 import MySQLdb
@@ -471,18 +472,39 @@ class Prediction:
         return 0
 
 
-def predict_relationship(a: int, b: int, intersection: int) -> tuple:
-    similarity = intersection / (a + b - intersection)
+@dataclass
+class ProntoState:
+    updating: bool
+    frozen: bool
+    freeze_on: datetime | None
 
-    if similarity >= 0.75:
-        return similarity, "similar"
+    def as_dict(self) -> dict:
+        return {
+            "updating": self.updating,
+            "frozen": self.frozen,
+            "freeze_on": (
+                self.freeze_on.strftime("%A, %d %B at %H:%M")
+                if self.freeze_on
+                and self.freeze_on - datetime.today() <= timedelta(days=7)
+                else None
+            ),
+        }
 
-    containment_a = intersection / a
-    containment_b = intersection / b
-    if containment_a >= 0.75:
-        if containment_b >= 0.75:
-            return min(containment_a, containment_b), "related"
-        return containment_a, "child"  # A child of B
-    elif containment_b >= 0.75:
-        return containment_b, "parent"  # A parent of B
-    return 0, "none"
+
+def get_states() -> ProntoState:
+    is_updating = is_frozen = False
+    freeze_on = None
+    con = connect_oracle()
+    cur = con.cursor()
+    cur.execute("SELECT NAME, ACTIVE, ACTIVE_FROM FROM INTERPRO.PRONTO_STATES")
+    for name, active, active_from in cur.fetchall():
+        if name == "updating":
+            is_updating = active == "Y"
+        elif name == "frozen":
+            is_frozen = active == "Y"
+            freeze_on = active_from
+
+    cur.close()
+    con.close()
+
+    return ProntoState(is_updating, is_frozen, freeze_on)

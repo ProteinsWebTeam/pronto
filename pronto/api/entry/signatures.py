@@ -92,6 +92,14 @@ def integrate_signature(e_acc, s_acc):
                 "message": "Please log in to perform this operation."
             }
         }), 401
+    elif utils.get_states().frozen:
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Forbidden",
+                "message": "Curation is disabled due to release procedures."
+            }
+        }), 403
 
     con = utils.connect_pg(utils.get_pg_url())
     cur = con.cursor()
@@ -275,6 +283,14 @@ def unintegrate_signature(e_acc, s_acc):
                 "message": "Please log in to perform this operation."
             }
         }), 401
+    elif utils.get_states().frozen:
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Forbidden",
+                "message": "Curation is disabled due to release procedures."
+            }
+        }), 403
 
     con = utils.connect_oracle_auth(user)
     cur = con.cursor()

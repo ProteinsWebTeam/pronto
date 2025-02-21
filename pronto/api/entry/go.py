@@ -63,6 +63,14 @@ def add_term(accession, term_id):
                 "message": "Please log in to perform this operation."
             }
         }), 401
+    elif utils.get_states().frozen:
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Forbidden",
+                "message": "Curation is disabled due to release procedures."
+            }
+        }), 403
 
     con = utils.connect_pg(utils.get_pg_url())
     cur = con.cursor()
@@ -153,6 +161,14 @@ def delete_term(accession, term_id):
                 "message": "Please log in to perform this operation."
             }
         }), 401
+    elif utils.get_states().frozen:
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Forbidden",
+                "message": "Curation is disabled due to release procedures."
+            }
+        }), 403
 
     con = utils.connect_oracle_auth(user)
     cur = con.cursor()

@@ -24,22 +24,22 @@ header > .ui.menu .item > .ui.label:only-child {
     margin-left: 0;
 }
 
-#not-ready:not(.ui.menu) {
+#global-notice:not(.ui.menu) {
     display: none;
 }
 
-#not-ready.ui.menu .item {
+#global-notice.ui.menu .item {
     display: block;
     text-align: left;
     padding-left: 1rem !important;
 }
 
-#not-ready .header {
+#global-notice .header {
     display: block;
     font-size: 1.14285714em;
     font-weight: bold;
 }
 
-#not-ready .header + p {
+#global-notice .header + p {
     margin-top: .25em;
 }
