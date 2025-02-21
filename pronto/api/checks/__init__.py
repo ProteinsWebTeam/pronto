@@ -20,8 +20,8 @@ def get_checks():
         """
         SELECT C.CHECK_TYPE, C.TERM, E.ID, E.TERM, E.ANN_ID, E.ENTRY_AC, 
                E.ENTRY_AC2
-        FROM INTERPRO.SANITY_CHECK C
-        LEFT OUTER JOIN INTERPRO.SANITY_EXCEPTION E
+        FROM INTERPRO.PRONTO_SANITY_CHECK C
+        LEFT OUTER JOIN INTERPRO.PRONTO_SANITY_EXCEPTION E
           ON (C.CHECK_TYPE = E.CHECK_TYPE 
             AND (C.TERM IS NULL OR C.TERM = E.TERM))
         """
@@ -153,7 +153,7 @@ def run_checks(ora_url: str, pg_url: str, ora_goa_url: str):
 
     cur.execute(
         """
-        INSERT INTO INTERPRO.SANITY_RUN (ID)
+        INSERT INTO INTERPRO.PRONTO_SANITY_RUN (ID)
         VALUES (:1)
         """,
         [run_id]
@@ -162,14 +162,14 @@ def run_checks(ora_url: str, pg_url: str, ora_goa_url: str):
     if errors:
         cur.executemany(
             """
-            INSERT INTO INTERPRO.SANITY_ERROR
+            INSERT INTO INTERPRO.PRONTO_SANITY_ERROR
                 (RUN_ID, ID, ANN_ID, ENTRY_AC, CHECK_TYPE, TERM, COUNT)
             VALUES (:1, :2, :3, :4, :5, :6, :7)
             """,
             errors
         )
 
-    cur.execute("DELETE FROM INTERPRO.SANITY_RUN WHERE ID != :1", [run_id])
+    cur.execute("DELETE FROM INTERPRO.PRONTO_SANITY_RUN WHERE ID != :1", [run_id])
 
     con.commit()
     cur.close()
@@ -186,7 +186,7 @@ def get_run(run_id):
             SELECT *
             FROM (
                 SELECT SR.ID, SR.TIMESTAMP, NVL(PU.NAME, SR.USERNAME)
-                FROM INTERPRO.SANITY_RUN SR
+                FROM INTERPRO.PRONTO_SANITY_RUN SR
                 LEFT OUTER JOIN INTERPRO.PRONTO_USER PU
                   ON SR.USERNAME = PU.DB_USER
                 ORDER BY SR.TIMESTAMP DESC
@@ -198,7 +198,7 @@ def get_run(run_id):
         cur.execute(
             """
             SELECT SR.ID, SR.TIMESTAMP, NVL(PU.NAME, SR.USERNAME)
-                FROM INTERPRO.SANITY_RUN SR
+                FROM INTERPRO.PRONTO_SANITY_RUN SR
                 LEFT OUTER JOIN INTERPRO.PRONTO_USER PU
                   ON SR.USERNAME = PU.DB_USER
             WHERE ID = :1
@@ -227,7 +227,7 @@ def get_run(run_id):
             """
             SELECT SE.ID, SE.ANN_ID, SE.ENTRY_AC, SE.CHECK_TYPE, SE.TERM, 
                    SE.COUNT, SE.TIMESTAMP, NVL(PU.NAME, SE.USERNAME)
-            FROM INTERPRO.SANITY_ERROR SE
+            FROM INTERPRO.PRONTO_SANITY_ERROR SE
             LEFT OUTER JOIN INTERPRO.PRONTO_USER PU
               ON SE.USERNAME = PU.DB_USER
             WHERE RUN_ID = :1           
@@ -291,7 +291,7 @@ def resolve_error(run_id, err_id):
         cur.execute(
             """
             SELECT CHECK_TYPE, TERM, ANN_ID, ENTRY_AC
-            FROM INTERPRO.SANITY_ERROR
+            FROM INTERPRO.PRONTO_SANITY_ERROR
             WHERE RUN_ID = :1 AND ID = :2 AND TIMESTAMP IS NULL
             """, (run_id, err_id)
         )
@@ -349,7 +349,7 @@ def resolve_error(run_id, err_id):
 
     cur.execute(
         """
-        UPDATE INTERPRO.SANITY_ERROR
+        UPDATE INTERPRO.PRONTO_SANITY_ERROR
         SET TIMESTAMP = SYSDATE,
             USERNAME = USER
         WHERE RUN_ID = :1 AND ID = :2 AND TIMESTAMP IS NULL
@@ -420,7 +420,7 @@ def add_term():
     try:
         cur.execute(
             """
-            INSERT INTO INTERPRO.SANITY_CHECK
+            INSERT INTO INTERPRO.PRONTO_SANITY_CHECK
             VALUES (:1, :2, SYSDATE, USER)
             """, (ck_type, ck_term)
         )
@@ -476,13 +476,13 @@ def delete_term():
     try:
         cur.execute(
             """
-            DELETE FROM INTERPRO.SANITY_EXCEPTION
+            DELETE FROM INTERPRO.PRONTO_SANITY_EXCEPTION
             WHERE CHECK_TYPE = :1 AND TERM = :2
             """, (ck_type, ck_term)
         )
         cur.execute(
             """
-            DELETE FROM INTERPRO.SANITY_CHECK
+            DELETE FROM INTERPRO.PRONTO_SANITY_CHECK
             WHERE CHECK_TYPE = :1 AND TERM = :2
             """, (ck_type, ck_term)
         )
@@ -577,7 +577,7 @@ def delete_exception():
     try:
         cur.execute(
             """
-            DELETE FROM INTERPRO.SANITY_EXCEPTION
+            DELETE FROM INTERPRO.PRONTO_SANITY_EXCEPTION
             WHERE ID = :1
             """, (exception_id,)
         )
@@ -723,10 +723,10 @@ def insert_exception(cur, ck_type, value1, value2) -> tuple[dict, int]:
     try:
         cur.execute(
             """
-            INSERT INTO INTERPRO.SANITY_EXCEPTION 
+            INSERT INTO INTERPRO.PRONTO_SANITY_EXCEPTION 
                 (ID, CHECK_TYPE, TERM, ANN_ID, ENTRY_AC, ENTRY_AC2)
             VALUES (
-                (SELECT NVL(MAX(ID),0)+1 FROM INTERPRO.SANITY_EXCEPTION),
+                (SELECT NVL(MAX(ID),0)+1 FROM INTERPRO.PRONTO_SANITY_EXCEPTION),
                 :1, :2, :3, :4, :5
             )
             """, params

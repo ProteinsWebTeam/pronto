@@ -298,7 +298,7 @@ def load_exceptions(cur, check_type: str, key_col: str, val_col: str) -> DoS:
     cur.execute(
         f"""
         SELECT {key_col}, {val_col}
-        FROM INTERPRO.SANITY_EXCEPTION
+        FROM INTERPRO.PRONTO_SANITY_EXCEPTION
         WHERE CHECK_TYPE = :1 AND {key_col} IS NOT NULL
         """, (check_type,)
     )
@@ -316,7 +316,7 @@ def load_global_exceptions(cur, check_type: str) -> set[str]:
     cur.execute(
         """
         SELECT TERM
-        FROM INTERPRO.SANITY_EXCEPTION
+        FROM INTERPRO.PRONTO_SANITY_EXCEPTION
         WHERE CHECK_TYPE = :1
         """, (check_type,)
     )
@@ -327,7 +327,7 @@ def load_terms(cur, check_type: str) -> list[str]:
     cur.execute(
         """
         SELECT TERM
-        FROM INTERPRO.SANITY_CHECK
+        FROM INTERPRO.PRONTO_SANITY_CHECK
         WHERE CHECK_TYPE = :1
         """, (check_type,)
     )
