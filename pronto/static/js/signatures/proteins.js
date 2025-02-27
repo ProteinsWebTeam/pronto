@@ -173,7 +173,7 @@ function getProteins(signatureAccessions) {
                     elem.innerHTML = `
                         <div class="ui warning message">
                         <div class="header">No results found</div>
-                        <p>Your query returned to proteins.</p>
+                        <p>Your query returned no proteins.</p>
                         </div>
                     `;
 
