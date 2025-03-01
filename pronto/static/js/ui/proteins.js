@@ -126,21 +126,86 @@ export function renderMatches(proteinLength, signature, width, paddingLeft) {
     for (const fragments of signature.matches) {
         for (let i = 0; i < fragments.length; i++) {
             const frag = fragments[i];
-            const x = Math.round(frag.start * width / proteinLength) + paddingLeft;
-            const w = Math.round((frag.end - frag.start) * width / proteinLength);
 
-            html += '<g>';
-            if (i) {
-                // Discontinuous domain: draw arc
-                const px = Math.round(fragments[i - 1].end * width / proteinLength) + paddingLeft;
-                html += `<path d="M${px} 15 Q ${(px + x) / 2} 0 ${x} 15" fill="none" stroke="${signature.color}"/>`
-            }
-
-            html += `<rect x="${x}" y="15" width="${w}" height="10" rx="1" ry="1" style="fill: ${signature.color};" />
-                    <text x="${x}" y="10" class="position">${frag.start}</text>
-                    <text x="${x + w}" y="10" class="position">${frag.end}</text>
-                    </g>`;
+            html += renderFragment(frag, width, proteinLength, 15, signature.color, {
+                previousFragment: i > 0 ? fragments[i-1] : null,
+                paddingLeft: paddingLeft,
+                addPositions: true,
+                arcFactor: 0
+            })
         }
     }
     return html;
+}
+
+
+export function renderFragment(fragment, width, proteinLength, y, color,
+                        {
+                            previousFragment = null,
+                            paddingLeft = 0,
+                            addPositions = false,
+                            accession = null,
+                            name = null,
+                            database = null,
+                            link = null,
+                            matchHeight = 10,
+                            arcFactor = 1
+                        }
+) {
+    const x = Math.round(fragment.start * width / proteinLength) + paddingLeft;
+    const w = Math.round((fragment.end - fragment.start) * width / proteinLength);
+
+    let html = '<g>';
+    if (fragment.status === 'S') {
+        html += `<path 
+                    d="M${x},${y} L${x+w},${y} L${x+w},${y+matchHeight} L${x},${y+matchHeight}Z" fill="${color}"
+                    data-start="${fragment.start}"
+                    data-end="${fragment.end}"
+                    data-id="${accession || ''}"
+                    data-name="${name || ''}"
+                    data-db="${database || ''}"
+                    data-link="${link || ''}"/>`;
+    } else {
+        if (previousFragment !== null) {
+            // Draw arc
+            const px = Math.round(previousFragment.end * width / proteinLength) + paddingLeft;
+            const x1 = (px + x) / 2;
+            const y1 = (y - matchHeight * 6) * arcFactor;
+            html += `<path d="M${px} ${y} Q ${x1} ${y1} ${x} ${y}" fill="none" stroke="${color}"/>`;
+        }
+
+        const da = (matchHeight * Math.sqrt(2)) / 2;
+        const db = Math.sqrt(Math.pow(da, 2) - Math.pow(matchHeight / 2, 2));
+
+        let pathCmd = '';
+        if (fragment.status === 'N' || fragment.status === 'NC') {
+            pathCmd += `M${x+db} ${y+(matchHeight/2)} L${x} ${y} L${x+w} ${y}`;
+        } else {
+            pathCmd += `M${x} ${y} L${x+w} ${y}`;
+        }
+
+        if (fragment.status === 'C' || fragment.status === 'NC') {
+            pathCmd += `L${x+w-db} ${y+(matchHeight/2)} L${x+w} ${y+matchHeight} L${x} ${y+matchHeight}`;
+        } else {
+            pathCmd += `L${x+w} ${y+matchHeight} L${x} ${y+matchHeight}`;
+        }
+
+        html += `<path 
+                    d="${pathCmd}Z" fill="${color}"
+                    data-start="${fragment.start}"
+                    data-end="${fragment.end}"
+                    data-id="${accession || ''}"
+                    data-name="${name || ''}"
+                    data-db="${database || ''}"
+                    data-link="${link || ''}"/>`;
+    }
+
+    if (addPositions) {
+        html += `
+            <text x="${x}" y="10" class="position">${fragment.start}</text>
+            <text x="${x + w}" y="10" class="position">${fragment.end}</text>
+        `;
+    }
+
+    return html + '</g>';
 }

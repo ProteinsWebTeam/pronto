@@ -2,7 +2,7 @@ import * as dimmer from "./ui/dimmer.js"
 import {updateHeader} from "./ui/header.js"
 import {setClass} from "./ui/utils.js";
 import {listenMenu} from "./ui/menu.js";
-import {genProtHeader} from "./ui/proteins.js";
+import {genProtHeader, renderFragment} from "./ui/proteins.js";
 
 // Global variables for SVG
 const matchHeight = 10;
@@ -109,18 +109,19 @@ function renderFeatures(proteinLength, features, multiLine = false, labelLink = 
                 const x = Math.round(fragment.start * rectWidth / proteinLength);
                 const w = Math.round((fragment.end - fragment.start) * rectWidth / proteinLength);
 
-                if (i) {
-                    // Discontinuous domain: draw arc
-                    const px = Math.round(fragments[i-1].end * rectWidth / proteinLength);
-                    const x1 = (px + x) / 2;
-                    const y1 = y - matchHeight * 6;
-                    html += `<path d="M${px} ${y} Q ${x1} ${y1} ${x} ${y}" fill="none" stroke="${feature.color}"/>`;
-                }
-
-                html += `<rect data-start="${fragment.start}" data-end="${fragment.end}" data-id="${feature.accession}" 
-                               data-name="${feature.name ? feature.name : ''}" data-db="${feature.database}" 
-                               data-link="${feature.link ? feature.link : ''}" x="${x}" y="${y}" width="${w}" height="${matchHeight}" 
-                               rx="1" ry="1" style="fill: ${feature.color}"/>`;
+                html += renderFragment(
+                    fragment,
+                    rectWidth,
+                    proteinLength,
+                    y,
+                    feature.color,
+                    {
+                        previousFragment: i > 0 ? fragments[i-1] : null,
+                        accession: feature.accession,
+                        name: feature.name,
+                        database: feature.database,
+                        link: feature.link
+                    });
             }
 
             html += '</g>';
@@ -148,11 +149,11 @@ document.addEventListener('DOMContentLoaded', () => {
         active: false,
         lockedOn: null,
 
-        show: function(rect) {
+        show: function(domRect) {
             this.active = true;
             this.element.style.display = 'block';
-            this.element.style.top = Math.round(rect.top - this.element.offsetHeight + window.scrollY - 5).toString() + 'px';
-            this.element.style.left = Math.round(rect.left + rect .width / 2 - this.element.offsetWidth / 2).toString() + 'px';
+            this.element.style.top = Math.round(domRect.top - this.element.offsetHeight + window.scrollY - 5).toString() + 'px';
+            this.element.style.left = Math.round(domRect.left + domRect.width / 2 - this.element.offsetWidth / 2).toString() + 'px';
 
         },
         _hide: function () {
@@ -280,7 +281,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             document.querySelector('#lineage + .ui.list').innerHTML = html;
 
-            for (const rect of document.querySelectorAll('rect[data-id]')) {
+            for (const rect of document.querySelectorAll('path[data-id]')) {
                 rect.addEventListener('mouseenter', e => {
                     const target = e.currentTarget;
 
