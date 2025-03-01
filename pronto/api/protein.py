@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from flask import Blueprint, jsonify, make_response, request
 
 from pronto import utils
@@ -64,7 +62,7 @@ def get_protein(protein_acc):
         "organism": {"name": row[6], "lineage": []},
         "name": row[7],
         "is_spurious": is_spurious,
-        "signatures": []
+        "signatures": [],
     }
     taxon_id = row[5]
 
@@ -113,7 +111,9 @@ def get_protein(protein_acc):
             fragments = []
             for frag in row[4].split(","):
                 start, end, status = frag.split("-")
-                fragments.append({"start": int(start), "end": int(end)})
+                fragments.append(
+                    {"start": int(start), "end": int(end), "status": status}
+                )
 
             s["matches"].append(sorted(fragments, key=_repr_location))
 
@@ -211,7 +211,7 @@ def get_sequence(protein_acc):
 
     fasta = f">{protein_acc}\n"
     for i in range(0, len(sequence), 60):
-        fasta += sequence[i:i+60] + "\n"
+        fasta += sequence[i : i + 60] + "\n"
 
     response = make_response(fasta, 200)
     response.mimetype = "text/plain"
