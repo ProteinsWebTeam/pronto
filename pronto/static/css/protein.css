@@ -55,12 +55,12 @@ svg g.ticks text {
     text-anchor: middle;
     font-size: 10px;
 }
-svg g.match rect, svg g.match path {
-    opacity: .5;
-}
-svg g.match:hover rect, svg g.match:hover path {
-    opacity: 1;
-}
+/*svg g.match path {*/
+/*    opacity: 0.75;*/
+/*}*/
+/*svg g.match:hover path {*/
+/*    opacity: 1;*/
+/*}*/
 svg g.match rect:hover {
     cursor: pointer;
 }
