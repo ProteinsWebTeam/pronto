@@ -389,13 +389,13 @@ def get_unintegrated(db_name):
             400
         )
 
-    rel_filter = request.args.get("relationships", "without-integrated")
-    if rel_filter not in ("without", "without-integrated", "with"):
+    rel_filter = request.args.get("relationships", "any")
+    if rel_filter not in ("any", "without", "without-integrated", "with"):
         return (
             jsonify({
                 "error": {
                     "title": "Bad Request (invalid relationships parameter)",
-                    "message": "Accepted values are: without, "
+                    "message": "Accepted values are: any, without, "
                                "without-integrated, with",
                 }
             }),
