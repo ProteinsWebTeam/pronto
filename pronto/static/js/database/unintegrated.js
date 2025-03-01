@@ -175,7 +175,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const checked = e.currentTarget.checked;
             const url = new URL(location.href);
 
-            if (type === "radio" || (type === "checkbox" && checked))
+            if (value && (type === "radio" || (type === "checkbox" && checked)))
                 url.searchParams.set(key, value);
             else
                 url.searchParams.delete(key);
