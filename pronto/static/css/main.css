@@ -31,6 +31,9 @@ a > i:last-child {
 .ui.header i.icon:only-child {
     margin-right: 0;
 }
+.ui.header > i.normal.icon {
+    font-size: inherit;
+}
 
 /*h1, h2, h3, h4, h5, h6, .ui.header {*/
 /*font-weight: 400;*/

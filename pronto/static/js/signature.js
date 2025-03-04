@@ -204,10 +204,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
             });
 
-            if (result.abstract) {
-                const pub2pmid = new Map(result.references.map((r) => ([r.id, r.pmid])));
+            if (result.abstract || result.llm_abstract) {
+                let abstract;
+                let isLLM = false;
+                if (result.abstract) {
+                    abstract = result.abstract;
+                } else {
+                    abstract = result.llm_abstract;
+                    isLLM = true;
+                }
 
-                document.getElementById('description').innerHTML = result.abstract.replaceAll(
+                const pub2pmid = new Map(result.references.map((r) => ([r.id, r.pmid])));
+                const descriptionElement = document.getElementById('description');
+                descriptionElement.innerHTML = abstract.replaceAll(
                     /\[+cite:(PUB\d+)\]+/g,
                     (match, p1) => {
                         const pmid = pub2pmid.get(p1);
@@ -217,6 +226,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         return '';
                     }
                 );
+
+                if (isLLM) {
+                    descriptionElement.parentNode.querySelector('h4').innerHTML = '<i class="normal fitted magic icon"></i> Description';
+                }
             }
 
             document.getElementById('counters').innerHTML = `
