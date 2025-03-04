@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from oracledb import DatabaseError
 from flask import Blueprint, jsonify, request
 
@@ -52,9 +50,6 @@ def get_signature(accession):
             }
         }), 404
     
-    if check_if_ncbifam_amr(accession):
-        return jsonify(ncbifam_amr_err_msg(accession)), 400
-
     # data populates signature table to new entry window
     db = utils.get_database_obj(row[13])
     result = {
@@ -85,6 +80,7 @@ def get_signature(accession):
             "version": row[15]
         },
         "entry": None,
+        "references": []
     }
 
     con = utils.connect_oracle()
@@ -134,6 +130,30 @@ def get_signature(accession):
                 "name": row[1],
                 "llm": row[2] == "Y"
             })
+
+    cur.execute(
+        """
+        SELECT C.PUB_ID, C.TITLE, C.YEAR, C.VOLUME, C.ISSUE, C.RAWPAGES, C.DOI_URL,
+               C.PUBMED_ID, C.ISO_JOURNAL, C.MEDLINE_JOURNAL, C.AUTHORS
+        FROM INTERPRO.METHOD2PUB MP
+        INNER JOIN INTERPRO.CITATION C on C.PUB_ID = MP.PUB_ID
+        WHERE MP.METHOD_AC = :1
+        """,
+        [result["accession"]]
+    )
+    for row in cur:
+        result["references"].append({
+            "id": row[0],
+            "title": row[1],
+            "year": row[2],
+            "volume": row[3],
+            "issue": row[4],
+            "pages": row[5],
+            "doi": row[6],
+            "pmid": row[7],
+            "journal": row[8] if row[8] else row[9],
+            "authors": row[10]
+        })
 
     cur.close()
     con.close()
