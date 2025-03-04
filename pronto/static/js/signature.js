@@ -204,6 +204,21 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
             });
 
+            if (result.abstract) {
+                const pub2pmid = new Map(result.references.map((r) => ([r.id, r.pmid])));
+
+                document.getElementById('description').innerHTML = result.abstract.replaceAll(
+                    /\[+cite:(PUB\d+)\]+/g,
+                    (match, p1) => {
+                        const pmid = pub2pmid.get(p1);
+                        if (pmid) {
+                            return `[<a href="http://europepmc.org/abstract/MED/${pmid}/" target="_blank">PMID:${pmid}<i class="external icon"></i></a>]`;
+                        }
+                        return '';
+                    }
+                );
+            }
+
             document.getElementById('counters').innerHTML = `
                 <tbody>
                     <tr>
