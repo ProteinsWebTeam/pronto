@@ -86,7 +86,9 @@ export function genProtHeader(protein) {
     let html = `
         ${protein.name}
         <div class="sub header">
-            ${protein.accession} (${protein.identifier})
+            ${protein.accession}
+            &mdash;
+            ${protein.identifier}
             &mdash;
             <a target="_blank" href="${genLink(protein.accession, protein.is_reviewed)}">${protein.is_reviewed ? 'reviewed' : 'unreviewed'}<i class="external icon"></i></a>
             &mdash;
