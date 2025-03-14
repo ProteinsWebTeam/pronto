@@ -147,7 +147,9 @@ def get_analysis(name: str, version: str):
 
     values = sorted(results.pop("maxmem"))
 
-    if len(values):
+    if len(values) >= 5:
+        # At least five values so that each statistic represents a distinct
+        # value
         q1 = values[math.ceil(0.25 * len(values))]
         med = values[math.ceil(0.50 * len(values))]
         q3 = values[math.ceil(0.75 * len(values))]
