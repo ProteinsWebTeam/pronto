@@ -39,7 +39,7 @@ XREFS = {
     "OMIM": "https://www.omim.org/entry/{}",
     "PDBE": "http://www.ebi.ac.uk/pdbe/entry/pdb/{}",
     "PFAM": "https://www.ebi.ac.uk/interpro/entry/pfam/{}",
-    "PIRSF": "http://pir.georgetown.edu/cgi-bin/ipcSF?id={}",
+    "PIRSF": "https://www.ebi.ac.uk/interpro/entry/pirsf/{}",
     "PROSITE": "https://prosite.expasy.org/{}",
     "PROSITEDOC": "https://prosite.expasy.org/{}",
     "SSF": "http://supfam.org/SUPERFAMILY/cgi-bin/scop.cgi?ipid={}",
@@ -329,7 +329,7 @@ class Pirsf:
     color = '#51ac7e'
 
     def gen_link(self, acc: str):
-        return f"http://pir.georgetown.edu/cgi-bin/ipcSF?id={acc}"
+        return f"https://www.ebi.ac.uk/interpro/entry/pirsf/{acc}"
 
 
 class Prints:
