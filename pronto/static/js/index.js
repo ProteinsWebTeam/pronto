@@ -1051,18 +1051,17 @@ function plotJobMemoryChart() {
         return a.version.localeCompare(b.version);
     });
 
-    const boxPlotData = [];
-    for (const item of databases) {
-        // See https://api.highcharts.com/highcharts/series.boxplot.data
-        boxPlotData.push([
+    const boxPlotData = databases
+        .filter((item) => item.maxmem !== undefined && item.maxmem !== null)
+        .map((item) => ([
+            // See https://api.highcharts.com/highcharts/series.boxplot.data
             `${item.name} ${item.version}`,
             +(item.maxmem.min / 1024).toFixed(1),
             +(item.maxmem.q1 / 1024).toFixed(1),
             +(item.maxmem.q2 / 1024).toFixed(1),
             +(item.maxmem.q3 / 1024).toFixed(1),
             +(item.maxmem.max / 1024).toFixed(1),
-        ]);
-    }
+        ]));
 
     Highcharts.chart('chart-jobs-memory', {
         chart: { type: 'boxplot', height: 500 },
