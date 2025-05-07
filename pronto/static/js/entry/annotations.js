@@ -46,11 +46,11 @@ export async function create(accession, text, isLLM) {
         const replacer = (match, pfamAcc, offset, string) => {
             const interproAcc = pfams.get(pfamAcc);
             if (interproAcc !== undefined && interproAcc !== null)
-                return `[interpro:${interproAcc}]`;
+                return `interpro:${interproAcc}`;
             return match;
         };
 
-        text = text.replaceAll(/\[?Pfam:(PF\d+)\]?/gi, replacer);
+        text = text.replaceAll(/\bPfam:(PF\d+)\b/gi, replacer);
         text = text.replaceAll(/\bswiss:([a-z0-9]+)\b/gi, "[swissprot:$1]");
         textarea.value = text;
     }
