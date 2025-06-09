@@ -9,6 +9,7 @@ import * as go from "./go.js";
 import * as references from "./references.js";
 import * as relationships from "./relationships.js";
 import * as signatures from "./signatures.js";
+import {addKeyPressEventListener} from "../ui/comments.js";
 
 function formatType(type) {
     const arr = type.split(/\s+/);
@@ -120,7 +121,8 @@ document.addEventListener('DOMContentLoaded', () => {
     comments.getEntryComments(accession, 2, document.querySelector('.ui.comments'));
 
     // Event to submit comments
-    document.querySelector('.ui.comments form button').addEventListener('click', (e,) => {
+    const button = document.querySelector('.ui.comments form button');
+    button.addEventListener('click', (e,) => {
         e.preventDefault();
         const form = e.currentTarget.closest('form');
         const textarea = form.querySelector('textarea');
@@ -133,6 +135,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     modals.error(result.error.title, result.error.message);
             });
     });
+
+    comments.addKeyPressEventListener(
+        button.closest('form').querySelector('textarea'),
+        button
+    )
 
     document.getElementById('create-annotation')
         .addEventListener('click', (e,) => {

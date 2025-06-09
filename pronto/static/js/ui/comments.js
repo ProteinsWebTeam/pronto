@@ -38,6 +38,15 @@ export function initPopups({element, position, buildUrl, createPopup}) {
         });
 }
 
+export function addKeyPressEventListener(textarea, button) {
+    textarea.addEventListener('keydown', e => {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+            e.preventDefault();
+            button.click();
+        }
+    });
+}
+
 function genEntryOrSignatureLink(accession) {
     const endpoint = /^IPR\d{6}$/.test(accession) ? 'entry' : 'signature';
     return `<a href="/${endpoint}/${accession}/">${accession}</a>`;
@@ -164,5 +173,4 @@ function postComment(type, accession, text) {
         body: JSON.stringify({text: text})
     })
         .then(response => response.json());
-
 }

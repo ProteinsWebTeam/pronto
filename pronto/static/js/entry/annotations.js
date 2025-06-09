@@ -602,6 +602,17 @@ class Annotation {
                 }
             });
         }
+
+        const self = this;
+        this.element.addEventListener('keydown', function (e) {
+            const active = document.activeElement;
+            if (active.tagName === 'TEXTAREA') {
+                if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+                    e.preventDefault();
+                    self.saveChanges(entryAccession, null);
+                }
+            }
+        });
     }
 
     openEditor(references) {
