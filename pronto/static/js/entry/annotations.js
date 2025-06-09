@@ -58,56 +58,70 @@ export async function create(accession, text, isLLM) {
 
     $(modal)
         .modal({
-            closable: false,
+            closable: true,
             onDeny: function() {
                 modal.querySelector('textarea').value = null;
                 msg.classList.add('hidden');
             },
             onApprove: function() {
-                const options = {
-                    method: 'PUT',
-                    headers: {
-                        'Content-type': 'application/x-www-form-urlencoded; charset=UTF-8'
-                    },
-                    body: [
-                        `text=${encodeURIComponent(modal.querySelector('textarea').value)}`,
-                        `llm=${checkbox.checked ? 'true' : 'false'}`,
-                        `checked=${checkbox.checked ? 'true' : 'false'}`
-                    ].join('&')
-                };
-
-                fetch('/api/annotation/', options)
-                    .then(response => response.json())
-                    .then(result => {
-                        if (result.status) {
-                            msg.classList.add('hidden');
-
-                            // Return a promise to link the created annotation to the entry
-                            return link(accession, result.id);
-                        } else {
-                            msg.querySelector('.header').innerHTML = result.error.title;
-                            msg.querySelector('p').innerHTML = result.error.message.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                            msg.classList.remove('hidden');
-                            return null;
-                        }
-                    })
-                    .then(result => {
-                        if (result === null)
-                            return;
-                        else if (result.status) {
-                            refresh(accession).then(() => { $('.ui.sticky').sticky(); });
-                            $(modal).modal('hide');
-                            modal.querySelector('textarea').value = null;
-                        } else {
-                            modals.error(result.error.title, result.error.message);
-                        }
-                    });
+                createNewAnnotation(accession, modal, checkbox, msg);
 
                 // Return false to prevent modal to close
                 return false;
             }
         })
         .modal('show');
+
+    modal.addEventListener('keydown', function (e) {
+        const active = document.activeElement;
+        if (active.tagName === 'TEXTAREA') {
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+                e.preventDefault();
+                createNewAnnotation(accession, modal, checkbox, msg);
+            }
+        }
+    });
+}
+
+function createNewAnnotation(accession, modal, checkbox, msg) {
+    const options = {
+        method: 'PUT',
+        headers: {
+            'Content-type': 'application/x-www-form-urlencoded; charset=UTF-8'
+        },
+        body: [
+            `text=${encodeURIComponent(modal.querySelector('textarea').value)}`,
+            `llm=${checkbox.checked ? 'true' : 'false'}`,
+            `checked=${checkbox.checked ? 'true' : 'false'}`
+        ].join('&')
+    };
+
+    fetch('/api/annotation/', options)
+        .then(response => response.json())
+        .then(result => {
+            if (result.status) {
+                msg.classList.add('hidden');
+
+                // Return a promise to link the created annotation to the entry
+                return link(accession, result.id);
+            } else {
+                msg.querySelector('.header').innerHTML = result.error.title;
+                msg.querySelector('p').innerHTML = result.error.message.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                msg.classList.remove('hidden');
+                return null;
+            }
+        })
+        .then(result => {
+            if (result === null)
+                return;
+            else if (result.status) {
+                refresh(accession).then(() => { $('.ui.sticky').sticky(); });
+                $(modal).modal('hide');
+                modal.querySelector('textarea').value = null;
+            } else {
+                modals.error(result.error.title, result.error.message);
+            }
+        });
 }
 
 export function getSignaturesAnnotations(accession) {
