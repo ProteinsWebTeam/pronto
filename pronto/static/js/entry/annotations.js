@@ -667,6 +667,14 @@ class Annotation {
     }
 
     reorder(entryAccession, direction) {
+        const editors= document.querySelectorAll('.annotation > .ui.segment > .ui.form');
+        if (editors.length !== 0) {
+            modals.error(
+                'Cannot reorder while editing',
+                'Please save or cancel all edits before reordering annotations to prevent losing unsaved changes.'
+            );
+            return;
+        }
         const url = `/api/entry/${entryAccession}/annotation/${this.id}/order/${direction}/`;
         fetch(url, { method: 'POST' })
             .then(response => response.json())
@@ -679,11 +687,11 @@ class Annotation {
     }
 
     saveChanges(entryAccession, reason) {
-        let text = this.rawText;
-        if (!reason) {
-            if (this.editorIsOpen) {
-                text = this.element.querySelector('textarea').value;
+        let text;
+        if (this.editorIsOpen) {
+            text = this.element.querySelector('textarea').value;
 
+            if (!reason) {
                 const select = this.element.querySelector('select');
                 reason = select.options[select.selectedIndex].value;
 
@@ -692,9 +700,11 @@ class Annotation {
                 else {
                     select.parentNode.classList.add('error');
                 }
-            } else {
-                return;
             }
+        } else if (reason) {
+            text = this.rawText;
+        } else {
+            return;
         }
 
         let isLLM = this.isLLM;
