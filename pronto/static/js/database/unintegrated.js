@@ -207,8 +207,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    document.querySelector('.ui.comments form button')
-        .addEventListener('click', e => {
+    const button = document.querySelector('.ui.comments form button');
+    button.addEventListener('click', e => {
             e.preventDefault();
             const form = e.target.closest('form');
             const accession = form.getAttribute('data-id');
@@ -223,6 +223,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         modals.error(object.error.title, object.error.message);
                 });
         });
+
+    comments.addKeyPressEventListener(
+        button.closest('form').querySelector('textarea'),
+        button
+    )
 
     const colHeaders = document.querySelectorAll('th[data-sort-by]');
     colHeaders.forEach(node => {
