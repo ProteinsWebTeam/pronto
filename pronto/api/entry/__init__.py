@@ -849,6 +849,16 @@ def create_entry():
 
             pg_con.close()
             anno_text = row[0]
+            if anno_text is None:
+                return jsonify({
+                    "status": False,
+                    "error": {
+                        "title": "Missing description",
+                        "message": f"No description found "
+                                   f"for {entry_signatures[0]}."
+                    }
+                }), 400
+
             anno_id, response, code = annotation.insert_annotation(
                 anno_text,
                 con,
