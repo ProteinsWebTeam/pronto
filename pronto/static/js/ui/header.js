@@ -266,8 +266,21 @@ export function updateHeader(signatureAcc) {
                                     form.action = `/entry/${result.accession}/`;
                                     document.body.appendChild(form);
                                     document.gotoentry.submit();
-                                } else
-                                    toggleErrorMessage(errMsg, result.error);
+                                } else {
+                                    const entries = result.error.entries ?? [];
+                                    const links = entries.map((entry,) => `<a href="/entry/${entry.accession}/">${entry.short_name}</a>`);
+                                    let message = result.error.message;
+                                    if (links.length > 0)
+                                        message += ` See: ${links.join(', ')}.`;
+                                    toggleErrorMessage(
+                                        errMsg,
+                                        {
+                                            title: result.error.title,
+                                            message: message
+                                        }
+                                    );
+                                }
+
                             });
                     },
                 });
