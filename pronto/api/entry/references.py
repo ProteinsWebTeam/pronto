@@ -157,6 +157,52 @@ def link_reference(accession, pmid):
         cur.close()
         con.close()
 
+@bp.route("/<accession>/references/", methods=["DELETE"])
+def unlink_references(accession): 
+    user = auth.get_user()
+    if not user:
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Access denied",
+                "message": "Please log in to perform this action."
+            }
+        }), 401
+    elif utils.get_states().frozen:
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Forbidden",
+                "message": "Curation is disabled due to release procedures."
+            }
+        }), 403
+
+    con = utils.connect_oracle_auth(user)
+    cur = con.cursor()
+    try:
+        print(f"Deleting supplementary references for {accession}..")
+        cur.execute(
+            """
+            SELECT * FROM INTERPRO.SUPPLEMENTARY_REF
+            WHERE ENTRY_AC = :1
+            """, (accession, )
+        )
+    except DatabaseError:
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Database error",
+                "message": "Could not unlink references."
+            }
+        }), 500
+    else:
+        if cur.rowcount:
+            con.commit()
+        return jsonify({"status": True}), 200
+    finally:
+        print(cur.fetchall())
+        cur.close()
+        con.close()
 
 @bp.route("/<accession>/reference/<pub_id>/", methods=["DELETE"])
 def unlink_reference(accession, pub_id):
