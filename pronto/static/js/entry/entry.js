@@ -374,28 +374,5 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     updateHeader().then(() => { getEntry(accession); });
-
-
-    /* Unlink all references */
-    document.querySelector('#unlink-all').addEventListener('click', e => {
-                const errMsg = document.querySelector('#edit-entry .ui.message');
-        toggleErrorMessage(errMsg, null);
-        modals.ask(
-            'Unlink supplementary references',
-            `Do you want to unlink all the supplementary references?`, 
-            'Unlink all',
-            () => {
-                let url = `/api/entry/${accession}/references/`;
-                fetch(url, { method: 'DELETE' })
-                    .then(response => response.json())
-                    .then(result => {
-                        if (result.status) {
-                            references.refresh(accession).then(() => { $('.ui.sticky').sticky(); });
-                        } else
-                            toggleErrorMessage(errMsg, result.error);
-                    });
-            }
-        );
-    })
 });
 
