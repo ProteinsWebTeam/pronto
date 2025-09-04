@@ -180,10 +180,9 @@ def unlink_references(accession):
     con = utils.connect_oracle_auth(user)
     cur = con.cursor()
     try:
-        print(f"Deleting supplementary references for {accession}..")
         cur.execute(
             """
-            SELECT * FROM INTERPRO.SUPPLEMENTARY_REF
+            DELETE FROM INTERPRO.SUPPLEMENTARY_REF
             WHERE ENTRY_AC = :1
             """, (accession, )
         )
@@ -200,7 +199,6 @@ def unlink_references(accession):
             con.commit()
         return jsonify({"status": True}), 200
     finally:
-        print(cur.fetchall())
         cur.close()
         con.close()
 
