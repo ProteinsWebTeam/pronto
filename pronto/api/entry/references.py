@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from flask import jsonify
+from flask import jsonify, request
 from oracledb import DatabaseError
 
 from pronto import auth, utils
@@ -157,8 +157,8 @@ def link_reference(accession, pmid):
         cur.close()
         con.close()
 
-@bp.route("/<accession>/references/", methods=["DELETE"])
-def unlink_references(accession): 
+@bp.route("/<accession>/unlink-references/", methods=["PATCH"])
+def unlink_references(accession):
     user = auth.get_user()
     if not user:
         return jsonify({
@@ -177,15 +177,28 @@ def unlink_references(accession):
             }
         }), 403
 
+    data = request.get_json(silent=True) or {}
+    pub_ids = data.get("pub_ids", [])
+
+    if not pub_ids or not isinstance(pub_ids, list):
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Invalid input",
+                "message": "A list of publication IDs must be provided."
+            }
+        }), 400
+
     con = utils.connect_oracle_auth(user)
     cur = con.cursor()
     try:
-        cur.execute(
-            """
+        placeholders = ",".join([f":{i+2}" for i in range(len(pub_ids))])
+        sql = f"""
             DELETE FROM INTERPRO.SUPPLEMENTARY_REF
-            WHERE ENTRY_AC = :1
-            """, (accession, )
-        )
+            WHERE ENTRY_AC = :1 AND PUB_ID IN ({placeholders})
+        """
+        cur.execute(sql, (accession, *pub_ids))
+
     except DatabaseError:
         return jsonify({
             "status": False,
@@ -197,52 +210,7 @@ def unlink_references(accession):
     else:
         if cur.rowcount:
             con.commit()
-        return jsonify({"status": True}), 200
-    finally:
-        cur.close()
-        con.close()
-
-@bp.route("/<accession>/reference/<pub_id>/", methods=["DELETE"])
-def unlink_reference(accession, pub_id):
-    user = auth.get_user()
-    if not user:
-        return jsonify({
-            "status": False,
-            "error": {
-                "title": "Access denied",
-                "message": "Please log in to perform this action."
-            }
-        }), 401
-    elif utils.get_states().frozen:
-        return jsonify({
-            "status": False,
-            "error": {
-                "title": "Forbidden",
-                "message": "Curation is disabled due to release procedures."
-            }
-        }), 403
-
-    con = utils.connect_oracle_auth(user)
-    cur = con.cursor()
-    try:
-        cur.execute(
-            """
-            DELETE FROM INTERPRO.SUPPLEMENTARY_REF
-            WHERE ENTRY_AC = :1 AND PUB_ID = :2
-            """, (accession, pub_id)
-        )
-    except DatabaseError:
-        return jsonify({
-            "status": False,
-            "error": {
-                "title": "Database error",
-                "message": "Could not unlink reference."
-            }
-        }), 500
-    else:
-        if cur.rowcount:
-            con.commit()
-        return jsonify({"status": True}), 200
+        return jsonify({"status": True, "removed": cur.rowcount}), 200
     finally:
         cur.close()
         con.close()

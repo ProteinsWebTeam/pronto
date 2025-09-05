@@ -321,9 +321,14 @@
                         <div class="ui form">
                             <div class="field">
                                 <label>Add reference</label>
-                                <div class="ui action input supp-refs-actions">
-                                    <input placeholder="PubMed ID (e.g. 19913036)" type="text" name="pmid">
-                                    <button class="ui primary submit button">Add</button>
+                                <div id="supp-refs-actions">
+                                    <div class="ui action input">
+                                        <input placeholder="PubMed ID (e.g. 19913036)" type="text" name="pmid">
+                                        <button class="ui primary submit button">Add</button>
+                                        <div class="supp-refs-unlink ui horizontal divider">&nbsp;</div>
+                                        <button id="unlink-all-btn" class="supp-refs-unlink ui red button">Unlink
+                                            all</button>
+                                    </div>
                                 </div>
                             </div>
                         </div>

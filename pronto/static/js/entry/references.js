@@ -5,39 +5,61 @@ export function refresh(accession) {
     return fetch(`/api/entry/${accession}/references/`)
         .then(response => response.json())
         .then(references => {
+
             const elem = document.querySelector('#supp-references .content');
+            const suppRefsActions = document.querySelector('#supp-refs-actions')
+
             if (!references.length) {
                 elem.innerHTML = '<p>This entry has no additional references.</p>';
-                document.querySelectorAll('.supp-refs-unlink').forEach(e => e.remove())
+                document.querySelectorAll('.supp-refs-unlink').forEach(e => {
+                    const temp = e.cloneNode(true)
+                    suppRefsActions.appendChild(temp)
+                    temp.style.display = 'none'
+                    e.remove()
+                })
                 return;
             }
-            
-            // Unlink all references
-            document.querySelector('.supp-refs-actions').innerHTML += `
-                <div class="supp-refs-unlink ui horizontal divider">&nbsp;</div>
-                <button id="unlink-all-btn" class="supp-refs-unlink ui red button">Unlink all</button>
-            `
 
-            document.querySelector('#unlink-all-btn').addEventListener('click', e => {
-                const errMsg = document.querySelector('#edit-entry .ui.message');
-                toggleErrorMessage(errMsg, null);
-                modals.ask(
-                    'Unlink supplementary references',
-                    `Do you want to unlink all the supplementary references?`,
-                    'Unlink all',
-                    () => {
-                        let url = `/api/entry/${accession}/references/`;
-                        fetch(url, { method: 'DELETE' })
-                            .then(response => response.json())
-                            .then(result => {
-                                if (result.status) {
-                                    refresh(accession).then(() => { $('.ui.sticky').sticky(); });
-                                } else
-                                    toggleErrorMessage(errMsg, result.error);
-                            });
-                    }
-                );
+            document.querySelectorAll('#supp-refs-actions .supp-refs-unlink').forEach(e => {
+                const temp = e.cloneNode(true)
+                const buttonGroup = document.querySelector('#supp-refs-actions .ui.action.input')
+                buttonGroup.appendChild(temp)
+                temp.style.display = 'inline'
+                e.remove()
             })
+
+            const unlinkBtn = document.querySelector('#unlink-all-btn')
+            if (unlinkBtn) {
+                unlinkBtn.addEventListener('click', e => {
+                    const errMsg = document.querySelector('#edit-entry .ui.message');
+                    toggleErrorMessage(errMsg, null);
+                    modals.ask(
+                        'Unlink supplementary references',
+                        `Do you want to unlink all the supplementary references?`,
+                        'Unlink all',
+                        () => {
+                            let url = `/api/entry/${accession}/unlink-references/`;
+                            fetch(url, {
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                method: 'PATCH',
+                                body: JSON.stringify({
+                                    "pub_ids": references.map((ref) => ref.id)
+                                })
+                            })
+                                .then(response => response.json())
+                                .then(result => {
+                                    if (result.status) {
+                                        refresh(accession).then(() => { $('.ui.sticky').sticky(); });
+                                    } else
+                                        toggleErrorMessage(errMsg, result.error);
+                                });
+                        }
+                    );
+                })
+
+            }
 
             let html = '<p>The following publications were not referred to in the description, but provide useful additional information.</p><ul class="ui list">';
             references.sort((a, b) => a.year - b.year);
@@ -77,7 +99,16 @@ export function refresh(accession) {
                         'This reference will not be associated to this entry anymore.',
                         'Delete',
                         () => {
-                            fetch(`/api/entry/${accession}/reference/${pubId}/`, { method: 'DELETE' })
+                            fetch(`/api/entry/${accession}/unlink-references/`,
+                                {
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                    },
+                                    method: 'PATCH',
+                                    body: JSON.stringify({
+                                        "pub_ids": [pubId]
+                                    })
+                                })
                                 .then(response => response.json())
                                 .then(result => {
                                     if (result.status)
