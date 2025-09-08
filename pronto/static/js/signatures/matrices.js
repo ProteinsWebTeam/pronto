@@ -57,6 +57,8 @@ function getMatrices(accessions) {
 
             document.getElementById('overlaps').innerHTML = thead + `<tbody>${tbody1}</tbody>`;
             document.getElementById('collocations').innerHTML = thead + `<tbody>${tbody2}</tbody>`;
+
+            // Add exclusive-to-signature number of proteins
             let exclusiveTableRows = ''
             
             Object.entries(results.exclusive).map(s => exclusiveTableRows += `
@@ -95,7 +97,7 @@ function getMatrices(accessions) {
                     else
                         values = comparisons.get(key2).get(key1);
 
-                    document.getElementById('details-general').innerHTML = `
+                    document.getElementById('details-proteins').innerHTML = `
                         <h4 class="ui header">Proteins</h4>
                         <table class="ui very basic small compact table">
                         <tbody>
