@@ -157,7 +157,7 @@ def link_reference(accession, pmid):
         cur.close()
         con.close()
 
-@bp.route("/<accession>/unlink-references/", methods=["PATCH"])
+@bp.route("/<accession>/references/unlink", methods=["PATCH"])
 def unlink_references(accession):
     user = auth.get_user()
     if not user:

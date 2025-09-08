@@ -43,7 +43,7 @@ export function refresh(accession) {
                         `Do you want to unlink all the supplementary references?`,
                         'Unlink all',
                         () => {
-                            let url = `/api/entry/${accession}/unlink-references/`;
+                            let url = `/api/entry/${accession}/references/unlink`;
                             fetch(url, {
                                 headers: {
                                     'Content-Type': 'application/json',
@@ -104,7 +104,7 @@ export function refresh(accession) {
                         'This reference will not be associated to this entry anymore.',
                         'Delete',
                         () => {
-                            fetch(`/api/entry/${accession}/unlink-references/`,
+                            fetch(`/api/entry/${accession}/references/unlink`,
                                 {
                                     headers: {
                                         'Content-Type': 'application/json',
