@@ -64,13 +64,13 @@ function getMatrices(accessions) {
             Object.entries(results.exclusive).map(s => exclusiveTableRows += `
                 <tr>
                     <td>${s[0]}</td>
-                    <td>${s[1]}</td>
+                    <td class="right aligned">${s[1].toLocaleString()}</td>
                 </tr>`)
 
             const exclusiveDiv = document.createElement('div')
             exclusiveDiv.innerHTML = `
                 <br>
-                <h4 class="ui header">Exclusive</h4>
+                <h4 class="ui header">Exclusive proteins</h4>
                         <table class="ui very basic small compact table">
                             <tbody>
                                 ${exclusiveTableRows}
