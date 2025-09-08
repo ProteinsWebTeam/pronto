@@ -11,6 +11,8 @@ export function refresh(accession) {
 
             if (!references.length) {
                 elem.innerHTML = '<p>This entry has no additional references.</p>';
+
+                // Move to parent element to keep style the same
                 document.querySelectorAll('.supp-refs-unlink').forEach(e => {
                     const temp = e.cloneNode(true)
                     suppRefsActions.appendChild(temp)
@@ -22,12 +24,15 @@ export function refresh(accession) {
 
             document.querySelectorAll('#supp-refs-actions .supp-refs-unlink').forEach(e => {
                 const temp = e.cloneNode(true)
+
+                // Move in button group again
                 const buttonGroup = document.querySelector('#supp-refs-actions .ui.action.input')
                 buttonGroup.appendChild(temp)
                 temp.style.display = 'inline'
                 e.remove()
             })
-
+            
+            // Unlink all supp. references on click
             const unlinkBtn = document.querySelector('#unlink-all-btn')
             if (unlinkBtn) {
                 unlinkBtn.addEventListener('click', e => {
