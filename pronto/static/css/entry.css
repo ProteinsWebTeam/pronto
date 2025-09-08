@@ -93,3 +93,7 @@ Preview mode: no horizontal line between annotations, but a simple padding (like
     margin-left: 0;
     padding-left: 1.5rem;
 }
+
+#unlink-all-btn {
+    margin-left: 0.25rem;
+}
