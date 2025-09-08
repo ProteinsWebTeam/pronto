@@ -373,7 +373,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-
     updateHeader().then(() => { getEntry(accession); });
 });
 
