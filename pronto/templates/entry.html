@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/semantic.min.css') }}">
@@ -7,439 +8,459 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/entry.css') }}">
     <title>Pronto</title>
 </head>
+
 <body>
 
-{% include 'header.html' %}
+    {% include 'header.html' %}
 
-<div class="ui container">
-    <div class="ui basic segment">
-        <h1 class="ui header"></h1>
-        <div id="statistics" class="ui segment">
-            <a class="ui left corner label">
-                <i class="pencil icon"></i>
-            </a>
-            <div class="ui seven mini statistics">
-                <div class="statistic">
-                    <div class="label">Type</div>
-                    <div data-statistic="type" class="value"></div>
-                </div>
-                <div class="statistic">
-                    <div class="label">Annotations</div>
-                    <a data-statistic="annotations" href="#annotations" class="value"></a>
-                </div>
-                <div class="statistic">
-                    <div class="label">Signatures</div>
-                    <a data-statistic="signatures" href="#signatures" class="value"></a>
-                </div>
-                <div class="statistic">
-                    <div class="label">Relationships</div>
-                    <a data-statistic="relationships" href="#relationships" class="value"></a>
-                </div>
-                <div class="statistic">
-                    <div class="label">GO terms</div>
-                    <a data-statistic="go" href="#go-terms" class="value"></a>
-                </div>
-                <div class="statistic">
-                    <div class="label">References</div>
-                    <a data-statistic="references" href="#references" class="value"></a>
-                </div>
-                <div class="statistic">
-                    <div class="label">Checked</div>
-                    <div data-statistic="checked" class="value"></div>
+    <div class="ui container">
+        <div class="ui basic segment">
+            <h1 class="ui header"></h1>
+            <div id="statistics" class="ui segment">
+                <a class="ui left corner label">
+                    <i class="pencil icon"></i>
+                </a>
+                <div class="ui seven mini statistics">
+                    <div class="statistic">
+                        <div class="label">Type</div>
+                        <div data-statistic="type" class="value"></div>
+                    </div>
+                    <div class="statistic">
+                        <div class="label">Annotations</div>
+                        <a data-statistic="annotations" href="#annotations" class="value"></a>
+                    </div>
+                    <div class="statistic">
+                        <div class="label">Signatures</div>
+                        <a data-statistic="signatures" href="#signatures" class="value"></a>
+                    </div>
+                    <div class="statistic">
+                        <div class="label">Relationships</div>
+                        <a data-statistic="relationships" href="#relationships" class="value"></a>
+                    </div>
+                    <div class="statistic">
+                        <div class="label">GO terms</div>
+                        <a data-statistic="go" href="#go-terms" class="value"></a>
+                    </div>
+                    <div class="statistic">
+                        <div class="label">References</div>
+                        <a data-statistic="references" href="#references" class="value"></a>
+                    </div>
+                    <div class="statistic">
+                        <div class="label">Checked</div>
+                        <div data-statistic="checked" class="value"></div>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <div id="edit-entry" class="ui hidden raised segment">
-            <div class="ui hidden error message"></div>
-            <div class="ui form">
-                <div class="fields">
-                    <div class="ten wide required field">
-                        <label>Name</label>
-                        <input name="name" placeholder="Entry name" type="text" maxlength="100" data-countdown>
-                        <p class="help-text"></p>
-                    </div>
-                    <div class="three wide required field">
-                        <label>Short name</label>
-                        <input name="short-name" placeholder="Entry short name" type="text" maxlength="30" data-countdown>
-                        <p class="help-text"></p>
-                    </div>
-                    <div class="three wide required field">
-                        <label>Type</label>
-                        <select class="ui dropdown" name="type">
-                            <option value="">Type</option>
-                            <option value="A">Active site</option>
-                            <option value="B">Binding site</option>
-                            <option value="C">Conserved site</option>
-                            <option value="D">Domain</option>
-                            <option value="F">Family</option>
-                            <option value="H">Homologous superfamily</option>
-                            <option value="P">PTM</option>
-                            <option value="R">Repeat</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="field">
-                    <div class="ui checkbox">
-                        <input type="checkbox" name="checked">
-                        <label>Checked: this entry will be made public in the next release</label>
-                    </div>
-                </div>
-                <div id="llm-fields">
-                    <h4 class="ui dividing header">AI-generated entry</h4>
-                    <div class="field">
-                        <div class="ui checkbox">
-                            <input type="checkbox" name="llm-reviewed">
-                            <label>Reviewed: this entry <strong>and its annotations</strong> will be marked as reviewed</label>
+            <div id="edit-entry" class="ui hidden raised segment">
+                <div class="ui hidden error message"></div>
+                <div class="ui form">
+                    <div class="fields">
+                        <div class="ten wide required field">
+                            <label>Name</label>
+                            <input name="name" placeholder="Entry name" type="text" maxlength="100" data-countdown>
+                            <p class="help-text"></p>
+                        </div>
+                        <div class="three wide required field">
+                            <label>Short name</label>
+                            <input name="short-name" placeholder="Entry short name" type="text" maxlength="30"
+                                data-countdown>
+                            <p class="help-text"></p>
+                        </div>
+                        <div class="three wide required field">
+                            <label>Type</label>
+                            <select class="ui dropdown" name="type">
+                                <option value="">Type</option>
+                                <option value="A">Active site</option>
+                                <option value="B">Binding site</option>
+                                <option value="C">Conserved site</option>
+                                <option value="D">Domain</option>
+                                <option value="F">Family</option>
+                                <option value="H">Homologous superfamily</option>
+                                <option value="P">PTM</option>
+                                <option value="R">Repeat</option>
+                            </select>
                         </div>
                     </div>
                     <div class="field">
                         <div class="ui checkbox">
-                            <input type="checkbox" name="curated">
-                            <label>Curated: this entry <strong>and its annotations</strong> will be marked as curated</label>
+                            <input type="checkbox" name="checked">
+                            <label>Checked: this entry will be made public in the next release</label>
                         </div>
                     </div>
-                    <div class="hidden field">
-                        <div class="ui checkbox">
-                            <input type="checkbox" name="llm">
-                        </div>
-                    </div>
-                </div>
-
-                <div style="text-align: right;">
-                    <div class="ui negative button">Delete</div>
-                    <div class="ui primary submit button">Update</div>
-                    <div class="ui basic cancel button">Cancel</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="ui grid">
-            <div class="four wide column">
-                <div class="ui sticky">
-                    <div class="ui vertical basic segment">
-                        <div class="ui fluid vertical menu">
-                            <a href="#curation" class="active item">
-                                Curation
-                            </a>
-                            <a href="#annotations" class="item">
-                                Annotations
-                                <div data-statistic="annotations" class="ui label"></div>
-                            </a>
-                            <a href="#signatures" class="item">
-                                Signatures
-                                <div data-statistic="signatures" class="ui label"></div>
-                            </a>
-                            <a href="#relationships" class="item">
-                                Relationships
-                                <div data-statistic="relationships" class="ui label"></div>
-                            </a>
-                            <a href="#go-terms" class="item">
-                                GO terms
-                                <div data-statistic="go" class="ui label"></div>
-                            </a>
-                            <a href="#references" class="item">
-                                References
-                                <div data-statistic="references" class="ui label"></div>
-                            </a>
-                        </div>
-                    </div>
-                    <div class="ui vertical segment comments">
-                        <h3 class="ui dividing header">
-                            <i class="comments icon"></i>Comments
-                        </h3>
-                        <div class="comments-content"></div>
-                        <form class="ui reply form">
-                            <div class="field">
-                                <textarea placeholder="Write comment&hellip;"></textarea>
+                    <div id="llm-fields">
+                        <h4 class="ui dividing header">AI-generated entry</h4>
+                        <div class="field">
+                            <div class="ui checkbox">
+                                <input type="checkbox" name="llm-reviewed">
+                                <label>Reviewed: this entry <strong>and its annotations</strong> will be marked as
+                                    reviewed</label>
                             </div>
-                            <button class="ui blue labeled icon button"><i class="icon edit"></i>Add comment</button>
-                        </form>
+                        </div>
+                        <div class="field">
+                            <div class="ui checkbox">
+                                <input type="checkbox" name="curated">
+                                <label>Curated: this entry <strong>and its annotations</strong> will be marked as
+                                    curated</label>
+                            </div>
+                        </div>
+                        <div class="hidden field">
+                            <div class="ui checkbox">
+                                <input type="checkbox" name="llm">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="text-align: right;">
+                        <div class="ui negative button">Delete</div>
+                        <div class="ui primary submit button">Update</div>
+                        <div class="ui basic cancel button">Cancel</div>
                     </div>
                 </div>
             </div>
-            <div class="twelve wide column">
-                <div class="ui toggle checkbox">
-                    <input type="checkbox">
-                    <label>Enable preview mode</label>
-                </div>
 
-                <div id="curation" class="ui basic vertical segment">
-                    <h2 class="ui dividing header">Curation</h2>
-                    <div class="ui grid">
-                        <div class="eight wide column">
-                            <h3 class="ui header">Public website</h3>
-                            <a id="public-website" target="_blank" href="">InterPro<i class="external icon"></i></a>
+            <div class="ui grid">
+                <div class="four wide column">
+                    <div class="ui sticky">
+                        <div class="ui vertical basic segment">
+                            <div class="ui fluid vertical menu">
+                                <a href="#curation" class="active item">
+                                    Curation
+                                </a>
+                                <a href="#annotations" class="item">
+                                    Annotations
+                                    <div data-statistic="annotations" class="ui label"></div>
+                                </a>
+                                <a href="#signatures" class="item">
+                                    Signatures
+                                    <div data-statistic="signatures" class="ui label"></div>
+                                </a>
+                                <a href="#relationships" class="item">
+                                    Relationships
+                                    <div data-statistic="relationships" class="ui label"></div>
+                                </a>
+                                <a href="#go-terms" class="item">
+                                    GO terms
+                                    <div data-statistic="go" class="ui label"></div>
+                                </a>
+                                <a href="#references" class="item">
+                                    References
+                                    <div data-statistic="references" class="ui label"></div>
+                                </a>
+                            </div>
                         </div>
-                        <div class="eight wide column">
-                            <div class="ui feed"></div>
-                        </div>
-                    </div>
-
-                    <h3 class="ui header">Signatures comparison</h3>
-                    <div class="ui horizontal bulleted link list">
-                        <a target="_blank" data-link="proteins?reviewed" class="item">Proteins</a>
-                        <a target="_blank" data-link="taxonomy/superkingdom" class="item">Taxonomic origins</a>
-                        <a target="_blank" data-link="descriptions?reviewed" class="item">UniProt descriptions</a>
-                        <a target="_blank" data-link="comments" class="item">Similarity comments</a>
-                        <a target="_blank" data-link="go" class="item">GO terms</a>
-                        <a target="_blank" data-link="matrices" class="item">Matrices</a>
-                        <a target="_blank" data-link="structures" class="item">Structures</a>
-                    </div>
-                </div>
-
-                <div id="annotations" class="ui basic vertical segment">
-                    <h2 class="ui dividing header">Annotations</h2>
-                    <div class="header">
-                        <button id="create-annotation" class="ui basic button">
-                            <i class="pencil icon"></i>
-                            New annotation
-                        </button>
-                        <button id="signatures-annotations" class="ui basic button">
-                            <i class="list icon"></i>
-                            Signatures annotations
-                        </button>
-                        <button id="help-format" class="ui basic button">
-                            <i class="help circle icon"></i>
-                            Formatting help
-                        </button>
-                        <div class="ui left icon input">
-                            <input id="search-annotations" placeholder="Search annotations" type="text">
-                            <i class="search icon"></i>
+                        <div class="ui vertical segment comments">
+                            <h3 class="ui dividing header">
+                                <i class="comments icon"></i>Comments
+                            </h3>
+                            <div class="comments-content"></div>
+                            <form class="ui reply form">
+                                <div class="field">
+                                    <textarea placeholder="Write comment&hellip;"></textarea>
+                                </div>
+                                <button class="ui blue labeled icon button"><i class="icon edit"></i>Add
+                                    comment</button>
+                            </form>
                         </div>
                     </div>
-                    <div class="content"></div>
                 </div>
-
-                <div id="signatures" class="ui basic vertical segment">
-                    <h2 class="ui dividing header">Contributing signatures</h2>
-                    <div class="ui hidden message">
-                        <div class="header"></div>
-                        <p></p>
+                <div class="twelve wide column">
+                    <div class="ui toggle checkbox">
+                        <input type="checkbox">
+                        <label>Enable preview mode</label>
                     </div>
-                    <table class="ui selectable table">
-                        <thead>
-                            <tr>
-                                <th class="collapsing"></th>
-                                <th>Member database</th>
-                                <th>Accession</th>
-                                <th>Name</th>
-                                <th colspan="2" class="center aligned">Proteins count
-                                    <span data-tooltip="Number of sequences, and complete sequences"
-                                          data-position="top center" data-inverted="">
-                                        <i class="question circle icon"></i>
-                                    </span>
-                                </th>
-                                <th>Integration</th>
-                                <th class="collapsing"></th>
-                                <th class="collapsing"></th>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                        <tfoot>
-                            <tr>
-                                <th colspan="9">
-                                    <div class="ui secondary menu">
-                                        <div class="right fitted item">
-                                            <div class="ui form">
-                                                <div class="field">
-                                                    <div class="ui action input">
-                                                        <input placeholder="Signature accession" type="text" name="accession">
-                                                        <button class="ui primary submit button">Add</button>
+
+                    <div id="curation" class="ui basic vertical segment">
+                        <h2 class="ui dividing header">Curation</h2>
+                        <div class="ui grid">
+                            <div class="eight wide column">
+                                <h3 class="ui header">Public website</h3>
+                                <a id="public-website" target="_blank" href="">InterPro<i class="external icon"></i></a>
+                            </div>
+                            <div class="eight wide column">
+                                <div class="ui feed"></div>
+                            </div>
+                        </div>
+
+                        <h3 class="ui header">Signatures comparison</h3>
+                        <div class="ui horizontal bulleted link list">
+                            <a target="_blank" data-link="proteins?reviewed" class="item">Proteins</a>
+                            <a target="_blank" data-link="taxonomy/superkingdom" class="item">Taxonomic origins</a>
+                            <a target="_blank" data-link="descriptions?reviewed" class="item">UniProt descriptions</a>
+                            <a target="_blank" data-link="comments" class="item">Similarity comments</a>
+                            <a target="_blank" data-link="go" class="item">GO terms</a>
+                            <a target="_blank" data-link="matrices" class="item">Matrices</a>
+                            <a target="_blank" data-link="structures" class="item">Structures</a>
+                        </div>
+                    </div>
+
+                    <div id="annotations" class="ui basic vertical segment">
+                        <h2 class="ui dividing header">Annotations</h2>
+                        <div class="header">
+                            <button id="create-annotation" class="ui basic button">
+                                <i class="pencil icon"></i>
+                                New annotation
+                            </button>
+                            <button id="signatures-annotations" class="ui basic button">
+                                <i class="list icon"></i>
+                                Signatures annotations
+                            </button>
+                            <button id="help-format" class="ui basic button">
+                                <i class="help circle icon"></i>
+                                Formatting help
+                            </button>
+                            <div class="ui left icon input">
+                                <input id="search-annotations" placeholder="Search annotations" type="text">
+                                <i class="search icon"></i>
+                            </div>
+                        </div>
+                        <div class="content"></div>
+                    </div>
+
+                    <div id="signatures" class="ui basic vertical segment">
+                        <h2 class="ui dividing header">Contributing signatures</h2>
+                        <div class="ui hidden message">
+                            <div class="header"></div>
+                            <p></p>
+                        </div>
+                        <table class="ui selectable table">
+                            <thead>
+                                <tr>
+                                    <th class="collapsing"></th>
+                                    <th>Member database</th>
+                                    <th>Accession</th>
+                                    <th>Name</th>
+                                    <th colspan="2" class="center aligned">Proteins count
+                                        <span data-tooltip="Number of sequences, and complete sequences"
+                                            data-position="top center" data-inverted="">
+                                            <i class="question circle icon"></i>
+                                        </span>
+                                    </th>
+                                    <th>Integration</th>
+                                    <th class="collapsing"></th>
+                                    <th class="collapsing"></th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                            <tfoot>
+                                <tr>
+                                    <th colspan="9">
+                                        <div class="ui secondary menu">
+                                            <div class="right fitted item">
+                                                <div class="ui form">
+                                                    <div class="field">
+                                                        <div class="ui action input">
+                                                            <input placeholder="Signature accession" type="text"
+                                                                name="accession">
+                                                            <button class="ui primary submit button">Add</button>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
-                                </th>
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
+                                    </th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
 
-                <div id="relationships" class="ui basic vertical segment">
-                    <h2 class="ui dividing header">InterPro relationships</h2>
-                    <div class="ui form">
-                        <div class="two fields">
-                            <div class="field">
-                                <label>Add relationship</label>
-                                <select class="ui dropdown" name="type">
-                                </select>
+                    <div id="relationships" class="ui basic vertical segment">
+                        <h2 class="ui dividing header">InterPro relationships</h2>
+                        <div class="ui form">
+                            <div class="two fields">
+                                <div class="field">
+                                    <label>Add relationship</label>
+                                    <select class="ui dropdown" name="type">
+                                    </select>
+                                </div>
+                                <div class="field">
+                                    <label>&nbsp;</label>
+                                    <div class="ui action input ">
+                                        <input placeholder="InterPro accession" type="text" name="accession">
+                                        <button class="ui primary submit button">Add</button>
+                                    </div>
+                                </div>
                             </div>
+                        </div>
+                        <div class="ui hidden error message"></div>
+                        <div class="content"></div>
+                    </div>
+
+                    <div id="go-terms" class="ui basic vertical segment">
+                        <h2 class="ui dividing header">GO terms</h2>
+                        <div class="ui form">
                             <div class="field">
-                                <label>&nbsp;</label>
-                                <div class="ui action input ">
-                                    <input placeholder="InterPro accession" type="text" name="accession">
+                                <label>Add GO term mapping</label>
+                                <div class="ui action input">
+                                    <input placeholder="GO term ID (e.g. GO:0006915)" type="text" name="term">
                                     <button class="ui primary submit button">Add</button>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="ui hidden error message"></div>
-                    <div class="content"></div>
-                </div>
+                        <div class="ui hidden error message">
+                            <div class="header"></div>
+                            <p></p>
+                        </div>
 
-                <div id="go-terms" class="ui basic vertical segment">
-                    <h2 class="ui dividing header">GO terms</h2>
-                    <div class="ui form">
-                        <div class="field">
-                            <label>Add GO term mapping</label>
-                            <div class="ui action input">
-                                <input placeholder="GO term ID (e.g. GO:0006915)" type="text" name="term">
-                                <button class="ui primary submit button">Add</button>
+                        <h3 class="ui header">Molecular Function</h3>
+                        <div id="molecular-functions"></div>
+
+                        <h3 class="ui header">Biological Process</h3>
+                        <div id="biological-processes"></div>
+
+                        <h3 class="ui header">Cellular Component</h3>
+                        <div id="cellular-components"></div>
+                    </div>
+
+                    <div id="references" class="ui basic vertical segment">
+                        <h2 id="references" class="ui dividing header">References</h2>
+                        <div class="content"></div>
+                    </div>
+                    <div id="supp-references" class="ui basic vertical segment">
+                        <h2 class="ui dividing header">Supplementary references</h2>
+                        <div class="ui form">
+                            <div class="field">
+                                <label>Add reference</label>
+                                <div id="supp-refs-actions">
+                                    <div class="ui action input">
+                                        <input placeholder="PubMed ID (e.g. 19913036)" type="text" name="pmid">
+                                        <button class="ui primary submit button">Add</button>
+                                        <button id="unlink-all-btn" class="supp-refs-unlink ui red button">Unlink
+                                            all</button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
+                        <div class="content"></div>
                     </div>
-                    <div class="ui hidden error message">
-                        <div class="header"></div>
-                        <p></p>
-                    </div>
-
-                    <h3 class="ui header">Molecular Function</h3>
-                    <div id="molecular-functions"></div>
-
-                    <h3 class="ui header">Biological Process</h3>
-                    <div id="biological-processes"></div>
-
-                    <h3 class="ui header">Cellular Component</h3>
-                    <div id="cellular-components"></div>
-                </div>
-
-                <div id="references" class="ui basic vertical segment">
-                    <h2 id="references" class="ui dividing header">References</h2>
-                    <div class="content"></div>
-                </div>
-
-                <div id="supp-references" class="ui basic vertical segment">
-                    <h2 class="ui dividing header">Supplementary references</h2>
-                    <div class="ui form">
-                        <div class="field">
-                            <label>Add reference</label>
-                            <div class="ui action input">
-                                <input placeholder="PubMed ID (e.g. 19913036)" type="text" name="pmid">
-                                <button class="ui primary submit button">Add</button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="content"></div>
                 </div>
             </div>
         </div>
     </div>
-</div>
 
-<div id="new-annotation" class="ui modal">
-    <div class="header">New annotation</div>
-    <div class="scrolling content">
-        <div class="ui hidden error message">
-            <div class="header"></div>
-            <p></p>
+    <div id="new-annotation" class="ui modal">
+        <div class="header">New annotation</div>
+        <div class="scrolling content">
+            <div class="ui hidden error message">
+                <div class="header"></div>
+                <p></p>
+            </div>
+            <textarea></textarea>
+            <div class="ui checkbox">
+                <input type="checkbox" name="is-llm">
+                <label>Mark this annotation as <strong>reviewed AI-generated</strong></label>
+            </div>
         </div>
-        <textarea></textarea>
-        <div class="ui checkbox">
-            <input type="checkbox" name="is-llm">
-            <label>Mark this annotation as <strong>reviewed AI-generated</strong></label>
+        <div class="actions">
+            <div class="ui cancel button">Cancel</div>
+            <div class="ui primary ok button">Create</div>
         </div>
     </div>
-    <div class="actions">
-        <div class="ui cancel button">Cancel</div>
-        <div class="ui primary ok button">Create</div>
-    </div>
-</div>
 
-<div id="list-annotations" class="ui coupled large modal">
-    <div class="header"></div>
-    <div class="scrolling content">
-        <div class="ui hidden error message"></div>
+    <div id="list-annotations" class="ui coupled large modal">
+        <div class="header"></div>
+        <div class="scrolling content">
+            <div class="ui hidden error message"></div>
+            <div class="content"></div>
+        </div>
+        <div class="actions">
+            <div class="ui cancel button">Close</div>
+        </div>
+    </div>
+
+    <div id="list-entries" class="ui coupled tiny modal">
+        <div class="scrolling content"></div>
+        <div class="actions">
+            <div class="ui cancel button">Close</div>
+        </div>
+    </div>
+
+    <div id="message-info" class="ui coupled tiny modal">
+        <div class="header"></div>
         <div class="content"></div>
+        <div class="actions">
+            <div class="ui ok button">Close</div>
+        </div>
     </div>
-    <div class="actions">
-        <div class="ui cancel button">Close</div>
-    </div>
-</div>
 
-<div id="list-entries" class="ui coupled tiny modal">
-    <div class="scrolling content"></div>
-    <div class="actions">
-        <div class="ui cancel button">Close</div>
-    </div>
-</div>
-
-<div id="message-info" class="ui coupled tiny modal">
-    <div class="header"></div>
-    <div class="content"></div>
-    <div class="actions">
-        <div class="ui ok button">Close</div>
-    </div>
-</div>
-
-<div id="format-help" class="ui small modal">
-    <i class="close icon"></i>
-    <div class="header">Formatting help</div>
-    <div class="scrolling content justified">
-        <div class="ui header">General rules</div>
-        <ol class="ui list">
-            <li>
-                Open HTML tags (e.g. <code>&lt;p&gt;</code>, <code>&lt;pre&gt;</code>) must have a matched closing tag (e.g. <code>&lt;/p&gt;</code>, <code>&lt;/pre&gt;</code>).
-            </li>
-            <li>
-                Paragraphs (<code>&lt;p&gt;&hellip;&lt;/p&gt;</code>) should not contain lists (<code>&lt;ul&gt;&hellip;&lt;/ul&gt;</code>, <code>&lt;ol&gt;&hellip;&lt;/ol&gt;</code>), list items (<code>&lt;li&gt;&hellip;&lt;/li&gt;</code>), or other paragraphs.
-            </li>
-            <li>
-                List items (<code>&lt;li&gt;&hellip;&lt;/li&gt;</code>) should always be inside ordered (<code>&lt;ol&gt;&hellip;&lt;/ol&gt;</code>) or unordered (<code>&lt;ul&gt;&hellip;&lt;/ul&gt;</code>) lists.
-            </li>
-            <li>
-                The paragraph tags (<code>&lt;p&gt;</code> and <code>&lt;/p&gt;</code>) are optional, and will be automatically added.
-                For instance, the following annotation:
-                <pre><code>The first paragraph.
+    <div id="format-help" class="ui small modal">
+        <i class="close icon"></i>
+        <div class="header">Formatting help</div>
+        <div class="scrolling content justified">
+            <div class="ui header">General rules</div>
+            <ol class="ui list">
+                <li>
+                    Open HTML tags (e.g. <code>&lt;p&gt;</code>, <code>&lt;pre&gt;</code>) must have a matched closing
+                    tag (e.g. <code>&lt;/p&gt;</code>, <code>&lt;/pre&gt;</code>).
+                </li>
+                <li>
+                    Paragraphs (<code>&lt;p&gt;&hellip;&lt;/p&gt;</code>) should not contain lists
+                    (<code>&lt;ul&gt;&hellip;&lt;/ul&gt;</code>, <code>&lt;ol&gt;&hellip;&lt;/ol&gt;</code>), list items
+                    (<code>&lt;li&gt;&hellip;&lt;/li&gt;</code>), or other paragraphs.
+                </li>
+                <li>
+                    List items (<code>&lt;li&gt;&hellip;&lt;/li&gt;</code>) should always be inside ordered
+                    (<code>&lt;ol&gt;&hellip;&lt;/ol&gt;</code>) or unordered
+                    (<code>&lt;ul&gt;&hellip;&lt;/ul&gt;</code>) lists.
+                </li>
+                <li>
+                    The paragraph tags (<code>&lt;p&gt;</code> and <code>&lt;/p&gt;</code>) are optional, and will be
+                    automatically added.
+                    For instance, the following annotation:
+                    <pre><code>The first paragraph.
 
 A second paragraph after an empty line.</code></pre>
 
-                will be saved as:
-                <pre><code>&lt;p&gt;
+                    will be saved as:
+                    <pre><code>&lt;p&gt;
 The first paragraph.
 &lt;/p&gt;
 
 &lt;p&gt;
 A second paragraph after an empty line.
 &lt;/p&gt;</code></pre>
-            </li>
-        </ol>
-        <div class="ui header">Cross-references</div>
-        <p>
-            Create a link to an external resource by writing the identifier of the resource, followed by a colon and the entry's accession, between square brackets, e.g. <code>[pfam:PF00069]</code>.<br>
-            The following resources are supported:
-        </p>
-        <ul class="ui list">
-            <li>CATH-Gene3D: <code>[cathgene3d:&hellip;]</code></li>
-            <li>CAZy: <code>[cazy:&hellip;]</code></li>
-            <li>EC number: <code>[ec:&hellip;]</code></li>
-            <li>Genome Properties: <code>[genprop:&hellip;]</code></li>
-            <li>InterPro: <code>[interpro:&hellip;]</code></li>
-            <li>OMIM: <code>[omim:&hellip;]</code></li>
-            <li>PDBe: <code>[pdbe:&hellip;]</code></li>
-            <li>Pfam: <code>[pfam:&hellip;]</code></li>
-            <li>PIRSF: <code>[pirsf:&hellip;]</code></li>
-            <li>PROSITE: <code>[prosite:&hellip;]</code></li>
-            <li>SUPERFAMILY: <code>[superfamily:&hellip;]</code></li>
-            <li>Swiss-Prot: <code>[swissprot:&hellip;]</code></li>
-            <li>NCBIFAM: <code>[ncbifam:&hellip;]</code></li>
-        </ul>
-        <div class="ui header">Literature references</div>
-        <p>
-            Add a literature reference (citation) by writing <code>cite:</code>, followed by one or several PubMed IDs, in square brackets, e.g. <code>[cite:11298287]</code>. When adding several references, PubMed IDs should be separated by commas. When saving the annotation, PubMed IDs will be replaced by Publication IDs.
-        </p>
+                </li>
+            </ol>
+            <div class="ui header">Cross-references</div>
+            <p>
+                Create a link to an external resource by writing the identifier of the resource, followed by a colon and
+                the entry's accession, between square brackets, e.g. <code>[pfam:PF00069]</code>.<br>
+                The following resources are supported:
+            </p>
+            <ul class="ui list">
+                <li>CATH-Gene3D: <code>[cathgene3d:&hellip;]</code></li>
+                <li>CAZy: <code>[cazy:&hellip;]</code></li>
+                <li>EC number: <code>[ec:&hellip;]</code></li>
+                <li>Genome Properties: <code>[genprop:&hellip;]</code></li>
+                <li>InterPro: <code>[interpro:&hellip;]</code></li>
+                <li>OMIM: <code>[omim:&hellip;]</code></li>
+                <li>PDBe: <code>[pdbe:&hellip;]</code></li>
+                <li>Pfam: <code>[pfam:&hellip;]</code></li>
+                <li>PIRSF: <code>[pirsf:&hellip;]</code></li>
+                <li>PROSITE: <code>[prosite:&hellip;]</code></li>
+                <li>SUPERFAMILY: <code>[superfamily:&hellip;]</code></li>
+                <li>Swiss-Prot: <code>[swissprot:&hellip;]</code></li>
+                <li>NCBIFAM: <code>[ncbifam:&hellip;]</code></li>
+            </ul>
+            <div class="ui header">Literature references</div>
+            <p>
+                Add a literature reference (citation) by writing <code>cite:</code>, followed by one or several PubMed
+                IDs, in square brackets, e.g. <code>[cite:11298287]</code>. When adding several references, PubMed IDs
+                should be separated by commas. When saving the annotation, PubMed IDs will be replaced by Publication
+                IDs.
+            </p>
+        </div>
     </div>
-</div>
 
-<div id="goconstraint-modal" class="ui modal">
-    <i class="close icon"></i>
-    <div class="ui header"></div>
-    <div class="scrolling content"></div>
-</div>
+    <div id="goconstraint-modal" class="ui modal">
+        <i class="close icon"></i>
+        <div class="ui header"></div>
+        <div class="scrolling content"></div>
+    </div>
 
-<script src="{{ url_for('static', filename='vendor/jquery.min.js') }}"></script>
-<script src="{{ url_for('static', filename='vendor/semantic.min.js') }}"></script>
-<script src="{{ url_for('static', filename='js/entry/entry.js') }}" type="module"></script>
+    <script src="{{ url_for('static', filename='vendor/jquery.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/semantic.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/entry/entry.js') }}" type="module"></script>
 </body>
+
 </html>
