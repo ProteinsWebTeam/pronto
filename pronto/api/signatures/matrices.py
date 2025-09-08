@@ -28,24 +28,24 @@ def get_matrices(accessions):
 def get_comparisons(cur, accessions: tuple):
 
     exclusive = {}
-    for anchor_signature in accessions:
-        anchor_signature_proteins = cur.execute(
+    for fixed_signature in accessions:
+        fixed_signature_proteins = cur.execute(
             f"""
             SELECT protein_acc 
             FROM signature2protein 
-            WHERE signature_acc = '{anchor_signature}'
+            WHERE signature_acc = '{fixed_signature}'
             """
             ).fetchall()
         
-        not_anchor_signatures = [x for x in accessions if x != anchor_signature] 
-        not_anchor_signature_proteins = cur.execute(
+        comparison_signatures = [x for x in accessions if x != fixed_signature] 
+        comparison_signatures_proteins = cur.execute(
             f"""SELECT protein_acc 
             FROM signature2protein 
-            WHERE signature_acc in ({','.join(['%s'] * len(not_anchor_signatures))})
-            """, not_anchor_signatures).fetchall()
+            WHERE signature_acc in ({','.join(['%s'] * len(comparison_signatures))})
+            """, comparison_signatures).fetchall()
 
-        exclusive_to_anchor_signature = set(anchor_signature_proteins) - set(not_anchor_signature_proteins)
-        exclusive[anchor_signature] = len(exclusive_to_anchor_signature)
+        exclusive_to_fixed_signature = set(fixed_signature_proteins) - set(comparison_signatures_proteins)
+        exclusive[fixed_signature] = len(exclusive_to_fixed_signature)
     
     in_params = ','.join('%s' for _ in accessions)
 
