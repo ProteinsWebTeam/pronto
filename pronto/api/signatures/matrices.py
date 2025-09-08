@@ -13,18 +13,39 @@ def get_matrices(accessions):
     con = utils.connect_pg(utils.get_pg_url())
     cur = con.cursor()
 
-    signatures, comparisons = get_comparisons(cur, accessions)
+    signatures, comparisons, exclusive = get_comparisons(cur, accessions)
 
     cur.close()
     con.close()
     
     return jsonify({
         "signatures": signatures,
-        "comparisons": comparisons
+        "comparisons": comparisons,
+        "exclusive": exclusive
     })
 
 
 def get_comparisons(cur, accessions: tuple):
+
+    exclusive = {}
+    for anchor_signature in accessions:
+        anchor_signature_proteins = cur.execute(
+            f"""
+            SELECT protein_acc 
+            FROM signature2protein 
+            WHERE signature_acc = '{anchor_signature}'
+            """
+            ).fetchall()
+        
+        not_anchor_signatures = [x for x in accessions if x != anchor_signature] 
+        not_anchor_signature_proteins = cur.execute(
+            f"""SELECT protein_acc 
+            FROM signature2protein 
+            WHERE signature_acc in ({','.join(['%s'] * len(not_anchor_signatures))})
+            """, not_anchor_signatures).fetchall()
+
+        exclusive_to_anchor_signature = set(anchor_signature_proteins) - set(not_anchor_signature_proteins)
+        exclusive[anchor_signature] = len(exclusive_to_anchor_signature)
     
     in_params = ','.join('%s' for _ in accessions)
 
@@ -58,4 +79,4 @@ def get_comparisons(cur, accessions: tuple):
                 "overlaps": overlaps
             }
 
-    return signatures, comparisons
+    return signatures, comparisons, exclusive

@@ -1,6 +1,6 @@
 import * as dimmer from "../ui/dimmer.js";
-import {updateHeader} from "../ui/header.js";
-import {selector} from "../ui/signatures.js";
+import { updateHeader } from "../ui/header.js";
+import { selector } from "../ui/signatures.js";
 
 
 function getMatrices(accessions) {
@@ -8,7 +8,7 @@ function getMatrices(accessions) {
     fetch('/api' + location.pathname + location.search)
         .then(response => response.json())
         .then((results,) => {
-            const thead = `<thead><tr><th></th>${accessions.map(acc => '<th class="center aligned">'+ acc +'</th>').join('')}</tr></thead>`;
+            const thead = `<thead><tr><th></th>${accessions.map(acc => '<th class="center aligned">' + acc + '</th>').join('')}</tr></thead>`;
             let tbody1 = '';
             let tbody2 = '';
 
@@ -31,14 +31,14 @@ function getMatrices(accessions) {
                         continue
                     }
 
-                    let val = null;
+                    let val = undefined;
                     if (key1 < key2) {
                         if (comparisons.has(key1))
                             val = comparisons.get(key1).get(key2);
                     } else if (comparisons.has(key2))
                         val = comparisons.get(key2).get(key1);
 
-                    if (val === null) {
+                    if (val === undefined) {
                         tbody1 += '<td class="right aligned">0</td>';
                         tbody2 += '<td class="right aligned">0</td>';
                     } else {
@@ -57,6 +57,27 @@ function getMatrices(accessions) {
 
             document.getElementById('overlaps').innerHTML = thead + `<tbody>${tbody1}</tbody>`;
             document.getElementById('collocations').innerHTML = thead + `<tbody>${tbody2}</tbody>`;
+            let exclusiveTableRows = ''
+            
+            Object.entries(results.exclusive).map(s => exclusiveTableRows += `
+                <tr>
+                    <td>${s[0]}</td>
+                    <td>${s[1]}</td>
+                </tr>`)
+
+            const exclusiveDiv = document.createElement('div')
+            exclusiveDiv.innerHTML = `
+                <br>
+                <h4 class="ui header">Exclusive</h4>
+                        <table class="ui very basic small compact table">
+                            <tbody>
+                                ${exclusiveTableRows}
+                            </tbody>
+                        </table>
+                <br>
+                `
+            document.getElementById('details-exclusive').appendChild(exclusiveDiv)
+
             dimmer.off();
 
             for (const link of document.querySelectorAll('a[data-key1][data-key2]')) {
@@ -74,7 +95,7 @@ function getMatrices(accessions) {
                     else
                         values = comparisons.get(key2).get(key1);
 
-                    document.getElementById('details').innerHTML = `
+                    document.getElementById('details-general').innerHTML = `
                         <h4 class="ui header">Proteins</h4>
                         <table class="ui very basic small compact table">
                         <tbody>
@@ -88,7 +109,7 @@ function getMatrices(accessions) {
                             </tr>
                             <tr>
                                 <td>In either signatures</td>
-                                <td class="right aligned"><a href="/signatures/${key1}/${key2}/proteins/">${(proteins1+proteins2-values.collocations).toLocaleString()}</a></td>
+                                <td class="right aligned"><a href="/signatures/${key1}/${key2}/proteins/">${(proteins1 + proteins2 - values.collocations).toLocaleString()}</a></td>
                             </tr>
                             <tr>
                                 <td>In ${key1}</td>
@@ -96,7 +117,7 @@ function getMatrices(accessions) {
                             </tr>
                             <tr>
                                 <td>In ${key1} only</td>
-                                <td class="right aligned"><a href="/signatures/${key1}/proteins/?exclude=${key2}">${(proteins1-values.collocations).toLocaleString()}</a></td>
+                                <td class="right aligned"><a href="/signatures/${key1}/proteins/?exclude=${key2}">${(proteins1 - values.collocations).toLocaleString()}</a></td>
                             </tr>
                             <tr>
                                 <td>In ${key2}</td>
@@ -104,7 +125,7 @@ function getMatrices(accessions) {
                             </tr>
                             <tr>
                                 <td>In ${key2} only</td>
-                                <td class="right aligned"><a href="/signatures/${key2}/proteins/?exclude=${key1}">${(proteins2-values.collocations).toLocaleString()}</a></td>
+                                <td class="right aligned"><a href="/signatures/${key2}/proteins/?exclude=${key1}">${(proteins2 - values.collocations).toLocaleString()}</a></td>
                             </tr>
                         </tbody>
                         </table>
