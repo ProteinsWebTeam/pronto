@@ -37,18 +37,18 @@ def get_comparisons(cur, accessions: tuple):
         """, accessions 
     ).fetchall()
 
-    signatures_proteins_dict = {signature: proteins for signature, proteins in signatures_proteins}
+    signature2proteins = {}
+    for accession, proteins in cur.fetchall():
+        signature2proteins[accession] = set(proteins)
 
-    for fixed_signature in accessions:
-        fixed_signature_proteins = set(signatures_proteins_dict[fixed_signature])
+    exclusive = {}
+    for accession in signature2proteins:
+        others = set()
+        for o in signature2proteins:
+            if o != accession:
+                others |= signature2proteins[o]
 
-        comparison_signatures = [x for x in accessions if x != fixed_signature]
-        comparison_signatures_proteins = set()
-        for comparison_signature in comparison_signatures:
-            comparison_signatures_proteins.update(set(signatures_proteins_dict[comparison_signature]))
-        
-        exclusive_to_fixed_signature = set(fixed_signature_proteins) - comparison_signatures_proteins
-        exclusive[fixed_signature] = len(exclusive_to_fixed_signature)
+        exclusive[accession] = len(signature2proteins[accession] - others)
 
     in_params = ','.join('%s' for _ in accessions)
 
