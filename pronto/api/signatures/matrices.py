@@ -26,7 +26,7 @@ def get_matrices(accessions):
 
 
 def get_comparisons(cur, accessions: tuple):
-
+    in_params = ','.join('%s' for _ in accessions)
     exclusive = {}
     cur.execute(
         f"""
