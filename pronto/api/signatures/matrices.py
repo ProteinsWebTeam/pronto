@@ -28,14 +28,15 @@ def get_matrices(accessions):
 def get_comparisons(cur, accessions: tuple):
 
     exclusive = {}
-    signatures_proteins = cur.execute(
+    cur.execute(
         f"""
         SELECT signature_acc, array_agg(protein_acc) AS proteins
         FROM signature2protein
-        WHERE signature_acc in ({','.join(['%s'] * len(accessions))})
+        WHERE signature_acc in ({in_params})
         GROUP BY signature_acc 
-        """, accessions 
-    ).fetchall()
+        """,
+        accessions
+    )
 
     signature2proteins = {}
     for accession, proteins in cur.fetchall():
