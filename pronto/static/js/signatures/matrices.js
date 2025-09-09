@@ -66,7 +66,7 @@ function getMatrices(accessions) {
             const linkToSignature =
                 count > 0
                 ? `<a href="/signatures/${signature}/proteins/?exclude=${excludedSignatures.join(',')}">${signature}</a>`
-                : sig;
+                : signature;
 
             exclusiveTableRows += `
                 <tr>
