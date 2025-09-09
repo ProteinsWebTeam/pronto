@@ -51,7 +51,6 @@ def get_comparisons(cur, accessions: tuple):
 
         exclusive[accession] = len(signature2proteins[accession] - others)
 
-    in_params = ','.join('%s' for _ in accessions)
 
     cur.execute(
         f"""
