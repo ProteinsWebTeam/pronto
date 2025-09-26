@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import re
 
 from flask import Blueprint, jsonify, request
@@ -35,8 +33,8 @@ from . import structures
 from . import taxonomy
 
 
-@bp.route("/recommendations/")
-def get_recommendations():
+@bp.route("/unintegrated/similar/")
+def get_similar_unintegrated():
     min_sim = float(request.args.get("minsim", 0.9))
 
     try:
@@ -75,7 +73,7 @@ def get_recommendations():
         GROUP BY METHOD_AC
         """
     )
-    comments = dict(cur.fetchall())
+    num_comments = dict(cur.fetchall())
 
     cur.close()
     con.close()
@@ -137,7 +135,7 @@ def get_recommendations():
                         "color": utils.get_database_obj(dbkey1).color,
                         "name": dbname1
                     },
-                    "comments": comments.get(acc1, 0)
+                    "comments": num_comments.get(acc1, 0)
                 },
                 "target": {
                     "accession": acc2,

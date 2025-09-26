@@ -30,7 +30,7 @@ function renderCommentLabel(obj) {
 
 async function refresh() {
     dimmer.on();
-    const response = await fetch(`/api/signatures/recommendations/${location.search}`);
+    const response = await fetch(`/api/signatures/unintegrated/similar/${location.search}`);
     const data = await response.json();
     let html = `
         <table class="ui small celled very compact table">
