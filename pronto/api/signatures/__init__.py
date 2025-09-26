@@ -159,3 +159,112 @@ def get_similar_unintegrated():
             "page_size": page_size
         }
     })
+
+
+@bp.route("/unintegrated/specific/")
+def get_specific_unintegrated():
+    max_sprot = float(request.args.get("max-sprot", 0.01))
+    max_trembl = float(request.args.get("max-trembl", 0.05))
+
+    try:
+        page = int(request.args["page"])
+    except (KeyError, ValueError):
+        page = 1
+
+    try:
+        page_size = int(request.args["page_size"])
+    except (KeyError, ValueError):
+        page_size = 20
+
+    con = utils.connect_oracle()
+    cur = con.cursor()
+    cur.execute("SELECT METHOD_AC FROM INTERPRO.ENTRY2METHOD")
+    integrated = {row[0] for row in cur.fetchall()}
+
+    cur.execute(
+        """
+        SELECT METHOD_AC, COUNT(*)
+        FROM INTERPRO.METHOD_COMMENT
+        WHERE STATUS = 'Y'
+        GROUP BY METHOD_AC
+        """
+    )
+    num_comments = dict(cur.fetchall())
+
+    cur.close()
+    con.close()
+
+    con = utils.connect_pg()
+    with con.cursor() as cur:
+        cur.execute(
+            """
+            SELECT *
+            FROM (
+                SELECT s.database,
+                       s.accession,
+                       s.name,
+                       s.description,
+                       s.type,
+                       s.sprot,
+                       s.ovl_sprot,
+                       (s.ovl_sprot::float / NULLIF(s.sprot, 0)) AS f_ovl_sprot,
+                       s.trembl,
+                       s.ovl_trembl,
+                       (s.ovl_trembl::float / NULLIF(s.trembl, 0)) AS f_ovl_trembl
+                FROM (
+                    SELECT d.name_long AS database,
+                           s.accession,
+                           s.name,
+                           s.description,
+                           s.type,
+                           s.num_complete_reviewed_sequences AS sprot,
+                           (s.num_complete_sequences - s.num_complete_reviewed_sequences) AS trembl,
+                           s.num_overlapped_complete_reviewed_sequences AS ovl_sprot,
+                           (s.num_overlapped_complete_sequences - s.num_overlapped_complete_reviewed_sequences) AS ovl_trembl
+                    FROM interpro.signature s
+                    JOIN interpro.database d ON d.id = s.database_id
+                ) s
+            ) r
+            WHERE r.f_ovl_sprot <= %s 
+              AND r.f_ovl_trembl <= %s
+            """,
+            [max_sprot, max_trembl]
+        )
+
+        pthr_sf = re.compile(r"PTHR\d+:SF\d+")
+        results = []
+        for row in cur:
+            if row[1] in integrated or pthr_sf.match(row[1]):
+                continue
+
+            results.append({
+                "database": row[0],
+                "accession": row[1],
+                "name": row[2],
+                "description": row[3],
+                "type": row[4],
+                "comments": num_comments.get(row[1], 0),
+                "proteins": {
+                    "reviewed": row[5],
+                    "unreviewed": row[8],
+                    "overlapping": {
+                        "reviewed": row[6],
+                        "fraction_reviewed": row[7],
+                        "unreviewed": row[9],
+                        "fraction_unreviewed": row[10],
+                    }
+                },
+            })
+
+    con.close()
+    results.sort(key=lambda x: (x["proteins"]["overlapping"]["fraction_reviewed"],
+                                x["proteins"]["overlapping"]["fraction_unreviewed"]))
+
+    return jsonify({
+        "count": len(results),
+        "results": results[(page-1)*page_size:page*page_size],
+        "page_info": {
+            "page": page,
+            "page_size": page_size
+        }
+    })
