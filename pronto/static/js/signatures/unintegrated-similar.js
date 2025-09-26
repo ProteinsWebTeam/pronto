@@ -1,7 +1,7 @@
 import {updateHeader} from "../ui/header.js";
 import * as dimmer from "../ui/dimmer.js";
 import {createDisabled} from "../ui/checkbox.js";
-import {initPopups, createPopup} from "../ui/comments.js";
+import {initPopups, createPopup, renderCommentLabel} from "../ui/comments.js";
 import {render} from "../ui/pagination.js";
 
 function renderEntry(entry) {
@@ -15,17 +15,6 @@ function renderEntry(entry) {
         </td>
         <td class="collapsing">${createDisabled(entry.checked)}</td>
     `;
-}
-
-function renderCommentLabel(obj) {
-    if (obj.comments > 0) {
-        return `
-        <a class="ui small basic label" data-accession="${obj.accession}">
-            <i class="comments icon"></i>${obj.comments}
-        </a>
-    `;
-    } else
-        return '';
 }
 
 async function refresh() {

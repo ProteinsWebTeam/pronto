@@ -174,3 +174,14 @@ function postComment(type, accession, text) {
     })
         .then(response => response.json());
 }
+
+export function renderCommentLabel(obj) {
+    if (obj.comments > 0) {
+        return `
+        <a class="ui small basic label" data-accession="${obj.accession}">
+            <i class="comments icon"></i>${obj.comments}
+        </a>
+    `;
+    } else
+        return '';
+}

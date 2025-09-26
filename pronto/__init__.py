@@ -58,9 +58,15 @@ def compare_signatures():
 
 
 @app.route("/signatures/unintegrated/similar/")
-def closest_signatures():
+def similar_signatures():
     return render_template("signatures/boilerplate.html",
                            page="unintegrated-similar")
+
+
+@app.route("/signatures/unintegrated/specific/")
+def specific_signatures():
+    return render_template("signatures/boilerplate.html",
+                           page="unintegrated-specific")
 
 
 @app.route("/signatures/<path:accessions>/comments/")

@@ -27,8 +27,10 @@
 <script src="{{ url_for('static', filename='vendor/semantic.min.js') }}"></script>
 {% if page == "compare" %}
     <script src="{{ url_for('static', filename='js/signatures/compare.js') }}" type="module"></script>
-{% else %}
+{% elif page == "unintegrated-similar" %}
     <script src="{{ url_for('static', filename='js/signatures/unintegrated-similar.js') }}" type="module"></script>
+{%  else %}
+    <script src="{{ url_for('static', filename='js/signatures/unintegrated-specific.js') }}" type="module"></script>
 {% endif %}
 </body>
 </html>
