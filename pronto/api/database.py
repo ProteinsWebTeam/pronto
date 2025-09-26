@@ -527,16 +527,17 @@ def get_unintegrated(db_name):
         """
         SELECT s1.accession, s2.accession, s2.type,
                s2.num_complete_sequences, s2.num_residues, s2.database_id,
-               d.name, d.name_long, p.num_collocations,
-               p.num_protein_overlaps, p.num_residue_overlaps
+               d.name, d.name_long, c.num_collocations,
+               c.num_overlaps, c.num_res_overlaps
         FROM interpro.signature s1
-        INNER JOIN interpro.prediction p
-            ON s1.accession = p.signature_acc_1
+        INNER JOIN interpro.comparison c
+            ON s1.accession = c.signature_acc_1
         INNER JOIN interpro.signature s2
-            ON p.signature_acc_2 = s2.accession
+            ON c.signature_acc_2 = s2.accession
         INNER JOIN interpro.database d
             ON s2.database_id = d.id
         WHERE s1.database_id = %s
+          AND c.num_overlaps::float / LEAST(s1.num_complete_sequences, s2.num_complete_sequences) >= 0.5
         """,
         [db_identifier]
     )

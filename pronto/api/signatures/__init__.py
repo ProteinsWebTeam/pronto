@@ -87,10 +87,10 @@ def get_similar_unintegrated():
               SELECT
                 s1.accession, d1.name, d1.name_long,
                 s2.accession, d2.name, d2.name_long,
-                CAST(p.num_residue_overlaps as decimal) / (s1.num_residues + s2.num_residues - p.num_residue_overlaps) AS sim_res
+                c.num_res_overlaps::float / (s1.num_residues + s2.num_residues - c.num_res_overlaps) AS sim_res
               FROM interpro.signature s1
-              INNER JOIN interpro.prediction p ON s1.accession = p.signature_acc_1
-              INNER JOIN interpro.signature s2 ON p.signature_acc_2 = s2.accession
+              INNER JOIN interpro.comparison c ON s1.accession = c.signature_acc_1
+              INNER JOIN interpro.signature s2 ON c.signature_acc_2 = s2.accession
               INNER JOIN interpro.database d1 ON s1.database_id = d1.id
               INNER JOIN interpro.database d2 ON s2.database_id = d2.id
               WHERE
@@ -104,7 +104,8 @@ def get_similar_unintegrated():
               )
             ) x
             WHERE x.sim_res >= %s
-            """, (min_sim,)
+            """,
+            [min_sim]
         )
 
         pthr_sf = re.compile(r"PTHR\d+:SF\d+")
