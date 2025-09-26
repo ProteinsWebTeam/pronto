@@ -201,7 +201,8 @@ def get_specific_unintegrated():
             """
             SELECT *
             FROM (
-                SELECT s.database,
+                SELECT s.db_name,
+                       s.db_id,
                        s.accession,
                        s.name,
                        s.description,
@@ -213,7 +214,8 @@ def get_specific_unintegrated():
                        s.ovl_trembl,
                        (s.ovl_trembl::float / NULLIF(s.trembl, 0)) AS f_ovl_trembl
                 FROM (
-                    SELECT d.name_long AS database,
+                    SELECT d.name_long AS db_name,
+                           d.name AS db_id,
                            s.accession,
                            s.name,
                            s.description,
@@ -235,24 +237,27 @@ def get_specific_unintegrated():
         pthr_sf = re.compile(r"PTHR\d+:SF\d+")
         results = []
         for row in cur:
-            if row[1] in integrated or pthr_sf.match(row[1]):
+            if row[2] in integrated or pthr_sf.match(row[1]):
                 continue
 
             results.append({
-                "database": row[0],
-                "accession": row[1],
-                "name": row[2],
-                "description": row[3],
-                "type": row[4],
-                "comments": num_comments.get(row[1], 0),
+                "database": {
+                    "color": utils.get_database_obj(row[1]).color,
+                    "name": row[0]
+                },
+                "accession": row[2],
+                "name": row[3],
+                "description": row[4],
+                "type": row[5],
+                "comments": num_comments.get(row[2], 0),
                 "proteins": {
-                    "reviewed": row[5],
-                    "unreviewed": row[8],
+                    "reviewed": row[6],
+                    "unreviewed": row[9],
                     "overlapping": {
-                        "reviewed": row[6],
-                        "fraction_reviewed": row[7],
-                        "unreviewed": row[9],
-                        "fraction_unreviewed": row[10],
+                        "reviewed": row[7],
+                        "fraction_reviewed": row[8],
+                        "unreviewed": row[10],
+                        "fraction_unreviewed": row[11],
                     }
                 },
             })
