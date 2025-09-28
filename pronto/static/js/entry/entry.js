@@ -1,15 +1,15 @@
 import * as comments from '../ui/comments.js'
 import * as dimmer from "../ui/dimmer.js"
-import {updateHeader} from "../ui/header.js"
+import { updateHeader } from "../ui/header.js"
 import * as menu from "../ui/menu.js"
 import * as modals from "../ui/modals.js";
-import {setCharsCountdown, toggleErrorMessage} from "../ui/utils.js";
+import { setCharsCountdown, toggleErrorMessage } from "../ui/utils.js";
 import * as annotations from "./annotations.js";
 import * as go from "./go.js";
 import * as references from "./references.js";
 import * as relationships from "./relationships.js";
 import * as signatures from "./signatures.js";
-import {addKeyPressEventListener} from "../ui/comments.js";
+
 
 function formatType(type) {
     const arr = type.split(/\s+/);
@@ -160,7 +160,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Even to search annotations
     document.getElementById('search-annotations')
-        .addEventListener('keyup' , (e,) => {
+        .addEventListener('keyup', (e,) => {
             if (e.key !== 'Enter')
                 return;
 
@@ -372,6 +372,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
         }
     });
-
+    
     updateHeader().then(() => { getEntry(accession); });
 });
+
