@@ -12,7 +12,7 @@ async function refresh() {
         <thead>
             <tr><th colspan="7"><div class="ui secondary menu"><span class="item"></span></div></th></tr>
             <tr>
-                <th colspan="3">Signature</th>
+                <th rowspan="2" colspan="3">Signature</th>
                 <th colspan="2" class="center aligned">Swiss-Prot</th>
                 <th colspan="2" class="center aligned">TrEMBL</th>
             </tr>
