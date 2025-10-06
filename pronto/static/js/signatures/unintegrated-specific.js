@@ -10,9 +10,9 @@ async function refresh() {
     let html = `
         <table class="ui celled structured small compact table">
         <thead>
-            <tr><th colspan="6"><div class="ui secondary menu"><span class="item"></span></div></th></tr>
+            <tr><th colspan="7"><div class="ui secondary menu"><span class="item"></span></div></th></tr>
             <tr>
-                <th rowspan="2" colspan="2">Signature</th>
+                <th colspan="3">Signature</th>
                 <th colspan="2" class="center aligned">Swiss-Prot</th>
                 <th colspan="2" class="center aligned">TrEMBL</th>
             </tr>
@@ -30,8 +30,9 @@ async function refresh() {
             <tr>
             <td>
                 <span class="ui empty circular label" style="background-color: ${obj.database.color};" data-content="${obj.database.name}" data-position="left center" data-variation="tiny"></span>
-                <a href="/signature/${obj.accession}/">${obj.name || obj.accession}</a>
+                <a href="/signature/${obj.accession}/">${obj.accession}</a>
             </td>
+            <td>${obj.name ?? ''}</td>
             <td class="collapsing">${renderCommentLabel(obj)}</td>
             <td class="right aligned">${obj.proteins.reviewed.toLocaleString()}</td>
             <td class="right aligned">${(obj.proteins.overlapping.fraction_reviewed * 100).toFixed(2)}%</td>
@@ -44,7 +45,7 @@ async function refresh() {
     html += `
         </tbody>
         <tfoot>
-        <tr><th colspan="6"><div class="ui right floated pagination menu"></div></th></tr>
+        <tr><th colspan="7"><div class="ui right floated pagination menu"></div></th></tr>
         </tfoot>
     `;
 
@@ -85,7 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
     params.innerHTML = `
         <p class="justified aligned">
             Paranoid about overlaps? This is the page for the commitment-averse. 
-            These signatures are so specific they almost never bump into anyone else. 
+            These signatures are so specific they almost never bump into anything else. 
             Integrate them into InterPro entries with minimal existential dread.
         </p>
     `;

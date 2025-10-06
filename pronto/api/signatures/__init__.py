@@ -209,10 +209,10 @@ def get_specific_unintegrated():
                        s.type,
                        s.sprot,
                        s.ovl_sprot,
-                       (s.ovl_sprot::float / NULLIF(s.sprot, 0)) AS f_ovl_sprot,
+                       COALESCE((s.ovl_sprot::float / NULLIF(s.sprot, 0)), 0) AS f_ovl_sprot,
                        s.trembl,
                        s.ovl_trembl,
-                       (s.ovl_trembl::float / NULLIF(s.trembl, 0)) AS f_ovl_trembl
+                       COALESCE((s.ovl_trembl::float / NULLIF(s.trembl, 0)), 0) AS f_ovl_trembl
                 FROM (
                     SELECT d.name_long AS db_name,
                            d.name AS db_id,
@@ -226,6 +226,7 @@ def get_specific_unintegrated():
                            (s.num_overlapped_complete_sequences - s.num_overlapped_complete_reviewed_sequences) AS ovl_trembl
                     FROM interpro.signature s
                     JOIN interpro.database d ON d.id = s.database_id
+                    WHERE s.num_complete_sequences > 0
                 ) s
             ) r
             WHERE r.f_ovl_sprot <= %s 
@@ -264,7 +265,9 @@ def get_specific_unintegrated():
 
     con.close()
     results.sort(key=lambda x: (x["proteins"]["overlapping"]["fraction_reviewed"],
-                                x["proteins"]["overlapping"]["fraction_unreviewed"]))
+                                x["proteins"]["overlapping"]["fraction_unreviewed"],
+                                -x["proteins"]["reviewed"],
+                                -x["proteins"]["unreviewed"]))
 
     return jsonify({
         "count": len(results),
@@ -272,5 +275,9 @@ def get_specific_unintegrated():
         "page_info": {
             "page": page,
             "page_size": page_size
-        }
+        },
+        "filters": {
+            "max-sprot": max_sprot,
+            "max-trembl": max_trembl,
+        },
     })
