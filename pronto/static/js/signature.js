@@ -17,8 +17,9 @@ function getSignature() {
     });
 }
 
-function getPredictions(accession) {
-    fetch(`/api/signature/${accession}/predictions/${location.search}`)
+function getPredictions(accession, maxOverlap) {
+    const params = maxOverlap === null ? '' : `?max-overlap=${0}`;
+    fetch(`/api/signature/${accession}/predictions/${params}`)
         .then(response => response.json())
         .then(results => {
             dimmer.off();
@@ -92,18 +93,27 @@ document.addEventListener('DOMContentLoaded', () => {
     const accession = location.pathname.match(/\/signature\/(.+)\//)[1];
     updateHeader(accession);
 
+    let maxOverlap = null;
     const input = document.querySelector('input[name="all"]');
-    input.checked = (new URLSearchParams(location.search)).has('all');
+    if ((new URLSearchParams(location.search)).has('all')) {
+        input.checked = true;
+        maxOverlap = 0;
+    } else
+        input.checked = false;
+
     input.addEventListener('change', e => {
         const url = new URL(location.href);
-        if (e.currentTarget.checked)
+        if (e.currentTarget.checked) {
             url.searchParams.set('all', '');
-        else
+            maxOverlap = 0;
+        } else {
             url.searchParams.delete('all');
+            maxOverlap = null;
+        }
 
         history.replaceState(null, document.title, url.toString());
         dimmer.on();
-        getPredictions(accession);
+        getPredictions(accession, maxOverlap);
     });
 
     dimmer.on();
@@ -259,7 +269,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </tbody>
             `;
 
-            getPredictions(accession);
+            getPredictions(accession, maxOverlap);
         },
         (status,) => {
             // todo: show error
