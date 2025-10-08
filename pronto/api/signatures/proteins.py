@@ -25,9 +25,16 @@ def get_proteins_alt(accessions):
     name_id = request.args.get("name")
     taxon_id = request.args.get("taxon")
     violate_term_id = request.args.get("violate-go")
-    reviewed_only = "reviewed" in request.args
+    reviewed = request.args.get("reviewed", "").lower()
     reviewed_first = "reviewedfirst" in request.args
     group_by_dom_org = "domainorganisation" in request.args
+
+    if reviewed == "true":
+        reviewed = True
+    elif reviewed == "false":
+        reviewed = False
+    else:
+        reviewed = None
 
     # dl_file = "file" in request.args
 
@@ -144,8 +151,10 @@ def get_proteins_alt(accessions):
         filters = [f"signature_acc IN ({','.join('%s' for _ in accessions)})"]
         params = list(accessions)
 
-        if reviewed_only:
-            filters.append("is_reviewed")
+        if reviewed is True:
+            filters.append("is_reviewed IS TRUE")
+        elif reviewed is False:
+            filters.append("is_reviewed IS FALSE")
 
         if left_num is not None:
             filters.append("taxon_left_num BETWEEN %s AND %s")
@@ -271,7 +280,7 @@ def get_proteins_alt(accessions):
         if reviewed_first:
             sql += """
                 ORDER BY 
-                    CASE WHEN is_reviewed THEN 1 ELSE 2 END, 
+                    CASE WHEN is_reviewed IS TRUE THEN 1 ELSE 2 END, 
                     protein_acc
             """
         else:
@@ -350,7 +359,7 @@ def get_proteins_alt(accessions):
             "violate-go": (f"{violate_term_id}: {violate_term_name}"
                            if violate_term_name else None),
             "md5": dom_org_id,
-            "reviewed": reviewed_only,
+            "reviewed": reviewed,
             "taxon": taxon_name,
         },
         "page_info": {
