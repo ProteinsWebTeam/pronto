@@ -8,6 +8,15 @@ async function refresh() {
     const response = await fetch(`/api/signatures/unintegrated/specific/${location.search}`);
     const data = await response.json();
     let html = `
+        <strong>Overlap limits:</strong>
+        <div class="ui sib label">
+          Swiss-Prot
+          <div class="detail">&le; ${(data.filters['max-sprot'] * 100).toFixed(0)}%</div>
+        </div>
+        <div class="ui uniprot label">
+          TrEMBL
+          <div class="detail">&le; ${(data.filters['max-trembl'] * 100).toFixed(0)}%</div>
+        </div>        
         <table class="ui celled structured small compact table">
         <thead>
             <tr><th colspan="7"><div class="ui secondary menu"><span class="item"></span></div></th></tr>
@@ -25,6 +34,14 @@ async function refresh() {
         </thead>
         <tbody>
     `;
+
+    const renderProteinsLink = (accession, numProteins, isReviewed) => {
+        if (numProteins === 0) return 0;
+        return `<a href="/signatures/${accession}/proteins?reviewed=${isReviewed ? 'true' : 'false'}">
+                    ${numProteins.toLocaleString()}
+                </a>`;
+    };
+
     for (const obj of data.results) {
         html += `
             <tr>
@@ -34,9 +51,9 @@ async function refresh() {
             </td>
             <td>${obj.name ?? ''}</td>
             <td class="collapsing">${renderCommentLabel(obj)}</td>
-            <td class="right aligned">${obj.proteins.reviewed.toLocaleString()}</td>
+            <td class="right aligned">${renderProteinsLink(obj.accession, obj.proteins.reviewed, true)}</td>
             <td class="right aligned">${(obj.proteins.overlapping.fraction_reviewed * 100).toFixed(2)}%</td>
-            <td class="right aligned">${obj.proteins.unreviewed.toLocaleString()}</td>
+            <td class="right aligned">${renderProteinsLink(obj.accession, obj.proteins.unreviewed, false)}</td>
             <td class="right aligned">${(obj.proteins.overlapping.fraction_unreviewed * 100).toFixed(2)}%</td>
             </tr>
         `;
@@ -85,11 +102,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const params = document.getElementById('params');
     params.innerHTML = `
         <p class="justified aligned">
-            Paranoid about overlaps? This is the page for the commitment-averse. 
-            These signatures are so specific they almost never bump into anything else. 
-            Integrate them into InterPro entries with minimal existential dread.
+            This page lists signatures whose matches rarely overlap with those of other signatures. 
+            Specificity is quantified as the fraction of proteins whose hits coincide 
+            with hits from any other signature within the same dataset. 
+            Signatures with low overlap fractions are considered highly specific and 
+            are suitable candidates for integration into new InterPro entries with minimal risk of conflict.
         </p>
     `;
+
+    // Maximum overlap tolerated in Swiss-Prot
+    // Maximum overlap tolerated in TrEMBL
 
     // for (let input of params.querySelectorAll('input')) {
     //     input.addEventListener('change', e => {
