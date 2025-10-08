@@ -61,18 +61,20 @@ function getMatrices(accessions) {
             // Add exclusive-to-signature number of proteins
             let exclusiveTableRows = ''
 
-            Object.entries(results.exclusive).forEach(([signature, count]) => {
-            const excludedSignatures = accessions.filter(acc => acc !== signature);
-            const linkToSignature =
-                count > 0
-                ? `<a href="/signatures/${signature}/proteins/?exclude=${excludedSignatures.join(',')}">${signature}</a>`
-                : signature;
+            const makeLinkToProteinsPage = (query, accessions, count) => {
+                if (count === 0) return 0;
+                const excludedSignatures = accessions.filter(acc => acc !== query).join(',');
+                return `<a href="/signatures/${query}/proteins/?exclude=${excludedSignatures}">
+                            ${count.toLocaleString()}
+                        </a>`;
+            };
 
-            exclusiveTableRows += `
-                <tr>
-                <td>${linkToSignature}</td>
-                <td class="right aligned">${count.toLocaleString()}</td>
-                </tr>`;
+            Object.entries(results.exclusive).forEach(([signature, count]) => {
+                exclusiveTableRows += `
+                    <tr>
+                    <td>${signature}</td>
+                    <td class="right aligned">${makeLinkToProteinsPage(signature, accessions, count)}</td>
+                    </tr>`;
             });
 
             const exclusiveDiv = document.createElement('div')
