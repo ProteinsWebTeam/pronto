@@ -295,13 +295,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const url = new URL(location.href);
     let checkbox = document.querySelector('input[type=checkbox][name=reviewed]');
-    if (url.searchParams.get('reviewed') === 'true') {
-        checkbox.checked = true;
-    } else {
-        checkbox.checked = false;
-        url.searchParams.delete('reviewed');
-        history.replaceState(null, document.title, url.toString());
-    }
+    checkbox.checked = url.searchParams.get('reviewed') === 'true';
 
     checkbox.addEventListener('change', e => {
         const newURL = new URL(location.href);
