@@ -47,7 +47,7 @@ async function refresh() {
             <tr>
             <td>
                 <span class="ui empty circular label" style="background-color: ${obj.database.color};" data-content="${obj.database.name}" data-position="left center" data-variation="tiny"></span>
-                <a href="/signature/${obj.accession}/">${obj.accession}</a>
+                <a href="/signature/${obj.accession}/?all">${obj.accession}</a>
             </td>
             <td>${obj.name ?? ''}</td>
             <td class="collapsing">${renderCommentLabel(obj)}</td>
@@ -103,8 +103,8 @@ document.addEventListener('DOMContentLoaded', () => {
     params.innerHTML = `
         <p class="justified aligned">
             This page lists signatures whose matches rarely overlap with those of other signatures. 
-            Specificity is quantified as the fraction of proteins whose hits coincide 
-            with hits from any other signature within the same dataset. 
+            Specificity is quantified as the fraction of proteins whose hits overlap 
+            with hits from any other signature. 
             Signatures with low overlap fractions are considered highly specific and 
             are suitable candidates for integration into new InterPro entries with minimal risk of conflict.
         </p>
