@@ -7,6 +7,18 @@ async function refresh() {
     dimmer.on();
     const response = await fetch(`/api/signatures/unintegrated/specific/${location.search}`);
     const data = await response.json();
+
+    if (!response.ok) {
+        document.getElementById('results').innerHTML = `
+            <div class="ui error message">
+                <div class="header">${data.error.title}</div>
+                ${data.error.message}
+            </div>
+        `;
+        dimmer.off();
+        return;
+    }
+
     let html = `
         <strong>Overlap limits:</strong>
         <div class="ui sib label">

@@ -166,6 +166,7 @@ def get_similar_unintegrated():
 def get_specific_unintegrated():
     max_sprot = float(request.args.get("max-sprot", 0.01))
     max_trembl = float(request.args.get("max-trembl", 0.05))
+    database = request.args.get("database")
 
     try:
         page = int(request.args["page"])
@@ -196,9 +197,41 @@ def get_specific_unintegrated():
     con.close()
 
     con = utils.connect_pg()
-    with con.cursor() as cur:
+    cur = con.cursor()
+    try:
+        database_id = None
+        if database:
+            cur.execute(
+                """
+                SELECT id, name 
+                FROM interpro.database 
+                WHERE LOWER(name) = %s
+                """,
+                [database.lower()]
+            )
+            row = cur.fetchone()
+            if not row:
+                return (
+                    jsonify({
+                        "error": {
+                            "title": "Bad Request",
+                            "message": f"Invalid database parameter: {database}",
+                        }
+                    }),
+                    400
+                )
+
+            database_id, database = row
+
+        if database_id is not None:
+            db_filter = "AND d.id = %s"
+            params = [database_id, max_sprot, max_trembl]
+        else:
+            db_filter = ""
+            params = [max_sprot, max_trembl]
+
         cur.execute(
-            """
+            f"""
             SELECT *
             FROM (
                 SELECT s.db_name,
@@ -226,13 +259,13 @@ def get_specific_unintegrated():
                            (s.num_overlapped_complete_sequences - s.num_overlapped_complete_reviewed_sequences) AS ovl_trembl
                     FROM interpro.signature s
                     JOIN interpro.database d ON d.id = s.database_id
-                    WHERE s.num_complete_sequences > 0
+                    WHERE s.num_complete_sequences > 0 {db_filter}
                 ) s
             ) r
             WHERE r.f_ovl_sprot <= %s 
               AND r.f_ovl_trembl <= %s
             """,
-            [max_sprot, max_trembl]
+            params
         )
 
         pthr_sf = re.compile(r"PTHR\d+:SF\d+")
@@ -262,8 +295,10 @@ def get_specific_unintegrated():
                     }
                 },
             })
+    finally:
+        cur.close()
+        con.close()
 
-    con.close()
     results.sort(key=lambda x: (x["proteins"]["overlapping"]["fraction_reviewed"],
                                 x["proteins"]["overlapping"]["fraction_unreviewed"],
                                 -x["proteins"]["reviewed"],
@@ -279,5 +314,6 @@ def get_specific_unintegrated():
         "filters": {
             "max-sprot": max_sprot,
             "max-trembl": max_trembl,
+            "database": database
         },
     })
