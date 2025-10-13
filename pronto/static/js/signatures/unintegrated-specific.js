@@ -54,21 +54,25 @@ async function refresh() {
                 </a>`;
     };
 
-    for (const obj of data.results) {
-        html += `
-            <tr>
-            <td>
-                <span class="ui empty circular label" style="background-color: ${obj.database.color};" data-content="${obj.database.name}" data-position="left center" data-variation="tiny"></span>
-                <a href="/signature/${obj.accession}/?all">${obj.accession}</a>
-            </td>
-            <td>${obj.name ?? ''}</td>
-            <td class="collapsing">${renderCommentLabel(obj)}</td>
-            <td class="right aligned">${renderProteinsLink(obj.accession, obj.proteins.reviewed, true)}</td>
-            <td class="right aligned">${(obj.proteins.overlapping.fraction_reviewed * 100).toFixed(2)}%</td>
-            <td class="right aligned">${renderProteinsLink(obj.accession, obj.proteins.unreviewed, false)}</td>
-            <td class="right aligned">${(obj.proteins.overlapping.fraction_unreviewed * 100).toFixed(2)}%</td>
-            </tr>
-        `;
+    if (data.results.length > 0) {
+        for (const obj of data.results) {
+            html += `
+                <tr>
+                <td>
+                    <span class="ui empty circular label" style="background-color: ${obj.database.color};" data-content="${obj.database.name}" data-position="left center" data-variation="tiny"></span>
+                    <a href="/signature/${obj.accession}/?all">${obj.accession}</a>
+                </td>
+                <td>${obj.name ?? ''}</td>
+                <td class="collapsing">${renderCommentLabel(obj)}</td>
+                <td class="right aligned">${renderProteinsLink(obj.accession, obj.proteins.reviewed, true)}</td>
+                <td class="right aligned">${(obj.proteins.overlapping.fraction_reviewed * 100).toFixed(2)}%</td>
+                <td class="right aligned">${renderProteinsLink(obj.accession, obj.proteins.unreviewed, false)}</td>
+                <td class="right aligned">${(obj.proteins.overlapping.fraction_unreviewed * 100).toFixed(2)}%</td>
+                </tr>
+            `;
+        }
+    } else {
+        html += '<tr><td colspan="7" class="center aligned">No results found</td></tr>';
     }
 
     html += `
