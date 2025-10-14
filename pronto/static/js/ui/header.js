@@ -214,7 +214,7 @@ export function updateHeader(signatureAcc) {
                                         } else {
                                             // No signature: reset form
                                             $(infoForm).form('reset');
-                                            tbody.innerHTML = '<tr><td class="center aligned" colspan="8">No signatures</td></tr>';
+                                            tbody.innerHTML = '<tr><td class="center aligned" colspan="7">No signatures</td></tr>';
                                         }
                                     });
                                 }
@@ -297,7 +297,7 @@ export function updateHeader(signatureAcc) {
                             } else {
                                 $(infoForm).form('clear');
                                 signatures.clear();
-                                modal.querySelector('tbody').innerHTML = '<tr><td colspan="8" class="center aligned">No signatures</td></tr>';
+                                modal.querySelector('tbody').innerHTML = '<tr><td colspan="7" class="center aligned">No signatures</td></tr>';
                             }
                             document.getElementById('new-entry-btn').blur();
                         },
