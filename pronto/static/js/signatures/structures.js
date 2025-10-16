@@ -1,5 +1,6 @@
 import * as dimmer from "../ui/dimmer.js";
 import {updateHeader} from "../ui/header.js";
+import * as modals from "../ui/modals.js"
 import {render} from "../ui/pagination.js";
 import {selector} from "../ui/signatures.js";
 
@@ -69,8 +70,8 @@ async function getStructures(accessions) {
                 .sort((a, b) => a.localeCompare(b));
 
             showStructures(structures, 1, 50)
-                .then(() => {
-                        $("#structures-modal").modal('show');
+                .then((ok) => {
+                        if (ok) $("#structures-modal").modal('show');
                     }
                 );
         });
@@ -85,8 +86,14 @@ async function showStructures(identifiers, page, pageSize) {
     const items = identifiers.slice(start, end);
     const results = await getStructuresFromPDBe(items);
 
-    let body = '';
+    if (results === null) {
+        modals.error(
+            "Unable to retrieve PDB structure data",
+            "The PDBe API did not respond correctly. PDB structure information is temporarily unavailable. Try again later or contact the development team.");
+        return false;
+    }
 
+    let body = '';
     for (const pdbId of items) {
         const pdbInfo = results.get(pdbId);
         if (pdbInfo === undefined)
@@ -129,6 +136,7 @@ async function showStructures(identifiers, page, pageSize) {
         const params = new URL(url).searchParams;
         showStructures(identifiers, Number.parseInt(params.get("page")), Number.parseInt(params.get("page_size")));
     });
+    return true;
 }
 
 async function getStructuresFromPDBe(identifiers) {
@@ -137,6 +145,8 @@ async function getStructuresFromPDBe(identifiers) {
         "method": "POST",
         "mode": "cors"
     });
+    if (!response.ok) return null;
+
     const payload =  await response.json();
     return new Map(
         Object
