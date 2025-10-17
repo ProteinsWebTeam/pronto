@@ -518,7 +518,7 @@ def get_signature_predictions(accession):
           d.name,
           d.name_long,
           c.num_collocations,
-          c.num_overlaps,
+          c.num_50pc_overlaps,
           c.num_res_overlaps,
           c.num_reviewed_res_overlaps
         FROM interpro.comparison c
@@ -529,7 +529,7 @@ def get_signature_predictions(accession):
         INNER JOIN interpro.signature s2
           ON c.signature_acc_2 = s2.accession
         WHERE c.signature_acc_1 = %s
-          AND c.num_overlaps::float / LEAST(s1.num_complete_sequences, s2.num_complete_sequences) >= %s
+          AND c.num_50pc_overlaps::float / LEAST(s1.num_complete_sequences, s2.num_complete_sequences) >= %s
         """,
         [accession, max_overlap]
     )

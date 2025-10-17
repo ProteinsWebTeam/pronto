@@ -274,8 +274,8 @@ def get_specific_unintegrated():
                            s.type,
                            s.num_complete_reviewed_sequences AS sprot,
                            (s.num_complete_sequences - s.num_complete_reviewed_sequences) AS trembl,
-                           s.num_overlapped_complete_reviewed_sequences AS ovl_sprot,
-                           (s.num_overlapped_complete_sequences - s.num_overlapped_complete_reviewed_sequences) AS ovl_trembl
+                           s.num_50pc_overlapped_complete_reviewed_sequences AS ovl_sprot,
+                           (s.num_50pc_overlapped_complete_sequences - s.num_50pc_overlapped_complete_reviewed_sequences) AS ovl_trembl
                     FROM interpro.signature s
                     JOIN interpro.database d ON d.id = s.database_id
                     WHERE {' AND '.join(filters)}
