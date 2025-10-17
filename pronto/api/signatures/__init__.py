@@ -167,6 +167,7 @@ def get_specific_unintegrated():
     max_sprot = float(request.args.get("max-sprot", 0.01))
     max_trembl = float(request.args.get("max-trembl", 0.05))
     database = request.args.get("database")
+    with_annotations = request.args.get("with-annotations", "")
 
     try:
         page = int(request.args["page"])
@@ -177,6 +178,13 @@ def get_specific_unintegrated():
         page_size = int(request.args["page_size"])
     except (KeyError, ValueError):
         page_size = 20
+
+    if with_annotations == "true":
+        with_annotations = True
+    elif with_annotations == "false":
+        with_annotations = False
+    else:
+        with_annotations = None
 
     con = utils.connect_oracle()
     cur = con.cursor()
@@ -199,6 +207,20 @@ def get_specific_unintegrated():
     con = utils.connect_pg()
     cur = con.cursor()
     try:
+        filters = ["s.num_complete_sequences > %s"]
+        params = [0]
+
+        if with_annotations is True:
+            filters += [
+                "s.name IS NOT NULL",
+                "s.description IS NOT NULL",
+                "s.abstract IS NOT NULL",
+            ]
+        elif with_annotations is False:
+            filters.append("(s.name IS NULL "
+                           "OR s.description IS NULL "
+                           "OR s.abstract IS NULL)")
+
         database_id = None
         if database:
             cur.execute(
@@ -224,11 +246,8 @@ def get_specific_unintegrated():
             database_id, database = row
 
         if database_id is not None:
-            db_filter = "AND d.id = %s"
-            params = [database_id, max_sprot, max_trembl]
-        else:
-            db_filter = ""
-            params = [max_sprot, max_trembl]
+            filters.append("d.id = %s")
+            params.append(database_id)
 
         cur.execute(
             f"""
@@ -259,13 +278,13 @@ def get_specific_unintegrated():
                            (s.num_overlapped_complete_sequences - s.num_overlapped_complete_reviewed_sequences) AS ovl_trembl
                     FROM interpro.signature s
                     JOIN interpro.database d ON d.id = s.database_id
-                    WHERE s.num_complete_sequences > 0 {db_filter}
+                    WHERE {' AND '.join(filters)}
                 ) s
             ) r
             WHERE r.f_ovl_sprot <= %s 
               AND r.f_ovl_trembl <= %s
             """,
-            params
+            params + [max_sprot, max_trembl]
         )
 
         pthr_sf = re.compile(r"PTHR\d+:SF\d+")
