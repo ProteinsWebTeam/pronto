@@ -60,8 +60,8 @@ async function refresh() {
         <thead>
             <tr><th colspan="11"><div class="ui secondary menu"><span class="item"></span></div></th></tr>
             <tr>
-                <th colspan="4">Candidate</th>
-                <th colspan="5">Target</th>
+                <th colspan="4" class="center aligned">Candidate</th>
+                <th colspan="5" class="center aligned">Target</th>
                 <th colspan="2" class="center aligned">Similarity</th>
             </tr>
                 <th colspan="2"></th>
