@@ -36,7 +36,7 @@ from . import taxonomy
 @bp.route("/unintegrated/similar/")
 def get_similar_unintegrated():
     min_sprot = float(request.args.get("min-sprot", 1))
-    min_trembl = float(request.args.get("min-trembl", 0.25))
+    min_trembl = float(request.args.get("min-trembl", 0.9))
     database = request.args.get("database")
 
     try:
