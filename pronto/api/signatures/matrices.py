@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from flask import jsonify
 
 from pronto import utils
@@ -63,7 +61,7 @@ def get_comparisons(cur, accessions: tuple):
 
     cur.execute(
         f"""
-        SELECT signature_acc_1, signature_acc_2, num_collocations, num_overlaps
+        SELECT signature_acc_1, signature_acc_2, num_collocations, num_50pc_overlaps
         FROM interpro.comparison
         WHERE signature_acc_1 IN ({in_params})
         AND signature_acc_2 IN ({in_params})
