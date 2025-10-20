@@ -524,10 +524,10 @@ def get_signature_predictions(accession):
         FROM interpro.comparison c
         INNER JOIN interpro.signature s1
           ON c.signature_acc_1 = s1.accession
-        INNER JOIN interpro.database d
-          ON s1.database_id = d.id
         INNER JOIN interpro.signature s2
           ON c.signature_acc_2 = s2.accession
+        INNER JOIN interpro.database d
+          ON s2.database_id = d.id          
         WHERE c.signature_acc_1 = %s
           AND c.num_50pc_overlaps::float / LEAST(s1.num_complete_sequences, s2.num_complete_sequences) >= %s
         """,
