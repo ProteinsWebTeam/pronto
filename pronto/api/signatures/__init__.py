@@ -38,6 +38,7 @@ def get_similar_unintegrated():
     min_sprot = float(request.args.get("min-sprot", 1))
     min_trembl = float(request.args.get("min-trembl", 0.9))
     database = request.args.get("database")
+    allow_same_database = "allow-same-database" in request.args
 
     try:
         page = int(request.args["page"])
@@ -154,8 +155,7 @@ def get_similar_unintegrated():
                   INNER JOIN interpro.signature s2 ON c.signature_acc_2 = s2.accession
                   INNER JOIN interpro.database d1 ON s1.database_id = d1.id
                   INNER JOIN interpro.database d2 ON s2.database_id = d2.id
-                  WHERE s1.database_id != s2.database_id
-                  AND (
+                  WHERE (
                     (s1.type = 'Homologous_superfamily' AND s2.type = 'Homologous_superfamily')
                     OR
                     (s1.type != 'Homologous_superfamily' AND s2.type != 'Homologous_superfamily')
@@ -171,9 +171,14 @@ def get_similar_unintegrated():
 
         pthr_sf = re.compile(r"PTHR\d+:SF\d+")
         candidates = {}
+        exclude = set()
         for row in cur:
             if row[0] in integrated or pthr_sf.match(row[0]):
                 # Exclude candidates that are integrated or PANTHER subfams
+                continue
+            elif not allow_same_database and row[3] == row[10]:
+                # Skip candidate signatures where the target is from the same DB
+                exclude.add(row[0])
                 continue
 
             entry = integrated.get(row[7])
@@ -226,13 +231,14 @@ def get_similar_unintegrated():
 
     results = []
     for c in candidates.values():
-        c["targets"].sort(key=lambda t: (
-            -t["proteins"]["overlapping"]["fraction_reviewed"],
-            -t["proteins"]["overlapping"]["fraction_unreviewed"],
-            -t["proteins"]["overlapping"]["reviewed"],
-            -t["proteins"]["overlapping"]["unreviewed"],
-        ))
-        results.append(c)
+        if c["accession"] not in exclude:
+            c["targets"].sort(key=lambda t: (
+                -t["proteins"]["overlapping"]["fraction_reviewed"],
+                -t["proteins"]["overlapping"]["fraction_unreviewed"],
+                -t["proteins"]["overlapping"]["reviewed"],
+                -t["proteins"]["overlapping"]["unreviewed"],
+            ))
+            results.append(c)
 
     results.sort(key=lambda c: (
         -c["targets"][0]["proteins"]["overlapping"]["fraction_reviewed"],
