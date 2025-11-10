@@ -39,6 +39,7 @@ def get_similar_unintegrated():
     min_trembl = float(request.args.get("min-trembl", 0.85))
     min_proteins = int(request.args.get("min-proteins", 1))
     max_proteins = int(request.args.get("max-proteins", 0))
+    max_sprot_count = int(request.args.get("max-sprot-count", -1))
     database = request.args.get("database")
     allow_same_database = "allow-same-database" in request.args
 
@@ -95,6 +96,10 @@ def get_similar_unintegrated():
         if max_proteins > 0:
             filters.append("s1.num_complete_sequences <= %s")
             params.append(max_proteins)
+
+        if max_sprot_count >= 0:
+            filters.append("s1.num_complete_reviewed_sequences <= %s")
+            params.append(max_sprot_count)
 
         database_id = None
         if database:
@@ -265,6 +270,7 @@ def get_similar_unintegrated():
             "min-trembl": min_trembl,
             "min-proteins": min_proteins,
             "max-proteins": max_proteins,
+            "max-sprot-count": max_sprot_count,
             "database": database
         },
     })
