@@ -37,6 +37,8 @@ from . import taxonomy
 def get_similar_unintegrated():
     min_sprot = float(request.args.get("min-sprot", 1))
     min_trembl = float(request.args.get("min-trembl", 0.85))
+    min_proteins = int(request.args.get("min-proteins", 1))
+    max_proteins = int(request.args.get("max-proteins", 0))
     database = request.args.get("database")
     allow_same_database = "allow-same-database" in request.args
 
@@ -85,10 +87,14 @@ def get_similar_unintegrated():
     cur = con.cursor()
     try:
         filters = [
-            "s1.num_complete_sequences > 0",
+            "s1.num_complete_sequences >= %s",
             "s2.num_complete_sequences > 0",
         ]
-        params = []
+        params = [min_proteins]
+
+        if max_proteins > 0:
+            filters.append("s1.num_complete_sequences <= %s")
+            params.append(max_proteins)
 
         database_id = None
         if database:
@@ -257,6 +263,8 @@ def get_similar_unintegrated():
         "filters": {
             "min-sprot": min_sprot,
             "min-trembl": min_trembl,
+            "min-proteins": min_proteins,
+            "max-proteins": max_proteins,
             "database": database
         },
     })
