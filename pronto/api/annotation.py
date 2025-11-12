@@ -415,7 +415,8 @@ def insert_annotation(
                f"on {datetime.now():%Y-%m-%d %H:%M:%S}")
     ann_id = cur.var(STRING)
 
-    pattern = rf"\b(alpha|beta)(?=[\s\-\+/]+(?:{'|'.join(STRUCTURAL_TERMS)})s?\b)"
+    sep = r"[\s\-\+/]+"
+    pattern = rf"\b(alpha|beta)(?=(?:{sep}(?:beta))?{sep}(?:{'|'.join(STRUCTURAL_TERMS)})s?\b)"
     text = re.sub(pattern, lambda m: "α" if m.group(1).lower() == "alpha" else "β", text, flags=re.IGNORECASE)
     text = re.sub(r"\b([CN])\-terminus\b", lambda m: f"{m.group(1)} terminus", text, flags=re.IGNORECASE)
 
