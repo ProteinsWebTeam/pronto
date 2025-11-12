@@ -12,6 +12,8 @@ from pronto.api.checks.utils import load_global_exceptions
 
 bp = Blueprint("api_annotation", __name__, url_prefix="/api/annotation")
 
+STRUCTURAL_TERMS = ["helix", "helices", "sheet", "strand", "propeller", "barrel",
+                    "sandwich", "meander", "configuration", "structure", "fold"]
 
 class Annotation(object):
     def __init__(self, text: str):
@@ -412,6 +414,11 @@ def insert_annotation(
     comment = (f"{action} by {user['name'].split()[0]} "
                f"on {datetime.now():%Y-%m-%d %H:%M:%S}")
     ann_id = cur.var(STRING)
+
+    pattern = rf"\b(alpha|beta)(?=[\s\-\+/]+(?:{'|'.join(STRUCTURAL_TERMS)})s?\b)"
+    text = re.sub(pattern, lambda m: "α" if m.group(1).lower() == "alpha" else "β", text, flags=re.IGNORECASE)
+    text = re.sub(r"\b([CN])\-terminus\b", lambda m: f"{m.group(1)} terminus", text, flags=re.IGNORECASE)
+
     try:
         cur.execute(
             """

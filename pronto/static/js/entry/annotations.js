@@ -153,6 +153,13 @@ export function getSignaturesAnnotations(accession) {
                     let isLLM;
                     if (signature.text !== null) {
                         text = signature.text;
+                        html += `
+                            <div class="ui warning message">
+                                <div class="header">Automatic Replacements</div>
+                                'alpha' and 'beta' will be replaced by greek letters when referring to structural information
+                                and 'N-terminus' / 'C-terminus' will be corrected to 'N terminus' / 'C terminus'.
+                            </div>
+                        `;
                         isLLM = false;
                     } else {
                         text = signature.llm_text;
