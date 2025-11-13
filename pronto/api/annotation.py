@@ -302,6 +302,23 @@ class Annotation(object):
             in re.finditer(r"\[cite:(PUB\d+)\]", text or self.text, re.I)
         }
 
+    def replace_greek_letters(self):
+        structural_terms = ["helix", "helices", "sheet", "strand", "propeller", "barrel",
+                            "sandwich", "meander", "configuration", "structure", "fold"]
+        replacement_map = {
+            "alpha": "α",
+            "beta": "β"
+        }
+        sep = r"[\s\-\+/]+"
+        replacements = "|".join(replacement_map.keys())
+        pattern = rf"\b({replacements})(?=(?:{sep}(?:{replacements}))?{sep}(?:{'|'.join(structural_terms)})s?\b)"
+        return re.sub(pattern,
+                      lambda m: replacement_map[m.group(1).lower()], self.text, flags=re.IGNORECASE)
+
+    def replace_terminus(self):
+        return re.sub(r"\b([CN])\-terminus\b",
+                      lambda m: f"{m.group(1)} terminus", self.text, flags=re.IGNORECASE)
+
 
 def insert_annotation(
         text: str,
@@ -386,7 +403,6 @@ def insert_annotation(
 
     ann.strip()
     ann.wrap()
-    text = ann.text
 
     cur.execute(
         """
@@ -394,7 +410,7 @@ def insert_annotation(
         FROM INTERPRO.COMMON_ANNOTATION
         WHERE TEXT = :1
         """,
-        [text]
+        [ann.text]
     )
     row = cur.fetchone()
     if row:
@@ -412,6 +428,10 @@ def insert_annotation(
     comment = (f"{action} by {user['name'].split()[0]} "
                f"on {datetime.now():%Y-%m-%d %H:%M:%S}")
     ann_id = cur.var(STRING)
+
+    ann.text = ann.replace_greek_letters()
+    ann.text = ann.replace_terminus()
+
     try:
         cur.execute(
             """
@@ -420,7 +440,7 @@ def insert_annotation(
             VALUES (INTERPRO.NEW_ANN_ID(), :1, :2, :3, :4)
             RETURNING ANN_ID INTO :5
             """,
-            [text, comment, "Y" if is_llm else "N",
+            [ann.text, comment, "Y" if is_llm else "N",
              "Y" if is_checked else "N", ann_id]
         )
     except DatabaseError as exc:
