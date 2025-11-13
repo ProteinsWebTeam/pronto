@@ -403,7 +403,6 @@ def insert_annotation(
 
     ann.strip()
     ann.wrap()
-    text = ann.text
 
     cur.execute(
         """
@@ -411,7 +410,7 @@ def insert_annotation(
         FROM INTERPRO.COMMON_ANNOTATION
         WHERE TEXT = :1
         """,
-        [text]
+        [ann.text]
     )
     row = cur.fetchone()
     if row:
@@ -441,7 +440,7 @@ def insert_annotation(
             VALUES (INTERPRO.NEW_ANN_ID(), :1, :2, :3, :4)
             RETURNING ANN_ID INTO :5
             """,
-            [text, comment, "Y" if is_llm else "N",
+            [ann.text, comment, "Y" if is_llm else "N",
              "Y" if is_checked else "N", ann_id]
         )
     except DatabaseError as exc:
