@@ -12,8 +12,6 @@ from pronto.api.checks.utils import load_global_exceptions
 
 bp = Blueprint("api_annotation", __name__, url_prefix="/api/annotation")
 
-STRUCTURAL_TERMS = ["helix", "helices", "sheet", "strand", "propeller", "barrel",
-                    "sandwich", "meander", "configuration", "structure", "fold"]
 
 class Annotation(object):
     def __init__(self, text: str):
@@ -304,6 +302,23 @@ class Annotation(object):
             in re.finditer(r"\[cite:(PUB\d+)\]", text or self.text, re.I)
         }
 
+    def replace_greek_letters(self):
+        structural_terms = ["helix", "helices", "sheet", "strand", "propeller", "barrel",
+                            "sandwich", "meander", "configuration", "structure", "fold"]
+        replacement_map = {
+            "alpha": "α",
+            "beta": "β"
+        }
+        sep = r"[\s\-\+/]+"
+        replacements = "|".join(replacement_map.keys())
+        pattern = rf"\b({replacements})(?=(?:{sep}(?:{replacements}))?{sep}(?:{'|'.join(structural_terms)})s?\b)"
+        return re.sub(pattern,
+                      lambda m: "α" if m.group(1).lower() == "alpha" else "β", self.text, flags=re.IGNORECASE)
+
+    def replace_terminus(self):
+        return re.sub(r"\b([CN])\-terminus\b",
+                      lambda m: f"{m.group(1)} terminus", self.text, flags=re.IGNORECASE)
+
 
 def insert_annotation(
         text: str,
@@ -415,10 +430,8 @@ def insert_annotation(
                f"on {datetime.now():%Y-%m-%d %H:%M:%S}")
     ann_id = cur.var(STRING)
 
-    sep = r"[\s\-\+/]+"
-    pattern = rf"\b(alpha|beta)(?=(?:{sep}(?:beta))?{sep}(?:{'|'.join(STRUCTURAL_TERMS)})s?\b)"
-    text = re.sub(pattern, lambda m: "α" if m.group(1).lower() == "alpha" else "β", text, flags=re.IGNORECASE)
-    text = re.sub(r"\b([CN])\-terminus\b", lambda m: f"{m.group(1)} terminus", text, flags=re.IGNORECASE)
+    ann.text = ann.replace_greek_letters()
+    ann.text = ann.replace_terminus()
 
     try:
         cur.execute(
