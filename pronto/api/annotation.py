@@ -313,7 +313,7 @@ class Annotation(object):
         replacements = "|".join(replacement_map.keys())
         pattern = rf"\b({replacements})(?=(?:{sep}(?:{replacements}))?{sep}(?:{'|'.join(structural_terms)})s?\b)"
         return re.sub(pattern,
-                      lambda m: "α" if m.group(1).lower() == "alpha" else "β", self.text, flags=re.IGNORECASE)
+                      lambda m: replacement_map[m.group(1).lower()], self.text, flags=re.IGNORECASE)
 
     def replace_terminus(self):
         return re.sub(r"\b([CN])\-terminus\b",
