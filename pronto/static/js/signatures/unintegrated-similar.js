@@ -46,16 +46,32 @@ async function refresh() {
         return;
     }
 
-    let html = `
-        <strong>Minimum similarity:</strong>
-        <div class="ui sib label">
-          Swiss-Prot
-          <div class="detail">&ge; ${(data.filters['min-sprot'] * 100).toFixed(0)}%</div>
-        </div>
-        <div class="ui uniprot label">
-          TrEMBL
-          <div class="detail">&ge; ${(data.filters['min-trembl'] * 100).toFixed(0)}%</div>
-        </div>        
+    document.querySelector(`input[name="min-overlap"][value="${data.filters['min-overlap']}"]`).checked = true;
+
+    ['sprot', 'trembl'].forEach((name,) => {
+        const elemId = `#slider-${name}`;
+        const filterId = `min-${name}`;
+        $(elemId)
+            .slider({
+                min: 0,
+                max: 100,
+                start: data.filters[filterId] * 100,
+                step: 1,
+                smooth: true,
+                showThumbTooltip: true,
+                restrictedLabels: [0, 25, 50, 75, 100],
+                onChange: (value) => {
+                    const url = new URL(location.href);
+                    url.searchParams.set(filterId, (value / 100).toFixed(2));
+                    url.searchParams.delete('page');
+                    url.searchParams.delete('page_size');
+                    history.replaceState(null, document.title, url.toString());
+                    refresh();
+                }
+            });
+    });
+
+    let html = `     
         <table class="ui celled structured small compact table">
         <thead>
             <tr><th colspan="11"><div class="ui secondary menu"><span class="item"></span></div></th></tr>
@@ -143,23 +159,17 @@ async function refresh() {
 
 document.addEventListener('DOMContentLoaded', () => {
     updateHeader();
-    document.title = 'Similar signatures | Pronto';
-    document.querySelector('h1.ui.header').innerHTML = 'Similar signatures';
-
-    const params = document.getElementById('params');
-    params.innerHTML = `
-        <p class="justified aligned">
-            This page lists unintegrated signatures that are potential candidates 
-            for integration into existing InterPro entries.
-            Candidates are identified based on their similarity to at least 
-            one integrated signature from another member database.<br>
-            Similarity between two signatures is measured by comparing 
-            their hits on protein sequences: a sequence is considered <em>overlapped</em> 
-            when the regions matched by both signatures cover at least 80% 
-            of each other’s residues. The overall similarity between signatures is then derived 
-            from the proportion of shared overlapped sequences in Swiss-Prot and TrEMBL.
-        </p>
-    `;
-
     refresh();
+
+    document.querySelectorAll('.ui.form input[name="min-overlap"]').forEach((input) => {
+        input.addEventListener('change', e => {
+            const value = e.currentTarget.value;
+            const url = new URL(location.href);
+            url.searchParams.set('min-overlap', value);
+            url.searchParams.delete('page');
+            url.searchParams.delete('page_size');
+            history.replaceState(null, null, url.toString());
+            refresh();
+        });
+    });
 });

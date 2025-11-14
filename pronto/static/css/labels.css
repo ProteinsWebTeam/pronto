@@ -1,11 +1,11 @@
 .ui.sib.label {
     background-color: #E30613;
     border-color: #E30613;
-    color: #fff;
+    color: #fff !important;
 }
 
 .ui.uniprot.label {
     background-color: #0071BC;
     border-color: #0071BC;
-    color: #fff;
+    color: #fff !important;
 }
