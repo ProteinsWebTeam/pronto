@@ -77,29 +77,33 @@ async function refresh() {
         <tbody>
     `;
 
-    for (const obj of data.results) {
-        const rowSpan = obj.targets.length;
-        html += `
-            <tr>
-            <td rowspan="${rowSpan}">${renderSignatureLink(obj)}</td>
-            <td rowspan="${rowSpan}" class="collapsing">${renderCommentLabel(obj)}</td>
-            <td rowspan="${rowSpan}" class="right aligned">${renderProteinsLink(obj.accession, obj.proteins.reviewed, true)}</td>
-            <td rowspan="${rowSpan}" class="right aligned">${renderProteinsLink(obj.accession, obj.proteins.unreviewed, false)}</td>
-        `;
-
-        for (let i = 0; i < obj.targets.length; i++) {
-            const target = obj.targets[i];
-            if (i > 0) html += '<tr>'
+    if (data.results.length > 0) {
+        for (const obj of data.results) {
+            const rowSpan = obj.targets.length;
             html += `
-                <td>${renderSignatureLink(target)}</td>
-                <td class="right aligned">${renderProteinsLink(target.accession, target.proteins.reviewed, true)}</td>
-                <td class="right aligned">${renderProteinsLink(target.accession, target.proteins.unreviewed, false)}</td>
-                ${renderEntry(target.entry)}
-                <td class="right aligned">${(target.proteins.overlapping.fraction_reviewed * 100).toFixed(1)}%</td>
-                <td class="right aligned">${(target.proteins.overlapping.fraction_unreviewed * 100).toFixed(1)}%</td>
-                </tr>                
+                <tr>
+                <td rowspan="${rowSpan}">${renderSignatureLink(obj)}</td>
+                <td rowspan="${rowSpan}" class="collapsing">${renderCommentLabel(obj)}</td>
+                <td rowspan="${rowSpan}" class="right aligned">${renderProteinsLink(obj.accession, obj.proteins.reviewed, true)}</td>
+                <td rowspan="${rowSpan}" class="right aligned">${renderProteinsLink(obj.accession, obj.proteins.unreviewed, false)}</td>
             `;
+
+            for (let i = 0; i < obj.targets.length; i++) {
+                const target = obj.targets[i];
+                if (i > 0) html += '<tr>'
+                html += `
+                    <td>${renderSignatureLink(target)}</td>
+                    <td class="right aligned">${renderProteinsLink(target.accession, target.proteins.reviewed, true)}</td>
+                    <td class="right aligned">${renderProteinsLink(target.accession, target.proteins.unreviewed, false)}</td>
+                    ${renderEntry(target.entry)}
+                    <td class="right aligned">${(target.proteins.overlapping.fraction_reviewed * 100).toFixed(1)}%</td>
+                    <td class="right aligned">${(target.proteins.overlapping.fraction_unreviewed * 100).toFixed(1)}%</td>
+                    </tr>                
+                `;
+            }
         }
+    } else {
+        html += '<tr><td colspan="11" class="center aligned">No results found</td></tr>';
     }
 
     html += `
