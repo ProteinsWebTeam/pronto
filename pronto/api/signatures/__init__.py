@@ -66,40 +66,36 @@ def get_similar_unintegrated():
             400
         )
 
-    # con = utils.connect_oracle()
-    # cur = con.cursor()
-    # cur.execute(
-    #     """
-    #     SELECT EM.METHOD_AC, E.ENTRY_AC, E.ENTRY_TYPE, E.NAME, E.SHORT_NAME, E.CHECKED
-    #     FROM INTERPRO.ENTRY2METHOD EM
-    #     INNER JOIN INTERPRO.ENTRY E ON EM.ENTRY_AC = E.ENTRY_AC
-    #     """
-    # )
-    # integrated = {}
-    # for row in cur:
-    #     integrated[row[0]] = {
-    #         "accession": row[1],
-    #         "type": row[2],
-    #         "name": row[3],
-    #         "short_name": row[4],
-    #         "checked": row[5] == 'Y'
-    #     }
-    #
-    # cur.execute(
-    #     """
-    #     SELECT METHOD_AC, COUNT(*)
-    #     FROM INTERPRO.METHOD_COMMENT
-    #     WHERE STATUS = 'Y'
-    #     GROUP BY METHOD_AC
-    #     """
-    # )
-    # num_comments = dict(cur.fetchall())
-    # cur.close()
-    # con.close()
+    con = utils.connect_oracle()
+    cur = con.cursor()
+    cur.execute(
+        """
+        SELECT EM.METHOD_AC, E.ENTRY_AC, E.ENTRY_TYPE, E.NAME, E.SHORT_NAME, E.CHECKED
+        FROM INTERPRO.ENTRY2METHOD EM
+        INNER JOIN INTERPRO.ENTRY E ON EM.ENTRY_AC = E.ENTRY_AC
+        """
+    )
+    integrated = {}
+    for row in cur:
+        integrated[row[0]] = {
+            "accession": row[1],
+            "type": row[2],
+            "name": row[3],
+            "short_name": row[4],
+            "checked": row[5] == 'Y'
+        }
 
-    import pickle
-    with open("/tmp/tmp.REReaSN0II", "rb") as fh:
-        integrated, num_comments = pickle.load(fh)
+    cur.execute(
+        """
+        SELECT METHOD_AC, COUNT(*)
+        FROM INTERPRO.METHOD_COMMENT
+        WHERE STATUS = 'Y'
+        GROUP BY METHOD_AC
+        """
+    )
+    num_comments = dict(cur.fetchall())
+    cur.close()
+    con.close()
 
     con = utils.connect_pg()
     cur = con.cursor()
