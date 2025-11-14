@@ -40,6 +40,7 @@ def get_similar_unintegrated():
     min_proteins = int(request.args.get("min-proteins", 1))
     max_proteins = int(request.args.get("max-proteins", 0))
     max_sprot_count = int(request.args.get("max-sprot-count", -1))
+    min_overlap = int(request.args.get("min-overlap", 80))
     database = request.args.get("database")
     allow_same_database = "allow-same-database" in request.args
 
@@ -53,36 +54,52 @@ def get_similar_unintegrated():
     except (KeyError, ValueError):
         page_size = 20
 
-    con = utils.connect_oracle()
-    cur = con.cursor()
-    cur.execute(
-        """
-        SELECT EM.METHOD_AC, E.ENTRY_AC, E.ENTRY_TYPE, E.NAME, E.SHORT_NAME, E.CHECKED
-        FROM INTERPRO.ENTRY2METHOD EM
-        INNER JOIN INTERPRO.ENTRY E ON EM.ENTRY_AC = E.ENTRY_AC
-        """
-    )
-    integrated = {}
-    for row in cur:
-        integrated[row[0]] = {
-            "accession": row[1],
-            "type": row[2],
-            "name": row[3],
-            "short_name": row[4],
-            "checked": row[5] == 'Y'
-        }
+    if min_overlap not in [50, 65, 80]:
+        return (
+            jsonify({
+                "error": {
+                    "title": "Bad Request",
+                    "message": f"Invalid min-overlap parameter: {min_overlap}."
+                               f"Accepted values are: 50, 65, 80.",
+                }
+            }),
+            400
+        )
 
-    cur.execute(
-        """
-        SELECT METHOD_AC, COUNT(*)
-        FROM INTERPRO.METHOD_COMMENT
-        WHERE STATUS = 'Y'
-        GROUP BY METHOD_AC
-        """
-    )
-    num_comments = dict(cur.fetchall())
-    cur.close()
-    con.close()
+    # con = utils.connect_oracle()
+    # cur = con.cursor()
+    # cur.execute(
+    #     """
+    #     SELECT EM.METHOD_AC, E.ENTRY_AC, E.ENTRY_TYPE, E.NAME, E.SHORT_NAME, E.CHECKED
+    #     FROM INTERPRO.ENTRY2METHOD EM
+    #     INNER JOIN INTERPRO.ENTRY E ON EM.ENTRY_AC = E.ENTRY_AC
+    #     """
+    # )
+    # integrated = {}
+    # for row in cur:
+    #     integrated[row[0]] = {
+    #         "accession": row[1],
+    #         "type": row[2],
+    #         "name": row[3],
+    #         "short_name": row[4],
+    #         "checked": row[5] == 'Y'
+    #     }
+    #
+    # cur.execute(
+    #     """
+    #     SELECT METHOD_AC, COUNT(*)
+    #     FROM INTERPRO.METHOD_COMMENT
+    #     WHERE STATUS = 'Y'
+    #     GROUP BY METHOD_AC
+    #     """
+    # )
+    # num_comments = dict(cur.fetchall())
+    # cur.close()
+    # con.close()
+
+    import pickle
+    with open("/tmp/tmp.REReaSN0II", "rb") as fh:
+        integrated, num_comments = pickle.load(fh)
 
     con = utils.connect_pg()
     cur = con.cursor()
@@ -129,6 +146,8 @@ def get_similar_unintegrated():
             filters.append("d1.id = %s")
             params.append(database_id)
 
+        tot_ovl_col = f"num_{min_overlap}pc_overlaps"
+        rev_ovl_col = f"num_reviewed_{min_overlap}pc_overlaps"
         cur.execute(
             f"""
             SELECT *
@@ -159,8 +178,8 @@ def get_similar_unintegrated():
                     d2.name_long AS db_name2,
                     s2.num_complete_reviewed_sequences AS sprot2,
                     (s2.num_complete_sequences - s2.num_complete_reviewed_sequences) AS trembl2,
-                    c.num_reviewed_80pc_overlaps AS ovl_sprot,
-                    (c.num_80pc_overlaps - c.num_reviewed_80pc_overlaps) AS ovl_trembl
+                    c.{rev_ovl_col} AS ovl_sprot,
+                    (c.{tot_ovl_col} - c.{rev_ovl_col}) AS ovl_trembl
                   FROM interpro.signature s1
                   INNER JOIN interpro.comparison c ON s1.accession = c.signature_acc_1
                   INNER JOIN interpro.signature s2 ON c.signature_acc_2 = s2.accession
@@ -271,6 +290,7 @@ def get_similar_unintegrated():
             "min-proteins": min_proteins,
             "max-proteins": max_proteins,
             "max-sprot-count": max_sprot_count,
+            "min-overlap": min_overlap,
             "database": database
         },
     })
