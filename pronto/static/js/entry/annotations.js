@@ -156,8 +156,8 @@ export function getSignaturesAnnotations(accession) {
                         html += `
                             <div class="ui warning message">
                                 <div class="header">Automatic Replacements</div>
-                                'alpha' and 'beta' will be replaced by greek letters when referring to structural information
-                                and 'N-terminus' / 'C-terminus' will be corrected to 'N terminus' / 'C terminus'.
+                                'alpha' and 'beta' will be replaced by the Greek letters when referring to structural 
+                                information and 'N-terminal'/'N terminus' will be standardized (the same to C).
                             </div>
                         `;
                         isLLM = false;

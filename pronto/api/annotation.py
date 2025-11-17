@@ -319,6 +319,10 @@ class Annotation(object):
         return re.sub(r"\b([CN])\-terminus\b",
                       lambda m: f"{m.group(1)} terminus", self.text, flags=re.IGNORECASE)
 
+    def replace_terminal(self):
+            return re.sub(r"\b([CN])\s+terminal\b",
+                          lambda m: f"{m.group(1)}-terminal", self.text, flags=re.IGNORECASE)
+
 
 def insert_annotation(
         text: str,
@@ -431,6 +435,7 @@ def insert_annotation(
 
     ann.text = ann.replace_greek_letters()
     ann.text = ann.replace_terminus()
+    ann.text = ann.replace_terminal()
 
     try:
         cur.execute(
