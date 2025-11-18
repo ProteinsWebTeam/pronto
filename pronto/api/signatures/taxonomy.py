@@ -6,7 +6,7 @@ from pronto import utils
 from . import bp, get_sig2interpro
 
 
-RANKS = {"superkingdom", "kingdom", "phylum", "class", "order", "family",
+RANKS = {"domain", "kingdom", "phylum", "class", "order", "family",
          "genus", "species"}
 
 

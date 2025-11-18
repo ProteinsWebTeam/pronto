@@ -76,7 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
         getComments(acc1, acc2),
         getDescriptions(acc1, acc2),
         getGoTerms(acc1, acc2),
-        getTaxonomy(acc1, acc2, 'superkingdom'),
+        getTaxonomy(acc1, acc2, 'domain'),
         getTaxonomy(acc1, acc2, 'kingdom')
     ];
 
