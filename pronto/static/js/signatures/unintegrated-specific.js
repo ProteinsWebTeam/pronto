@@ -19,16 +19,41 @@ async function refresh() {
         return;
     }
 
-    let html = `
-        <strong>Overlap limits:</strong>
-        <div class="ui sib label">
-          Swiss-Prot
-          <div class="detail">&le; ${(data.filters['max-sprot'] * 100).toFixed(0)}%</div>
-        </div>
-        <div class="ui uniprot label">
-          TrEMBL
-          <div class="detail">&le; ${(data.filters['max-trembl'] * 100).toFixed(0)}%</div>
-        </div>        
+    if (data.filters['with-annotations'] !== null) {
+        const value = data.filters['with-annotations'] ? 'true' : 'false';
+        document.querySelector(`input[name="with-annotations"][value="${value}"]`).checked = true;
+    } else {
+        document.querySelector('input[name="with-annotations"][value=""]').checked = true;
+    }
+
+    ['sprot', 'trembl'].forEach((name,) => {
+        const elemId = `#slider-${name}`;
+        const filterId = `min-${name}`;
+        $(elemId)
+            .slider({
+                min: 0,
+                max: 100,
+                start: data.filters[filterId] * 100,
+                step: 1,
+                smooth: true,
+                showThumbTooltip: true,
+                tooltipConfig: {
+                  position: 'right center',
+                  variation: 'visible'
+                },
+                restrictedLabels: [0, 25, 50, 75, 100],
+                onChange: (value) => {
+                    const url = new URL(location.href);
+                    url.searchParams.set(filterId, (value / 100).toFixed(2));
+                    url.searchParams.delete('page');
+                    url.searchParams.delete('page_size');
+                    history.replaceState(null, document.title, url.toString());
+                    refresh();
+                }
+            });
+    });
+
+    let html = `      
         <table class="ui celled structured small compact table">
         <thead>
             <tr><th colspan="7"><div class="ui secondary menu"><span class="item"></span></div></th></tr>
@@ -112,38 +137,17 @@ async function refresh() {
 
 document.addEventListener('DOMContentLoaded', () => {
     updateHeader();
-    document.title = 'Highly specific signatures | Pronto';
-    document.querySelector('h1.ui.header').innerHTML = 'Highly specific signatures';
-
-    const params = document.getElementById('params');
-    params.innerHTML = `
-        <p class="justified aligned">
-            This page lists signatures whose matches rarely overlap with those of other signatures. 
-            Specificity is quantified as the fraction of proteins whose hits overlap 
-            with hits from any other signature. 
-            Signatures with low overlap fractions are considered highly specific and 
-            are suitable candidates for integration into new InterPro entries with minimal risk of conflict.
-        </p>
-    `;
-
-    // Maximum overlap tolerated in Swiss-Prot
-    // Maximum overlap tolerated in TrEMBL
-
-    // for (let input of params.querySelectorAll('input')) {
-    //     input.addEventListener('change', e => {
-    //         const key = e.currentTarget.name;
-    //         const checked = e.currentTarget.checked;
-    //         const url = new URL(location.href, location.origin);
-    //
-    //         if (checked)
-    //             url.searchParams.set(key, '');
-    //         else if (url.searchParams.has(key))
-    //             url.searchParams.delete(key);
-    //
-    //         history.pushState(null, document.title, url.toString());
-    //         refresh();
-    //     });
-    // }
-
     refresh();
+
+    document.querySelectorAll('.ui.form input[name="with-annotations"]').forEach((input) => {
+        input.addEventListener('change', e => {
+            const value = e.currentTarget.value;
+            const url = new URL(location.href);
+            url.searchParams.set('with-annotations', value);
+            url.searchParams.delete('page');
+            url.searchParams.delete('page_size');
+            history.replaceState(null, null, url.toString());
+            refresh();
+        });
+    });
 });
