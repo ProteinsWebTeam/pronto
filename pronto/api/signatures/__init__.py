@@ -422,8 +422,8 @@ def get_very_similar_unintegrated():
 
 @bp.route("/unintegrated/specific/")
 def get_specific_unintegrated():
-    max_sprot = float(request.args.get("max-sprot", 0.01))
-    max_trembl = float(request.args.get("max-trembl", 0.05))
+    min_sprot = float(request.args.get("min-sprot", 1))
+    min_trembl = float(request.args.get("min-trembl", 0.95))
     database = request.args.get("database")
     with_annotations = request.args.get("with-annotations", "")
 
@@ -542,7 +542,8 @@ def get_specific_unintegrated():
             WHERE r.f_ovl_sprot <= %s 
               AND r.f_ovl_trembl <= %s
             """,
-            params + [max_sprot, max_trembl]
+            # max_similarity = 1 - min_specificity
+            params + [1 - min_sprot, 1 - min_trembl]
         )
 
         pthr_sf = re.compile(r"PTHR\d+:SF\d+")
@@ -589,8 +590,8 @@ def get_specific_unintegrated():
             "page_size": page_size
         },
         "filters": {
-            "max-sprot": max_sprot,
-            "max-trembl": max_trembl,
+            "min-sprot": min_sprot,
+            "min-trembl": min_trembl,
             "database": database
         },
     })
