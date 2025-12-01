@@ -468,7 +468,7 @@ def get_specific_unintegrated():
         filters = ["s.num_complete_sequences > 0"]
         params = []
 
-        if with_annotations is True:
+        if with_annotations:
             filters += [
                 "s.name IS NOT NULL",
                 "s.description IS NOT NULL",
@@ -592,6 +592,7 @@ def get_specific_unintegrated():
         "filters": {
             "min-sprot": min_sprot,
             "min-trembl": min_trembl,
-            "database": database
+            "database": database,
+            "with-annotations": with_annotations
         },
     })

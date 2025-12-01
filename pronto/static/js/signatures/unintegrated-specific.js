@@ -19,6 +19,13 @@ async function refresh() {
         return;
     }
 
+    if (data.filters['with-annotations'] !== null) {
+        const value = data.filters['with-annotations'] ? 'true' : 'false';
+        document.querySelector(`input[name="with-annotations"][value="${value}"]`).checked = true;
+    } else {
+        document.querySelector('input[name="with-annotations"][value=""]').checked = true;
+    }
+
     ['sprot', 'trembl'].forEach((name,) => {
         const elemId = `#slider-${name}`;
         const filterId = `min-${name}`;
@@ -131,4 +138,16 @@ async function refresh() {
 document.addEventListener('DOMContentLoaded', () => {
     updateHeader();
     refresh();
+
+    document.querySelectorAll('.ui.form input[name="with-annotations"]').forEach((input) => {
+        input.addEventListener('change', e => {
+            const value = e.currentTarget.value;
+            const url = new URL(location.href);
+            url.searchParams.set('with-annotations', value);
+            url.searchParams.delete('page');
+            url.searchParams.delete('page_size');
+            history.replaceState(null, null, url.toString());
+            refresh();
+        });
+    });
 });
