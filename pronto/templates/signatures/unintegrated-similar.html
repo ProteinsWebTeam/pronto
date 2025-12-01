@@ -8,6 +8,9 @@
         #results {
             margin-top: 1rem;
         }
+        .ui.form > .ui.floated.button {
+            margin-bottom: 1rem;
+        }
         .inline.slider {
             display: flex;
             align-items: center;
@@ -22,6 +25,9 @@
         }
         .ui.slider {
             max-width: 400px;
+        }
+        #progress-model > .hidden.close.icon {
+            display: none;
         }
     </style>
     <title>Similar signatures | Pronto</title>
@@ -74,19 +80,42 @@
                     </div>
                 </div>
             </div>
-            <div class="inline field slider">
-                <label class="ui sib label">Minimum Swiss-Prot similarity</label>
-                <div class="ui labeled ticked slider" id="slider-sprot"></div>
+            <div class="fields">
+                <div class="eight wide inline field slider">
+                    <label class="ui sib label">Minimum Swiss-Prot similarity</label>
+                    <div class="ui labeled ticked slider" id="slider-sprot"></div>
+                </div>
+                <div class="eight wide inline field slider">
+                    <label class="ui uniprot label">Minimum TrEMBL similarity</label>
+                    <div class="ui labeled ticked slider" id="slider-trembl"></div>
+                </div>
             </div>
-            <div class="inline field slider">
-                <label class="ui uniprot label">Minimum TrEMBL similarity</label>
-                <div class="ui labeled ticked slider" id="slider-trembl"></div>
+            <div class="fields">
+                <div class="field">
+                    <label>Minimum number of sequences</label>
+                    <input type="number" name="min-proteins" min="1" step="1" placeholder="1">
+                </div>
+                <div class="field">
+                    <label>Maximum number of sequences (set 0 to disable filter)</label>
+                    <input type="number" name="max-proteins" min="0" step="1" placeholder="1,000">
+                </div>
+                <div class="field">
+                    <label>Maximum number of Swiss-Prot sequences (set -1 to disable filter)</label>
+                    <input type="number" name="max-sprot-count" min="-1" step="1" placeholder="1">
+                </div>
             </div>
-        </div>
-        <div id="params">
+            <div class="ui right floated primary button" tabindex="0">Integrate</div>
         </div>
         <div id="results"></div>
     </div>
+</div>
+
+<div id="progress-model" class="ui modal">
+    <i class="close icon"></i>
+    <div class="header">
+        Bulk integration
+    </div>
+    <div class="scrolling content"></div>
 </div>
 
 <script src="{{ url_for('static', filename='vendor/jquery.min.js') }}"></script>
