@@ -156,8 +156,7 @@ export function getSignaturesAnnotations(accession) {
                         html += `
                             <div class="ui warning message">
                                 <div class="header">Automatic Replacements</div>
-                                'alpha' and 'beta' will be replaced by the Greek letters when referring to structural 
-                                information and 'N-terminal'/'N terminus' will be standardized (the same to C).
+                                You can find some differences from original Pfam annotation due automatic corrections.
                             </div>
                         `;
                         isLLM = false;
