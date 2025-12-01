@@ -64,8 +64,7 @@ def similar_signatures():
 
 @app.route("/signatures/unintegrated/specific/")
 def specific_signatures():
-    return render_template("signatures/boilerplate.html",
-                           page="unintegrated-specific")
+    return render_template("signatures/unintegrated-specific.html")
 
 
 @app.route("/signatures/<path:accessions>/comments/")
