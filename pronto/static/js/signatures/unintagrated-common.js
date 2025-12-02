@@ -119,7 +119,7 @@ export async function integrate(signatures, actionFn) {
             successes++;
             icon = '<i class="green check circle icon"></i>';
         } else {
-            icon = `<span data-tooltip="${response.error}"><i class="red exclamation circle icon"></i></span>`;
+            icon = `<span data-tooltip="${response.error || 'Unknown error'}"><i class="red exclamation circle icon"></i></span>`;
         }
         node.innerHTML = `
             <td>
