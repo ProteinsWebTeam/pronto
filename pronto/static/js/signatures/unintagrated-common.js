@@ -2,13 +2,24 @@ import {sleep} from "../tasks.js";
 import * as dimmer from "../ui/dimmer.js";
 import * as modals from "../ui/modals.js"
 
+export function initSliderInputs() {
+    ['sprot', 'trembl'].forEach(name => {
+        const input = document.getElementById(`input-${name}`);
+        input.addEventListener('change', event => {
+            const value = Number.parseInt(event.currentTarget.value, 10);
+            const sliderId = `#slider-${name}`;
+            $(sliderId).slider('set value', value, true);
+        });
+    });
+}
+
 export function updateSliders(data, refresh) {
     ['sprot', 'trembl'].forEach((name,) => {
-        const elemId = `#slider-${name}`;
+        const sliderId = `#slider-${name}`;
         const filterId = `min-${name}`;
         const input = document.getElementById(`input-${name}`);
          input.value = (data.filters[filterId] * 100).toFixed(0);
-        $(elemId)
+        $(sliderId)
             .slider({
                 min: 0,
                 max: 100,
@@ -37,13 +48,17 @@ export function updateSliders(data, refresh) {
     });
 }
 
-export async function initIntegrate(apiUrl, filterFn, actionFn) {
+export async function preIntegrate(apiUrl, filterFn, actionFn) {
     dimmer.on();
     const url = new URL(location.href);
     url.searchParams.delete('page');
     url.searchParams.set('page_size', '1000000');
-    const fullApiUrl = `${apiUrl.replace(/\/+$/, '')}/${url.search}`;
-    const response = await fetch(fullApiUrl);
+
+    for (const [param, value] of url.searchParams.entries()) {
+        apiUrl.searchParams.set(param, value);
+    }
+
+    const response = await fetch(apiUrl);
     const data = await response.json();
     dimmer.off();
 
@@ -53,24 +68,24 @@ export async function initIntegrate(apiUrl, filterFn, actionFn) {
     }
 
     const signatures = filterFn(data.results);
-
-    if (signatures.length === 0)
-        return;
-
-    modals.ask(
-        'Bulk integration',
-        `You are about to integrate <strong>${signatures.length} signatures</strong>. You need to be logged in to perform this operation.`,
-        'Integrate',
-        () => {
-            integrate(signatures, actionFn)
-        }
-    );
+    if (signatures.length > 0) {
+        modals.ask(
+            'Bulk integration',
+            `You are about to integrate <strong>${signatures.length} signatures</strong>. You need to be logged in to perform this operation.`,
+            'Integrate',
+            () => {
+                integrate(signatures, actionFn)
+            }
+        );
+    } else {
+        modals.error('No signatures to integrate', 'We did not find any signature eligible to be integrated.');
+    }
 }
 
 export async function integrate(signatures, actionFn) {
     const modal = document.getElementById('progress-model');
     modal.querySelector('.content').innerHTML = `
-        <div class="ui progress" data-value="1" data-total="${signatures.length}">
+        <div class="ui progress" data-value="0" data-total="${signatures.length}">
             <div class="bar">
                 <div class="progress"></div>
             </div>
