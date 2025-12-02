@@ -105,7 +105,7 @@ export async function integrate(signatures, actionFn) {
     const progress = modal.querySelector('.ui.progress');
     const tbody = modal.querySelector('tbody');
     modal.querySelector('.close.icon').classList.add('hidden');
-    $(modal).modal('show');
+    $(modal).modal({closable: false}).modal('show');
     $(progress).progress();
 
     await sleep(2000);
@@ -114,20 +114,23 @@ export async function integrate(signatures, actionFn) {
     for (const [signatureAcc, entryAcc] of signatures) {
         const response = await actionFn(signatureAcc, entryAcc);
         const node = document.createElement('tr');
-        let icon;
-        if (response.ok) {
+        let icon = '<i class="green check circle icon"></i>';
+        if (response.ok)
             successes++;
-            icon = '<i class="green check circle icon"></i>';
-        } else {
+        else
             icon = `<span data-tooltip="${response.error || 'Unknown error'}"><i class="red exclamation circle icon"></i></span>`;
-        }
+
+        let entry = 'N/A';
+        if (response.entry)
+            entry = `<a href="/entry/${response.entry}/" target="_blank">${response.entry}</a>`;
+
         node.innerHTML = `
             <td>
                 <a href="/signature/${response.signature}/" target="_blank">${response.signature}</a>
             </td>
             <td>
                 ${icon}
-                <a href="/entry/${response.entry}/" target="_blank">${response.entry}</a>
+                ${entry}
             </td>`;
         tbody.insertBefore(node, tbody.firstChild);
         $(progress).progress('increment');
