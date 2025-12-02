@@ -3,7 +3,11 @@ import {initPopups, createPopup, renderCommentLabel} from "../ui/comments.js";
 import * as dimmer from "../ui/dimmer.js";
 import {updateHeader} from "../ui/header.js";
 import {render} from "../ui/pagination.js";
-import {updateSliders, initIntegrate} from "./unintagrated-common.js";
+import {
+    updateSliders,
+    preIntegrate,
+    initSliderInputs
+} from "./unintagrated-common.js";
 
 function renderEntry(entry) {
     return `
@@ -143,6 +147,7 @@ async function refresh() {
 
 document.addEventListener('DOMContentLoaded', () => {
     updateHeader();
+    initSliderInputs();
     refresh();
 
     document.querySelectorAll('.ui.form input[name="min-overlap"]').forEach((input) => {
@@ -159,8 +164,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document
         .querySelector('.ui.form > .ui.button')
-        .addEventListener('click', e => initIntegrate(
-            '/api/signatures/unintegrated/similar',
+        .addEventListener('click', e => preIntegrate(
+            new URL(`${location.origin}/api/signatures/unintegrated/similar`),
             (results) => {
                 return results
                     .filter(signature => {

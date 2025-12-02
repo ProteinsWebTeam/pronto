@@ -2,7 +2,11 @@ import {updateHeader} from "../ui/header.js";
 import * as dimmer from "../ui/dimmer.js";
 import {initPopups, createPopup, renderCommentLabel} from "../ui/comments.js";
 import {render} from "../ui/pagination.js";
-import {updateSliders} from "./unintagrated-common.js";
+import {
+    updateSliders,
+    preIntegrate,
+    initSliderInputs
+} from "./unintagrated-common.js";
 
 async function refresh() {
     dimmer.on();
@@ -111,8 +115,17 @@ async function refresh() {
     dimmer.off();
 }
 
+function getTypesMap() {
+    // Builds map of type -> type code using the dropdown in the header used to create new entries
+    const select = document.querySelector('#new-entry-info select[name="type"]');
+    return new Map(
+        Array.from(select.options).map(opt => [opt.text, opt.value])
+    );
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     updateHeader();
+    initSliderInputs();
     refresh();
 
     document.querySelectorAll('.ui.form input[name="with-annotations"]').forEach((input) => {
@@ -126,4 +139,65 @@ document.addEventListener('DOMContentLoaded', () => {
             refresh();
         });
     });
+
+    const types = getTypesMap();
+
+    document
+        .querySelector('.ui.form > .ui.button')
+        .addEventListener('click', e => preIntegrate(
+            new URL(`${location.origin}/api/signatures/unintegrated/specific?with-annotations=true`),
+            (results) => {
+                return results
+                    .filter(signature => signature.comments === 0 && types.has(signature.type) && signature.accession === "NF007506")
+                    .map(signature => ([
+                        signature.accession,
+                        null
+                    ]));
+            },
+            async (signatureAcc,) =>  {
+                const state = {
+                    ok: false,
+                    signature: signatureAcc,
+                    entry: null,
+                    error: null
+                }
+                let response = await fetch(`/api/signature/${signatureAcc}/`);
+                let data = await response.json();
+                if (!response.ok) {
+                    state.error = data?.error?.message;
+                    return state;
+                }
+
+                const typeCode = types.get(data.type);
+                if (typeCode === undefined) {
+                    state.error = `Cannot integrate signature of type "${data.type}"`;
+                    return state;
+                }
+
+                response = await fetch(
+                    '/api/entry/',
+                    {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                    body: JSON.stringify({
+                        type: typeCode,
+                        name: data.description,
+                        short_name: data.name,
+                        is_llm: false,
+                        is_checked: false,
+                        import_description: true,
+                        signatures: [signatureAcc]
+                    })
+                });
+                data = await response.json();
+                if (response.ok) {
+                    state.ok = true
+                    state.entry = data.accession;
+                } else {
+                    state.error = data?.error?.message;
+                }
+
+                return state;
+            }
+        ));
 });
