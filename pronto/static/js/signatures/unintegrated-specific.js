@@ -148,7 +148,7 @@ document.addEventListener('DOMContentLoaded', () => {
             new URL(`${location.origin}/api/signatures/unintegrated/specific?with-annotations=true`),
             (results) => {
                 return results
-                    .filter(signature => signature.comments === 0 && types.has(signature.type) && signature.accession === "NF007506")
+                    .filter(signature => signature.comments === 0 && types.has(signature.type))
                     .map(signature => ([
                         signature.accession,
                         null
