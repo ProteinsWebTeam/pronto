@@ -100,18 +100,25 @@ async function integrate(signatures) {
     let successes = 0;
     for (const [signatureAcc, entryAcc] of signatures) {
         const response = await fetch(`/api/entry/${entryAcc}/signature/${signatureAcc}/`, {method: 'PUT'});
+        const data = await response.json();
         const node = document.createElement('tr');
+        let icon;
+        if (response.ok) {
+            successes++;
+            icon = '<i class="green check circle icon"></i>';
+        } else {
+            icon = `<span data-tooltip="${data.error.message}"><i class="red exclamation circle icon"></i></span>`;
+        }
         node.innerHTML = `
             <td>
                 <a href="/signature/${signatureAcc}/" target="_blank">${signatureAcc}</a>
             </td>
             <td>
-                <i class="${response.ok ? 'green check' : 'red exclamation'} circle icon"></i>
+                ${icon}
                 <a href="/entry/${entryAcc}/" target="_blank">${entryAcc}</a>
             </td>`;
         tbody.insertBefore(node, tbody.firstChild);
         $(progress).progress('increment');
-        successes++;
     }
 
     if (successes === signatures.length) {
