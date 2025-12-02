@@ -1,11 +1,9 @@
-import {updateHeader} from "../ui/header.js";
-import * as dimmer from "../ui/dimmer.js";
 import {createDisabled} from "../ui/checkbox.js";
 import {initPopups, createPopup, renderCommentLabel} from "../ui/comments.js";
+import * as dimmer from "../ui/dimmer.js";
+import {updateHeader} from "../ui/header.js";
 import {render} from "../ui/pagination.js";
-import * as modals from "../ui/modals.js"
-import {sleep} from "../tasks.js";
-import {setClass} from "../ui/utils.js";
+import {updateSliders, initIntegrate} from "./unintagrated-common.js";
 
 function renderEntry(entry) {
     return `
@@ -33,104 +31,6 @@ function renderProteinsLink(accession, numProteins, isReviewed) {
             </a>`;
 }
 
-async function initIntegrate() {
-    dimmer.on();
-    const url = new URL(location.href);
-    url.searchParams.set('page_size', '1000000');
-    const response = await fetch(`/api/signatures/unintegrated/similar/${url.search}`);
-    const data = await response.json();
-    dimmer.off();
-
-    if (!response.ok) {
-        modals.error(data.error.title, data.error.message);
-        return;
-    }
-
-    const signatures = data.results
-        .filter(signature => {
-            return signature.comments === 0
-                && new Set(signature.targets.map(target => target.entry.accession)).size === 1;
-        })
-        .map(signature => ([
-            signature.accession,
-            signature.targets[0].entry.accession,
-        ]));
-
-    if (signatures.length === 0)
-        return;
-
-    modals.ask(
-        'Bulk integration',
-        `You are about to integrate <strong>${signatures.length} signatures</strong>. You need to be logged in to perform this operation.`,
-        'Integrate',
-        () => {
-            integrate(signatures)
-        }
-    );
-}
-
-async function integrate(signatures) {
-    const modal = document.getElementById('progress-model');
-    modal.querySelector('.content').innerHTML = `
-        <div class="ui progress" data-value="1" data-total="${signatures.length}">
-            <div class="bar">
-                <div class="progress"></div>
-            </div>
-            <div class="label">Integrating signatures</div>
-        </div>
-        <table class="ui basic table">
-            <thead>
-                <tr>
-                    <th>Signature</th>
-                    <th>Entry</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
-    `;
-
-    const progress = modal.querySelector('.ui.progress');
-    const tbody = modal.querySelector('tbody');
-    modal.querySelector('.close.icon').classList.add('hidden');
-    $(modal).modal('show');
-    $(progress).progress();
-
-    await sleep(2000);
-
-    let successes = 0;
-    for (const [signatureAcc, entryAcc] of signatures) {
-        const response = await fetch(`/api/entry/${entryAcc}/signature/${signatureAcc}/`, {method: 'PUT'});
-        const data = await response.json();
-        const node = document.createElement('tr');
-        let icon;
-        if (response.ok) {
-            successes++;
-            icon = '<i class="green check circle icon"></i>';
-        } else {
-            icon = `<span data-tooltip="${data.error.message}"><i class="red exclamation circle icon"></i></span>`;
-        }
-        node.innerHTML = `
-            <td>
-                <a href="/signature/${signatureAcc}/" target="_blank">${signatureAcc}</a>
-            </td>
-            <td>
-                ${icon}
-                <a href="/entry/${entryAcc}/" target="_blank">${entryAcc}</a>
-            </td>`;
-        tbody.insertBefore(node, tbody.firstChild);
-        $(progress).progress('increment');
-    }
-
-    if (successes === signatures.length) {
-        progress.querySelector('.label').innerText = `${successes} signatures integrated!`;
-    } else {
-        progress.querySelector('.label').innerText = `${signatures.length - successes} signatures failed to be integrated!`;
-        setClass(progress, 'error', true);
-    }
-
-    modal.querySelector('.close.icon').classList.remove('hidden');
-}
-
 async function refresh() {
     dimmer.on();
     const response = await fetch(`/api/signatures/unintegrated/similar/${location.search}`);
@@ -153,28 +53,7 @@ async function refresh() {
         elem.value = data.filters[name];
     });
 
-    ['sprot', 'trembl'].forEach(name => {
-        const elemId = `#slider-${name}`;
-        const filterId = `min-${name}`;
-        $(elemId)
-            .slider({
-                min: 0,
-                max: 100,
-                start: data.filters[filterId] * 100,
-                step: 1,
-                smooth: true,
-                showThumbTooltip: true,
-                restrictedLabels: [0, 25, 50, 75, 100],
-                onChange: (value) => {
-                    const url = new URL(location.href);
-                    url.searchParams.set(filterId, (value / 100).toFixed(2));
-                    url.searchParams.delete('page');
-                    url.searchParams.delete('page_size');
-                    history.replaceState(null, document.title, url.toString());
-                    refresh();
-                }
-            });
-    });
+    updateSliders(data, refresh);
 
     let html = `     
         <table class="ui celled structured small compact table">
@@ -280,5 +159,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document
         .querySelector('.ui.form > .ui.button')
-        .addEventListener('click', e => initIntegrate());
+        .addEventListener('click', e => initIntegrate(
+            '/api/signatures/unintegrated/similar',
+            (results) => {
+                return results
+                    .filter(signature => {
+                        return signature.comments === 0
+                            && new Set(signature.targets.map(target => target.entry.accession)).size === 1;
+                    })
+                    .map(signature => ([
+                        signature.accession,
+                        signature.targets[0].entry.accession,
+                    ]));
+            },
+            async (signatureAcc, entryAcc) =>  {
+                const response = await fetch(`/api/entry/${entryAcc}/signature/${signatureAcc}/`, {method: 'PUT'});
+                const data = await response.json();
+                return {
+                    ok: response.ok,
+                    signature: signatureAcc,
+                    entry: entryAcc,
+                    error: data?.error?.message
+                };
+            }
+        ));
 });

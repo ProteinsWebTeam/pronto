@@ -11,15 +11,6 @@
         .ui.form > .ui.floated.button {
             margin-bottom: 1rem;
         }
-        .inline.slider {
-            display: flex;
-            align-items: center;
-        }
-        .inline.slider > label {
-            /* like .ui.form .inline.fields > label  */
-            margin: .03571em 1em 0 0;
-            text-wrap: nowrap;
-        }
         .ui.form > .inline > label {
             min-width: 200px;
         }
@@ -80,14 +71,20 @@
                     </div>
                 </div>
             </div>
-            <div class="fields">
-                <div class="eight wide inline field slider">
+            <div class="inline fields">
+                <div class="seven wide field slider">
                     <label class="ui sib label">Minimum Swiss-Prot similarity</label>
                     <div class="ui labeled ticked slider" id="slider-sprot"></div>
                 </div>
-                <div class="eight wide inline field slider">
+                <div class="one wide field">
+                    <input id="input-sprot" readonly="" type="text">
+                </div>
+                <div class="seven wide field slider">
                     <label class="ui uniprot label">Minimum TrEMBL similarity</label>
                     <div class="ui labeled ticked slider" id="slider-trembl"></div>
+                </div>
+                <div class="one wide field">
+                    <input id="input-trembl" readonly="" type="text">
                 </div>
             </div>
             <div class="fields">

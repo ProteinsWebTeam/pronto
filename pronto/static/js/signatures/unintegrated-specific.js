@@ -2,6 +2,7 @@ import {updateHeader} from "../ui/header.js";
 import * as dimmer from "../ui/dimmer.js";
 import {initPopups, createPopup, renderCommentLabel} from "../ui/comments.js";
 import {render} from "../ui/pagination.js";
+import {updateSliders} from "./unintagrated-common.js";
 
 async function refresh() {
     dimmer.on();
@@ -26,32 +27,7 @@ async function refresh() {
         document.querySelector('input[name="with-annotations"][value=""]').checked = true;
     }
 
-    ['sprot', 'trembl'].forEach((name,) => {
-        const elemId = `#slider-${name}`;
-        const filterId = `min-${name}`;
-        $(elemId)
-            .slider({
-                min: 0,
-                max: 100,
-                start: data.filters[filterId] * 100,
-                step: 1,
-                smooth: true,
-                showThumbTooltip: true,
-                tooltipConfig: {
-                  position: 'right center',
-                  variation: 'visible'
-                },
-                restrictedLabels: [0, 25, 50, 75, 100],
-                onChange: (value) => {
-                    const url = new URL(location.href);
-                    url.searchParams.set(filterId, (value / 100).toFixed(2));
-                    url.searchParams.delete('page');
-                    url.searchParams.delete('page_size');
-                    history.replaceState(null, document.title, url.toString());
-                    refresh();
-                }
-            });
-    });
+    updateSliders(data, refresh);
 
     let html = `      
         <table class="ui celled structured small compact table">

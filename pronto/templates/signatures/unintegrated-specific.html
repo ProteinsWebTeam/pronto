@@ -8,20 +8,17 @@
         #results {
             margin-top: 1rem;
         }
-        .inline.slider {
-            display: flex;
-            align-items: center;
-        }
-        .inline.slider > label {
-            /* like .ui.form .inline.fields > label  */
-            margin: .03571em 1em 0 0;
-            text-wrap: nowrap;
+        .ui.form > .ui.floated.button {
+            margin-bottom: 1rem;
         }
         .ui.form > .inline > label {
             min-width: 200px;
         }
         .ui.slider {
             max-width: 400px;
+        }
+        #progress-model > .hidden.close.icon {
+            display: none;
         }
     </style>
     <title>Specific signatures | Pronto</title>
@@ -41,13 +38,21 @@
             are suitable candidates for integration into new InterPro entries with minimal risk of conflict.
         </p>
         <div class="ui form">
-            <div class="inline field slider">
-                <label class="ui sib label">Minimum Swiss-Prot specificity</label>
-                <div class="ui labeled ticked slider" id="slider-sprot"></div>
-            </div>
-            <div class="inline field slider">
-                <label class="ui uniprot label">Minimum TrEMBL specificity</label>
-                <div class="ui labeled ticked slider" id="slider-trembl"></div>
+            <div class="inline fields">
+                <div class="seven wide field slider">
+                    <label class="ui sib label">Minimum Swiss-Prot similarity</label>
+                    <div class="ui labeled ticked slider" id="slider-sprot"></div>
+                </div>
+                <div class="one wide field">
+                    <input id="input-sprot" readonly="" type="text">
+                </div>
+                <div class="seven wide field slider">
+                    <label class="ui uniprot label">Minimum TrEMBL similarity</label>
+                    <div class="ui labeled ticked slider" id="slider-trembl"></div>
+                </div>
+                <div class="one wide field">
+                    <input id="input-trembl" readonly="" type="text">
+                </div>
             </div>
             <div class="inline fields">
                 <label>
@@ -72,11 +77,18 @@
                     </div>
                 </div>
             </div>
-        </div>
-        <div id="params">
+            <div class="ui right floated primary button" tabindex="0">Integrate</div>
         </div>
         <div id="results"></div>
     </div>
+</div>
+
+<div id="progress-model" class="ui modal">
+    <i class="close icon"></i>
+    <div class="header">
+        Bulk integration
+    </div>
+    <div class="scrolling content"></div>
 </div>
 
 <script src="{{ url_for('static', filename='vendor/jquery.min.js') }}"></script>
