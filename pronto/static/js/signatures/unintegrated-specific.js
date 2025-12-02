@@ -145,7 +145,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document
         .querySelector('.ui.form > .ui.button')
         .addEventListener('click', e => preIntegrate(
-            new URL(`${location.origin}/api/signatures/unintegrated/specific?with-annotations=true`),
+            new URL(`${location.origin}/api/signatures/unintegrated/specific/?with-annotations=true`),
             (results) => {
                 return results
                     .filter(signature => signature.comments === 0 && types.has(signature.type))

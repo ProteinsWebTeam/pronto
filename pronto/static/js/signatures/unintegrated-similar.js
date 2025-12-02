@@ -165,7 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document
         .querySelector('.ui.form > .ui.button')
         .addEventListener('click', e => preIntegrate(
-            new URL(`${location.origin}/api/signatures/unintegrated/similar`),
+            new URL(`${location.origin}/api/signatures/unintegrated/similar/`),
             (results) => {
                 return results
                     .filter(signature => {
