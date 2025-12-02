@@ -1,3 +1,4 @@
+import oracledb
 from oracledb import DatabaseError
 from flask import Blueprint, jsonify, request
 
@@ -645,28 +646,14 @@ class Sorter(object):
         return i, j, -obj["residues"][key], -obj[key]
 
 
-def check_if_ncbifam_amr(accession: str) -> bool:
-
-    con = utils.connect_oracle()
-    cur = con.cursor()
+def is_amr(cur: oracledb.Cursor, accession: str) -> bool:
     cur.execute(
-        f"""
+        """
         SELECT COUNT(*)
         FROM INTERPRO.NCBIFAM_AMR
         WHERE METHOD_AC = :1
         """,
         [accession]
     )
-
     cnt, = cur.fetchone()
     return cnt > 0
-
-
-def ncbifam_amr_err_msg(accession: str) -> dict:
-    return {
-        "status": False,
-            "error": {
-                "title": "Can't integrate signature",
-                "message": f"{accession} is an NCBIFAM AMR model."
-            }
-        }

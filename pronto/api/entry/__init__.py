@@ -10,6 +10,7 @@ bp = Blueprint("api_entry", __name__, url_prefix="/api/entry")
 from pronto import auth, utils
 from pronto.api import annotation
 from pronto.api.entry.annotations import relate_entry_to_anno
+from pronto.api.signature import is_amr
 from . import annotations
 from . import comments
 from . import go
@@ -565,9 +566,7 @@ def create_entry():
     except KeyError:
         import_description = False
 
-    entry_signatures = list(
-        dict.fromkeys(request.json.get("signatures", [])).keys()
-    )
+    entry_signatures = list(set(request.json.get("signatures", [])))
     if not entry_signatures:
         return jsonify({
             "status": False,
@@ -616,6 +615,17 @@ def create_entry():
 
     con = utils.connect_oracle_auth(user)
     cur = con.cursor()
+    for sig_acc in entry_signatures:
+        if is_amr(cur, sig_acc):
+            cur.close()
+            con.close()
+            return jsonify({
+                "status": False,
+                "error": {
+                    "title": "AMR model",
+                    "message": f"{sig_acc} is an AMR model. AMR models cannot be integrated."
+                }
+            }), 400
 
     entries = check_uniqueness(cur, entry_name, entry_short_name)
     if entries:
