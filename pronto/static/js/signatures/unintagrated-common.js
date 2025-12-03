@@ -51,11 +51,12 @@ export function updateSliders(data, refresh) {
 export async function preIntegrate(apiUrl, filterFn, actionFn) {
     dimmer.on();
     const url = new URL(location.href);
-    url.searchParams.delete('page');
+    url.searchParams.set('page', '1');
     url.searchParams.set('page_size', '1000000');
 
     for (const [param, value] of url.searchParams.entries()) {
-        apiUrl.searchParams.set(param, value);
+        if (!apiUrl.searchParams.has(param))
+            apiUrl.searchParams.set(param, value);
     }
 
     const response = await fetch(apiUrl);
