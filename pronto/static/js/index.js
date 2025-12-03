@@ -498,8 +498,10 @@ function renderRecentEntries(entries) {
     const noCommentOnly = tab.querySelector('input[name="entries-nocomment"]').checked;
 
     let html = '';
-    let entryNumber = entries.length;
+    let totRow = entries.length + 1;
+    let numRow = 0;
     for (const entry of entries) {
+        totRow--;
         if (entry.checked && uncheckedOnly)
             continue;
         else if (entry.llm && humanOnly)
@@ -515,9 +517,10 @@ function renderRecentEntries(entries) {
             .map((acc) => `<a href="/signature/${acc}/">${acc}</a>`)
             .join(', ');
 
+        numRow++;
         html += `
             <tr>
-            <td>${entryNumber--}</td>
+            <td>${totRow}</td>
             <td>
                 <span class="ui circular mini label type ${entry.type}">${entry.type}</span>
                 <a href="/entry/${entry.accession}/">${entry.short_name}</a> &middot; ${entry.name}
@@ -538,7 +541,7 @@ function renderRecentEntries(entries) {
     if (html.length === 0)
         html = '<tr><td colspan="7" class="center aligned">No entries found</td></tr>';
 
-    tab.querySelector('thead th:first-child').innerHTML = `# ${entries.length.toLocaleString()}`;
+    tab.querySelector('thead th:first-child').innerHTML = `# ${numRow.toLocaleString()}`;
     tab.querySelector('tbody').innerHTML = html;
 
     initPopups({
