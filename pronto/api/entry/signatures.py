@@ -135,14 +135,24 @@ def integrate_signature(e_acc, s_acc):
 
     con = utils.connect_oracle_auth(user)
     cur = con.cursor()
-    if is_amr(cur, s_acc):
+    cur.execute(
+        """
+        SELECT COUNT(*) 
+        FROM INTERPRO.ENTRY2METHOD 
+        WHERE ENTRY_AC = :1
+        """,
+        [e_acc]
+    )
+    num_integrated, = cur.fetchone()
+
+    if num_integrated > 0 and is_amr(cur, s_acc):
         cur.close()
         con.close()
         return jsonify({
             "status": False,
             "error": {
                 "title": "AMR model",
-                "message": f"{s_acc} is an AMR model. AMR models cannot be integrated."
+                "message": f"{s_acc} is an AMR model. AMR models cannot be integrated with other signatures."
             }
         }), 400
 

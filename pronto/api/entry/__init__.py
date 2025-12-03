@@ -615,17 +615,18 @@ def create_entry():
 
     con = utils.connect_oracle_auth(user)
     cur = con.cursor()
-    for sig_acc in entry_signatures:
-        if is_amr(cur, sig_acc):
-            cur.close()
-            con.close()
-            return jsonify({
-                "status": False,
-                "error": {
-                    "title": "AMR model",
-                    "message": f"{sig_acc} is an AMR model. AMR models cannot be integrated."
-                }
-            }), 400
+    if len(entry_signatures) > 1:
+        for sig_acc in entry_signatures:
+            if is_amr(cur, sig_acc):
+                cur.close()
+                con.close()
+                return jsonify({
+                    "status": False,
+                    "error": {
+                        "title": "AMR model",
+                        "message": f"{sig_acc} is an AMR model. AMR models cannot be integrated with other signatures."
+                    }
+                }), 400
 
     entries = check_uniqueness(cur, entry_name, entry_short_name)
     if entries:
