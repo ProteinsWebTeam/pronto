@@ -137,10 +137,13 @@ export async function integrate(signatures, actionFn) {
         $(progress).progress('increment');
     }
 
+    await sleep(500);
+
     if (successes === signatures.length) {
         progress.querySelector('.label').innerText = `${successes} signatures integrated!`;
     } else {
         progress.querySelector('.label').innerText = `${signatures.length - successes} signatures failed to be integrated!`;
+        progress.classList.remove('success');
         progress.classList.add('error');
     }
 
