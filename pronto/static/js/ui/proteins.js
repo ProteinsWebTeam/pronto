@@ -4,6 +4,10 @@ export function genLink(accession, reviewed) {
     return `//www.uniprot.org/uniprotkb/${accession}/entry`
 }
 
+export function toInterPro(accession) {
+    return `https://ebi.ac.uk/interpro/protein/${accession}` 
+}
+
 export function fetchProtein(proteinAccession, matches) {
     let url = `/api/protein/${proteinAccession}/`;
     if (matches)
@@ -83,6 +87,16 @@ export async function getExternalStructureSources(accession) {
 }
 
 export function genProtHeader(protein) {
+
+    const matchesProteinPage =
+    window.location.href.includes(`protein/${protein.accession}`);
+
+    const interproLink = matchesProteinPage
+    ? `&mdash; <a target="_blank" href="${toInterPro(protein.accession)}">
+        InterPro<i class="external icon"></i>
+        </a>`
+    : '';
+
     let html = `
         ${protein.name}
         <div class="sub header">
@@ -91,6 +105,7 @@ export function genProtHeader(protein) {
             ${protein.identifier}
             &mdash;
             <a target="_blank" href="${genLink(protein.accession, protein.is_reviewed)}">${protein.is_reviewed ? 'reviewed' : 'unreviewed'}<i class="external icon"></i></a>
+            ${interproLink}
             &mdash;
             <span data-external-structure="${protein.accession}"></span>
     `;
