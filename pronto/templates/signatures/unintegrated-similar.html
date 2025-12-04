@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/semantic.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <style>
+        #results {
+            margin-top: 1rem;
+        }
+        .ui.form > .ui.floated.button {
+            margin-bottom: 1rem;
+        }
+        .ui.form > .inline > label {
+            min-width: 200px;
+        }
+        .ui.slider {
+            max-width: 400px;
+        }
+        #progress-model > .hidden.close.icon {
+            display: none;
+        }
+    </style>
+    <title>Similar signatures | Pronto</title>
+</head>
+<body>
+
+{% include 'header.html' %}
+
+<div class="ui container">
+    <div class="ui basic segment">
+        <h1 class="ui header">Similar signatures</h1>
+        <p class="justified aligned">
+            This page lists unintegrated signatures that may be candidates
+            for integration into existing InterPro entries.
+            Candidates are identified through their similarity to at least
+            one integrated signature from another member database.<br>
+            Similarity is calculated from the overlap of their matches on protein sequences.
+            A match pair is considered overlapping when the regions covered
+            by both signatures reach the selected minimum-overlap threshold.
+            The overall similarity between two signatures is derived
+            from the proportion of sequences that satisfy this condition
+            in Swiss-Prot and TrEMBL.
+        </p>
+        <div class="ui form">
+            <div class="inline fields">
+                <label>
+                    Minimum overlap
+                    <i class="help circle icon"
+                       data-content="Defines the minimum proportion of residues that two matched regions must share to be counted as an overlap when computing similarity between signatures."
+                       data-position="right center"
+                       data-variation="small">
+                    </i>
+                </label>
+                <div class="field">
+                    <div class="ui radio checkbox">
+                        <input name="min-overlap" value="50" type="radio">
+                        <label>50%</label>
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="ui radio checkbox">
+                        <input name="min-overlap" value="65" type="radio">
+                        <label>65%</label>
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="ui radio checkbox">
+                        <input name="min-overlap" value="80" type="radio">
+                        <label>80%</label>
+                    </div>
+                </div>
+            </div>
+            <div class="inline fields">
+                <div class="seven wide field slider">
+                    <label class="ui sib label">Minimum Swiss-Prot similarity</label>
+                    <div class="ui labeled ticked slider" id="slider-sprot"></div>
+                </div>
+                <div class="one wide field">
+                    <input id="input-sprot" type="text">
+                </div>
+                <div class="seven wide field slider">
+                    <label class="ui uniprot label">Minimum TrEMBL similarity</label>
+                    <div class="ui labeled ticked slider" id="slider-trembl"></div>
+                </div>
+                <div class="one wide field">
+                    <input id="input-trembl" type="text">
+                </div>
+            </div>
+            <div class="fields">
+                <div class="field">
+                    <label>Minimum number of sequences</label>
+                    <input type="number" name="min-proteins" min="1" step="1" placeholder="1">
+                </div>
+                <div class="field">
+                    <label>Maximum number of sequences (set 0 to disable filter)</label>
+                    <input type="number" name="max-proteins" min="0" step="1" placeholder="1,000">
+                </div>
+                <div class="field">
+                    <label>Maximum number of Swiss-Prot sequences (set -1 to disable filter)</label>
+                    <input type="number" name="max-sprot-count" min="-1" step="1" placeholder="1">
+                </div>
+            </div>
+            <div class="ui right floated primary button" tabindex="0">Integrate</div>
+        </div>
+        <div id="results"></div>
+    </div>
+</div>
+
+<div id="progress-model" class="ui modal">
+    <i class="close icon"></i>
+    <div class="header">
+        Bulk integration
+    </div>
+    <div class="scrolling content"></div>
+</div>
+
+<script src="{{ url_for('static', filename='vendor/jquery.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/semantic.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/signatures/unintegrated-similar.js') }}" type="module"></script>
+</body>
+</html>

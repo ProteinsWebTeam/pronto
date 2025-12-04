@@ -1,8 +1,13 @@
-import {updateHeader} from "../ui/header.js";
-import * as dimmer from "../ui/dimmer.js";
 import {createDisabled} from "../ui/checkbox.js";
 import {initPopups, createPopup, renderCommentLabel} from "../ui/comments.js";
+import * as dimmer from "../ui/dimmer.js";
+import {updateHeader} from "../ui/header.js";
 import {render} from "../ui/pagination.js";
+import {
+    updateSliders,
+    preIntegrate,
+    initSliderInputs
+} from "./unintagrated-common.js";
 
 function renderEntry(entry) {
     return `
@@ -46,16 +51,15 @@ async function refresh() {
         return;
     }
 
-    let html = `
-        <strong>Minimum similarity:</strong>
-        <div class="ui sib label">
-          Swiss-Prot
-          <div class="detail">&ge; ${(data.filters['min-sprot'] * 100).toFixed(0)}%</div>
-        </div>
-        <div class="ui uniprot label">
-          TrEMBL
-          <div class="detail">&ge; ${(data.filters['min-trembl'] * 100).toFixed(0)}%</div>
-        </div>        
+    document.querySelector(`input[name="min-overlap"][value="${data.filters['min-overlap']}"]`).checked = true;
+    ['min-proteins', 'max-proteins', 'max-sprot-count'].forEach(name => {
+        const elem = document.querySelector(`input[name="${name}"]`);
+        elem.value = data.filters[name];
+    });
+
+    updateSliders(data, refresh);
+
+    let html = `     
         <table class="ui celled structured small compact table">
         <thead>
             <tr><th colspan="11"><div class="ui secondary menu"><span class="item"></span></div></th></tr>
@@ -77,29 +81,33 @@ async function refresh() {
         <tbody>
     `;
 
-    for (const obj of data.results) {
-        const rowSpan = obj.targets.length;
-        html += `
-            <tr>
-            <td rowspan="${rowSpan}">${renderSignatureLink(obj)}</td>
-            <td rowspan="${rowSpan}" class="collapsing">${renderCommentLabel(obj)}</td>
-            <td rowspan="${rowSpan}" class="right aligned">${renderProteinsLink(obj.accession, obj.proteins.reviewed, true)}</td>
-            <td rowspan="${rowSpan}" class="right aligned">${renderProteinsLink(obj.accession, obj.proteins.unreviewed, false)}</td>
-        `;
-
-        for (let i = 0; i < obj.targets.length; i++) {
-            const target = obj.targets[i];
-            if (i > 0) html += '<tr>'
+    if (data.results.length > 0) {
+        for (const obj of data.results) {
+            const rowSpan = obj.targets.length;
             html += `
-                <td>${renderSignatureLink(target)}</td>
-                <td class="right aligned">${renderProteinsLink(target.accession, target.proteins.reviewed, true)}</td>
-                <td class="right aligned">${renderProteinsLink(target.accession, target.proteins.unreviewed, false)}</td>
-                ${renderEntry(target.entry)}
-                <td class="right aligned">${(target.proteins.overlapping.fraction_reviewed * 100).toFixed(1)}%</td>
-                <td class="right aligned">${(target.proteins.overlapping.fraction_unreviewed * 100).toFixed(1)}%</td>
-                </tr>                
+                <tr>
+                <td rowspan="${rowSpan}">${renderSignatureLink(obj)}</td>
+                <td rowspan="${rowSpan}" class="collapsing">${renderCommentLabel(obj)}</td>
+                <td rowspan="${rowSpan}" class="right aligned">${renderProteinsLink(obj.accession, obj.proteins.reviewed, true)}</td>
+                <td rowspan="${rowSpan}" class="right aligned">${renderProteinsLink(obj.accession, obj.proteins.unreviewed, false)}</td>
             `;
+
+            for (let i = 0; i < obj.targets.length; i++) {
+                const target = obj.targets[i];
+                if (i > 0) html += '<tr>'
+                html += `
+                    <td>${renderSignatureLink(target)}</td>
+                    <td class="right aligned">${renderProteinsLink(target.accession, target.proteins.reviewed, true)}</td>
+                    <td class="right aligned">${renderProteinsLink(target.accession, target.proteins.unreviewed, false)}</td>
+                    ${renderEntry(target.entry)}
+                    <td class="right aligned">${(target.proteins.overlapping.fraction_reviewed * 100).toFixed(1)}%</td>
+                    <td class="right aligned">${(target.proteins.overlapping.fraction_unreviewed * 100).toFixed(1)}%</td>
+                    </tr>                
+                `;
+            }
         }
+    } else {
+        html += '<tr><td colspan="11" class="center aligned">No results found</td></tr>';
     }
 
     html += `
@@ -139,23 +147,45 @@ async function refresh() {
 
 document.addEventListener('DOMContentLoaded', () => {
     updateHeader();
-    document.title = 'Similar signatures | Pronto';
-    document.querySelector('h1.ui.header').innerHTML = 'Similar signatures';
-
-    const params = document.getElementById('params');
-    params.innerHTML = `
-        <p class="justified aligned">
-            This page lists unintegrated signatures that are potential candidates 
-            for integration into existing InterPro entries.
-            Candidates are identified based on their similarity to at least 
-            one integrated signature from another member database.<br>
-            Similarity between two signatures is measured by comparing 
-            their hits on protein sequences: a sequence is considered <em>overlapped</em> 
-            when the regions matched by both signatures cover at least 80% 
-            of each other’s residues. The overall similarity between signatures is then derived 
-            from the proportion of shared overlapped sequences in Swiss-Prot and TrEMBL.
-        </p>
-    `;
-
+    initSliderInputs();
     refresh();
+
+    document.querySelectorAll('.ui.form input[name="min-overlap"]').forEach((input) => {
+        input.addEventListener('change', e => {
+            const value = e.currentTarget.value;
+            const url = new URL(location.href);
+            url.searchParams.set('min-overlap', value);
+            url.searchParams.delete('page');
+            url.searchParams.delete('page_size');
+            history.replaceState(null, null, url.toString());
+            refresh();
+        });
+    });
+
+    document
+        .querySelector('.ui.form > .ui.button')
+        .addEventListener('click', e => preIntegrate(
+            new URL(`${location.origin}/api/signatures/unintegrated/similar/`),
+            (results) => {
+                return results
+                    .filter(signature => {
+                        return signature.comments === 0
+                            && new Set(signature.targets.map(target => target.entry.accession)).size === 1;
+                    })
+                    .map(signature => ([
+                        signature.accession,
+                        signature.targets[0].entry.accession,
+                    ]));
+            },
+            async (signatureAcc, entryAcc) =>  {
+                const response = await fetch(`/api/entry/${entryAcc}/signature/${signatureAcc}/`, {method: 'PUT'});
+                const data = await response.json();
+                return {
+                    ok: response.ok,
+                    signature: signatureAcc,
+                    entry: entryAcc,
+                    error: data?.error?.message
+                };
+            }
+        ));
 });

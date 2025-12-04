@@ -2,6 +2,11 @@ import {updateHeader} from "../ui/header.js";
 import * as dimmer from "../ui/dimmer.js";
 import {initPopups, createPopup, renderCommentLabel} from "../ui/comments.js";
 import {render} from "../ui/pagination.js";
+import {
+    updateSliders,
+    preIntegrate,
+    initSliderInputs
+} from "./unintagrated-common.js";
 
 async function refresh() {
     dimmer.on();
@@ -19,16 +24,16 @@ async function refresh() {
         return;
     }
 
-    let html = `
-        <strong>Overlap limits:</strong>
-        <div class="ui sib label">
-          Swiss-Prot
-          <div class="detail">&le; ${(data.filters['max-sprot'] * 100).toFixed(0)}%</div>
-        </div>
-        <div class="ui uniprot label">
-          TrEMBL
-          <div class="detail">&le; ${(data.filters['max-trembl'] * 100).toFixed(0)}%</div>
-        </div>        
+    if (data.filters['with-annotations'] !== null) {
+        const value = data.filters['with-annotations'] ? 'true' : 'false';
+        document.querySelector(`input[name="with-annotations"][value="${value}"]`).checked = true;
+    } else {
+        document.querySelector('input[name="with-annotations"][value=""]').checked = true;
+    }
+
+    updateSliders(data, refresh);
+
+    let html = `      
         <table class="ui celled structured small compact table">
         <thead>
             <tr><th colspan="7"><div class="ui secondary menu"><span class="item"></span></div></th></tr>
@@ -110,40 +115,89 @@ async function refresh() {
     dimmer.off();
 }
 
+function getTypesMap() {
+    // Builds map of type -> type code using the dropdown in the header used to create new entries
+    const select = document.querySelector('#new-entry-info select[name="type"]');
+    return new Map(
+        Array.from(select.options).map(opt => [opt.text, opt.value])
+    );
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     updateHeader();
-    document.title = 'Highly specific signatures | Pronto';
-    document.querySelector('h1.ui.header').innerHTML = 'Highly specific signatures';
-
-    const params = document.getElementById('params');
-    params.innerHTML = `
-        <p class="justified aligned">
-            This page lists signatures whose matches rarely overlap with those of other signatures. 
-            Specificity is quantified as the fraction of proteins whose hits overlap 
-            with hits from any other signature. 
-            Signatures with low overlap fractions are considered highly specific and 
-            are suitable candidates for integration into new InterPro entries with minimal risk of conflict.
-        </p>
-    `;
-
-    // Maximum overlap tolerated in Swiss-Prot
-    // Maximum overlap tolerated in TrEMBL
-
-    // for (let input of params.querySelectorAll('input')) {
-    //     input.addEventListener('change', e => {
-    //         const key = e.currentTarget.name;
-    //         const checked = e.currentTarget.checked;
-    //         const url = new URL(location.href, location.origin);
-    //
-    //         if (checked)
-    //             url.searchParams.set(key, '');
-    //         else if (url.searchParams.has(key))
-    //             url.searchParams.delete(key);
-    //
-    //         history.pushState(null, document.title, url.toString());
-    //         refresh();
-    //     });
-    // }
-
+    initSliderInputs();
     refresh();
+
+    document.querySelectorAll('.ui.form input[name="with-annotations"]').forEach((input) => {
+        input.addEventListener('change', e => {
+            const value = e.currentTarget.value;
+            const url = new URL(location.href);
+            url.searchParams.set('with-annotations', value);
+            url.searchParams.delete('page');
+            url.searchParams.delete('page_size');
+            history.replaceState(null, null, url.toString());
+            refresh();
+        });
+    });
+
+    const types = getTypesMap();
+
+    document
+        .querySelector('.ui.form > .ui.button')
+        .addEventListener('click', e => preIntegrate(
+            new URL(`${location.origin}/api/signatures/unintegrated/specific/?with-annotations=true`),
+            (results) => {
+                return results
+                    .filter(signature => signature.comments === 0 && types.has(signature.type))
+                    .map(signature => ([
+                        signature.accession,
+                        null
+                    ]));
+            },
+            async (signatureAcc,) =>  {
+                const state = {
+                    ok: false,
+                    signature: signatureAcc,
+                    entry: null,
+                    error: null
+                }
+                let response = await fetch(`/api/signature/${signatureAcc}/`);
+                let data = await response.json();
+                if (!response.ok) {
+                    state.error = data?.error?.message;
+                    return state;
+                }
+
+                const typeCode = types.get(data.type);
+                if (typeCode === undefined) {
+                    state.error = `Cannot integrate signature of type "${data.type}"`;
+                    return state;
+                }
+
+                response = await fetch(
+                    '/api/entry/',
+                    {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                    body: JSON.stringify({
+                        type: typeCode,
+                        name: data.description,
+                        short_name: data.name,
+                        is_llm: false,
+                        is_checked: false,
+                        import_description: true,
+                        signatures: [signatureAcc]
+                    })
+                });
+                data = await response.json();
+                if (response.ok) {
+                    state.ok = true
+                    state.entry = data.accession;
+                } else {
+                    state.error = data?.error?.message;
+                }
+
+                return state;
+            }
+        ));
 });

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/semantic.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <style>
+        #results {
+            margin-top: 1rem;
+        }
+        .ui.form > .ui.floated.button {
+            margin-bottom: 1rem;
+        }
+        .ui.form > .inline > label {
+            min-width: 200px;
+        }
+        .ui.slider {
+            max-width: 400px;
+        }
+        #progress-model > .hidden.close.icon {
+            display: none;
+        }
+    </style>
+    <title>Specific signatures | Pronto</title>
+</head>
+<body>
+
+{% include 'header.html' %}
+
+<div class="ui container">
+    <div class="ui basic segment">
+        <h1 class="ui header">Specific signatures</h1>
+        <p class="justified aligned">
+            This page lists signatures whose matches rarely overlap with those of other signatures.
+            Specificity is quantified as the fraction of proteins whose hits overlap
+            with hits from any other signature.
+            Signatures with low overlap fractions are considered highly specific and
+            are suitable candidates for integration into new InterPro entries with minimal risk of conflict.
+        </p>
+        <div class="ui form">
+            <div class="inline fields">
+                <div class="seven wide field slider">
+                    <label class="ui sib label">Minimum Swiss-Prot specificity</label>
+                    <div class="ui labeled ticked slider" id="slider-sprot"></div>
+                </div>
+                <div class="one wide field">
+                    <input id="input-sprot" type="text">
+                </div>
+                <div class="seven wide field slider">
+                    <label class="ui uniprot label">Minimum TrEMBL specificity</label>
+                    <div class="ui labeled ticked slider" id="slider-trembl"></div>
+                </div>
+                <div class="one wide field">
+                    <input id="input-trembl" type="text">
+                </div>
+            </div>
+            <div class="inline fields">
+                <label>
+                    Description
+                </label>
+                <div class="field">
+                    <div class="ui radio checkbox">
+                        <input name="with-annotations" value="" type="radio">
+                        <label>Any</label>
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="ui radio checkbox">
+                        <input name="with-annotations" value="true" type="radio">
+                        <label>With</label>
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="ui radio checkbox">
+                        <input name="with-annotations" value="false" type="radio">
+                        <label>Without</label>
+                    </div>
+                </div>
+            </div>
+            <div class="ui right floated primary button" tabindex="0">Integrate</div>
+        </div>
+        <div id="results"></div>
+    </div>
+</div>
+
+<div id="progress-model" class="ui modal">
+    <i class="close icon"></i>
+    <div class="header">
+        Bulk integration
+    </div>
+    <div class="scrolling content"></div>
+</div>
+
+<script src="{{ url_for('static', filename='vendor/jquery.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/semantic.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/signatures/unintegrated-specific.js') }}" type="module"></script>
+</body>
+</html>
