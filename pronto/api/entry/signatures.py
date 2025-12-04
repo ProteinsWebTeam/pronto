@@ -401,8 +401,8 @@ def get_signatures_annotations(accession):
         signatures.append({
             "accession": accession,
             "name": name,
-            "text": make_replacements(abstract),
-            "llm_text": make_replacements(llm_abstract)
+            "text": sanitize_description(abstract),
+            "llm_text": sanitize_description(llm_abstract)
         })
 
     cur.close()
@@ -434,7 +434,7 @@ def _replace_terminal(text):
         lambda m: f"{m.group(1)}-terminal", text, flags=re.IGNORECASE)
 
 
-def make_replacements(text):
+def sanitize_description(text):
     if not text:
         return text
     text = _replace_greek_letters(text)

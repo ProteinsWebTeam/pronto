@@ -153,12 +153,6 @@ export function getSignaturesAnnotations(accession) {
                     let isLLM;
                     if (signature.text !== null) {
                         text = signature.text;
-                        html += `
-                            <div class="ui warning message">
-                                <div class="header">Automatic Replacements</div>
-                                You can find some differences from original Pfam annotation due automatic corrections.
-                            </div>
-                        `;
                         isLLM = false;
                     } else {
                         text = signature.llm_text;
