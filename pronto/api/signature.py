@@ -662,16 +662,6 @@ def is_amr(cur: oracledb.Cursor, accession: str) -> bool:
     return cnt > 0
 
 
-def ncbifam_amr_err_msg(accession: str) -> dict:
-    return {
-        "status": False,
-            "error": {
-                "title": "Can't integrate signature",
-                "message": f"{accession} is an NCBIFAM AMR model."
-            }
-        }
-
-
 def _replace_greek_letters(text):
     structural_terms = ["helix", "helices", "sheet", "strand", "propeller", "barrel",
                         "sandwich", "meander", "configuration", "structure", "fold"]
