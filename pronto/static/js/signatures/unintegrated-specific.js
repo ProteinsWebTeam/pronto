@@ -168,10 +168,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     return state;
                 }
 
-                const typeCode = types.get(data.type);
+                let typeCode = types.get(data.type);
                 if (typeCode === undefined) {
                     state.error = `Cannot integrate signature of type "${data.type}"`;
                     return state;
+                }
+
+                if (data.description.match(/(domain|region)$/i)) {
+                    typeCode = 'D';
                 }
 
                 response = await fetch(
