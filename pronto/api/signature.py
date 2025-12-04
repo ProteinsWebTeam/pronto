@@ -1,3 +1,4 @@
+import re
 from oracledb import DatabaseError
 from flask import Blueprint, jsonify, request
 

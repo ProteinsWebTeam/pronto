@@ -1,4 +1,3 @@
-import re
 from oracledb import Cursor, DatabaseError
 from flask import jsonify, request
 
