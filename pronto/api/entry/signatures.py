@@ -3,7 +3,7 @@ from oracledb import Cursor, DatabaseError
 from flask import jsonify, request
 
 from pronto import auth, utils
-from pronto.api.signature import check_if_ncbifam_amr, ncbifam_amr_err_msg
+from pronto.api.signature import check_if_ncbifam_amr, ncbifam_amr_err_msg, sanitize_description
 from . import bp
 
 
@@ -408,39 +408,6 @@ def get_signatures_annotations(accession):
     cur.close()
     con.close()
     return jsonify(signatures)
-
-
-def _replace_greek_letters(text):
-    structural_terms = ["helix", "helices", "sheet", "strand", "propeller", "barrel",
-                        "sandwich", "meander", "configuration", "structure", "fold"]
-    replacement_map = {
-        "alpha": "α",
-        "beta": "β"
-    }
-    sep = r"[\s\-\+/]+"
-    replacements = "|".join(replacement_map.keys())
-    pattern = rf"\b({replacements})(?=(?:{sep}(?:{replacements}))?{sep}(?:{'|'.join(structural_terms)})s?\b)"
-    return re.sub(pattern,
-        lambda m: replacement_map[m.group(1).lower()], text, flags=re.IGNORECASE)
-
-
-def _replace_terminus(text):
-    return re.sub(r"\b([CN])\-terminus\b",
-        lambda m: f"{m.group(1)} terminus", text, flags=re.IGNORECASE)
-
-
-def _replace_terminal(text):
-    return re.sub(r"\b([CN])\s+terminal\b",
-        lambda m: f"{m.group(1)}-terminal", text, flags=re.IGNORECASE)
-
-
-def sanitize_description(text):
-    if not text:
-        return text
-    text = _replace_greek_letters(text)
-    text = _replace_terminus(text)
-    text = _replace_terminal(text)
-    return text
 
 
 def check_annotation(accessions: list[str], cur: Cursor) -> list[str]:
