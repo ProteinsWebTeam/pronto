@@ -1,3 +1,4 @@
+import re
 import oracledb
 from oracledb import DatabaseError
 from flask import Blueprint, jsonify, request
@@ -61,6 +62,7 @@ def get_signature(accession):
         "llm_description": row[4],  # --> name on front end
         "type": row[5],
         "abstract": row[6],
+        "abstract_alt": sanitize_description(row[6]),
         "llm_abstract": row[7],  # --> description on front end
         "proteins": {
             "total": row[8],
@@ -657,3 +659,36 @@ def is_amr(cur: oracledb.Cursor, accession: str) -> bool:
     )
     cnt, = cur.fetchone()
     return cnt > 0
+
+
+def _replace_greek_letters(text):
+    structural_terms = ["helix", "helices", "sheet", "strand", "propeller", "barrel",
+                        "sandwich", "meander", "configuration", "structure", "fold"]
+    replacement_map = {
+        "alpha": "α",
+        "beta": "β"
+    }
+    sep = r"[\s\-\+/]+"
+    replacements = "|".join(replacement_map.keys())
+    pattern = rf"\b({replacements})(?=(?:{sep}(?:{replacements}))?{sep}(?:{'|'.join(structural_terms)})s?\b)"
+    return re.sub(pattern,
+        lambda m: replacement_map[m.group(1).lower()], text, flags=re.IGNORECASE)
+
+
+def _replace_terminus(text):
+    return re.sub(r"\b([CN])\-terminus\b",
+        lambda m: f"{m.group(1)} terminus", text, flags=re.IGNORECASE)
+
+
+def _replace_terminal(text):
+    return re.sub(r"\b([CN])\s+terminal\b",
+        lambda m: f"{m.group(1)}-terminal", text, flags=re.IGNORECASE)
+
+
+def sanitize_description(text):
+    if not text:
+        return text
+    text = _replace_greek_letters(text)
+    text = _replace_terminus(text)
+    text = _replace_terminal(text)
+    return text
