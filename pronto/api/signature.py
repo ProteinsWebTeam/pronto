@@ -64,7 +64,6 @@ def get_signature(accession):
         "abstract": row[6],
         "abstract_alt": sanitize_description(row[6]),
         "llm_abstract": row[7],  # --> description on front end
-        "llm_abstract_alt": sanitize_description(row[7]),
         "proteins": {
             "total": row[8],
             "complete": row[9],
