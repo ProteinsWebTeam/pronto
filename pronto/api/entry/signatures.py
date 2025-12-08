@@ -2,7 +2,7 @@ from oracledb import Cursor, DatabaseError
 from flask import jsonify, request
 
 from pronto import auth, utils
-from pronto.api.signature import is_amr
+from pronto.api.signature import is_amr, sanitize_description
 from . import bp
 
 
@@ -418,8 +418,8 @@ def get_signatures_annotations(accession):
         signatures.append({
             "accession": accession,
             "name": name,
-            "text": abstract,
-            "llm_text": llm_abstract
+            "text": sanitize_description(abstract),
+            "llm_text": sanitize_description(llm_abstract)
         })
 
     cur.close()
