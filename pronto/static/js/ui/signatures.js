@@ -1,5 +1,5 @@
 import { setClass } from "./utils.js";
-import { fetchProtein, genLink, renderMatches, getExternalStructureSources } from "./proteins.js";
+import { fetchProtein, renderMatches, setLinkToUniProt, setLinkToStructurePrediction } from "./proteins.js";
 import * as pagination from "./pagination.js";
 import * as dimmer from "./dimmer.js";
 
@@ -139,12 +139,9 @@ async function getProteins(accession, url, getMatches) {
         const signature = protein.signatures.filter(s => s.accession === accession)[0];
         html += `
             <tr>
-            <td class="nowrap">
-                <a target="_blank" href="${genLink(protein.accession, protein.is_reviewed)}"><i class="${!protein.is_reviewed ? 'outline ' : ''}star icon"></i>${protein.accession}<i class="external icon"></i></a>
-                ${protein.is_spurious ? '<span class="ui red text"> <i class="warning icon"></i ></span>' : ''}
-            </td>
+            <td class="nowrap" data-external-uniprot="${protein.accession}"></td>
             <td class="collapsing" data-external-structure="${protein.accession}"></td>
-            `;
+        `;
 
         html += `
             <td>${protein.identifier}</td>
@@ -166,7 +163,10 @@ async function getProteins(accession, url, getMatches) {
         } else
             html += `<td colspan="2"><em>${protein.organism.name}</em></td></tr>`;
 
-        getExternalStructureSources(protein.accession)
+        setLinkToUniProt(protein,
+            (p) => `<i class="${!p.is_reviewed ? 'outline ' : ''}star icon"></i>`,
+            (p) => p.is_spurious ? '<span class="ui red text"> <i class="warning icon"></i ></span>' : null);
+        setLinkToStructurePrediction(protein.accession)
     }
 
     const modal = document.getElementById('proteins-modal');
