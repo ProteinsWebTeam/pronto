@@ -391,9 +391,9 @@ def ck_child_matches(cur: Cursor, pg_url: str, exceptions: DoS) -> Err:
             entries[parent_ac][child_ac].add(c_sign)
         except KeyError:
             if parent_ac in entries:
-                entries[parent_ac][child_ac]=set()
+                entries[parent_ac][child_ac] = set()
             else:
-                entries[parent_ac] = {"p_sign":set(), child_ac:set()}
+                entries[parent_ac] = {"p_sign": set(), child_ac: set()}
             entries[parent_ac]["p_sign"].add(p_sign)
             entries[parent_ac][child_ac].add(c_sign)
 
@@ -405,7 +405,7 @@ def ck_child_matches(cur: Cursor, pg_url: str, exceptions: DoS) -> Err:
         for item in info.values():
             all_sign = all_sign.union(item)
         
-        signatures, comparisons = get_comparisons(pg_cur, tuple(all_sign))
+        signatures, comparisons, _ = get_comparisons(pg_cur, tuple(all_sign))
         no_overlap = {}
 
         for sign1, coloc in comparisons.items():

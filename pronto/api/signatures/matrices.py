@@ -23,9 +23,8 @@ def get_matrices(accessions):
     })
 
 
-def get_comparisons(cur, accessions: tuple):
+def get_comparisons(cur, accessions: tuple[str]):
     in_params = ','.join('%s' for _ in accessions)
-    exclusive = {}
     cur.execute(
         f"""
         SELECT signature_acc, array_agg(protein_acc) AS proteins
@@ -49,13 +48,13 @@ def get_comparisons(cur, accessions: tuple):
 
         exclusive[accession] = len(signature2proteins[accession] - others)
 
-
     cur.execute(
         f"""
         SELECT accession, num_complete_sequences
         FROM interpro.signature
         WHERE accession IN ({in_params})
-        """, accessions
+        """,
+        accessions
     )
     signatures = dict(cur.fetchall())
 
@@ -65,7 +64,8 @@ def get_comparisons(cur, accessions: tuple):
         FROM interpro.comparison
         WHERE signature_acc_1 IN ({in_params})
         AND signature_acc_2 IN ({in_params})
-        """, accessions + accessions
+        """,
+        accessions + accessions
     )
 
     comparisons = {}
