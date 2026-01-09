@@ -50,7 +50,7 @@ def get_checks():
         exc_entry_acc2 = row[6]
 
         check = types[ck_type]
-        
+
         if ck_term:
             try:
                 t = check["terms"][ck_term]
@@ -230,6 +230,26 @@ def get_run(run_id):
         )
         llm_objects = {row[0] for row in cur.fetchall()}
 
+        """
+        Get the checked status for entries and annotations.
+        Consider an annotation as checked if it's linked to at least one
+        checked entry.
+        """
+        cur.execute(
+            """
+            SELECT ENTRY_AC
+            FROM INTERPRO.ENTRY
+            WHERE CHECKED = 'Y'
+            UNION ALL
+            SELECT DISTINCT EC.ANN_ID
+            FROM INTERPRO.ENTRY2COMMON EC
+            INNER JOIN INTERPRO.ENTRY E
+                ON E.ENTRY_AC = EC.ENTRY_AC
+            WHERE E.CHECKED = 'Y'
+            """
+        )
+        checked_objects = {row[0] for row in cur.fetchall()}
+
         cur.execute(
             """
             SELECT SE.ID, SE.ANN_ID, SE.ENTRY_AC, SE.CHECK_TYPE, SE.TERM, 
@@ -249,6 +269,8 @@ def get_run(run_id):
                 "entry": entry_acc,
                 "llm": ((entry_acc is not None and entry_acc in llm_objects) or
                         (ann_id is not None and ann_id in llm_objects)),
+                "checked": ((entry_acc is not None and entry_acc in checked_objects) or
+                            (ann_id is not None and ann_id in checked_objects)),
                 "type": check["label"],
                 "details": check.get("details"),
                 "exceptions": check["exceptions"] is not None,
@@ -674,22 +696,22 @@ def is_entry(cur: oracledb.Cursor, s: str) -> bool:
 def insert_exception(cur, ck_type, value1, value2) -> tuple[dict, int]:
     if ck_type not in CHECKS:
         return {
-                   "status": False,
-                   "error": {
-                       "title": "Bad request",
-                       "message": f"'{ck_type}' is not a valid check type."
-                   }
-               }, 400
+            "status": False,
+            "error": {
+                "title": "Bad request",
+                "message": f"'{ck_type}' is not a valid check type."
+            }
+        }, 400
 
     exc_type = CHECKS[ck_type]["exceptions"]
     if not value1 or (exc_type not in ('g', 's') and not value2):
         return {
-                   "status": False,
-                   "error": {
-                       "title": "Bad request",
-                       "message": f"Empty strings are not accepted."
-                   }
-               }, 400
+            "status": False,
+            "error": {
+                "title": "Bad request",
+                "message": f"Empty strings are not accepted."
+            }
+        }, 400
 
     if exc_type == 't':
         if is_annotation(cur, value2):
@@ -698,13 +720,13 @@ def insert_exception(cur, ck_type, value1, value2) -> tuple[dict, int]:
             params = (ck_type, value1, None, value2, None)
         else:
             return {
-                       "status": False,
-                       "error": {
-                           "title": "Bad request",
-                           "message": f"'{value2}' is not an entry accession "
-                                      f"or an annotation ID."
-                       }
-                   }, 400
+                "status": False,
+                "error": {
+                    "title": "Bad request",
+                    "message": f"'{value2}' is not an entry accession "
+                               f"or an annotation ID."
+                }
+            }, 400
     elif exc_type == 'g':
         params = (
             ck_type,
@@ -716,32 +738,32 @@ def insert_exception(cur, ck_type, value1, value2) -> tuple[dict, int]:
     elif exc_type == 'p':
         if not is_entry(cur, value1):
             return {
-                       "status": False,
-                       "error": {
-                           "title": "Bad request",
-                           "message": f"'{value1}' is not an entry accession."
-                       }
-                   }, 400
+                "status": False,
+                "error": {
+                    "title": "Bad request",
+                    "message": f"'{value1}' is not an entry accession."
+                }
+            }, 400
         elif value1 == value2:
             return {
-                       "status": False,
-                       "error": {
-                           "title": "Bad request",
-                           "message": "Two different entry accessions "
-                                      "are required."
-                       }
-                   }, 400
+                "status": False,
+                "error": {
+                    "title": "Bad request",
+                    "message": "Two different entry accessions "
+                               "are required."
+                }
+            }, 400
         elif ck_type == "acc_in_name":
             # Second accession is signature, not entry: in TERM column
             params = (ck_type, value2, None, value1, None)
         elif not is_entry(cur, value2):
             return {
-                       "status": False,
-                       "error": {
-                           "title": "Bad request",
-                           "message": f"'{value2}' is not an entry accession."
-                       }
-                   }, 400
+                "status": False,
+                "error": {
+                    "title": "Bad request",
+                    "message": f"'{value2}' is not an entry accession."
+                }
+            }, 400
         elif value1 < value2:
             params = (ck_type, None, None, value1, value2)
 
@@ -750,22 +772,22 @@ def insert_exception(cur, ck_type, value1, value2) -> tuple[dict, int]:
     elif exc_type == 's':
         if not is_entry(cur, value1):
             return {
-                       "status": False,
-                       "error": {
-                           "title": "Bad request",
-                           "message": f"'{value1}' is not an entry accession."
-                       }
-                   }, 400
+                "status": False,
+                "error": {
+                    "title": "Bad request",
+                    "message": f"'{value1}' is not an entry accession."
+                }
+            }, 400
         params = (ck_type, None, None, value1, None)
     else:
         return {
-                   "status": False,
-                   "error": {
-                       "title": "Forbidden",
-                       "message": f"Check '{ck_type}' does not "
-                                  f"support exceptions."
-                   }
-               }, 403
+            "status": False,
+            "error": {
+                "title": "Forbidden",
+                "message": f"Check '{ck_type}' does not "
+                           f"support exceptions."
+            }
+        }, 403
 
     try:
         cur.execute(
@@ -783,11 +805,11 @@ def insert_exception(cur, ck_type, value1, value2) -> tuple[dict, int]:
         return {"status": True}, 200
     except oracledb.DatabaseError as exc:
         return {
-                   "status": False,
-                   "error": {
-                       "title": "Database error",
-                       "message": str(exc)
-                   }
-               }, 500
+            "status": False,
+            "error": {
+                "title": "Database error",
+                "message": str(exc)
+            }
+        }, 500
     else:
         return {"status": True}, 200
