@@ -2,7 +2,8 @@ from oracledb import Cursor, DatabaseError
 from flask import jsonify, request
 
 from pronto import auth, utils
-from pronto.api.signature import is_amr, sanitize_description
+from pronto.api.signature import is_amr
+from pronto.api.entry.utils import sanitize_description
 from . import bp
 
 

@@ -5,6 +5,8 @@ from datetime import datetime
 import oracledb
 from flask import Blueprint, jsonify, request
 
+from pronto.api.entry.utils import sanitize_description
+
 bp = Blueprint("api_entry", __name__, url_prefix="/api/entry")
 
 from pronto import auth, utils
@@ -859,7 +861,7 @@ def create_entry():
                 row = pg_cur.fetchone()
 
             pg_con.close()
-            anno_text = row[0]
+            anno_text = sanitize_description(row[0])
             if anno_text is None:
                 return jsonify({
                     "status": False,
