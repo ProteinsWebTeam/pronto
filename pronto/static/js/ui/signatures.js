@@ -101,11 +101,17 @@ export function renderConfidence(signature, force) {
 
 export function showProteinsModal(accession, params, getMatches) {
     const modal = document.getElementById('proteins-modal');
-    modal.querySelector('thead .right.menu a').href = `/signatures/${accession}/proteins/?${params.join('&')}`;
+    let linkElem = modal.querySelector('thead .right.menu a:first-of-type');
+    linkElem.innerHTML = 'Proteins';
+    linkElem.href = `/signatures/${accession}/proteins/?${params.join('&')}`;
+
+    linkElem = modal.querySelector('thead .right.menu a:nth-of-type(2)');
+    linkElem.innerHTML = `Proteins matching ${accession} only`;
+    linkElem.href = `/signatures/${accession}/proteins/?${params.join('&')}&exclude-others`;
 
     params.push('page_size=20');
     params.push('page=1');
-    params.push('reviewedfirst');
+    params.push('reviewed-first');
 
     let url = `/api/signatures/${accession}/proteins/?${params.join('&')}`;
     getProteins(accession, url, getMatches).then(() => {

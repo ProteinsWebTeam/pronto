@@ -117,7 +117,7 @@ export function genProtHeader(protein) {
 
         const params = new URLSearchParams(location.search);
         for (const [key, value] of params.entries()) {
-            if (key !== 'page' && key !== 'page_size' && key !== 'domainorganisation')
+            if (key !== 'page' && key !== 'page_size' && key !== 'domain-organisation')
                 url.searchParams.set(key, value);
         }
 
