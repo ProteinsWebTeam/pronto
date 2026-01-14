@@ -732,15 +732,13 @@ async function getSanityCheck() {
     let numUnresolved = 0;
     if (object.errors.length > 0) {
         let count = 0
+        const includeUnchecked = document.querySelector('input[name="include-unchecked"]').checked;
         const includeLlm = document.querySelector('input[name="include-llm"]').checked;
         for (const error of object.errors) {
-            // If 'include llm' checkbox is not checked and error.llm is true, skip this error
-            if (!includeLlm && error.llm) {
+            if ((!includeUnchecked && !error.checked) || (!includeLlm && error.llm))
                 continue;
-            }
-            
-            count += 1
 
+            count += 1
             const acc = error.annotation !== null ? error.annotation : error.entry;
             const iconClass = error.llm ? 'magic' : 'user';
             html += `
@@ -1250,12 +1248,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
         });
 
-    // reload sanity check records if 'show llms' checkbox is checked/unchecked
-    document
-        .querySelector('input[name="include-llm"]')
-        .addEventListener('change', () => {
-            dimmer.on();
-            getSanityCheck()
-                .then(() => {dimmer.off()})
-    }); 
+    // reload sanity check records if checkboxes are checked/unchecked
+    ['include-unchecked', 'include-llm'].forEach((name) => {
+        document
+            .querySelector(`input[name="${name}"]`)
+            .addEventListener('change', () => {
+                dimmer.on();
+                getSanityCheck()
+                    .then(() => {
+                        dimmer.off();
+                    })
+            });
+    });
 });
