@@ -55,7 +55,7 @@ function getDescriptions(accessions) {
                             showMatches = true;
                         }
 
-                        showProteinsModal(acc, params, showMatches);
+                        showProteinsModal(acc, params, showMatches, accessions);
                     });
                 }
 

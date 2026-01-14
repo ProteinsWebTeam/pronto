@@ -109,7 +109,7 @@ function getGoTerms(accessions) {
                 elem.addEventListener('click', e => {
                     const acc = e.currentTarget.dataset.signature;
                     const termID = e.currentTarget.dataset.term;
-                    showProteinsModal(acc, [`go=${termID}`], true);
+                    showProteinsModal(acc, [`go=${termID}`], true, accessions);
                 });
             }
 

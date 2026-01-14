@@ -99,7 +99,7 @@ export function renderConfidence(signature, force) {
     return html;
 }
 
-export function showProteinsModal(accession, params, getMatches) {
+export function showProteinsModal(accession, params, getMatches, allAccessions) {
     const modal = document.getElementById('proteins-modal');
     let linkElem = modal.querySelector('thead .right.menu a:first-of-type');
     linkElem.innerHTML = 'Proteins';
@@ -107,7 +107,11 @@ export function showProteinsModal(accession, params, getMatches) {
 
     linkElem = modal.querySelector('thead .right.menu a:nth-of-type(2)');
     linkElem.innerHTML = `Proteins matching ${accession} only`;
-    linkElem.href = `/signatures/${accession}/proteins/?${params.join('&')}&exclude-others`;
+    const otherAccessions = allAccessions.filter((acc) => acc !== accession);
+    linkElem.href = `/signatures/${accession}/proteins/?${params.join('&')}&exclude=${otherAccessions.join(',')}`;
+
+    // To exclude ALL other signatures, not only the other signatures being compared
+    // linkElem.href = `/signatures/${accession}/proteins/?${params.join('&')}&exclude-others`;
 
     params.push('page_size=20');
     params.push('page=1');
