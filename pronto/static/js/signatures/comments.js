@@ -41,7 +41,7 @@ function getComments(accessions) {
                 elem.addEventListener('click', e => {
                     const acc = e.currentTarget.dataset.signature;
                     const comment = e.currentTarget.dataset.comment;
-                    showProteinsModal(acc, [`comment=${comment}`], true);
+                    showProteinsModal(acc, [`comment=${comment}`], true, accessions);
                 });
             }
 

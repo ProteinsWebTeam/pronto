@@ -26,8 +26,9 @@ def get_proteins_alt(accessions):
     taxon_id = request.args.get("taxon")
     violate_term_id = request.args.get("violate-go")
     reviewed = request.args.get("reviewed", "").lower()
-    reviewed_first = "reviewedfirst" in request.args
-    group_by_dom_org = "domainorganisation" in request.args
+    reviewed_first = "reviewed-first" in request.args
+    group_by_dom_org = "domain-organisation" in request.args
+    exclude_others = "exclude-others" in request.args
 
     if reviewed == "true":
         reviewed = True
@@ -259,7 +260,21 @@ def get_proteins_alt(accessions):
             )
             params.append(term_id)
 
-        if exclude:
+        if exclude_others:
+            filters.append(
+                f"""
+                NOT EXISTS (
+                    SELECT 1
+                    FROM signature2protein spx
+                    WHERE spx.signature_acc NOT IN (
+                        {','.join("%s" for _ in accessions)}
+                    )
+                    AND sp.protein_acc = spx.protein_acc
+                )
+                """
+            )
+            params += list(accessions)
+        elif exclude:
             filters.append(
                 f"""
                 NOT EXISTS (

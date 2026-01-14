@@ -1,11 +1,7 @@
-export function genLink(accession, reviewed) {
-    if (reviewed)
-        return `//sp.swiss-prot.ch/uniprot/${accession}`;
-    return `//www.uniprot.org/uniprotkb/${accession}/entry`
-}
+import {sleep} from "../tasks.js";
 
-export function toInterPro(accession) {
-    return `https://ebi.ac.uk/interpro/protein/${accession}` 
+function toInterPro(accession) {
+    return `https://ebi.ac.uk/interpro/protein/${accession}`
 }
 
 export function fetchProtein(proteinAccession, matches) {
@@ -18,73 +14,70 @@ export function fetchProtein(proteinAccession, matches) {
         .then(protein => protein);
 }
 
-export function structureTypeToURL(urlType, structureType, accession) {
-    const structureTypeToUrlMap = {
-        "api": {
-            "alphafold": `https://alphafold.ebi.ac.uk/api/prediction/${accession}`,
-            "bfvd": `https://bfvd.foldseek.com/api/${accession}`,
-        },
-        "browser": {
-            "alphafold": `https://alphafold.ebi.ac.uk/entry/${accession}`,
-            "bfvd": `https://bfvd.foldseek.com/cluster/${accession}`
-        }
+export async function setLinkToUniProt(protein, textPrefixFn, afterLinkFn) {
+    const link = await isOnInternalSwissProt(protein.accession) ?
+        `//sp.swiss-prot.ch/uniprot/${protein.accession}` :
+        `//www.uniprot.org/uniprotkb/${protein.accession}/entry`;
+
+    let text = textPrefixFn ? textPrefixFn(protein) : '';
+    text += protein.is_reviewed ? 'reviewed' : 'unreviewed';
+
+    const after = afterLinkFn ? afterLinkFn(protein) : null;
+    setLink(`[data-external-uniprot="${protein.accession}"]`, link, text, after);
+}
+
+async function setLink(selectors, href, text, afterLink) {
+    let elem = document.querySelector(selectors);
+    while (elem === null) {
+        await sleep(500);
+        elem = document.querySelector(selectors);
     }
 
-    return structureTypeToUrlMap[urlType][structureType]
+    elem.innerHTML = `
+        ${elem.tagName.toLowerCase() === 'td' ? '' : '&mdash;'}
+        <a target="_blank" href="${href}">
+            ${text}<i class="external icon"></i>
+        </a>
+        ${afterLink ?? ''}
+    `;
 }
 
-export async function setExternalStructureLink(type, accession) {
+export async function setLinkToStructurePrediction(accession) {
+    const selector = `[data-external-structure="${accession}"]`;
 
-    const wait = (ms) => {
-        setTimeout(() => {
-            const htmlElement = document.querySelector(`[data-external-structure="${accession}"]`);
-            if (htmlElement !== null) {
-                if (type){
-                    const linkContent = type === "alphafold" ? "Alphafold" : "BFVD" 
-                    htmlElement.innerHTML = `
-                    <a target="_blank" href=${structureTypeToURL("browser", type, accession)}>
-                        ${linkContent}<i class="external icon"></i>
-                    </a>
-                    ${htmlElement.tagName.toLowerCase() === "td" ? '' : '&mdash;'}`
-                }
-                else {
-                    htmlElement.innerHTML = `No predicted structure`;
-                }
-            } else {
-                wait(500);
-            }
-        }, ms);
-    };
-    wait(0);
-}
-
-export async function hasExternalStructure(accession, type) {
-
-    const url = structureTypeToURL("api", type, accession)
-    const response = await fetch(url);
-
-    // Find representative accession for the current signature accession
-    if (type === "bfvd") {
-        const bfvdData = await response.json()
-        return bfvdData[0]["rep_accession"] ? true : false
+    // Check AlphaFold DB
+    let response = await fetch(`https://alphafold.ebi.ac.uk/api/prediction/${accession}`);
+    if (response.status === 200) {
+        const link = `//alphafold.ebi.ac.uk/entry/${accession}`;
+        setLink(selector, link, 'AlphaFold', null);
+        return;
     }
 
-    return response.status === 200;
+    // Check BFVD
+    response = await fetch(`https://bfvd.foldseek.com/api/${accession}`);
+    if (response.status === 200) {
+        const payload = await response.json()
+        // Find representative accession for the current protein accession
+        const reprAccession = payload[0]['rep_accession'];
+        if (reprAccession !== null && reprAccession !== undefined) {
+            const link = `//bfvd.foldseek.com/cluster/${accession}`;
+            setLink(selector, link, 'BFVD', null);
+        }
+    }
 }
 
-export async function getExternalStructureSources(accession) {
-    hasExternalStructure(accession, "alphafold").then((hasAF) => { 
-        if (hasAF) setExternalStructureLink("alphafold", accession) 
-        else {
-            hasExternalStructure(accession, "bfvd").then((hasBFVD) => {
-                if (hasBFVD) {
-                    setExternalStructureLink("bfvd", accession)
-                }
-                else setExternalStructureLink(null, accession)
-            })
-        }
-    })
+async function isOnInternalSwissProt(accession) {
+    try {
+        const response = await fetch(`//sp.swiss-prot.ch/uniprot/${accession}`, {
+            method: 'HEAD',
+            signal: AbortSignal.timeout(500)
+        });
+        return response.ok
+    } catch (e) {
+        return false;
+    }
 }
+
 
 export function genProtHeader(protein) {
 
@@ -103,16 +96,15 @@ export function genProtHeader(protein) {
             ${protein.accession}
             &mdash;
             ${protein.identifier}
-            &mdash;
-            <a target="_blank" href="${genLink(protein.accession, protein.is_reviewed)}">${protein.is_reviewed ? 'reviewed' : 'unreviewed'}<i class="external icon"></i></a>
+            <span data-external-uniprot="${protein.accession}"></span>
             ${interproLink}
-            &mdash;
             <span data-external-structure="${protein.accession}"></span>
     `;
-
-    getExternalStructureSources(protein.accession)
+    setLinkToUniProt(protein);
+    setLinkToStructurePrediction(protein.accession);
 
     html += `
+            &mdash;
             Organism: <em>${protein.organism.name}</em>
             &mdash;
             Length: ${protein.length} AA
@@ -125,7 +117,7 @@ export function genProtHeader(protein) {
 
         const params = new URLSearchParams(location.search);
         for (const [key, value] of params.entries()) {
-            if (key !== 'page' && key !== 'page_size' && key !== 'domainorganisation')
+            if (key !== 'page' && key !== 'page_size' && key !== 'domain-organisation')
                 url.searchParams.set(key, value);
         }
 

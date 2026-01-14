@@ -309,13 +309,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     checkbox = document.querySelector('input[type=checkbox][name=dom-orgs]');
-    checkbox.checked = url.searchParams.has('domainorganisation');
+    checkbox.checked = url.searchParams.has('domain-organisation');
     checkbox.addEventListener('change', e => {
         const newURL = new URL(location.href);
         if (e.currentTarget.checked)
-            newURL.searchParams.set('domainorganisation', '');
+            newURL.searchParams.set('domain-organisation', '');
         else
-            newURL.searchParams.delete('domainorganisation');
+            newURL.searchParams.delete('domain-organisation');
 
         history.replaceState(null, document.title, newURL.toString());
         getProteins(accessions);

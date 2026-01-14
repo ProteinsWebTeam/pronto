@@ -8,11 +8,11 @@ function getTaxonCounts(accessions, taxonID) {
         .then(response => response.json());
 }
 
-function addEventOnProteinCount(elem) {
+function addEventOnProteinCount(elem, accessions) {
     elem.addEventListener('click', e => {
         const acc = e.currentTarget.dataset.signature;
         const taxon = e.currentTarget.dataset.taxon;
-        showProteinsModal(acc, [`taxon=${taxon}`], true);
+        showProteinsModal(acc, [`taxon=${taxon}`], true, accessions);
     });
 }
 
@@ -109,7 +109,7 @@ function getTaxonomyCounts(accessions, rank) {
 
                             // Adding event on link to show protein matches modal
                             for (const elem of table.querySelectorAll(`[data-child="${taxonID}"] [data-signature]`)) {
-                                addEventOnProteinCount(elem);
+                                addEventOnProteinCount(elem, accessions);
                             }
                         });
 
@@ -127,7 +127,7 @@ function getTaxonomyCounts(accessions, rank) {
             }
 
             for (const elem of table.querySelectorAll('[data-signature]')) {
-                addEventOnProteinCount(elem);
+                addEventOnProteinCount(elem, accessions);
             }
 
             dimmer.off();
