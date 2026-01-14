@@ -1,6 +1,4 @@
 import * as dimmer from "../ui/dimmer.js";
-import {updateHeader} from "../ui/header.js";
-import {selector, showProteinsModal} from "../ui/signatures.js";
 
 async function getComments(acc1, acc2) {
     const response = await fetch(`/api/signatures/${acc1}/${acc2}/comments/`);
