@@ -301,9 +301,6 @@ def get_proteins_alt(accessions):
         else:
             sql += "ORDER BY protein_acc"
 
-        print(sql)
-        print(params)
-
         cur.execute(sql, params)
         results = cur.fetchall()
         proteins = []
