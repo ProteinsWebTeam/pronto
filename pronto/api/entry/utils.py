@@ -41,7 +41,7 @@ def _replace_terminal(text):
                   lambda m: f"{m.group(1)}-terminal", text, flags=re.IGNORECASE)
 
 
-def _replace_accessions(text: str) -> str:
+def _replace_members_accessions(text: str) -> str:
     for member, pattern in MEMBERS_PATTERNS.items():
         regex = re.compile(pattern, re.IGNORECASE)
 
@@ -56,11 +56,21 @@ def _replace_accessions(text: str) -> str:
     return text
 
 
+def _replace_terms(text):
+    text = re.sub(r"\bHMM describes\b", "entry represents", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bHMM\b", "entry", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bmodel\b", "entry", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bdomain family\b", "entry", text, flags=re.IGNORECASE)
+    text = text.replace("“", '"').replace("”", '"')
+    return text
+
+
 def sanitize_description(text):
     if not text:
         return text
     text = _replace_greek_letters(text)
     text = _replace_terminus(text)
     text = _replace_terminal(text)
-    text = _replace_accessions(text)
+    text = _replace_members_accessions(text)
+    text = _replace_terms(text)
     return text
