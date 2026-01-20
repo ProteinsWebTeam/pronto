@@ -41,7 +41,7 @@ def _replace_terminal(text):
                   lambda m: f"{m.group(1)}-terminal", text, flags=re.IGNORECASE)
 
 
-def _replace_accessions(text: str) -> str:
+def _replace_member_accessions(text: str) -> str:
     for member, pattern in MEMBERS_PATTERNS.items():
         regex = re.compile(pattern, re.IGNORECASE)
 
@@ -56,11 +56,33 @@ def _replace_accessions(text: str) -> str:
     return text
 
 
+def _standardise_citations(text: str) -> str:
+    regex = re.compile(
+        r"\((\s*(?:\[\s*cite:[^\]]+\s*\]\s*,?\s*)+)\)",
+        flags=re.IGNORECASE
+    )
+
+    def standardize_multiple(match):
+        inner = match.group(1)
+        inner = re.sub(r"\s*,\s*", ", ", inner.strip())
+        return f"[[{inner}]]"
+
+    text = regex.sub(standardize_multiple, text)
+    text = re.sub(
+        r"\[\[(.*?)\]\]",
+        lambda m: "[[" + re.sub(r"\s*,\s*", ", ", m.group(1).strip()) + "]]",
+        text,
+        flags=re.DOTALL
+    )
+    return text
+
+
 def sanitize_description(text):
     if not text:
         return text
     text = _replace_greek_letters(text)
     text = _replace_terminus(text)
     text = _replace_terminal(text)
-    text = _replace_accessions(text)
+    text = _replace_member_accessions(text)
+    text = _standardise_citations(text)
     return text
