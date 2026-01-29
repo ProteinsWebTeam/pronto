@@ -1,20 +1,6 @@
 import re
 from pronto.api.signatures import get_sig2interpro
-
-MEMBERS_PATTERNS = {
-    "cath-gene3d": r"\bG3DSA:\d+(?:\.\d+)+\b",
-    "cdd": r"\bcd\d+\b",
-    "hamap": r"\bMF_\d+\b",
-    "ncbifam": r"\bNF\d+\b",
-    "panther": r"\bPTHR\d+\b",
-    "pirsf": r"\bPIRSF\d+\b",
-    "pfam": r"\bPF\d+\b",
-    "prints": r"\bPR\d+\b",
-    "prosite": r"\bPS\d+\b",
-    "sfld": r"\bSFLD_\d+\b",
-    "smart": r"\bSM\d+\b",
-    "superfamily": r"\bSSF\d+\b"
-}
+from pronto.utils import SIGNATURES
 
 
 def _replace_greek_letters(text):
@@ -42,7 +28,7 @@ def _replace_terminal(text):
 
 
 def _replace_accessions(text: str) -> str:
-    for member, pattern in MEMBERS_PATTERNS.items():
+    for pattern, member in SIGNATURES.items():
         regex = re.compile(pattern, re.IGNORECASE)
 
         def replacer(match):
