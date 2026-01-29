@@ -35,18 +35,19 @@ def _replace_accessions(text: str) -> str:
         if matches:
             accessions.update(matches)
             patterns.add(pattern)
-    sig2ipr = get_sig2interpro(list(accessions))
 
+    if accessions:
+        sig2ipr = get_sig2interpro(list(accessions))
         for pattern in patterns:
             database = SIGNATURES[pattern]
-        def replacer(match):
-            accession = match.group(0)
-            if accession in sig2ipr:
-                return f"[interpro:{sig2ipr[accession]}]"
-            return f"[{database}:{accession}]"
 
-        text = re.sub(pattern, replacer, text, flags=re.IGNORECASE)
+            def replacer(match):
+                accession = match.group(0)
+                if accession in sig2ipr:
+                    return f"[interpro:{sig2ipr[accession]}]"
+                return f"[{database}:{accession}]"
 
+            text = re.sub(pattern, replacer, text, flags=re.IGNORECASE)
     return text
 
 
