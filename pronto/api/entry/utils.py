@@ -28,17 +28,23 @@ def _replace_terminal(text):
 
 
 def _replace_accessions(text: str) -> str:
+    accessions = set()
+
+    for pattern in SIGNATURES:
+        accessions.update(re.findall(pattern, text, flags=re.IGNORECASE))
+    sig2ipr = get_sig2interpro(list(accessions))
+
     for pattern, member in SIGNATURES.items():
         regex = re.compile(pattern, re.IGNORECASE)
 
         def replacer(match):
             accession = match.group(0)
-            ipr_acc = get_sig2interpro(accession)
-            if ipr_acc:
-                return f"[interpro:{ipr_acc}]"
+            if accession in sig2ipr:
+                return f"[interpro:{sig2ipr[accession]}]"
             return f"[{member}:{accession}]"
 
         text = regex.sub(replacer, text)
+
     return text
 
 
