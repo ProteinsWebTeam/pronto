@@ -45,7 +45,7 @@ def _replace_accessions(text: str) -> str:
                 return f"[interpro:{sig2ipr[accession]}]"
             return f"[{member}:{accession}]"
 
-        text = regex.sub(replacer, text)
+        text = re.sub(pattern, replacer, text, flags=re.IGNORECASE)
 
     return text
 
