@@ -43,7 +43,7 @@ def _replace_accessions(text: str) -> str:
             accession = match.group(0)
             if accession in sig2ipr:
                 return f"[interpro:{sig2ipr[accession]}]"
-            return f"[{member}:{accession}]"
+            return f"[{database}:{accession}]"
 
         text = re.sub(pattern, replacer, text, flags=re.IGNORECASE)
 
