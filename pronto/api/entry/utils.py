@@ -39,8 +39,6 @@ def _replace_accessions(text: str) -> str:
 
         for pattern in patterns:
             database = SIGNATURES[pattern]
-        regex = re.compile(pattern, re.IGNORECASE)
-
         def replacer(match):
             accession = match.group(0)
             if accession in sig2ipr:
