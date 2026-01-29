@@ -29,9 +29,12 @@ def _replace_terminal(text):
 
 def _replace_accessions(text: str) -> str:
     accessions = set()
-
+    patterns = set()
     for pattern in SIGNATURES:
-        accessions.update(re.findall(pattern, text, flags=re.IGNORECASE))
+        matches = re.findall(pattern, text, flags=re.IGNORECASE)
+        if matches:
+            accessions.update(matches)
+            patterns.add(pattern)
     sig2ipr = get_sig2interpro(list(accessions))
 
         for pattern in patterns:
