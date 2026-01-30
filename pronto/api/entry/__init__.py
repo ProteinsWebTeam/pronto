@@ -542,6 +542,7 @@ def create_entry():
         entry_name = request.json["name"].strip()
         entry_short_name = request.json["short_name"].strip()
         entry_llm = request.json["is_llm"]
+        autointegration = request.json["autointegration"]
     except KeyError:
         return jsonify({
             "status": False,
@@ -836,13 +837,25 @@ def create_entry():
         )
 
         if new_references:
-            cur.executemany(
-                """
-                INSERT INTO INTERPRO.SUPPLEMENTARY_REF (ENTRY_AC, PUB_ID)
-                VALUES (:1, :2)
-                """,
-                [(entry_acc, pub_id) for pub_id in new_references]
-            )
+
+            # During autointegration, add them directly to ENTRY2PUB instead of SUPPLEMENTARY_REF
+            # to later append them to the description (see below)
+            if autointegration:
+                cur.executemany(
+                    """
+                    INSERT INTO INTERPRO.ENTRY2PUB (ENTRY_AC, ORDER_IN, PUB_ID)
+                    VALUES (:1, :2, :3)
+                    """,
+                    [(entry_acc, idx + 1, pub_id) for idx, pub_id in enumerate(new_references)]
+                )
+            else:
+                cur.executemany(
+                    """
+                    INSERT INTO INTERPRO.SUPPLEMENTARY_REF (ENTRY_AC, PUB_ID)
+                    VALUES (:1, :2)
+                    """,
+                    [(entry_acc, pub_id) for pub_id in new_references]
+                )
 
         if import_description:
             pg_con = utils.connect_pg(utils.get_pg_url())
@@ -860,6 +873,19 @@ def create_entry():
 
             pg_con.close()
             anno_text = row[0]
+
+            # During autointegration, append supplementary references to description,
+            # instead of adding them to SUPPLEMENTARY_REF (see above)
+            if (autointegration):
+                anno_text += "Supplementary references: "
+                sup_refs = []
+                for ref in new_references:
+                    if ref not in [ref_match.group(1) 
+                                   for ref_match 
+                                   in re.finditer(r"\[cite:([^\]]+)\]", anno_text, re.I)]:
+                        sup_refs.append(f"[[cite:{ref}]]")
+                anno_text += ", ".join(sup_refs)
+
             if anno_text is None:
                 return jsonify({
                     "status": False,
@@ -869,6 +895,18 @@ def create_entry():
                                    f"for {entry_signatures[0]}."
                     }
                 }), 400
+
+            # During autointegration, infer type from description 
+            if autointegration:
+                if any(key in anno_text for key in ["region", "domain", "repeat"]):
+                    cur.execute(
+                        """
+                        UPDATE INTERPRO.ENTRY
+                        SET ENTRY_TYPE = 'D'
+                        WHERE ENTRY_AC = :1
+                        """,
+                        [entry_acc]
+                    )
 
             anno_id, response, code = annotation.insert_annotation(
                 anno_text,
@@ -880,7 +918,7 @@ def create_entry():
             if anno_id is None:
                 return jsonify(response), code
 
-            response, code = relate_entry_to_anno(anno_id, entry_acc, con)
+            response, code = relate_entry_to_anno(anno_id, entry_acc, con, autointegration=autointegration)
             if code != 200:
                 return jsonify(response), code
 
