@@ -67,12 +67,19 @@ def _replace_terms(text):
 
     return text.replace("“", '"').replace("”", '"')
 
-  
+
 def _standardise_citations(text: str) -> str:
     def normalize(match):
         inner = match.group(1)
-        inner = re.sub(r"\s*,\s*", ", ", inner.strip())
-        return f"[[{inner}]]"
+        citations = re.findall(
+            r"\[\s*(cite:[^\]]+)\s*\]",
+            inner,
+            flags=re.IGNORECASE,
+        )
+        if len(citations) == 1:
+            return f"[[{citations[0]}]]"
+        multiple_citations = ", ".join(citations)
+        return f"[[{multiple_citations}]]"
 
     text = re.sub(
         r"\((\s*(?:\[\s*cite:[^\]]+\s*\]\s*,?\s*)+)\)",
