@@ -1,4 +1,6 @@
 import re
+from pronto.api.signatures import get_sig2interpro
+from pronto.utils import SIGNATURES
 
 
 def _replace_greek_letters(text):
@@ -25,10 +27,35 @@ def _replace_terminal(text):
                   lambda m: f"{m.group(1)}-terminal", text, flags=re.IGNORECASE)
 
 
+def _replace_accessions(text: str) -> str:
+    accessions = set()
+    patterns = set()
+    for pattern in SIGNATURES:
+        matches = re.findall(pattern, text, flags=re.IGNORECASE)
+        if matches:
+            accessions.update(matches)
+            patterns.add(pattern)
+
+    if accessions:
+        sig2ipr = get_sig2interpro(list(accessions))
+        for pattern in patterns:
+            database = SIGNATURES[pattern]
+
+            def replacer(match):
+                accession = match.group(0)
+                if accession in sig2ipr:
+                    return f"[interpro:{sig2ipr[accession]}]"
+                return f"[{database}:{accession}]"
+
+            text = re.sub(pattern, replacer, text, flags=re.IGNORECASE)
+    return text
+
+
 def sanitize_description(text):
     if not text:
         return text
     text = _replace_greek_letters(text)
     text = _replace_terminus(text)
     text = _replace_terminal(text)
+    text = _replace_accessions(text)
     return text

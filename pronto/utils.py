@@ -13,22 +13,22 @@ import psycopg
 from flask import current_app
 
 
-SIGNATURES = [
-    r"G3DSA:[\d.]{4,}",     # CATH-Gene3D
-    r"MF_\d{4,}",           # HAMAP
-    r"PF\d{5,}",            # Pfam
-    r"PIRSF\d{4,}",         # PIRSF
-    r"PR\d{4,}",            # PROSITE
-    r"PS\d{4,}",            # PROSITE
-    r"PTHR\d{4,}",          # PANTHER
-    r"SFLD[FGS]\d{4,}",     # SFLD
-    r"SM\d{4,}",            # SMART
-    r"SSF\d{4,}",           # SUPERFAMILY
-    r"NF\d{6}",             # NCBIFAM
-    r"TIGR\d{4,}",          # NCBIFAM
-    r"cd\d{4,}",            # CDD
-    r"sd\d{4,}"             # CDD
-]
+SIGNATURES = {
+    r"G3DSA:[\d.]{4,}": "cathgene3d",
+    r"MF_\d{4,}": "hamap",
+    r"PF\d{5,}": "pfam",
+    r"PIRSF\d{4,}": "pirsf",
+    r"PR\d{4,}": "prints",
+    r"PS\d{4,}": "prosite",
+    r"PTHR\d{4,}": "panther",
+    r"SFLD[FGS]\d{4,}": "sfld",
+    r"SM\d{4,}": "smart",
+    r"SSF\d{4,}": "superfamily",
+    r"NF\d{6}": "ncbifam",
+    r"TIGR\d{4,}": "ncbifam",
+    r"cd\d{4,}": "cdd",
+    r"sd\d{4,}": "cdd",
+}
 
 XREFS = {
     "CATHGENE3D": "http://www.cathdb.info/superfamily/{}",
