@@ -135,6 +135,8 @@ function getProteins(signatureAccessions) {
             filterElem = document.querySelector('[data-filter="exclude"]');
             if (data.filters.exclude.length)
                 filterElem.querySelector('.value').innerHTML = data.filters.exclude.map(acc => `<span class="ui small basic label">${acc}</span>`).join('');
+            else if (data.filters['exclude-others'])
+                filterElem.querySelector('.value').innerHTML = '*';
             else
                 filterElem.querySelector('.value').innerHTML = 'N/A';
 

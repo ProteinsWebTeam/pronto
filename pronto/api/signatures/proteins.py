@@ -370,6 +370,7 @@ def get_proteins_alt(accessions):
             "comment": comment_value,
             "description": name_value,
             "exclude": list(exclude),
+            "exclude-others": exclude_others,
             "go": f"{term_id}: {term_name}" if term_name else None,
             "violate-go": (f"{violate_term_id}: {violate_term_name}"
                            if violate_term_name else None),

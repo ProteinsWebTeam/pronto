@@ -1,20 +1,6 @@
 import re
 from pronto.api.signatures import get_sig2interpro
-
-MEMBERS_PATTERNS = {
-    "cath-gene3d": r"\bG3DSA:\d+(?:\.\d+)+\b",
-    "cdd": r"\bcd\d+\b",
-    "hamap": r"\bMF_\d+\b",
-    "ncbifam": r"\bNF\d+\b",
-    "panther": r"\bPTHR\d+\b",
-    "pirsf": r"\bPIRSF\d+\b",
-    "pfam": r"\bPF\d+\b",
-    "prints": r"\bPR\d+\b",
-    "prosite": r"\bPS\d+\b",
-    "sfld": r"\bSFLD_\d+\b",
-    "smart": r"\bSM\d+\b",
-    "superfamily": r"\bSSF\d+\b"
-}
+from pronto.utils import SIGNATURES
 
 
 def _replace_greek_letters(text):
@@ -41,27 +27,27 @@ def _replace_terminal(text):
                   lambda m: f"{m.group(1)}-terminal", text, flags=re.IGNORECASE)
 
 
-def _replace_members_accessions(text: str) -> str:
-    for member, pattern in MEMBERS_PATTERNS.items():
-        regex = re.compile(pattern, re.IGNORECASE)
+def _replace_accessions(text: str) -> str:
+    accessions = set()
+    patterns = set()
+    for pattern in SIGNATURES:
+        matches = re.findall(pattern, text, flags=re.IGNORECASE)
+        if matches:
+            accessions.update(matches)
+            patterns.add(pattern)
 
-        def replacer(match):
-            accession = match.group(0)
-            ipr_acc = get_sig2interpro(accession)
-            if ipr_acc:
-                return f"[interpro:{ipr_acc}]"
-            return f"[{member}:{accession}]"
+    if accessions:
+        sig2ipr = get_sig2interpro(list(accessions))
+        for pattern in patterns:
+            database = SIGNATURES[pattern]
 
-        text = regex.sub(replacer, text)
-    return text
+            def replacer(match):
+                accession = match.group(0)
+                if accession in sig2ipr:
+                    return f"[interpro:{sig2ipr[accession]}]"
+                return f"[{database}:{accession}]"
 
-
-def _replace_terms(text):
-    text = re.sub(r"\bHMM describes\b", "entry represents", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bHMM\b", "entry", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bmodel\b", "entry", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bdomain family\b", "entry", text, flags=re.IGNORECASE)
-    text = text.replace("“", '"').replace("”", '"')
+            text = re.sub(pattern, replacer, text, flags=re.IGNORECASE)
     return text
 
 
@@ -71,6 +57,5 @@ def sanitize_description(text):
     text = _replace_greek_letters(text)
     text = _replace_terminus(text)
     text = _replace_terminal(text)
-    text = _replace_members_accessions(text)
-    text = _replace_terms(text)
+    text = _replace_accessions(text)
     return text
