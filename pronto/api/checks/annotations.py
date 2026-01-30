@@ -219,7 +219,7 @@ def ck_signature_accessions(cur: Cursor, cabs: LoT) -> Err:
     signatures = [row[0] for row in cur]
 
     errors = []
-    prog = re.compile(fr"\b(?:{'|'.join(SIGNATURES)})\b")
+    prog = re.compile(fr"\b(?:{'|'.join(SIGNATURES.keys())})\b")
     for ann_id, text in cabs:
         for match in prog.finditer(text):
             term = match.group(0)

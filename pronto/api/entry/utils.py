@@ -1,20 +1,6 @@
 import re
 from pronto.api.signatures import get_sig2interpro
-
-MEMBERS_PATTERNS = {
-    "cath-gene3d": r"\bG3DSA:\d+(?:\.\d+)+\b",
-    "cdd": r"\bcd\d+\b",
-    "hamap": r"\bMF_\d+\b",
-    "ncbifam": r"\bNF\d+\b",
-    "panther": r"\bPTHR\d+\b",
-    "pirsf": r"\bPIRSF\d+\b",
-    "pfam": r"\bPF\d+\b",
-    "prints": r"\bPR\d+\b",
-    "prosite": r"\bPS\d+\b",
-    "sfld": r"\bSFLD_\d+\b",
-    "smart": r"\bSM\d+\b",
-    "superfamily": r"\bSSF\d+\b"
-}
+from pronto.utils import SIGNATURES
 
 
 def _replace_greek_letters(text):
@@ -41,38 +27,58 @@ def _replace_terminal(text):
                   lambda m: f"{m.group(1)}-terminal", text, flags=re.IGNORECASE)
 
 
-def _replace_member_accessions(text: str) -> str:
-    for member, pattern in MEMBERS_PATTERNS.items():
-        regex = re.compile(pattern, re.IGNORECASE)
+def _replace_accessions(text: str) -> str:
+    accessions = set()
+    patterns = set()
+    for pattern in SIGNATURES:
+        matches = re.findall(pattern, text, flags=re.IGNORECASE)
+        if matches:
+            accessions.update(matches)
+            patterns.add(pattern)
 
-        def replacer(match):
-            accession = match.group(0)
-            ipr_acc = get_sig2interpro(accession)
-            if ipr_acc:
-                return f"[interpro:{ipr_acc}]"
-            return f"[{member}:{accession}]"
+    if accessions:
+        sig2ipr = get_sig2interpro(list(accessions))
+        for pattern in patterns:
+            database = SIGNATURES[pattern]
 
-        text = regex.sub(replacer, text)
+            def replacer(match):
+                accession = match.group(0)
+                if accession in sig2ipr:
+                    return f"[interpro:{sig2ipr[accession]}]"
+                return f"[{database}:{accession}]"
+
+            text = re.sub(pattern, replacer, text, flags=re.IGNORECASE)
     return text
 
 
-def _standardise_citations(text: str) -> str:
-    regex = re.compile(
-        r"\((\s*(?:\[\s*cite:[^\]]+\s*\]\s*,?\s*)+)\)",
-        flags=re.IGNORECASE
-    )
+def _replace_terms(text):
+    replacements = [
+        (r"\bHMM describes\b", "entry represents"),
+        (r"\bdomain family\b", "entry"),
+        (
+            r"\b(this|the)\s+(HMM|model)\s+"
+            r"(represents|corresponds|identifies|characterizes|summarizes|covers|"
+            r"recognizes|distinguishes|contains|includes|excludes|finds|hits|spans)\b",
+            r"\1 entry \3",
+        ),
+    ]
+    for pattern, replacement in replacements:
+        text = re.sub(pattern, replacement, text, flags=re.IGNORECASE)
 
-    def standardize_multiple(match):
+    return text.replace("“", '"').replace("”", '"')
+
+  
+def _standardise_citations(text: str) -> str:
+    def normalize(match):
         inner = match.group(1)
         inner = re.sub(r"\s*,\s*", ", ", inner.strip())
         return f"[[{inner}]]"
 
-    text = regex.sub(standardize_multiple, text)
     text = re.sub(
-        r"\[\[(.*?)\]\]",
-        lambda m: "[[" + re.sub(r"\s*,\s*", ", ", m.group(1).strip()) + "]]",
+        r"\((\s*(?:\[\s*cite:[^\]]+\s*\]\s*,?\s*)+)\)",
+        normalize,
         text,
-        flags=re.DOTALL
+        flags=re.IGNORECASE,
     )
     return text
 
@@ -83,6 +89,7 @@ def sanitize_description(text):
     text = _replace_greek_letters(text)
     text = _replace_terminus(text)
     text = _replace_terminal(text)
-    text = _replace_member_accessions(text)
+    text = _replace_accessions(text)
+    text = _replace_terms(text)
     text = _standardise_citations(text)
     return text

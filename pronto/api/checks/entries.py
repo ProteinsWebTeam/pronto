@@ -63,7 +63,7 @@ def ck_type_name_combination(cur: Cursor) -> Err:
 
 
 def ck_acc_in_name(entries: LoT, exceptions: DoS) -> Err:
-    prog = re.compile(fr"\b(?:{'|'.join(SIGNATURES)})\b")
+    prog = re.compile(fr"\b(?:{'|'.join(SIGNATURES.keys())})\b")
 
     errors = []
     for acc, name, short_name in entries:

@@ -398,9 +398,13 @@ def get_signatures_annotations(accession):
         """,
         [accession]
     )
+
     signatures = [acc for acc, in cur]
     cur.close()
     con.close()
+
+    if not signatures:
+        return jsonify([])
 
     con = utils.connect_pg(utils.get_pg_url())
     cur = con.cursor()
