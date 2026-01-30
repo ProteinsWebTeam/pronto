@@ -52,10 +52,16 @@ def _replace_accessions(text: str) -> str:
 
 
 def _replace_terms(text):
-    text = re.sub(r"\bHMM describes\b", "entry represents", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bHMM\b", "entry", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bmodel\b", "entry", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bdomain family\b", "entry", text, flags=re.IGNORECASE)
+    replacements = [
+        (r"\bHMM describes\b", "entry represents"),
+        (r"\bHMM model\b", "entry"),
+        (r"\bdomain family\b", "entry"),
+        (r"\bHMM\b", "entry"),
+        (r"\bmodel\b", "entry"),
+    ]
+    for pattern, replacement in replacements:
+        text = re.sub(pattern, replacement, text, flags=re.IGNORECASE)
+
     text = text.replace("“", '"').replace("”", '"')
     return text
 
