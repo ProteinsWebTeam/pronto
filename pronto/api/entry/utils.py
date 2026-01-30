@@ -54,10 +54,13 @@ def _replace_accessions(text: str) -> str:
 def _replace_terms(text):
     replacements = [
         (r"\bHMM describes\b", "entry represents"),
-        (r"\bHMM model\b", "entry"),
         (r"\bdomain family\b", "entry"),
-        (r"\bHMM\b", "entry"),
-        (r"\bmodel\b", "entry"),
+        (
+            r"\b(this|the)\s+(HMM|model)\s+"
+            r"(represents|corresponds|identifies|characterizes|summarizes|covers|"
+            r"recognizes|distinguishes|contains|includes|excludes|finds|hits|spans)\b",
+            r"\1 entry \3",
+        ),
     ]
     for pattern, replacement in replacements:
         text = re.sub(pattern, replacement, text, flags=re.IGNORECASE)
