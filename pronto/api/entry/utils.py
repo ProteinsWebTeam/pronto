@@ -65,8 +65,7 @@ def _replace_terms(text):
     for pattern, replacement in replacements:
         text = re.sub(pattern, replacement, text, flags=re.IGNORECASE)
 
-    text = text.replace("“", '"').replace("”", '"')
-    return text
+    return text.replace("“", '"').replace("”", '"')
 
 
 def sanitize_description(text):
