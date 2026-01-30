@@ -51,6 +51,23 @@ def _replace_accessions(text: str) -> str:
     return text
 
 
+def _replace_terms(text):
+    replacements = [
+        (r"\bHMM describes\b", "entry represents"),
+        (r"\bdomain family\b", "entry"),
+        (
+            r"\b(this|the)\s+(HMM|model)\s+"
+            r"(represents|corresponds|identifies|characterizes|summarizes|covers|"
+            r"recognizes|distinguishes|contains|includes|excludes|finds|hits|spans)\b",
+            r"\1 entry \3",
+        ),
+    ]
+    for pattern, replacement in replacements:
+        text = re.sub(pattern, replacement, text, flags=re.IGNORECASE)
+
+    return text.replace("“", '"').replace("”", '"')
+
+
 def sanitize_description(text):
     if not text:
         return text
@@ -58,4 +75,5 @@ def sanitize_description(text):
     text = _replace_terminus(text)
     text = _replace_terminal(text)
     text = _replace_accessions(text)
+    text = _replace_terms(text)
     return text
