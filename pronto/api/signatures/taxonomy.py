@@ -163,19 +163,14 @@ def get_taxonomy_tree(accessions, leaf_rank):
     for rank in ranks:
         cur.execute(
             f"""
-            SELECT
-                t.id,
-                t.name,
-                %s AS rank,
-                sp.signature_acc,
-                COUNT(*) AS cnt
+            SELECT t.id, t.name, %s AS rank, sp.signature_acc, COUNT(*)
             FROM signature2protein sp
-            JOIN taxon child
+            INNER JOIN taxon child
               ON sp.taxon_left_num = child.left_number
-            JOIN lineage l
+            INNER JOIN lineage l
               ON child.id = l.child_id
-             AND l.parent_rank = %s
-            JOIN taxon t
+              AND l.parent_rank = %s
+            INNER JOIN taxon t
               ON l.parent_id = t.id
             WHERE sp.signature_acc IN ({','.join('%s' for _ in accessions)})
             {taxon_cond}
