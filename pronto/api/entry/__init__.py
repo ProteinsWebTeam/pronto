@@ -542,7 +542,7 @@ def create_entry():
         entry_name = request.json["name"].strip()
         entry_short_name = request.json["short_name"].strip()
         entry_llm = request.json["is_llm"]
-        autointegration = request.json["autointegration"]
+        automatic = request.json["automatic"]
     except KeyError:
         return jsonify({
             "status": False,
@@ -561,11 +561,6 @@ def create_entry():
         is_checked = request.json["is_checked"]
     except KeyError:
         is_checked = False
-
-    try:
-        import_description = request.json["import_description"]
-    except KeyError:
-        import_description = False
 
     entry_signatures = list(set(request.json.get("signatures", [])))
     if not entry_signatures:
@@ -840,7 +835,7 @@ def create_entry():
 
             # During autointegration, add them directly to ENTRY2PUB instead of SUPPLEMENTARY_REF
             # to later append them to the description (see below)
-            if autointegration:
+            if automatic:
                 cur.executemany(
                     """
                     INSERT INTO INTERPRO.ENTRY2PUB (ENTRY_AC, ORDER_IN, PUB_ID)
@@ -857,7 +852,7 @@ def create_entry():
                     [(entry_acc, pub_id) for pub_id in new_references]
                 )
 
-        if import_description:
+        if automatic:
             pg_con = utils.connect_pg(utils.get_pg_url())
             with pg_con.cursor() as pg_cur:
                 col = "llm_abstract" if entry_llm else "abstract"
@@ -876,15 +871,13 @@ def create_entry():
 
             # During autointegration, append supplementary references to description,
             # instead of adding them to SUPPLEMENTARY_REF (see above)
-            if (autointegration):
-                anno_text += "Supplementary references: "
-                sup_refs = []
-                for ref in new_references:
-                    if ref not in [ref_match.group(1) 
-                                   for ref_match 
-                                   in re.finditer(r"\[cite:([^\]]+)\]", anno_text, re.I)]:
-                        sup_refs.append(f"[[cite:{ref}]]")
-                anno_text += ", ".join(sup_refs)
+            in_text_references = re.findall(r"\[cite:(PUB\d+)\]", anno_text, re.I)
+            not_in_text_references = set(new_references) - set(in_text_references)
+            not_in_text_references = [f"[[cite:{pub}]]" for pub in not_in_text_references]
+
+            if not_in_text_references:
+                    anno_text += "Supplementary references: "
+                    anno_text += ", ".join(not_in_text_references)
 
             if anno_text is None:
                 return jsonify({
@@ -896,18 +889,22 @@ def create_entry():
                     }
                 }), 400
 
-            # During autointegration, infer type from description 
-            if autointegration:
-                if any(key in anno_text for key in ["region", "domain", "repeat"]):
-                    cur.execute(
-                        """
-                        UPDATE INTERPRO.ENTRY
-                        SET ENTRY_TYPE = 'D'
-                        WHERE ENTRY_AC = :1
-                        """,
-                        [entry_acc]
-                    )
-
+            # During autointegration, infer type from name 
+            inferred_type = entry_type
+            if any(key in entry_name for key in ["terminal region", "conserved region", "domain", "repeat"]):
+                inferred_type = 'D'
+            elif any(key in entry_name for key in ["containing protein"]):
+                inferred_type = 'F'
+  
+            cur.execute(
+                """
+                UPDATE INTERPRO.ENTRY
+                SET ENTRY_TYPE = :1
+                WHERE ENTRY_AC = :2
+                """,
+                [inferred_type, entry_acc]
+            )
+            
             anno_id, response, code = annotation.insert_annotation(
                 anno_text,
                 con,
@@ -918,7 +915,7 @@ def create_entry():
             if anno_id is None:
                 return jsonify(response), code
 
-            response, code = relate_entry_to_anno(anno_id, entry_acc, con, autointegration=autointegration)
+            response, code = relate_entry_to_anno(anno_id, entry_acc, con)
             if code != 200:
                 return jsonify(response), code
 
