@@ -5,14 +5,21 @@ from flask import jsonify, request
 from pronto import utils
 from . import bp, get_sig2interpro
 
-
-RANKS = {"domain", "kingdom", "phylum", "class", "order", "family",
-         "genus", "species"}
-
+RANKS = (
+    "domain",
+    "kingdom",
+    "phylum",
+    "class",
+    "order",
+    "family",
+    "genus",
+    "species",
+)
+RANK_SET = set(RANKS)
 
 @bp.route("/<path:accessions>/taxonomy/<string:rank>/")
 def get_taxonomy_origins(accessions, rank):
-    if rank not in RANKS:
+    if rank not in RANK_SET:
         return jsonify({
             "error": {
                 "title": "Bad Request (invalid rank)",
@@ -100,6 +107,149 @@ def get_taxonomy_origins(accessions, rank):
         },
         "integrated": get_sig2interpro(accessions)
     })
+
+
+@bp.route("/<path:accessions>/taxonomy_tree/", defaults={"leaf_rank": "species"})
+@bp.route("/<path:accessions>/taxonomy_tree/<string:leaf_rank>/")
+def get_taxonomy_tree(accessions, leaf_rank):
+    if leaf_rank not in RANK_SET:
+        return jsonify({
+            "error": {
+                "title": "Bad Request (invalid rank)",
+                "message": f"Available ranks: {', '.join(RANKS)}."
+            }
+        }), 400
+
+    accessions = utils.split_path(accessions)
+    taxon_id = request.args.get("taxon")
+
+    max_rank_idx = RANKS.index(leaf_rank)
+    ranks = RANKS[:max_rank_idx + 1]
+
+    con = utils.connect_pg()
+    cur = con.cursor()
+
+    # Optional taxon restriction
+    left_num = right_num = None
+    if taxon_id:
+        cur.execute(
+            """
+            SELECT left_number, right_number
+            FROM taxon
+            WHERE id = %s
+            """, (taxon_id,)
+        )
+        row = cur.fetchone()
+        if not row:
+            cur.close()
+            con.close()
+            return jsonify({
+                "error": {
+                    "title": "Bad Request (invalid taxon)",
+                    "message": f"No taxon with ID {taxon_id}."
+                }
+            }), 400
+        left_num, right_num = row
+
+    taxon_cond = ""
+    params = tuple(accessions)
+    if left_num is not None:
+        taxon_cond = "AND sp.taxon_left_num BETWEEN %s AND %s"
+        params += (left_num, right_num)
+
+    # Aggregate matches per rank using lineage.parent_rank
+    nodes = {}
+
+    for rank in ranks:
+        cur.execute(
+            f"""
+            SELECT
+                t.id,
+                t.name,
+                %s AS rank,
+                sp.signature_acc,
+                COUNT(*) AS cnt
+            FROM signature2protein sp
+            JOIN taxon child
+              ON sp.taxon_left_num = child.left_number
+            JOIN lineage l
+              ON child.id = l.child_id
+             AND l.parent_rank = %s
+            JOIN taxon t
+              ON l.parent_id = t.id
+            WHERE sp.signature_acc IN ({','.join('%s' for _ in accessions)})
+            {taxon_cond}
+            GROUP BY t.id, t.name, sp.signature_acc
+            """,
+            (rank, rank) + params
+        )
+
+        for tid, name, r, acc, cnt in cur.fetchall():
+            node = nodes.setdefault(tid, {
+                "id": tid,
+                "name": name,
+                "rank": r,
+                "matches": {},
+                "children": []
+            })
+            node["matches"][acc] = node["matches"].get(acc, 0) + cnt
+
+    if not nodes:
+        cur.close()
+        con.close()
+        return jsonify({
+            "results": [],
+            "integrated": get_sig2interpro(accessions)
+        })
+
+    # Add children using rank-adjacent lineage
+    for parent_rank, child_rank in zip(ranks, ranks[1:]):
+        cur.execute(
+            """
+            SELECT l.parent_id, l.child_id
+            FROM lineage l
+            JOIN taxon p ON l.parent_id = p.id
+            JOIN taxon c ON l.child_id = c.id
+            WHERE p.rank = %s
+              AND c.rank = %s
+            """,
+            (parent_rank, child_rank)
+        )
+
+        for pid, cid in cur.fetchall():
+            if pid in nodes and cid in nodes:
+                nodes[pid]["children"].append(nodes[cid])
+
+    cur.close()
+    con.close()
+
+    # Roots are domains
+    roots = [
+        n for n in nodes.values()
+        if n["rank"] == "domain"
+    ]
+
+    # Remove empty children from leaf nodes
+    for root in roots:
+        prune_empty_children(root)
+
+    return jsonify({
+        "results": roots,
+        "integrated": get_sig2interpro(accessions)
+    })
+
+def prune_empty_children(node):
+    children = node.get("children")
+    if not children:
+        node.pop("children", None)
+        return
+
+    for child in children:
+        prune_empty_children(child)
+
+    # In case children were removed recursively
+    if not node["children"]:
+        node.pop("children", None)
 
 
 @bp.route("/<path:accessions>/taxon/<int:taxon_id>/")
