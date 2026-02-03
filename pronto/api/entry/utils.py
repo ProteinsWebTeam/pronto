@@ -1,6 +1,7 @@
 import re
+from oracledb import Cursor, DatabaseError
 from pronto.api.signatures import get_sig2interpro
-from pronto.utils import SIGNATURES
+from pronto.utils import SIGNATURES, connect_oracle
 
 
 def _replace_greek_letters(text):
@@ -90,6 +91,36 @@ def _standardise_citations(text: str) -> str:
     return text
 
 
+def _captilize_exceptions(text) -> str:
+    con = connect_oracle()
+    cur = con.cursor()
+    cur.execute(
+        """
+        SELECT TERM
+        FROM INTERPRO.PRONTO_SANITY_EXCEPTION
+        WHERE CHECK_TYPE = 'lower_case_name'
+        """,
+    )
+    exceptions = [row[0] for row in cur.fetchall()]
+    cur.close()
+    con.close()
+
+    if text.split()[0] not in exceptions:
+        text = text[0].upper() + text[1:]
+    return text
+
+
+def _british_standard(text) -> str:
+    replacements = {
+        "homologs": "homologues",
+        "speling": "spelling",
+        "behavior": "behaviour",
+    }
+    for american, british in replacements.items():
+        text = re.sub(rf"\b{american}\b", british, text, flags=re.IGNORECASE)
+    return text
+
+
 def sanitize_description(text):
     if not text:
         return text
@@ -99,4 +130,18 @@ def sanitize_description(text):
     text = _replace_accessions(text)
     text = _replace_terms(text)
     text = _standardise_citations(text)
+    text = _british_standard(text)
     return text
+
+
+def sanitize_name(name):
+    name = re.sub(r"\b(-family proteins|-family protein)\b", "-like", name, flags=re.IGNORECASE)
+    name = _captilize_exceptions(name)
+    return name
+
+
+def sanitize_short_name(short_name):
+    short_name = re.sub(r"\b(_like|_fam)\b", "-like", short_name, flags=re.IGNORECASE)
+    short_name = re.sub(r"\b_like\b", "-like", short_name, flags=re.IGNORECASE)
+    short_name = _captilize_exceptions(short_name)
+    return short_name

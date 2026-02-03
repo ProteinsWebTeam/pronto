@@ -3,7 +3,7 @@ from oracledb import DatabaseError
 from flask import Blueprint, jsonify, request
 
 from pronto import auth, utils
-
+from pronto.api.entry.utils import sanitize_name, sanitize_short_name
 
 bp = Blueprint("api_signature", __name__, url_prefix="/api/signature")
 
@@ -50,14 +50,20 @@ def get_signature(accession):
                 "message": f"{accession} does not match any member database signature accession or name."
             }
         }), 404
-    
+
+    name = row[1]
+    description = row[3]
+    if "automatic" in request.args:
+        name = sanitize_short_name(name)
+        description = sanitize_name(description)
+
     # data populates signature table to new entry window
     db = utils.get_database_obj(row[13])
     result = {
         "accession": row[0],
-        "name": row[1],  # --> short name
+        "name": name,  # --> short name
         "llm_name": row[2],
-        "description": row[3],
+        "description": description,
         "llm_description": row[4],  # --> name on front end
         "type": row[5],
         "abstract": row[6],
