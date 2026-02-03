@@ -72,18 +72,16 @@ def _standardise_citations(text: str) -> str:
     def normalize(match):
         inner = match.group(0)
         citations = re.findall(
-            r"\[\s*(cite:[^\]]+)\s*\]",
+            r"cite:[^\]\s]+",
             inner,
             flags=re.IGNORECASE,
         )
-        if len(citations) == 1:
-            return f"[[{citations[0]}]]"
-        multiple_citations = ", ".join(citations)
-        return f"[[{multiple_citations}]]"
+        return ", ".join(f"[[{c}]]" for c in citations)
 
     citations_patterns = [
-        r"\(\s*\[\s*cite:[^\]]+\s*\](?:\s*,?\s*\[\s*cite:[^\]]+\s*\])*\s*\)",
         r"\[\s*\[\s*cite:[^\]]+\s*\](?:\s*,?\s*\[\s*cite:[^\]]+\s*\])*\s*\]",
+        r"\(\s*\[\s*cite:[^\]]+\s*\](?:\s*,?\s*\[\s*cite:[^\]]+\s*\])*\s*\)",
+        r"(?:\[\[\s*cite:[^\]]+\s*\]\])+"
     ]
     for pattern in citations_patterns:
         text = re.sub(pattern, normalize, text, flags=re.IGNORECASE)
