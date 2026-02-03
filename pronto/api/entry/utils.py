@@ -70,7 +70,7 @@ def _replace_terms(text):
 
 def _standardise_citations(text: str) -> str:
     def normalize(match):
-        inner = match.group(1)
+        inner = match.group(0)
         citations = re.findall(
             r"\[\s*(cite:[^\]]+)\s*\]",
             inner,
@@ -81,12 +81,13 @@ def _standardise_citations(text: str) -> str:
         multiple_citations = ", ".join(citations)
         return f"[[{multiple_citations}]]"
 
-    text = re.sub(
-        r"\((\s*(?:\[\s*cite:[^\]]+\s*\]\s*,?\s*)+)\)",
-        normalize,
-        text,
-        flags=re.IGNORECASE,
-    )
+    citations_patterns = [
+        r"\(\s*\[\s*cite:[^\]]+\s*\](?:\s*,?\s*\[\s*cite:[^\]]+\s*\])*\s*\)",
+        r"\[\s*\[\s*cite:[^\]]+\s*\](?:\s*,?\s*\[\s*cite:[^\]]+\s*\])*\s*\]",
+    ]
+    for pattern in citations_patterns:
+        text = re.sub(pattern, normalize, text, flags=re.IGNORECASE)
+
     return text
 
 
