@@ -122,7 +122,7 @@ export function updateHeader(signatureAcc) {
                     fields: { accession: 'empty' },
                     onSuccess: function (event, fields) {
                         const acc = fields.accession.trim();
-                        fetch(`/api/signature/${acc}/`)
+                        fetch(`/api/signature/${acc}/?automatic`)
                             .then(response => {
                                 if (!response.ok) {
 
