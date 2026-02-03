@@ -544,7 +544,6 @@ def create_entry():
         entry_name = request.json["name"].strip()
         entry_short_name = request.json["short_name"].strip()
         entry_llm = request.json["is_llm"]
-        automatic = request.json["automatic"]
     except KeyError:
         return jsonify({
             "status": False,
@@ -563,6 +562,11 @@ def create_entry():
         is_checked = request.json["is_checked"]
     except KeyError:
         is_checked = False
+
+    try:
+        automatic = request.json["automatic"]
+    except KeyError:
+        automatic = False
 
     entry_signatures = list(set(request.json.get("signatures", [])))
     if not entry_signatures:
@@ -875,11 +879,9 @@ def create_entry():
             # instead of adding them to SUPPLEMENTARY_REF (see above)
             in_text_references = re.findall(r"\[cite:(PUB\d+)\]", anno_text, re.I)
             not_in_text_references = set(new_references) - set(in_text_references)
-            not_in_text_references = [f"[[cite:{pub}]]" for pub in not_in_text_references]
-
             if not_in_text_references:
-                    anno_text += "Supplementary references: "
-                    anno_text += ", ".join(not_in_text_references)
+                    cite_items = [f"[cite:{pub_id}]" for pub_id in not_in_text_references]
+                    anno_text += f"Supplementary references: [{', '.join(cite_items)}]"
 
             if anno_text is None:
                 return jsonify({
@@ -891,12 +893,25 @@ def create_entry():
                     }
                 }), 400
 
-            # During autointegration, infer type from name 
+            """ 
+            During autointegration, infer type from name 
+            Check for "containing protein" first, as it can be found also in domains. 
+            Then, check:
+                - Pfam repeats
+                - name (description) ending with "domain"
+                - name (description) containing "terminal region" or "conserved region"
+            """ 
+        
             inferred_type = entry_type
-            if any(key in entry_name for key in ["terminal region", "conserved region", "domain", "repeat"]):
-                inferred_type = 'D'
-            elif any(key in entry_name for key in ["containing protein"]):
+            if "containing protein" in entry_name:
                 inferred_type = 'F'
+            
+            is_pfam_repeat = re.match(r"^PF\d{5}$", entry_signatures[0]) and entry_type =='R'
+            has_region_expressions = any([key in entry_name for 
+                                          key in ["terminal region", "conserved region"]])
+            
+            if entry_name.endswith("domain") or has_region_expressions or is_pfam_repeat:
+                inferred_type = 'D'
   
             cur.execute(
                 """
