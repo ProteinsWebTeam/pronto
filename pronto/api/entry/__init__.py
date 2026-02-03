@@ -5,6 +5,8 @@ from datetime import datetime
 import oracledb
 from flask import Blueprint, jsonify, request
 
+from pronto.api.entry.utils import sanitize_description
+
 bp = Blueprint("api_entry", __name__, url_prefix="/api/entry")
 
 from pronto import auth, utils

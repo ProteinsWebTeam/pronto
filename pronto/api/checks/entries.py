@@ -365,6 +365,17 @@ def ck_no_children(cur: Cursor) -> Err:
 
 
 def ck_child_matches(cur: Cursor, pg_url: str, exceptions: DoS) -> Err:
+    # Transform exceptions so it's a set of tuple (acc1, acc2) with acc1 < acc2
+    tmp = set()
+    for acc1, values in exceptions.items():
+        for acc2 in values:
+            if acc1 < acc2:
+                tmp.add((acc1, acc2))
+            else:
+                tmp.add((acc2, acc1))
+
+    exceptions = tmp
+
     # Get PRINTS accessions
     cur.execute("SELECT METHOD_AC FROM INTERPRO.METHOD WHERE DBCODE = 'F'")
     prints_signatures = {acc for acc, in cur.fetchall()}
@@ -391,9 +402,9 @@ def ck_child_matches(cur: Cursor, pg_url: str, exceptions: DoS) -> Err:
             entries[parent_ac][child_ac].add(c_sign)
         except KeyError:
             if parent_ac in entries:
-                entries[parent_ac][child_ac]=set()
+                entries[parent_ac][child_ac] = set()
             else:
-                entries[parent_ac] = {"p_sign":set(), child_ac:set()}
+                entries[parent_ac] = {"p_sign": set(), child_ac: set()}
             entries[parent_ac]["p_sign"].add(p_sign)
             entries[parent_ac][child_ac].add(c_sign)
 
@@ -405,7 +416,7 @@ def ck_child_matches(cur: Cursor, pg_url: str, exceptions: DoS) -> Err:
         for item in info.values():
             all_sign = all_sign.union(item)
         
-        signatures, comparisons = get_comparisons(pg_cur, tuple(all_sign))
+        signatures, comparisons, _ = get_comparisons(pg_cur, tuple(all_sign))
         no_overlap = {}
 
         for sign1, coloc in comparisons.items():
@@ -417,10 +428,16 @@ def ck_child_matches(cur: Cursor, pg_url: str, exceptions: DoS) -> Err:
                         except KeyError:
                             no_overlap[sign2] = [sign1]
 
-        entry_exceptions = exceptions.get(parent_ac, set())
-
         if len(no_overlap) > 0:
             for child_ac, list_sign in info.items():
+                if child_ac < parent_ac:
+                    item = (child_ac, parent_ac)
+                else:
+                    item = (parent_ac, child_ac)
+
+                if item in exceptions:
+                    continue
+
                 count = 0
                 for sign in list_sign:
                     """
@@ -434,7 +451,7 @@ def ck_child_matches(cur: Cursor, pg_url: str, exceptions: DoS) -> Err:
                 If none the child signatures are found matching 
                 the parent signatures, report an error
                 """
-                if count == len(list_sign) and child_ac not in entry_exceptions:
+                if count == len(list_sign):
                     errors.append((parent_ac, child_ac))
 
     pg_cur.close()
@@ -591,7 +608,7 @@ def check(ora_cur: Cursor, pg_url: str):
     for item in ck_no_children(ora_cur):
         yield "unauthorised_child", item
     
-    exceptions = load_exceptions(ora_cur, "child_matches", "ENTRY_AC", "TERM")
+    exceptions = load_exceptions(ora_cur, "child_matches", "ENTRY_AC", "ENTRY_AC2")
     for item in ck_child_matches(ora_cur, pg_url, exceptions):
         yield "child_matches", item
 
