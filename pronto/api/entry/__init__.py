@@ -869,7 +869,7 @@ def create_entry():
                 row = pg_cur.fetchone()
 
             pg_con.close()
-            anno_text = row[0]
+            anno_text = sanitize_description(row[0])
 
             # During autointegration, append supplementary references to description,
             # instead of adding them to SUPPLEMENTARY_REF (see above)
