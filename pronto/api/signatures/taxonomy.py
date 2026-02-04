@@ -15,11 +15,11 @@ RANKS = (
     "genus",
     "species",
 )
-RANK_SET = set(RANKS)
+
 
 @bp.route("/<path:accessions>/taxonomy/<string:rank>/")
 def get_taxonomy_origins(accessions, rank):
-    if rank not in RANK_SET:
+    if rank not in RANKS:
         return jsonify({
             "error": {
                 "title": "Bad Request (invalid rank)",
@@ -109,10 +109,11 @@ def get_taxonomy_origins(accessions, rank):
     })
 
 
-@bp.route("/<path:accessions>/taxonomy_tree/", defaults={"leaf_rank": "species"})
-@bp.route("/<path:accessions>/taxonomy_tree/<string:leaf_rank>/")
-def get_taxonomy_tree(accessions, leaf_rank):
-    if leaf_rank not in RANK_SET:
+@bp.route("/<path:accessions>/taxonomy/")
+def get_taxonomy_tree(accessions):
+    leaf_rank = request.args.get("leaf") or "species"
+
+    if leaf_rank not in RANKS:
         return jsonify({
             "error": {
                 "title": "Bad Request (invalid rank)",
@@ -157,37 +158,38 @@ def get_taxonomy_tree(accessions, leaf_rank):
         taxon_cond = "AND sp.taxon_left_num BETWEEN %s AND %s"
         params += (left_num, right_num)
 
-    # Aggregate matches per rank using lineage.parent_rank
     nodes = {}
 
-    for rank in ranks:
-        cur.execute(
-            f"""
-            SELECT t.id, t.name, %s AS rank, sp.signature_acc, COUNT(*)
-            FROM signature2protein sp
-            INNER JOIN taxon child
-              ON sp.taxon_left_num = child.left_number
-            INNER JOIN lineage l
-              ON child.id = l.child_id
-              AND l.parent_rank = %s
-            INNER JOIN taxon t
-              ON l.parent_id = t.id
-            WHERE sp.signature_acc IN ({','.join('%s' for _ in accessions)})
-            {taxon_cond}
-            GROUP BY t.id, t.name, sp.signature_acc
-            """,
-            (rank, rank) + params
-        )
+    base_params = list(accessions)
+    query_params = base_params + [list(ranks)]
 
-        for tid, name, r, acc, cnt in cur.fetchall():
-            node = nodes.setdefault(tid, {
-                "id": tid,
-                "name": name,
-                "rank": r,
-                "matches": {},
-                "children": []
-            })
-            node["matches"][acc] = node["matches"].get(acc, 0) + cnt
+    cur.execute(
+        f"""
+        SELECT parent.id, parent.name, parent.rank, sp.signature_acc, COUNT(*)
+        FROM signature2protein sp
+        INNER JOIN taxon child
+          ON sp.taxon_left_num = child.left_number
+        INNER JOIN lineage l
+          ON child.id = l.child_id
+        INNER JOIN taxon parent
+          ON l.parent_id = parent.id
+        WHERE sp.signature_acc IN ({','.join('%s' for _ in accessions)})
+          AND parent.rank = ANY(%s)
+          {taxon_cond}
+        GROUP BY parent.id, parent.name, parent.rank, sp.signature_acc
+        """,
+        query_params + ([left_num, right_num] if left_num is not None else [])
+    )
+
+    for tid, name, rank, acc, cnt in cur.fetchall():
+        node = nodes.setdefault(tid, {
+            "id": tid,
+            "name": name,
+            "rank": rank,
+            "matches": {},
+            "children": []
+        })
+        node["matches"][acc] = node["matches"].get(acc, 0) + cnt
 
     if not nodes:
         cur.close()
