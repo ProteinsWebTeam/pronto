@@ -3,7 +3,7 @@ from oracledb import DatabaseError
 from flask import Blueprint, jsonify, request
 
 from pronto import auth, utils
-from pronto.api.entry.utils import sanitize_name, sanitize_short_name
+from pronto.api.entry.utils import sanitize_name, sanitize_short_name, sanitize_domain
 
 bp = Blueprint("api_signature", __name__, url_prefix="/api/signature")
 
@@ -56,6 +56,8 @@ def get_signature(accession):
     if "automatic" in request.args:
         name = sanitize_short_name(name)
         description = sanitize_name(description)
+        if row[5] == 'Domain':
+            description = sanitize_domain(description)
 
     # data populates signature table to new entry window
     db = utils.get_database_obj(row[13])

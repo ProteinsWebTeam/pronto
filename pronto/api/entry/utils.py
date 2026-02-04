@@ -91,7 +91,7 @@ def _standardise_citations(text: str) -> str:
     return text
 
 
-def _captilize_exceptions(text) -> str:
+def _capitalize_first(text) -> str:
     con = connect_oracle()
     cur = con.cursor()
     cur.execute(
@@ -105,19 +105,43 @@ def _captilize_exceptions(text) -> str:
     cur.close()
     con.close()
 
-    if text.split()[0] not in exceptions:
-        text = text[0].upper() + text[1:]
-    return text
+    for exception in exceptions:
+        if text.startswith(exception):
+            return text
+    return text[0].upper() + text[1:]
 
 
-def _british_standard(text) -> str:
-    replacements = {
-        "homologs": "homologues",
-        "speling": "spelling",
-        "behavior": "behaviour",
-    }
-    for american, british in replacements.items():
-        text = re.sub(rf"\b{american}\b", british, text, flags=re.IGNORECASE)
+def sanitize_domain(text):
+    safe_patterns = [
+        r",\s*[cC]\-?terminal\b",
+        r",\s*[nN]\-?terminal\b",
+        r",\s*beta\b",
+        r",\s*alpha\b",
+        r",\s*catalytic\b",
+        r",\s*motor\b",
+        r",\s*cupin\b",
+        r",\s*helical\b",
+        r",\s*metallophosphatase\b",
+        r",\s*middle\b",
+        r",\s*second\b",
+        r",\s*central\b",
+        r",\s*transmembrane\b",
+    ]
+
+    has_domain_already = re.search(
+        r"\bdomain(s)?\b|domain[-\s]",
+        text,
+        flags=re.IGNORECASE
+    )
+    if has_domain_already:
+        return text
+
+    has_safe_pattern = any(
+        re.search(p, text) for p in safe_patterns
+    )
+    if has_safe_pattern:
+        text = re.sub(r"\s*$", " domain", text)
+
     return text
 
 
@@ -130,18 +154,16 @@ def sanitize_description(text):
     text = _replace_accessions(text)
     text = _replace_terms(text)
     text = _standardise_citations(text)
-    text = _british_standard(text)
     return text
 
 
 def sanitize_name(name):
-    name = re.sub(r"\b(-family proteins|-family protein)\b", "-like", name, flags=re.IGNORECASE)
-    name = _captilize_exceptions(name)
+    name = re.sub(r"-family protein\b", "-like", name, flags=re.IGNORECASE)
+    name = _capitalize_first(name)
     return name
 
 
 def sanitize_short_name(short_name):
-    short_name = re.sub(r"\b(_like|_fam)\b", "-like", short_name, flags=re.IGNORECASE)
-    short_name = re.sub(r"\b_like\b", "-like", short_name, flags=re.IGNORECASE)
-    short_name = _captilize_exceptions(short_name)
+    short_name = re.sub(r"_(fam|like)\b", "-like", short_name, flags=re.IGNORECASE)
+    short_name = _capitalize_first(short_name)
     return short_name
