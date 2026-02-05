@@ -801,16 +801,15 @@ def create_entry():
             }
         }), 400
 
-    """ 
-    During autointegration, infer type from name 
-    Check for "containing protein" first, as it can be found also in domains. 
-    Then, check:
-        - Pfam repeats
-        - name (description) ending with "domain"
-        - name (description) containing "terminal region" or "conserved region"
-    """ 
-
     if automatic:
+        """ 
+        During autointegration, infer type from name 
+        Check for "containing protein" first, as it can be found also in domains. 
+        Then, check:
+            - Pfam repeats
+            - name (description) ending with "domain"
+            - name (description) containing "terminal region" or "conserved region"
+        """ 
 
         is_pfam_repeat = re.match(r"^PF\d{5}$", entry_signatures[0]) and entry_type == 'R'
         has_region_expressions = any([key in entry_name for 
