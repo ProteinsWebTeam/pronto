@@ -149,7 +149,7 @@ def relate_entry_to_anno(
             """,
             [entry_acc, ann_id, order_in]
         )
-        update_references(cur, entry_acc)
+        update_references(cur, entry_acc, automatic=True)
     except DatabaseError as exc:
         return {
             "status": False,
@@ -380,7 +380,7 @@ def move_annotation(accession: str, ann_id: str, x: int):
     }), 200
 
 
-def update_references(cur: Cursor, accession: str):
+def update_references(cur: Cursor, accession: str, automatic: bool = False):
     # Get references from the entry-pub table (may need to be updated)
     cur.execute(
         """
@@ -444,7 +444,7 @@ def update_references(cur: Cursor, accession: str):
             # Not in annotations: remove from DB
             old_references.append((accession, pub_id))
 
-    if old_references:
+    if old_references and not automatic:
         # Move references to SUPPLEMENTARY_REF table
         cur.executemany(
             """

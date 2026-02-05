@@ -189,7 +189,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         short_name: data.name,
                         is_llm: false,
                         is_checked: false,
-                        import_description: true,
+                        automatic: true,
                         signatures: [signatureAcc]
                     })
                 });
