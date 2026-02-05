@@ -801,6 +801,27 @@ def create_entry():
             }
         }), 400
 
+    """ 
+    During autointegration, infer type from name 
+    Check for "containing protein" first, as it can be found also in domains. 
+    Then, check:
+        - Pfam repeats
+        - name (description) ending with "domain"
+        - name (description) containing "terminal region" or "conserved region"
+    """ 
+
+    if automatic:
+
+        is_pfam_repeat = re.match(r"^PF\d{5}$", entry_signatures[0]) and entry_type == 'R'
+        has_region_expressions = any([key in entry_name for 
+                                    key in ["terminal region", "conserved region"]])
+        
+        if "containing protein" in entry_name:
+            entry_type = 'F'
+        
+        if entry_name.endswith("domain") or has_region_expressions or is_pfam_repeat:
+            entry_type = 'D'
+
     entry_var = cur.var(oracledb.STRING)
     try:
         cur.execute(
@@ -892,35 +913,6 @@ def create_entry():
                                    f"for {entry_signatures[0]}."
                     }
                 }), 400
-
-            """ 
-            During autointegration, infer type from name 
-            Check for "containing protein" first, as it can be found also in domains. 
-            Then, check:
-                - Pfam repeats
-                - name (description) ending with "domain"
-                - name (description) containing "terminal region" or "conserved region"
-            """ 
-        
-            inferred_type = entry_type
-            if "containing protein" in entry_name:
-                inferred_type = 'F'
-            
-            is_pfam_repeat = re.match(r"^PF\d{5}$", entry_signatures[0]) and entry_type =='R'
-            has_region_expressions = any([key in entry_name for 
-                                          key in ["terminal region", "conserved region"]])
-            
-            if entry_name.endswith("domain") or has_region_expressions or is_pfam_repeat:
-                inferred_type = 'D'
-  
-            cur.execute(
-                """
-                UPDATE INTERPRO.ENTRY
-                SET ENTRY_TYPE = :1
-                WHERE ENTRY_AC = :2
-                """,
-                [inferred_type, entry_acc]
-            )
             
             anno_id, response, code = annotation.insert_annotation(
                 anno_text,
