@@ -68,6 +68,27 @@ def _replace_terms(text):
     return text.replace("“", '"').replace("”", '"')
 
 
+def _standardise_citations(text: str) -> str:
+    def normalize(match):
+        inner = match.group(0)
+        citations = re.findall(
+            r"\[\s*cite:[^\]]+\s*\]",
+            inner,
+            flags=re.IGNORECASE,
+        )
+        return f"[{', '.join(citations)}]"
+
+    citations_patterns = [
+        r"\[\s*\[\s*cite:[^\]]+\s*\](?:\s*,?\s*\[\s*cite:[^\]]+\s*\])*\s*\]",
+        r"\(\s*\[\s*cite:[^\]]+\s*\](?:\s*,?\s*\[\s*cite:[^\]]+\s*\])*\s*\)",
+        r"(?:\[\[\s*cite:[^\]]+\s*\]\])+"
+    ]
+    for pattern in citations_patterns:
+        text = re.sub(pattern, normalize, text, flags=re.IGNORECASE)
+
+    return text
+
+
 def sanitize_description(text):
     if not text:
         return text
@@ -76,4 +97,5 @@ def sanitize_description(text):
     text = _replace_terminal(text)
     text = _replace_accessions(text)
     text = _replace_terms(text)
+    text = _standardise_citations(text)
     return text
