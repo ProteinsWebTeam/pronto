@@ -564,9 +564,9 @@ def create_entry():
         is_checked = False
 
     try:
-        import_description = request.json["import_description"]
+        automatic = request.json["automatic"]
     except KeyError:
-        import_description = False
+        automatic = False
 
     entry_signatures = list(set(request.json.get("signatures", [])))
     if not entry_signatures:
@@ -801,6 +801,26 @@ def create_entry():
             }
         }), 400
 
+    if automatic:
+        """ 
+        During autointegration, infer type from name 
+        Check for "containing protein" first, as it can be found also in domains. 
+        Then, check:
+            - Pfam repeats
+            - name (description) ending with "domain"
+            - name (description) containing "terminal region" or "conserved region"
+        """ 
+
+        is_pfam_repeat = re.match(r"^PF\d{5}$", entry_signatures[0]) and entry_type == 'R'
+        has_region_expressions = any([key in entry_name for 
+                                    key in ["terminal region", "conserved region"]])
+        
+        if "containing protein" in entry_name:
+            entry_type = 'F'
+        
+        if entry_name.endswith("domain") or has_region_expressions or is_pfam_repeat:
+            entry_type = 'D'
+
     entry_var = cur.var(oracledb.STRING)
     try:
         cur.execute(
@@ -838,15 +858,27 @@ def create_entry():
         )
 
         if new_references:
-            cur.executemany(
-                """
-                INSERT INTO INTERPRO.SUPPLEMENTARY_REF (ENTRY_AC, PUB_ID)
-                VALUES (:1, :2)
-                """,
-                [(entry_acc, pub_id) for pub_id in new_references]
-            )
 
-        if import_description:
+            # During autointegration, add them directly to ENTRY2PUB instead of SUPPLEMENTARY_REF
+            # to later append them to the description (see below)
+            if automatic:
+                cur.executemany(
+                    """
+                    INSERT INTO INTERPRO.ENTRY2PUB (ENTRY_AC, ORDER_IN, PUB_ID)
+                    VALUES (:1, :2, :3)
+                    """,
+                    [(entry_acc, idx + 1, pub_id) for idx, pub_id in enumerate(new_references)]
+                )
+            else:
+                cur.executemany(
+                    """
+                    INSERT INTO INTERPRO.SUPPLEMENTARY_REF (ENTRY_AC, PUB_ID)
+                    VALUES (:1, :2)
+                    """,
+                    [(entry_acc, pub_id) for pub_id in new_references]
+                )
+
+        if automatic:
             pg_con = utils.connect_pg(utils.get_pg_url())
             with pg_con.cursor() as pg_cur:
                 col = "llm_abstract" if entry_llm else "abstract"
@@ -862,6 +894,15 @@ def create_entry():
 
             pg_con.close()
             anno_text = sanitize_description(row[0])
+
+            # During autointegration, append supplementary references to description,
+            # instead of adding them to SUPPLEMENTARY_REF (see above)
+            in_text_references = re.findall(r"\[cite:(PUB\d+)\]", anno_text, re.I)
+            not_in_text_references = set(new_references) - set(in_text_references)
+            if not_in_text_references:
+                    cite_items = [f"[cite:{pub_id}]" for pub_id in not_in_text_references]
+                    anno_text += f"Supplementary references: [{', '.join(cite_items)}]"
+
             if anno_text is None:
                 return jsonify({
                     "status": False,
@@ -871,7 +912,7 @@ def create_entry():
                                    f"for {entry_signatures[0]}."
                     }
                 }), 400
-
+            
             anno_id, response, code = annotation.insert_annotation(
                 anno_text,
                 con,
