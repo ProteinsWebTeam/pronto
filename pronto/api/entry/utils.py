@@ -158,7 +158,7 @@ def sanitize_description(text):
 
 
 def sanitize_name(name):
-    name = re.sub(r"-family protein\b", "-like", name, flags=re.IGNORECASE)
+    name = re.sub(r"-(family protein|family proteins)\b", "-like", name, flags=re.IGNORECASE)
     name = _capitalize_first(name)
     return name
 
