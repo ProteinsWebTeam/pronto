@@ -111,6 +111,8 @@ def _capitalize_first(text) -> str:
 
 
 def sanitize_domain(text):
+    if not text:
+        return text
     safe_patterns = [
         r",\s*[cC]\-?terminal\b",
         r",\s*[nN]\-?terminal\b",
@@ -156,12 +158,16 @@ def sanitize_description(text):
 
 
 def sanitize_name(name):
+    if not name:
+        return name
     name = re.sub(r"-(family protein|family proteins)\b", "-like", name, flags=re.IGNORECASE)
     name = _capitalize_first(name)
     return name
 
 
 def sanitize_short_name(short_name):
+    if not short_name:
+        return short_name
     short_name = re.sub(r"_(fam|like)\b", "-like", short_name, flags=re.IGNORECASE)
     short_name = _capitalize_first(short_name)
     return short_name
