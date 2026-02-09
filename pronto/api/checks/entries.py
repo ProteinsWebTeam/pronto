@@ -541,6 +541,26 @@ def check(ora_cur: Cursor, pg_url: str):
 
     terms = load_terms(ora_cur, "abbreviation")
     exceptions = load_exceptions(ora_cur, "abbreviation", "ENTRY_AC", "TERM")
+    name_shortname_allowed_terms = [
+        "uncharacterized",
+        "beta-sandwich",
+        "beta sandwich",
+        "beta-barrel",
+        "beta barrel",
+        "beta-propeller",
+        "beta propeller",
+        "beta-sheet",
+        "beta sheet",
+        "alpha fold",
+        "beta fold",
+        "alpha-fold",
+        "beta-fold",
+        "homolog",
+        "fiber",
+        "alpha-helical",
+        "alpha helical"
+    ]
+
     for item in ck_abbreviations(entries, terms, exceptions):
         yield "abbreviation", item
 
@@ -589,6 +609,7 @@ def check(ora_cur: Cursor, pg_url: str):
         yield "similar_name", item
 
     terms = load_terms(ora_cur, "spelling")
+    terms = list(set(terms) - set(name_shortname_allowed_terms))
     exceptions = load_exceptions(ora_cur, "spelling", "ENTRY_AC", "TERM")
     for item in ck_spelling(entries, terms, exceptions):
         yield "spelling", item
