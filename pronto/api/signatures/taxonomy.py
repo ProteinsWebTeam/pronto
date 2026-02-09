@@ -111,7 +111,7 @@ def get_taxonomy_origins(accessions, rank):
 
 @bp.route("/<path:accessions>/taxonomy/")
 def get_taxonomy_tree(accessions):
-    leaf_rank = request.args.get("leaf") or "species"
+    leaf_rank = request.args.get("leaf", "species")
 
     if leaf_rank not in RANKS:
         return jsonify({
@@ -155,98 +155,156 @@ def get_taxonomy_tree(accessions):
     taxon_cond = ""
     params = tuple(accessions)
     if left_num is not None:
-        taxon_cond = "AND sp.taxon_left_num BETWEEN %s AND %s"
+        taxon_cond = "AND s2p.taxon_left_num BETWEEN %s AND %s"
         params += (left_num, right_num)
 
-    nodes = {}
-
-    base_params = list(accessions)
-    query_params = base_params + [list(ranks)]
+    rank_list = ",".join("%s" for _ in ranks)
+    params = params + tuple(ranks)
 
     cur.execute(
         f"""
-        SELECT parent.id, parent.name, parent.rank, sp.signature_acc, COUNT(*)
-        FROM signature2protein sp
-        INNER JOIN taxon child
-          ON sp.taxon_left_num = child.left_number
-        INNER JOIN lineage l
-          ON child.id = l.child_id
-        INNER JOIN taxon parent
-          ON l.parent_id = parent.id
-        WHERE sp.signature_acc IN ({','.join('%s' for _ in accessions)})
-          AND parent.rank = ANY(%s)
-          {taxon_cond}
-        GROUP BY parent.id, parent.name, parent.rank, sp.signature_acc
+        WITH protein_taxon_counts AS (
+            -- count proteins per leaf taxon per signature
+            SELECT
+                s2p.signature_acc,
+                t.id AS taxon_id,
+                COUNT(DISTINCT s2p.protein_acc) AS protein_count
+            FROM interpro.signature2protein s2p
+            JOIN interpro.taxon t
+              ON s2p.taxon_left_num = t.left_number
+            WHERE s2p.signature_acc IN ({','.join('%s' for _ in accessions)})
+            {taxon_cond}
+            GROUP BY s2p.signature_acc, t.id
+        ),
+        lineage_expansion AS (
+            -- propagate counts to all ancestors
+            SELECT
+                ptc.signature_acc,
+                ptc.taxon_id AS node_id,
+                ptc.protein_count
+            FROM protein_taxon_counts ptc
+
+            UNION ALL
+
+            SELECT
+                ptc.signature_acc,
+                l.parent_id AS node_id,
+                ptc.protein_count
+            FROM protein_taxon_counts ptc
+            JOIN interpro.lineage l
+              ON l.child_id = ptc.taxon_id
+        ),
+        aggregated AS (
+            SELECT
+                le.signature_acc,
+                t.id,
+                t.name,
+                t.rank,
+                t.left_number,
+                t.right_number,
+                SUM(le.protein_count) AS protein_count
+            FROM lineage_expansion le
+            JOIN interpro.taxon t
+              ON t.id = le.node_id
+            WHERE t.rank IN ({rank_list})
+            GROUP BY
+                le.signature_acc,
+                t.id,
+                t.name,
+                t.rank,
+                t.left_number,
+                t.right_number
+        )
+        SELECT
+            a.signature_acc,
+            a.id AS taxon_id,
+            a.name,
+            a.rank,
+            (
+                SELECT p.id
+                FROM interpro.taxon p
+                WHERE
+                    p.rank IN ({rank_list})
+                    AND p.left_number < a.left_number
+                    AND p.right_number > a.right_number
+                ORDER BY p.left_number DESC
+                LIMIT 1
+            ) AS parent_id,
+            a.protein_count
+        FROM aggregated a
+        ORDER BY a.left_number
         """,
-        query_params + ([left_num, right_num] if left_num is not None else [])
+        params + tuple(ranks)
     )
 
-    for tid, name, rank, acc, cnt in cur.fetchall():
-        node = nodes.setdefault(tid, {
-            "id": tid,
-            "name": name,
-            "rank": rank,
-            "matches": {},
-            "children": []
-        })
-        node["matches"][acc] = node["matches"].get(acc, 0) + cnt
+    nodes = {}
+    parents = {}
 
-    if not nodes:
-        cur.close()
-        con.close()
-        return jsonify({
-            "results": [],
-            "integrated": get_sig2interpro(accessions)
-        })
-
-    # Add children using rank-adjacent lineage
-    for parent_rank, child_rank in zip(ranks, ranks[1:]):
-        cur.execute(
-            """
-            SELECT l.parent_id, l.child_id
-            FROM lineage l
-            JOIN taxon p ON l.parent_id = p.id
-            JOIN taxon c ON l.child_id = c.id
-            WHERE p.rank = %s
-              AND c.rank = %s
-            """,
-            (parent_rank, child_rank)
+    for acc, tid, name, rank, parent_id, cnt in cur.fetchall():
+        node = nodes.setdefault(
+            tid,
+            {
+                "id": tid,
+                "name": name,
+                "rank": rank,
+                "matches": {},
+                "children": []
+            }
         )
+        node["matches"][acc] = node["matches"].get(acc, 0) + cnt
+        parents[tid] = parent_id
 
-        for pid, cid in cur.fetchall():
-            if pid in nodes and cid in nodes:
-                nodes[pid]["children"].append(nodes[cid])
+    # Attach children
+    for tid, node in nodes.items():
+        parent_id = parents.get(tid)
+        if parent_id is not None and parent_id in nodes:
+            nodes[parent_id]["children"].append(node)
+
+    # Retrieve roots
+    roots = [
+        node
+        for tid, node in nodes.items()
+        if parents.get(tid) is None or parents.get(tid) not in nodes
+    ]
+
+    # Prune tree at leaf rank
+    for root in roots:
+        prune_at_leaf_rank(root, leaf_rank)
 
     cur.close()
     con.close()
-
-    # Roots are domains
-    roots = [
-        n for n in nodes.values()
-        if n["rank"] == "domain"
-    ]
-
-    # Remove empty children from leaf nodes
-    for root in roots:
-        prune_empty_children(root)
 
     return jsonify({
         "results": roots,
         "integrated": get_sig2interpro(accessions)
     })
 
-def prune_empty_children(node):
+
+def prune_at_leaf_rank(node, leaf_rank):
+    """
+    Walk top-down.
+    When a node reaches leaf_rank, cut all descendants.
+    Also remove empty children.
+    """
+    if node["rank"] == leaf_rank:
+        node.pop("children", None)
+        return
+
     children = node.get("children")
     if not children:
         node.pop("children", None)
         return
 
+    kept = []
     for child in children:
-        prune_empty_children(child)
+        prune_at_leaf_rank(child, leaf_rank)
+        kept.append(child)
 
-    # In case children were removed recursively
-    if not node["children"]:
+    if kept:
+        node["children"] = kept
+    else:
         node.pop("children", None)
+
 
 
 @bp.route("/<path:accessions>/taxon/<int:taxon_id>/")
