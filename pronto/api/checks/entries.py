@@ -538,9 +538,6 @@ def get_frags_only_signatures(pg_url: str) -> list[str]:
 def check(ora_cur: Cursor, pg_url: str):
     ora_cur.execute("SELECT ENTRY_AC, NAME, SHORT_NAME FROM INTERPRO.ENTRY")
     entries = ora_cur.fetchall()
-
-    terms = load_terms(ora_cur, "abbreviation")
-    exceptions = load_exceptions(ora_cur, "abbreviation", "ENTRY_AC", "TERM")
     name_shortname_allowed_terms = {
         "uncharacterized",
         "beta-sandwich",
@@ -560,6 +557,9 @@ def check(ora_cur: Cursor, pg_url: str):
         "alpha-helical",
         "alpha helical"
     }
+
+    terms = load_terms(ora_cur, "abbreviation")
+    exceptions = load_exceptions(ora_cur, "abbreviation", "ENTRY_AC", "TERM")
 
     terms = list(set(terms) - name_shortname_allowed_terms)
     for item in ck_abbreviations(entries, terms, exceptions):
