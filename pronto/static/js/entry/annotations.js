@@ -412,6 +412,39 @@ export function search(accession, query) {
         });
 }
 
+async function accessionsToLinks(text) {
+    const sequenceDBRegex = /\b([A-Z][0-9]{5}|[A-Z]{2}[0-9]{6}|[A-Z]{2}[0-9]{8}|[A-Z]{3}[0-9]{5}|[A-Z]{3}[0-9]{7}|WP_[0-9]{9,12})(\.[0-9]+)?\b/g;
+    const uniprotRegex = /\b[OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9]([A-Z][A-Z0-9]{2}[0-9]){1,2}\b/g;
+
+    let textWithLinks = text;
+    
+    // Replace all UniProt/SwissProt accessions first
+    textWithLinks = textWithLinks.replaceAll(uniprotRegex, '<a href="https://www.uniprot.org/uniprot/$&" target="_blank">$&</a>');
+
+    // Replace all the instances of sequence database accessions 
+    const matches = [...text.matchAll(sequenceDBRegex)];
+    await Promise.all(matches.map(async (match) => {
+        try {
+            const response = await fetch(`https://rest.uniprot.org/uniprotkb/search?query=xref:${match[0]}`);
+            if (response.ok) {
+                const data = await response.json();
+                if (data.results.length > 0) {
+                    const uniprotAcc = data.results[0].primaryAccession;
+                    textWithLinks = textWithLinks.replaceAll(
+                        match[0],
+                        `<a href="https://www.uniprot.org/uniprot/${uniprotAcc}" target="_blank">${uniprotAcc}</a>`
+                    );
+                }
+            }
+        } catch (error) {
+            console.error(`Failed to fetch ${match[0]}:`, error);
+        }
+    }));
+    
+    return textWithLinks;
+}
+
+
 class Annotation {
     constructor(id, text, isLLM, isReviewed, comment, numEntries, xrefs, canUnlink, canDelete) {
         this.id = id;
@@ -498,42 +531,52 @@ class Annotation {
             llmItem = '<span class="item"><i class="user icon"></i> Curated</span>';
         }
 
-        return `
-            <div id="${this.id}" class="annotation">
-                <div class="ui top attached mini menu">
-                    <span class="selectable popup item" data-content="${this.comment || 'N/A'}">
-                        ${this.id}
-                    </span>
-                    <a data-action="edit" class="item">
-                        <i class="edit icon"></i> Edit
-                    </a>
-                    <a data-action="moveup" class="${isFirst ? 'disabled' : ''} item">
-                        <i class="arrow up icon"></i> Move up
-                    </a>
-                    <a data-action="movedown" class="${isLast ? 'disabled' : ''} item">
-                        <i class="arrow down icon"></i> Move down
-                    </a>
-                    <a data-action="unlink" class="item">
-                        <i class="unlink icon"></i> Unlink
-                    </a>
-                    <a data-action="delete" class="item">
-                        <i class="trash icon"></i> Delete
-                    </a>
-                    ${llmItem}
-                    <div class="right menu">
-                        <a data-action="list-entries" class="item"><i class="list icon"></i>
-                        Associated to ${this.numEntries} ${this.numEntries === 1 ? 'entry' : 'entries'}</a>
-                    </div>
+        const annotationEl = document.createElement('div')
+
+        annotationEl.innerHTML = `<div id="${this.id}" class="annotation">
+            <div class="ui top attached mini menu">
+                <span class="selectable popup item" data-content="${this.comment || 'N/A'}">
+                    ${this.id}
+                </span>
+                <a data-action="edit" class="item">
+                    <i class="edit icon"></i> Edit
+                </a>
+                <a data-action="moveup" class="${isFirst ? 'disabled' : ''} item">
+                    <i class="arrow up icon"></i> Move up
+                </a>
+                <a data-action="movedown" class="${isLast ? 'disabled' : ''} item">
+                    <i class="arrow down icon"></i> Move down
+                </a>
+                <a data-action="unlink" class="item">
+                    <i class="unlink icon"></i> Unlink
+                </a>
+                <a data-action="delete" class="item">
+                    <i class="trash icon"></i> Delete
+                </a>
+                ${llmItem}
+                <div class="right menu">
+                    <a data-action="list-entries" class="item"><i class="list icon"></i>
+                    Associated to ${this.numEntries} ${this.numEntries === 1 ? 'entry' : 'entries'}</a>
                 </div>
-                <div class="ui attached segment">${text}</div>
-                <div class="hidden ui borderless bottom attached mini menu" data-id="${this.id}">
-                    <div class="right menu">
-                        <div class="item"><a data-action="cancel" class="ui basic secondary button">Cancel</a></div>
-                        <div class="item"><a data-action="save" class="ui primary button">Save</a></div>
-                    </div>
+            </div>
+            <div id="annotation-text" class="ui attached segment center aligned"><i class="notched circle loading icon"></i></div>
+            <div class="hidden ui borderless bottom attached mini menu" data-id="${this.id}">
+                <div class="right menu">
+                    <div class="item"><a data-action="cancel" class="ui basic secondary button">Cancel</a></div>
+                    <div class="item"><a data-action="save" class="ui primary button">Save</a></div>
                 </div>
-            </div>        
-        `;
+            </div>
+        </div>`;
+
+        // Defer execution to load the rest of the page before replacing the text by the formatted text with links
+        accessionsToLinks(text)
+            .then((newText) => {
+                const annotationText = document.getElementById('annotation-text');
+                annotationText.classList.remove('center', 'aligned');
+                annotationText.innerHTML = newText;
+            });
+
+        return annotationEl.innerHTML;
     }
 
     listenActionEvent(entryAccession, references) {
