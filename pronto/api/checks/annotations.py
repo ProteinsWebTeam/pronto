@@ -298,7 +298,7 @@ def check(cur: Cursor):
     for item in ck_signature_accessions(cur, cabs):
         yield "sign_not_found", item
 
-    terms = load_terms(cur, "domain_inconsistency")
-    exceptions = load_exceptions(cur, "domain_inconsistency", "ANN_ID", "TERM")
+    terms = load_terms(cur, "domain_type_inconsistency")
+    exceptions = load_exceptions(cur, "domain_type_inconsistency", "ANN_ID", "TERM")
     for item in ck_domain_inconsistency(cabs, terms, exceptions):
-        yield "domain_inconsistency", item
+        yield "domain_type_inconsistency", item
