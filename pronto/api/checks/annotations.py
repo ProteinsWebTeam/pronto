@@ -229,6 +229,19 @@ def ck_signature_accessions(cur: Cursor, cabs: LoT) -> Err:
     return errors
 
 
+def ck_domain_inconsistency(cabs: LoT, terms: LoS, exceptions: DoS) -> Err:
+    errors = []
+    for ann_id, text in cabs:
+        text = re.sub(r"^\s*(?:<p>)?\s*", "", text)
+        for term in terms:
+            if text.lower().startswith(term.lower()):
+                if ann_id not in exceptions or term not in exceptions[ann_id]:
+                    errors.append((ann_id, term))
+                break
+
+    return errors
+
+
 def check(cur: Cursor):
     cur.execute(
         """
@@ -284,3 +297,8 @@ def check(cur: Cursor):
 
     for item in ck_signature_accessions(cur, cabs):
         yield "sign_not_found", item
+
+    terms = load_terms(cur, "domain_inconsistency")
+    exceptions = load_exceptions(cur, "domain_inconsistency", "ANN_ID", "TERM")
+    for item in ck_domain_inconsistency(cabs, terms, exceptions):
+        yield "domain_inconsistency", item

@@ -291,6 +291,13 @@ CHECKS = {
         "terms": False,
         "exceptions": None
     },
+    "domain_type_inconsistency": {
+        "name": "Domain type inconsistency",
+        "description": "Inconsistency between Domain type and CAB description start",
+        "label": "Domain type inconsistency",
+        "terms": True,
+        "exceptions": 's'
+    },
 }
 
 
