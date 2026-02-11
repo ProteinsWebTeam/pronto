@@ -1,6 +1,7 @@
 import re
 from pronto.api.signatures import get_sig2interpro
 from pronto.utils import SIGNATURES, connect_oracle
+from pronto.api.checks.utils import load_global_exceptions
 
 
 def _replace_greek_letters(text):
@@ -90,21 +91,11 @@ def _standardise_citations(text: str) -> str:
 
 
 def _capitalize_first(text) -> str:
-    con = connect_oracle()
-    cur = con.cursor()
-    cur.execute(
-        """
-        SELECT TERM
-        FROM INTERPRO.PRONTO_SANITY_EXCEPTION
-        WHERE CHECK_TYPE = 'lower_case_name'
-        """,
-    )
-    exceptions = [row[0] for row in cur.fetchall()]
-    cur.close()
-    con.close()
+    with connect_oracle() as cur:
+        keep_lower_terms = load_global_exceptions(cur, 'lower_case_name')
 
-    for exception in exceptions:
-        if text.startswith(exception):
+    for term in keep_lower_terms:
+        if text.startswith(term):
             return text
     return text[0].upper() + text[1:]
 
