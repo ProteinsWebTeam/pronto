@@ -632,27 +632,16 @@ def create_entry():
 
     entries = check_uniqueness(cur, entry_name, entry_short_name)
     if entries:
-        if "automatic" in request.args:
-            count = 2
-            while True:
-                temp_name = f"{entry_name} {count}"
-                temp_short_name = f"{entry_short_name}_{count}"
-                if not check_uniqueness(cur, temp_name, temp_short_name):
-                    entry_name = temp_name
-                    entry_short_name = temp_short_name
-                    break
-                count += 1
-        else:
-            cur.close()
-            con.close()
-            return jsonify({
-                "status": False,
-                "error": {
-                    "title": "Bad request",
-                    "message": "The name or short name is already in use.",
-                    "entries": entries
-                }
-            }), 400
+        cur.close()
+        con.close()
+        return jsonify({
+            "status": False,
+            "error": {
+                "title": "Bad request",
+                "message": "The name or short name is already in use.",
+                "entries": entries
+            }
+        }), 400
 
     stmt = [':'+str(i+1) for i in range(len(entry_signatures))]
     cur.execute(
