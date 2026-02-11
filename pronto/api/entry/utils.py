@@ -1,5 +1,4 @@
 import re
-from oracledb import Cursor, DatabaseError
 from pronto.api.signatures import get_sig2interpro
 from pronto.utils import SIGNATURES, connect_oracle
 
