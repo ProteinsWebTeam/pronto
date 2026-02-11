@@ -125,6 +125,10 @@ class Annotation(object):
             return True
 
     def validate_xref_tags(self) -> bool:
+        if re.search(r"\[cite:[^\]]+],\[(?=\s*cite:)", self.text, re.I):
+            self.error = "Missing space after comma between cite tags."
+            return False
+
         pattern = r"\[(\s*[a-z0-9]+\s*):([^\]]+)]"
         for match in re.finditer(pattern, self.text, re.I):
             ref_db, ref_id = match.groups()
