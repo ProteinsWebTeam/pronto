@@ -167,6 +167,6 @@ def sanitize_name(name):
 def sanitize_short_name(short_name):
     if not short_name:
         return short_name
-    short_name = re.sub(r"_(fam|like)\b", "-like", short_name, flags=re.IGNORECASE)
+    short_name = re.sub(r"_(fam|like)\b", "-like", short_name, flags=re.I)
     short_name = _capitalize_first(short_name)
     return short_name
