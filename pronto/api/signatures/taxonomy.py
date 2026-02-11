@@ -205,7 +205,7 @@ def get_taxonomy_tree(accessions):
         "children": []
     }
 
-    for tid, lineage in lineages.items():
+    for lineage in lineages.values():
 
         target = tree
 
