@@ -17,32 +17,32 @@ def get_signature(accession):
     cur.execute(
         """
         SELECT
-            s.accession,
-            s.name,
-            s.llm_name,
-            s.description,
-            s.llm_description,
-            s.type,
-            s.abstract,
-            s.llm_abstract,
-            s.num_sequences,
-            s.num_complete_sequences,
-            s.num_reviewed_sequences,
-            s.num_complete_reviewed_sequences,
-            s.num_residues,
-            d.name,
-            d.name_long,
-            d.version
+          s.accession,
+          s.name,
+          s.llm_name,
+          s.description,
+          s.llm_description,
+          s.type,
+          s.abstract,
+          s.llm_abstract,
+          s.num_sequences,
+          s.num_complete_sequences,
+          s.num_reviewed_sequences,
+          s.num_complete_reviewed_sequences,
+          s.num_residues,
+          d.name,
+          d.name_long,
+          d.version
         FROM signature s
-                 INNER JOIN database d ON s.database_id = d.id
+        INNER JOIN database d ON s.database_id = d.id
         WHERE UPPER(s.accession) = %(str)s
-           OR UPPER(s.name) = %(str)s
+          OR UPPER(s.name) = %(str)s
         """, {"str": accession.upper()}
     )
     row = cur.fetchone()
     cur.close()
     con.close()
-
+    
     if not row:
         return jsonify({
             "error": {
@@ -50,7 +50,7 @@ def get_signature(accession):
                 "message": f"{accession} does not match any member database signature accession or name."
             }
         }), 404
-
+    
     # data populates signature table to new entry window
     db = utils.get_database_obj(row[13])
     result = {
@@ -90,8 +90,8 @@ def get_signature(accession):
         """
         SELECT E.ENTRY_AC, E.NAME, E.ENTRY_TYPE, E.CHECKED, E.LLM
         FROM INTERPRO.ENTRY2METHOD EM
-                 LEFT OUTER JOIN INTERPRO.ENTRY E
-                                 ON EM.ENTRY_AC = E.ENTRY_AC
+        LEFT OUTER JOIN INTERPRO.ENTRY E
+          ON EM.ENTRY_AC = E.ENTRY_AC
         WHERE EM.METHOD_AC = :1
         """,
         [result["accession"]]
@@ -114,12 +114,12 @@ def get_signature(accession):
             """
             SELECT E.ENTRY_AC, E.NAME, E.LLM
             FROM (
-                     SELECT PARENT_AC, ROWNUM RN
-                     FROM INTERPRO.ENTRY2ENTRY
-                              START WITH ENTRY_AC = :1
-                     CONNECT BY PRIOR PARENT_AC = ENTRY_AC
-                 ) H
-                     INNER JOIN INTERPRO.ENTRY E ON H.PARENT_AC = E.ENTRY_AC
+                SELECT PARENT_AC, ROWNUM RN
+                FROM INTERPRO.ENTRY2ENTRY
+                START WITH ENTRY_AC = :1
+                CONNECT BY PRIOR PARENT_AC = ENTRY_AC
+            ) H
+            INNER JOIN INTERPRO.ENTRY E ON H.PARENT_AC = E.ENTRY_AC
             ORDER BY H.RN DESC
             """,
             [entry_acc]
@@ -137,7 +137,7 @@ def get_signature(accession):
         SELECT C.PUB_ID, C.TITLE, C.YEAR, C.VOLUME, C.ISSUE, C.RAWPAGES, C.DOI_URL,
                C.PUBMED_ID, C.ISO_JOURNAL, C.MEDLINE_JOURNAL, C.AUTHORS
         FROM INTERPRO.METHOD2PUB MP
-                 INNER JOIN INTERPRO.CITATION C on C.PUB_ID = MP.PUB_ID
+        INNER JOIN INTERPRO.CITATION C on C.PUB_ID = MP.PUB_ID
         WHERE MP.METHOD_AC = :1
         """,
         [result["accession"]]
@@ -175,8 +175,8 @@ def get_signature_comments(accession):
         """
         SELECT C.ID, C.VALUE, C.CREATED_ON, C.STATUS, U.NAME
         FROM INTERPRO.METHOD_COMMENT C
-                 INNER JOIN INTERPRO.PRONTO_USER U
-                            ON C.USERNAME = U.USERNAME
+        INNER JOIN INTERPRO.PRONTO_USER U 
+          ON C.USERNAME = U.USERNAME
         WHERE C.METHOD_AC = :1
         ORDER BY C.CREATED_ON DESC
         """,
@@ -240,7 +240,7 @@ def add_signature_comment(accession):
         cur.execute(
             """
             INSERT INTO INTERPRO.METHOD_COMMENT (
-                ID, METHOD_AC, USERNAME, VALUE
+              ID, METHOD_AC, USERNAME, VALUE
             )
             VALUES (:1, :2, :3, :4)
             """,
@@ -279,8 +279,8 @@ def delete_signature_comment(accession, commentid):
     try:
         cur.execute(
             """
-            UPDATE INTERPRO.METHOD_COMMENT
-            SET STATUS = 'N'
+            UPDATE INTERPRO.METHOD_COMMENT 
+            SET STATUS = 'N' 
             WHERE METHOD_AC = :1 AND ID = :2
             """,
             (accession, commentid)
@@ -313,12 +313,12 @@ def get_term_citations(accession, term_id):
                 SELECT DISTINCT ref_db_id
                 FROM protein2go
                 WHERE term_id = %s
-                  AND protein_acc IN (
+                AND protein_acc IN (
                     SELECT DISTINCT protein_acc
                     FROM signature2protein
                     WHERE signature_acc = %s
                 )
-                  AND ref_db_code = 'PMID'
+                AND ref_db_code = 'PMID'
             )
             ORDER BY published
             """, [term_id, accession]
@@ -362,10 +362,10 @@ def get_panther_go_subfam(accession: str, term_id: str):
     with pg_con.cursor() as pg_cur:
 
         sql = """
-              SELECT DISTINCT model_acc, protein_acc
-              FROM interpro.signature2protein
-              WHERE signature_acc = %s \
-              """
+            SELECT DISTINCT model_acc, protein_acc
+            FROM interpro.signature2protein
+            WHERE signature_acc = %s
+        """
         pg_cur.execute(sql, (accession,))
         matches = {}
         count_prot = 0
@@ -409,10 +409,10 @@ def get_funfam_go(accession, term_id):
     with pg_con.cursor() as pg_cur:
 
         sql = """
-              SELECT count(protein_acc)
-              FROM interpro.signature2protein
-              WHERE signature_acc = %s \
-              """
+            SELECT count(protein_acc)
+            FROM interpro.signature2protein
+            WHERE signature_acc = %s
+        """
         pg_cur.execute(sql, (accession,))
         count_prot = pg_cur.fetchone()[0]
 
@@ -452,7 +452,7 @@ def get_signature_predictions(accession):
         """
         SELECT EM.METHOD_AC, E.ENTRY_AC, E.ENTRY_TYPE, E.NAME, E.CHECKED, E.LLM
         FROM INTERPRO.ENTRY2METHOD EM
-                 INNER JOIN INTERPRO.ENTRY E ON EM.ENTRY_AC = E.ENTRY_AC
+        INNER JOIN INTERPRO.ENTRY E ON EM.ENTRY_AC = E.ENTRY_AC
         """
     )
     integrated = {row[0]: row[1:] for row in cur}
@@ -465,7 +465,7 @@ def get_signature_predictions(accession):
             """
             SELECT PARENT_AC
             FROM INTERPRO.ENTRY2ENTRY
-                     START WITH ENTRY_AC = :1
+            START WITH ENTRY_AC = :1
             CONNECT BY PRIOR PARENT_AC = ENTRY_AC
             """, [query_entry]
         )
@@ -476,7 +476,7 @@ def get_signature_predictions(accession):
             """
             SELECT ENTRY_AC
             FROM INTERPRO.ENTRY2ENTRY
-                     START WITH PARENT_AC = :1
+            START WITH PARENT_AC = :1
             CONNECT BY PRIOR ENTRY_AC = PARENT_AC
             """, [query_entry]
         )
@@ -513,22 +513,22 @@ def get_signature_predictions(accession):
     cur.execute(
         """
         SELECT
-            c.signature_acc_2,
-            s2.num_complete_sequences,
-            s2.num_residues,
-            d.name,
-            d.name_long,
-            c.num_collocations,
-            c.num_50pc_overlaps,
-            c.num_res_overlaps,
-            c.num_reviewed_res_overlaps
+          c.signature_acc_2,
+          s2.num_complete_sequences,
+          s2.num_residues,
+          d.name,
+          d.name_long,
+          c.num_collocations,
+          c.num_50pc_overlaps,
+          c.num_res_overlaps,
+          c.num_reviewed_res_overlaps
         FROM interpro.comparison c
-                 INNER JOIN interpro.signature s1
-                            ON c.signature_acc_1 = s1.accession
-                 INNER JOIN interpro.signature s2
-                            ON c.signature_acc_2 = s2.accession
-                 INNER JOIN interpro.database d
-                            ON s2.database_id = d.id
+        INNER JOIN interpro.signature s1
+          ON c.signature_acc_1 = s1.accession
+        INNER JOIN interpro.signature s2
+          ON c.signature_acc_2 = s2.accession
+        INNER JOIN interpro.database d
+          ON s2.database_id = d.id          
         WHERE c.signature_acc_1 = %s
           AND c.num_50pc_overlaps::float / LEAST(s1.num_complete_sequences, s2.num_complete_sequences) >= %s
         """,
