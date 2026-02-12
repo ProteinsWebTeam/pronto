@@ -4,6 +4,7 @@ from flask import Blueprint, jsonify, request
 
 from pronto import auth, utils
 
+
 bp = Blueprint("api_signature", __name__, url_prefix="/api/signature")
 
 
@@ -49,7 +50,7 @@ def get_signature(accession):
                 "message": f"{accession} does not match any member database signature accession or name."
             }
         }), 404
-
+    
     # data populates signature table to new entry window
     db = utils.get_database_obj(row[13])
     result = {
