@@ -171,12 +171,12 @@ def get_taxonomy_tree(accessions):
         GROUP BY sp.signature_acc, t.id, t2.id, t2.rank, t2.name
         """, params
     )
+
     lineages = {}
 
     for acc, tid, anc_id, anc_rank, anc_name, cnt in cur.fetchall():
         if tid in lineages:
             lineage = lineages[tid]
-
         else:
             lineage = lineages[tid] = [{
                 "id": None,
@@ -185,15 +185,14 @@ def get_taxonomy_tree(accessions):
                 "matches": {}
             } for rank in RANKS]
 
-        i = RANKS.index(anc_rank)
-        node = lineage[i]
+        node = lineage[RANKS.index(anc_rank)]
 
         if node["id"] is None:
-            node.update( {
+            node.update({
                 "id": anc_id,
                 "name": anc_name,
                 "rank": anc_rank
-                } )
+            })
 
         if acc in node["matches"]:
             node["matches"][acc] += cnt
@@ -202,79 +201,60 @@ def get_taxonomy_tree(accessions):
 
 
     tree = {
-        "children": []
+        "children": {}
     }
 
     for lineage in lineages.values():
-
         target = tree
 
         for item in lineage:
-            node_id = item["id"]
+            if item["id"] is None:
+                continue
+
+            if item["rank"] not in ranks:
+                continue
 
             found = None
-            for child in target["children"]:
-                if child["id"] == node_id:
-                    found = child
-                    break
 
-            if found is None:
-                found = {
-                    "id": node_id,
-                    "name": item["name"],
-                    "rank": item["rank"],
-                    "matches": dict(item["matches"]),
-                    "children": []
-                }
-                target["children"].append(found)
-            else:
+            if item["id"] in target["children"]:
+                found = target["children"][item["id"]]
                 for acc, cnt in item["matches"].items():
                     found["matches"][acc] = found["matches"].get(acc, 0) + cnt
+            else:
+                found = {
+                    "id": item["id"],
+                    "name": item["name"],
+                    "rank": item["rank"],
+                    "matches": item["matches"],
+                    "children": {}
+                }
+
+                if item["rank"] == leaf_rank:
+                    found.pop("children", None)
+
+                target["children"][item["id"]] = found
 
             target = found
 
-    tree = tree["children"]
-    prune_at_leaf_rank(tree, leaf_rank)
+    tree = children_to_list(tree)
 
     cur.close()
     con.close()
 
     return jsonify({
-        "results": tree,
+        "results": tree["children"],
         "integrated": get_sig2interpro(accessions)
     })
 
 
-def prune_at_leaf_rank(nodes, leaf_rank):
-    """
-    Remove placeholder nodes (id is None), promoting their children.
-    Prune all nodes below the given leaf_rank.
+def children_to_list(node):
+    if "children" in node:
+        node["children"] = list(node["children"].values())
 
-    """
-    pruned = []
+        for child in node["children"]:
+            children_to_list(child)
 
-    for node in nodes:
-        # skip node if it is below the leaf_rank
-        if node["rank"] in RANKS and RANKS.index(node["rank"]) > RANKS.index(leaf_rank):
-            continue
-
-        # recursively prune children
-        children = node.get("children", [])
-        if children:
-            children = prune_at_leaf_rank(children, leaf_rank)
-
-        # if node is a placeholder, promote its children
-        if node.get("id") is None or node.get("rank") is None:
-            pruned.extend(children)
-        else:
-            # remove empty children for leaf nodes
-            if node["rank"] == leaf_rank:
-                node.pop("children", None)
-            else:
-                node["children"] = children
-            pruned.append(node)
-
-    return pruned
+    return node
 
 
 @bp.route("/<path:accessions>/taxon/<int:taxon_id>/")
