@@ -561,7 +561,7 @@ def check(ora_cur: Cursor, pg_url: str):
     terms = load_terms(ora_cur, "abbreviation")
     exceptions = load_exceptions(ora_cur, "abbreviation", "ENTRY_AC", "TERM")
 
-    terms = list(set(terms) - name_shortname_allowed_terms)
+    terms = list(set(terms) - always_allowed)
     for item in ck_abbreviations(entries, terms, exceptions):
         yield "abbreviation", item
 
