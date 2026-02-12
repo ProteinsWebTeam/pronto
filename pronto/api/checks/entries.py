@@ -538,7 +538,7 @@ def get_frags_only_signatures(pg_url: str) -> list[str]:
 def check(ora_cur: Cursor, pg_url: str):
     ora_cur.execute("SELECT ENTRY_AC, NAME, SHORT_NAME FROM INTERPRO.ENTRY")
     entries = ora_cur.fetchall()
-    name_shortname_allowed_terms = {
+    always_allowed = {
         "uncharacterized",
         "beta-sandwich",
         "beta sandwich",
