@@ -413,9 +413,9 @@ export function search(accession, query) {
 }
 
 async function accessionsToLinks(text) {
-    const sequenceDBRegex = /(?<!<a[^>]*>[^<]*)\b(?!NF\d)([A-Z][0-9]{5}|[A-Z]{2}[0-9]{6}|[A-Z]{2}[0-9]{8}|[A-Z]{3}[0-9]{5}|[A-Z]{3}[0-9]{7}|WP_[0-9]{9,12})(\.[0-9]+)?\b(?![^<]*<\/a>)/g;
-    const uniprotRegex = /(?<!<a[^>]*>[^<]*)\b(?:[OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9](?:[A-Z][A-Z0-9]{2}[0-9]){1,2})\b(?![^<]*<\/a>)/g;
 
+    const sequenceDBRegex = /(?<!<a\b[^]*?)(?<!>)\b(?!NF\d)([A-Z][0-9]{5}|[A-Z]{2}[0-9]{6}|[A-Z]{2}[0-9]{8}|[A-Z]{3}[0-9]{5}|[A-Z]{3}[0-9]{7}|WP_[0-9]{9,12})(\.[0-9]+)?\b(?!.*?<\/a>)(?!<)/g;
+    const uniprotRegex = /(?<!<a\b[^]*?)(?<!>)\b(?:[OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9](?:[A-Z][A-Z0-9]{2}[0-9]){1,2})\b(?!.*?<\/a>)(?!<)/g;
     let textWithLinks = text;
     
     // Replace all UniProt/SwissProt accessions first
@@ -443,7 +443,6 @@ async function accessionsToLinks(text) {
     
     return textWithLinks;
 }
-
 
 class Annotation {
     constructor(id, text, isLLM, isReviewed, comment, numEntries, xrefs, canUnlink, canDelete) {
@@ -496,9 +495,17 @@ class Annotation {
             );
         }
 
-        this.formattedText = text;
+        // Defer execution to load the rest of the page before replacing the text by the formatted text with links
+        accessionsToLinks(text)
+            .then((textWithLinks) => {
+                const annotationText = document.getElementById('annotation-text');
+                annotationText.classList.remove('center', 'aligned');
+                annotationText.innerHTML = textWithLinks;
+                this.formattedText = textWithLinks;
+            });
+
         if (previewMode)
-            return `<div class="ui vertical segment annotation">${text}</div>`;
+            return `<div id="annotation-text" class="ui attached segment center aligned"><i class="notched circle loading icon"></i></div>`
 
         let llmItem = '';
         if (this.isLLM) {
@@ -567,14 +574,6 @@ class Annotation {
                 </div>
             </div>
         </div>`;
-
-        // Defer execution to load the rest of the page before replacing the text by the formatted text with links
-        accessionsToLinks(text)
-            .then((newText) => {
-                const annotationText = document.getElementById('annotation-text');
-                annotationText.classList.remove('center', 'aligned');
-                annotationText.innerHTML = newText;
-            });
 
         return annotationEl.innerHTML;
     }
