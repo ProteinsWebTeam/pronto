@@ -413,8 +413,8 @@ export function search(accession, query) {
 }
 
 async function accessionsToLinks(text) {
-    const sequenceDBRegex = /\b(?!NF\d)([A-Z][0-9]{5}|[A-Z]{2}[0-9]{6}|[A-Z]{2}[0-9]{8}|[A-Z]{3}[0-9]{5}|[A-Z]{3}[0-9]{7}|WP_[0-9]{9,12})(\.[0-9]+)?\b/g;
-    const uniprotRegex = /\b[OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9]([A-Z][A-Z0-9]{2}[0-9]){1,2}\b/g;
+    const sequenceDBRegex = /(?<!<a[^>]*>[^<]*)\b(?!NF\d)([A-Z][0-9]{5}|[A-Z]{2}[0-9]{6}|[A-Z]{2}[0-9]{8}|[A-Z]{3}[0-9]{5}|[A-Z]{3}[0-9]{7}|WP_[0-9]{9,12})(\.[0-9]+)?\b(?![^<]*<\/a>)/g;
+    const uniprotRegex = /(?<!<a[^>]*>[^<]*)\b(?:[OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9](?:[A-Z][A-Z0-9]{2}[0-9]){1,2})\b(?![^<]*<\/a>)/g;
 
     let textWithLinks = text;
     
