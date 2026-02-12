@@ -632,7 +632,7 @@ def create_entry():
 
     entries = check_uniqueness(cur, entry_name, entry_short_name)
     if entries:
-        if "automatic" in request.args:
+        if automatic:
             count = 2
             while True:
                 temp_name = f"{entry_name} {count}"
