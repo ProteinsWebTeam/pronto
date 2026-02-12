@@ -610,7 +610,7 @@ def check(ora_cur: Cursor, pg_url: str):
         yield "similar_name", item
 
     terms = load_terms(ora_cur, "spelling")
-    terms = list(set(terms) - name_shortname_allowed_terms)
+    terms = list(set(terms) - always_allowed)
     exceptions = load_exceptions(ora_cur, "spelling", "ENTRY_AC", "TERM")
     for item in ck_spelling(entries, terms, exceptions):
         yield "spelling", item
