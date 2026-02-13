@@ -91,8 +91,9 @@ def _standardise_citations(text: str) -> str:
 
 
 def _capitalize_first(text) -> str:
-    with connect_oracle() as cur:
-        keep_lower_terms = load_global_exceptions(cur, 'lower_case_name')
+    con = connect_oracle()
+    cur = con.cursor()
+    keep_lower_terms = load_global_exceptions(cur, 'lower_case_name')
 
     for term in keep_lower_terms:
         if text.startswith(term):
