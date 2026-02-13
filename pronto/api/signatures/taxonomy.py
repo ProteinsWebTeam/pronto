@@ -158,7 +158,6 @@ def get_taxonomy_tree(accessions):
         taxon_cond = "AND sp.taxon_left_num BETWEEN %s AND %s"
         params += (left_num, right_num)
 
-
     cur.execute(
         f"""
         SELECT sp.signature_acc, t.id, t2.id, t2.rank, t2.name, count(*)
@@ -175,17 +174,20 @@ def get_taxonomy_tree(accessions):
     lineages = {}
 
     for acc, tid, anc_id, anc_rank, anc_name, cnt in cur.fetchall():
-        if tid in lineages:
+        try:
             lineage = lineages[tid]
-        else:
+        except KeyError:
             lineage = lineages[tid] = [{
                 "id": None,
                 "name": None,
                 "rank": None,
                 "matches": {}
-            } for rank in RANKS]
+            } for _ in ranks]
 
-        node = lineage[RANKS.index(anc_rank)]
+        if anc_rank not in ranks:
+            continue
+
+        node = lineage[ranks.index(anc_rank)]
 
         if node["id"] is None:
             node.update({
@@ -199,7 +201,6 @@ def get_taxonomy_tree(accessions):
         else:
             node["matches"][acc] = cnt
 
-
     tree = {
         "children": {}
     }
@@ -210,11 +211,6 @@ def get_taxonomy_tree(accessions):
         for item in lineage:
             if item["id"] is None:
                 continue
-
-            if item["rank"] not in ranks:
-                continue
-
-            found = None
 
             if item["id"] in target["children"]:
                 found = target["children"][item["id"]]
