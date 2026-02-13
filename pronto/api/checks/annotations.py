@@ -229,15 +229,29 @@ def ck_signature_accessions(cur: Cursor, cabs: LoT) -> Err:
     return errors
 
 
-def ck_domain_inconsistency(cabs: LoT, terms: LoS, exceptions: DoS) -> Err:
+def ck_domain_inconsistency(cur: Cursor, cabs: LoT, terms: LoS, exceptions: DoS) -> Err:
     errors = []
     for ann_id, text in cabs:
-        text = re.sub(r"^\s*(?:<p>)?\s*", "", text)
-        for term in terms:
-            if text.lower().startswith(term.lower()):
-                if ann_id not in exceptions or term not in exceptions[ann_id]:
-                    errors.append((ann_id, term))
-                break
+        cur.execute(
+            """
+            SELECT COUNT(*)
+            FROM INTERPRO.ENTRY2COMMON ec
+            JOIN INTERPRO.ENTRY e
+            ON e.ENTRY_AC = ec.ENTRY_AC
+            WHERE ec.ANN_ID = :1 AND ec.ENTRY_AC IS NOT NULL
+            AND e.ENTRY_TYPE = 'D'
+            """,
+            [ann_id]
+        )
+
+        has_domain = cur.fetchone()[0] > 0
+        if has_domain:
+            text = re.sub(r"^\s*(?:<p>)?\s*", "", text.lower())
+            for term in terms:
+                if text.startswith(term.lower()):
+                    if ann_id not in exceptions or term not in exceptions[ann_id]:
+                        errors.append((ann_id, term))
+                    break
 
     return errors
 
@@ -300,5 +314,5 @@ def check(cur: Cursor):
 
     terms = load_terms(cur, "domain_type_inconsistency")
     exceptions = load_exceptions(cur, "domain_type_inconsistency", "ANN_ID", "TERM")
-    for item in ck_domain_inconsistency(cabs, terms, exceptions):
+    for item in ck_domain_inconsistency(cur, cabs, terms, exceptions):
         yield "domain_type_inconsistency", item
