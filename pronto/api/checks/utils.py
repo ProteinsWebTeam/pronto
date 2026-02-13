@@ -291,6 +291,13 @@ CHECKS = {
         "terms": False,
         "exceptions": None
     },
+    "domain_type_inconsistency": {
+        "name": "Domain/family inconsistency",
+        "description": "Domain annotations cannot start with any of the following terms",
+        "label": "Domain type inconsistency",
+        "terms": True,
+        "exceptions": 's'
+    },
 }
 
 
