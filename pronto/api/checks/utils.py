@@ -292,8 +292,8 @@ CHECKS = {
         "exceptions": None
     },
     "domain_type_inconsistency": {
-        "name": "Domain type inconsistency",
-        "description": "Inconsistency between Domain type and CAB description start",
+        "name": "Domain/family inconsistency",
+        "description": "Domain annotations cannot start with any of the following terms",
         "label": "Domain type inconsistency",
         "terms": True,
         "exceptions": 's'
