@@ -230,21 +230,22 @@ def ck_signature_accessions(cur: Cursor, cabs: LoT) -> Err:
 
 
 def ck_domain_inconsistency(cur: Cursor, cabs: LoT, terms: LoS, exceptions: DoS) -> Err:
+    domain_annotations = set()
+    cur.execute(
+        """
+        SELECT ec.ANN_ID
+        FROM INTERPRO.ENTRY2COMMON ec
+        JOIN INTERPRO.ENTRY e
+        ON e.ENTRY_AC = ec.ENTRY_AC
+        WHERE ec.ENTRY_AC IS NOT NULL AND e.ENTRY_TYPE = 'D'
+        """
+    )
+    for ann_id, in cur:
+        domain_annotations.add(ann_id)
+
     errors = []
     for ann_id, text in cabs:
-        cur.execute(
-            """
-            SELECT COUNT(*)
-            FROM INTERPRO.ENTRY2COMMON ec
-            JOIN INTERPRO.ENTRY e
-            ON e.ENTRY_AC = ec.ENTRY_AC
-            WHERE ec.ANN_ID = :1 AND ec.ENTRY_AC IS NOT NULL
-            AND e.ENTRY_TYPE = 'D'
-            """,
-            [ann_id]
-        )
-
-        has_domain = cur.fetchone()[0] > 0
+        has_domain = ann_id in domain_annotations
         if has_domain:
             if text.startswith("<p>"):
                 text = text[3:].lstrip()
