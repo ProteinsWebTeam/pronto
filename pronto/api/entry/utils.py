@@ -157,7 +157,7 @@ def sanitize_name(name: str) -> str:
     return name
 
 
-def sanitize_short_name(short_name):
+def sanitize_short_name(short_name: str) -> str:
     if not short_name:
         return short_name
     short_name = re.sub(r"_(fam|like)\b", "-like", short_name, flags=re.I)
