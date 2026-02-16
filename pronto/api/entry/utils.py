@@ -149,7 +149,7 @@ def sanitize_description(text):
     return text
 
 
-def sanitize_name(name):
+def sanitize_name(name: str) -> str:
     if not name:
         return name
     name = re.sub(r"-family proteins?\b", "-like", name, flags=re.I)
