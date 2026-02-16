@@ -232,7 +232,7 @@ def ck_signature_accessions(cur: Cursor, cabs: LoT) -> Err:
 def ck_domain_inconsistency(cur: Cursor, cabs: LoT, terms: LoS, exceptions: DoS) -> Err:
     cur.execute(
         """
-        SELECT ANN_ID
+        SELECT DISTINCT ANN_ID
         FROM INTERPRO.ENTRY2COMMON
         WHERE ENTRY_AC IN (
             SELECT ENTRY_AC
