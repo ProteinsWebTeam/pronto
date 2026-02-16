@@ -246,7 +246,9 @@ def ck_domain_inconsistency(cur: Cursor, cabs: LoT, terms: LoS, exceptions: DoS)
 
         has_domain = cur.fetchone()[0] > 0
         if has_domain:
-            text = re.sub(r"^\s*(?:<p>)?\s*", "", text.lower())
+            if text.startswith("<p>"):
+                text = text[3:].lstrip()
+            text = text.lower()
             for term in terms:
                 if text.startswith(term.lower()):
                     if ann_id not in exceptions or term not in exceptions[ann_id]:
