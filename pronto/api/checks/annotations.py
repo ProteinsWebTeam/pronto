@@ -229,6 +229,37 @@ def ck_signature_accessions(cur: Cursor, cabs: LoT) -> Err:
     return errors
 
 
+def ck_domain_inconsistency(cur: Cursor, cabs: LoT, terms: LoS, exceptions: DoS) -> Err:
+    cur.execute(
+        """
+        SELECT DISTINCT ANN_ID
+        FROM INTERPRO.ENTRY2COMMON
+        WHERE ENTRY_AC IN (
+            SELECT ENTRY_AC
+            FROM INTERPRO.ENTRY
+            WHERE ENTRY_TYPE = 'D'
+        )
+        """
+    )
+    domain_annotations = {ann_id for ann_id, in cur.fetchall()}
+
+    errors = []
+    for ann_id, text in cabs:
+        has_domain = ann_id in domain_annotations
+        if has_domain:
+            text = text.lower()
+            if text.startswith("<p>"):
+                text = text[3:].lstrip()
+            ann_exceptions = exceptions.get(ann_id, set())
+            for term in terms:
+                if text.startswith(term.lower()):
+                    if term not in ann_exceptions:
+                        errors.append((ann_id, term))
+                    break
+
+    return errors
+
+
 def check(cur: Cursor):
     cur.execute(
         """
@@ -284,3 +315,8 @@ def check(cur: Cursor):
 
     for item in ck_signature_accessions(cur, cabs):
         yield "sign_not_found", item
+
+    terms = load_terms(cur, "domain_type_inconsistency")
+    exceptions = load_exceptions(cur, "domain_type_inconsistency", "ANN_ID", "TERM")
+    for item in ck_domain_inconsistency(cur, cabs, terms, exceptions):
+        yield "domain_type_inconsistency", item
