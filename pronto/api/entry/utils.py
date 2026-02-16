@@ -150,16 +150,12 @@ def sanitize_description(text):
 
 
 def sanitize_name(name: str) -> str:
-    if not name:
-        return name
     name = re.sub(r"-family proteins?\b", "-like", name, flags=re.I)
     name = _capitalize_first(name)
     return name
 
 
 def sanitize_short_name(short_name: str) -> str:
-    if not short_name:
-        return short_name
     short_name = re.sub(r"_(fam|like)\b", "-like", short_name, flags=re.I)
     short_name = _capitalize_first(short_name)
     return short_name
