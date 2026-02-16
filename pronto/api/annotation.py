@@ -136,6 +136,9 @@ class Annotation(object):
                 self.error = (f"Invalid cross-reference accession: "
                               f"'{ref_id}'.")
                 return False
+        if re.search(r"\[cite:[^\]]+\],\[cite:[^\]]+\]", self.text, re.I):
+            self.error = "Missing space after comma between cite tags."
+            return False
 
         return True
 
