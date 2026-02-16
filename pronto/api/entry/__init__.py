@@ -5,7 +5,7 @@ from datetime import datetime
 import oracledb
 from flask import Blueprint, jsonify, request
 
-from pronto.api.entry.utils import sanitize_description
+from pronto.api.entry.utils import sanitize_description, sanitize_name, sanitize_short_name, sanitize_domain
 
 bp = Blueprint("api_entry", __name__, url_prefix="/api/entry")
 
@@ -832,6 +832,9 @@ def create_entry():
         if entry_name.endswith("domain") or has_region_expressions or is_pfam_repeat:
             entry_type = 'D'
 
+        entry_short_name = sanitize_short_name(entry_short_name)
+        entry_name = sanitize_name(entry_name)
+
     entry_var = cur.var(oracledb.STRING)
     try:
         cur.execute(
@@ -904,15 +907,7 @@ def create_entry():
                 row = pg_cur.fetchone()
 
             pg_con.close()
-            anno_text = sanitize_description(row[0])
-
-            # During autointegration, append supplementary references to description,
-            # instead of adding them to SUPPLEMENTARY_REF (see above)
-            in_text_references = re.findall(r"\[cite:(PUB\d+)\]", anno_text, re.I)
-            not_in_text_references = set(new_references) - set(in_text_references)
-            if not_in_text_references:
-                    cite_items = [f"[cite:{pub_id}]" for pub_id in not_in_text_references]
-                    anno_text += f"Supplementary references: [{', '.join(cite_items)}]"
+            anno_text = row[0]
 
             if anno_text is None:
                 return jsonify({
@@ -923,7 +918,19 @@ def create_entry():
                                    f"for {entry_signatures[0]}."
                     }
                 }), 400
-            
+
+            # During autointegration, append supplementary references to description,
+            # instead of adding them to SUPPLEMENTARY_REF (see above)
+            in_text_references = re.findall(r"\[cite:(PUB\d+)\]", anno_text, re.I)
+            not_in_text_references = set(new_references) - set(in_text_references)
+            if not_in_text_references:
+                    cite_items = [f"[cite:{pub_id}]" for pub_id in not_in_text_references]
+                    anno_text += f"Supplementary references: [{', '.join(cite_items)}]"
+
+            anno_text = sanitize_description(anno_text)
+            if entry_type == 'Domain':
+                anno_text = sanitize_domain(anno_text)
+
             anno_id, response, code = annotation.insert_annotation(
                 anno_text,
                 con,
