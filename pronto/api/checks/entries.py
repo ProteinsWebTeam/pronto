@@ -538,9 +538,30 @@ def get_frags_only_signatures(pg_url: str) -> list[str]:
 def check(ora_cur: Cursor, pg_url: str):
     ora_cur.execute("SELECT ENTRY_AC, NAME, SHORT_NAME FROM INTERPRO.ENTRY")
     entries = ora_cur.fetchall()
+    always_allowed = {
+        "uncharacterized",
+        "beta-sandwich",
+        "beta sandwich",
+        "beta-barrel",
+        "beta barrel",
+        "beta-propeller",
+        "beta propeller",
+        "beta-sheet",
+        "beta sheet",
+        "alpha fold",
+        "beta fold",
+        "alpha-fold",
+        "beta-fold",
+        "homolog",
+        "fiber",
+        "alpha-helical",
+        "alpha helical"
+    }
 
     terms = load_terms(ora_cur, "abbreviation")
     exceptions = load_exceptions(ora_cur, "abbreviation", "ENTRY_AC", "TERM")
+
+    terms = list(set(terms) - always_allowed)
     for item in ck_abbreviations(entries, terms, exceptions):
         yield "abbreviation", item
 
@@ -589,6 +610,7 @@ def check(ora_cur: Cursor, pg_url: str):
         yield "similar_name", item
 
     terms = load_terms(ora_cur, "spelling")
+    terms = list(set(terms) - always_allowed)
     exceptions = load_exceptions(ora_cur, "spelling", "ENTRY_AC", "TERM")
     for item in ck_spelling(entries, terms, exceptions):
         yield "spelling", item
