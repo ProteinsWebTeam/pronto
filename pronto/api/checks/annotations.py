@@ -247,9 +247,9 @@ def ck_domain_inconsistency(cur: Cursor, cabs: LoT, terms: LoS, exceptions: DoS)
     for ann_id, text in cabs:
         has_domain = ann_id in domain_annotations
         if has_domain:
+            text = text.lower()
             if text.startswith("<p>"):
                 text = text[3:].lstrip()
-            text = text.lower()
             ann_exceptions = exceptions.get(ann_id, set())
             for term in terms:
                 if text.startswith(term.lower()):
