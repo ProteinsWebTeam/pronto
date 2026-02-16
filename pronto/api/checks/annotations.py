@@ -230,18 +230,18 @@ def ck_signature_accessions(cur: Cursor, cabs: LoT) -> Err:
 
 
 def ck_domain_inconsistency(cur: Cursor, cabs: LoT, terms: LoS, exceptions: DoS) -> Err:
-    domain_annotations = set()
     cur.execute(
         """
-        SELECT ec.ANN_ID
-        FROM INTERPRO.ENTRY2COMMON ec
-        JOIN INTERPRO.ENTRY e
-        ON e.ENTRY_AC = ec.ENTRY_AC
-        WHERE ec.ENTRY_AC IS NOT NULL AND e.ENTRY_TYPE = 'D'
+        SELECT ANN_ID
+        FROM INTERPRO.ENTRY2COMMON
+        WHERE ENTRY_AC IN (
+            SELECT ENTRY_AC
+            FROM INTERPRO.ENTRY
+            WHERE ENTRY_TYPE = 'D'
+        )
         """
     )
-    for ann_id, in cur:
-        domain_annotations.add(ann_id)
+    domain_annotations = {ann_id for ann_id, in cur.fetchall()}
 
     errors = []
     for ann_id, text in cabs:
