@@ -250,9 +250,10 @@ def ck_domain_inconsistency(cur: Cursor, cabs: LoT, terms: LoS, exceptions: DoS)
             if text.startswith("<p>"):
                 text = text[3:].lstrip()
             text = text.lower()
+            ann_exceptions = exceptions.get(ann_id, set())
             for term in terms:
                 if text.startswith(term.lower()):
-                    if ann_id not in exceptions or term not in exceptions[ann_id]:
+                    if term not in ann_exceptions:
                         errors.append((ann_id, term))
                     break
 
