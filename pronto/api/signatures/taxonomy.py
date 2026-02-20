@@ -5,9 +5,16 @@ from flask import jsonify, request
 from pronto import utils
 from . import bp, get_sig2interpro
 
-
-RANKS = {"domain", "kingdom", "phylum", "class", "order", "family",
-         "genus", "species"}
+RANKS = (
+    "domain",
+    "kingdom",
+    "phylum",
+    "class",
+    "order",
+    "family",
+    "genus",
+    "species",
+)
 
 
 @bp.route("/<path:accessions>/taxonomy/<string:rank>/")
@@ -100,6 +107,147 @@ def get_taxonomy_origins(accessions, rank):
         },
         "integrated": get_sig2interpro(accessions)
     })
+
+
+@bp.route("/<path:accessions>/taxonomy/")
+def get_taxonomy_tree(accessions):
+    leaf_rank = request.args.get("leaf", "species")
+
+    if leaf_rank not in RANKS:
+        return jsonify({
+            "error": {
+                "title": "Bad Request (invalid rank)",
+                "message": f"Available ranks: {', '.join(RANKS)}."
+            }
+        }), 400
+
+    accessions = utils.split_path(accessions)
+    taxon_id = request.args.get("taxon")
+
+    max_rank_idx = RANKS.index(leaf_rank)
+    ranks = RANKS[:max_rank_idx + 1]
+
+    con = utils.connect_pg()
+    cur = con.cursor()
+
+    # Optional taxon restriction
+    left_num = right_num = None
+    if taxon_id:
+        cur.execute(
+            """
+            SELECT left_number, right_number
+            FROM taxon
+            WHERE id = %s
+            """, (taxon_id,)
+        )
+        row = cur.fetchone()
+        if not row:
+            cur.close()
+            con.close()
+            return jsonify({
+                "error": {
+                    "title": "Bad Request (invalid taxon)",
+                    "message": f"No taxon with ID {taxon_id}."
+                }
+            }), 400
+        left_num, right_num = row
+
+    taxon_cond = ""
+    params = tuple(accessions)
+    if left_num is not None:
+        taxon_cond = "AND sp.taxon_left_num BETWEEN %s AND %s"
+        params += (left_num, right_num)
+
+    cur.execute(
+        f"""
+        SELECT sp.signature_acc, t.id, t2.id, t2.rank, t2.name, count(*)
+        FROM signature2protein sp
+          INNER JOIN taxon t ON sp.taxon_left_num = t.left_number
+          INNER JOIN lineage l ON t.id = l.child_id
+          INNER JOIN taxon t2 ON l.parent_id = t2.id
+        WHERE sp.signature_acc IN ({','.join('%s' for _ in accessions)})
+        {taxon_cond}
+        GROUP BY sp.signature_acc, t.id, t2.id, t2.rank, t2.name
+        """, params
+    )
+
+    lineages = {}
+
+    for acc, tid, anc_id, anc_rank, anc_name, cnt in cur.fetchall():
+        try:
+            lineage = lineages[tid]
+        except KeyError:
+            lineage = lineages[tid] = [{
+                "id": None,
+                "name": None,
+                "rank": None,
+                "matches": {},
+                "children": {}
+            } for _ in ranks]
+
+        if anc_rank not in ranks:
+            continue
+
+        node = lineage[ranks.index(anc_rank)]
+
+        if node["id"] is None:
+            node.update({
+                "id": anc_id,
+                "name": anc_name,
+                "rank": anc_rank
+            })
+
+        if acc in node["matches"]:
+            node["matches"][acc] += cnt
+        else:
+            node["matches"][acc] = cnt
+
+    tree = {}
+
+    for lineage in lineages.values():
+        target = tree
+
+        for item in lineage:
+            if item["id"] is None:
+                continue
+
+            if item["id"] in target:
+                found = target[item["id"]]
+                for acc, cnt in item["matches"].items():
+                    found["matches"][acc] = found["matches"].get(acc, 0) + cnt
+            else:
+                found = item
+                target[item["id"]] = found
+
+                if item["rank"] == leaf_rank:
+                    found.pop("children", None)
+
+            if "children" in target[item["id"]]:
+                found = target[item["id"]]["children"]
+
+            target = found
+
+    tree = children_to_list(tree)
+
+    cur.close()
+    con.close()
+
+    return jsonify({
+        "results": tree,
+        "integrated": get_sig2interpro(accessions)
+    })
+
+
+def children_to_list(node):
+    node_list = []
+
+    for value in node.values():
+        # Recursively convert children
+        if "children" in value:
+            value["children"] = children_to_list(value["children"])
+        node_list.append(value)
+
+    return node_list
 
 
 @bp.route("/<path:accessions>/taxon/<int:taxon_id>/")
