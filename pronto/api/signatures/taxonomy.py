@@ -181,7 +181,8 @@ def get_taxonomy_tree(accessions):
                 "id": None,
                 "name": None,
                 "rank": None,
-                "matches": {}
+                "matches": {},
+                "children": {}
             } for _ in ranks]
 
         if anc_rank not in ranks:
@@ -201,9 +202,7 @@ def get_taxonomy_tree(accessions):
         else:
             node["matches"][acc] = cnt
 
-    tree = {
-        "children": {}
-    }
+    tree = {}
 
     for lineage in lineages.values():
         target = tree
@@ -212,23 +211,19 @@ def get_taxonomy_tree(accessions):
             if item["id"] is None:
                 continue
 
-            if item["id"] in target["children"]:
-                found = target["children"][item["id"]]
+            if item["id"] in target:
+                found = target[item["id"]]
                 for acc, cnt in item["matches"].items():
                     found["matches"][acc] = found["matches"].get(acc, 0) + cnt
             else:
-                found = {
-                    "id": item["id"],
-                    "name": item["name"],
-                    "rank": item["rank"],
-                    "matches": item["matches"],
-                    "children": {}
-                }
+                found = item
+                target[item["id"]] = found
 
                 if item["rank"] == leaf_rank:
                     found.pop("children", None)
 
-                target["children"][item["id"]] = found
+            if "children" in target[item["id"]]:
+                found = target[item["id"]]["children"]
 
             target = found
 
@@ -238,19 +233,21 @@ def get_taxonomy_tree(accessions):
     con.close()
 
     return jsonify({
-        "results": tree["children"],
+        "results": tree,
         "integrated": get_sig2interpro(accessions)
     })
 
 
 def children_to_list(node):
-    if "children" in node:
-        node["children"] = list(node["children"].values())
+    node_list = []
 
-        for child in node["children"]:
-            children_to_list(child)
+    for value in node.values():
+        # Recursively convert children
+        if "children" in value:
+            value["children"] = children_to_list(value["children"])
+        node_list.append(value)
 
-    return node
+    return node_list
 
 
 @bp.route("/<path:accessions>/taxon/<int:taxon_id>/")
