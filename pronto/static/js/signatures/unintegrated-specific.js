@@ -147,12 +147,14 @@ document.addEventListener('DOMContentLoaded', () => {
         .addEventListener('click', e => preIntegrate(
             new URL(`${location.origin}/api/signatures/unintegrated/specific/?with-annotations=true`),
             (results) => {
+                const limitValue = document.querySelector('input[name="limit"]:checked').value;
                 return results
                     .filter(signature => signature.comments === 0 && types.has(signature.type))
                     .map(signature => ([
                         signature.accession,
                         null
-                    ]));
+                    ]))
+                    .slice(0, limitValue ? Number.parseInt(limitValue, 10) : results.length);
             },
             async (signatureAcc,) =>  {
                 const state = {
