@@ -32,7 +32,8 @@ def _replace_accessions(text: str) -> str:
     accessions = set()
     patterns = set()
     for pattern in SIGNATURES:
-        matches = re.findall(pattern, text, flags=re.IGNORECASE)
+        full_pattern = rf"\b{pattern}\b"
+        matches = re.findall(full_pattern, text, flags=re.IGNORECASE)
         if matches:
             accessions.update(matches)
             patterns.add(pattern)
@@ -42,13 +43,22 @@ def _replace_accessions(text: str) -> str:
         for pattern in patterns:
             database = SIGNATURES[pattern]
 
-            def replacer(match):
-                accession = match.group(0)
-                if accession in sig2ipr:
-                    return f"[interpro:{sig2ipr[accession]}]"
-                return f"[{database}:{accession}]"
+            def repl(match: re.Match) -> str:
+                sig_acc = match.group(2) or match.group(3)
+                ipr_acc = sig2ipr.get(sig_acc)
 
-            text = re.sub(pattern, replacer, text, flags=re.IGNORECASE)
+                if ipr_acc:
+                    return f"[interpro:{ipr_acc}]"
+                else:
+                    return f"[{database}:{sig_acc}]"
+
+            """
+            Look for accession in bracketed form or bare, e.g.
+                [pfam:PFxxxxx]
+                PFxxxxx
+            """
+            full_pattern = rf"\[([a-z]+):({pattern})\]|\b({pattern})\b"
+            text = re.sub(full_pattern, repl, text, flags=re.IGNORECASE)
     return text
 
 
@@ -137,7 +147,7 @@ def sanitize_domain(text):
     return text
 
 
-def sanitize_description(text):
+def sanitize_description(text: str) -> str:
     if not text:
         return text
     text = _replace_greek_letters(text)
