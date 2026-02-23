@@ -15,6 +15,7 @@ from flask import current_app
 
 SIGNATURES = {
     r"G3DSA:[\d.]{4,}": "cathgene3d",
+    r"IPR\d{6}": "interpro",
     r"MF_\d{4,}": "hamap",
     r"PF\d{5,}": "pfam",
     r"PIRSF\d{4,}": "pirsf",
@@ -40,6 +41,7 @@ XREFS = {
     "PDBE": "http://www.ebi.ac.uk/pdbe/entry/pdb/{}",
     "PFAM": "https://www.ebi.ac.uk/interpro/entry/pfam/{}",
     "PIRSF": "https://www.ebi.ac.uk/interpro/entry/pirsf/{}",
+    "PRINTS": "https://www.ebi.ac.uk/interpro/entry/prints/{}",
     "PROSITE": "https://prosite.expasy.org/{}",
     "PROSITEDOC": "https://prosite.expasy.org/{}",
     "SSF": "http://supfam.org/SUPERFAMILY/cgi-bin/scop.cgi?ipid={}",
