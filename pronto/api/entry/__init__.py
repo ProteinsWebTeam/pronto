@@ -872,7 +872,6 @@ def create_entry():
         )
 
         if new_references:
-
             # During autointegration, add them directly to ENTRY2PUB instead of SUPPLEMENTARY_REF
             # to later append them to the description (see below)
             if automatic:
@@ -898,8 +897,9 @@ def create_entry():
                 col = "llm_abstract" if entry_llm else "abstract"
                 pg_cur.execute(
                     f"""
-                    SELECT s.{col}
+                    SELECT s.{col}, d.name
                     FROM signature s
+                    INNER JOIN database d on s.database_id = d.id
                     WHERE s.accession = %s
                     """,
                     [entry_signatures[0]]
@@ -907,7 +907,7 @@ def create_entry():
                 row = pg_cur.fetchone()
 
             pg_con.close()
-            anno_text = row[0]
+            anno_text, anno_database = row
 
             if anno_text is None:
                 return jsonify({
@@ -919,13 +919,14 @@ def create_entry():
                     }
                 }), 400
 
-            # During autointegration, append supplementary references to description,
-            # instead of adding them to SUPPLEMENTARY_REF (see above)
-            in_text_references = re.findall(r"\[cite:(PUB\d+)\]", anno_text, re.I)
-            not_in_text_references = set(new_references) - set(in_text_references)
-            if not_in_text_references:
-                cite_items = [f"[cite:{pub_id}]" for pub_id in not_in_text_references]
-                anno_text += f"Supplementary references: [{', '.join(cite_items)}]"
+            if anno_database in ("cdd", "ncbifam"):
+                # During autointegration, append supplementary references to description,
+                # instead of adding them to SUPPLEMENTARY_REF (see above)
+                in_text_references = re.findall(r"\[cite:(PUB\d+)\]", anno_text, re.I)
+                not_in_text_references = set(new_references) - set(in_text_references)
+                if not_in_text_references:
+                    cite_items = [f"[cite:{pub_id}]" for pub_id in not_in_text_references]
+                    anno_text += f"References: [{', '.join(cite_items)}]"
 
             anno_text = sanitize_description(anno_text)
             if entry_type == 'Domain':
