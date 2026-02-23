@@ -924,8 +924,8 @@ def create_entry():
             in_text_references = re.findall(r"\[cite:(PUB\d+)\]", anno_text, re.I)
             not_in_text_references = set(new_references) - set(in_text_references)
             if not_in_text_references:
-                    cite_items = [f"[cite:{pub_id}]" for pub_id in not_in_text_references]
-                    anno_text += f"Supplementary references: [{', '.join(cite_items)}]"
+                cite_items = [f"[cite:{pub_id}]" for pub_id in not_in_text_references]
+                anno_text += f"Supplementary references: [{', '.join(cite_items)}]"
 
             anno_text = sanitize_description(anno_text)
             if entry_type == 'Domain':
