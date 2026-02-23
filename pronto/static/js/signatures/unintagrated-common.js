@@ -72,7 +72,7 @@ export async function preIntegrate(apiUrl, filterFn, actionFn) {
     if (signatures.length > 0) {
         modals.ask(
             'Bulk integration',
-            `You are about to integrate <strong>${signatures.length} signatures</strong>. You need to be logged in to perform this operation.`,
+            `You are about to integrate <strong>${signatures.length.toLocaleString()} signatures</strong>. You need to be logged in to perform this operation.`,
             'Integrate',
             () => {
                 integrate(signatures, actionFn)
@@ -115,15 +115,16 @@ export async function integrate(signatures, actionFn) {
     for (const [signatureAcc, entryAcc] of signatures) {
         const response = await actionFn(signatureAcc, entryAcc);
         const node = document.createElement('tr');
-        let icon = '<i class="green check circle icon"></i>';
-        if (response.ok)
+        let icon;
+        let details;
+        if (response.ok) {
+            icon = '<i class="green check circle icon"></i>';
+            details = `<a href="/entry/${response.entry}/" target="_blank">${response.entry}</a>`;
             successes++;
-        else
-            icon = `<span data-tooltip="${response.error || 'Unknown error'}"><i class="red exclamation circle icon"></i></span>`;
-
-        let entry = 'N/A';
-        if (response.entry)
-            entry = `<a href="/entry/${response.entry}/" target="_blank">${response.entry}</a>`;
+        } else {
+            icon = '<i class="red exclamation circle icon"></i>';
+            details = `<span>${response.error || 'Unknown error'}</span>`;
+        }
 
         node.innerHTML = `
             <td>
@@ -131,7 +132,7 @@ export async function integrate(signatures, actionFn) {
             </td>
             <td>
                 ${icon}
-                ${entry}
+                ${details}
             </td>`;
         tbody.insertBefore(node, tbody.firstChild);
         $(progress).progress('increment');
