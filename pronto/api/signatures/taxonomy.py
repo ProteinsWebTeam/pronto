@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from flask import jsonify, request
 
 from pronto import utils
@@ -172,8 +170,12 @@ def get_taxonomy_tree(accessions):
     )
 
     lineages = {}
-
     for acc, tid, anc_id, anc_rank, anc_name, cnt in cur.fetchall():
+        try:
+            idx = ranks.index(anc_rank)
+        except ValueError:
+            continue
+
         try:
             lineage = lineages[tid]
         except KeyError:
@@ -185,11 +187,7 @@ def get_taxonomy_tree(accessions):
                 "children": {}
             } for _ in ranks]
 
-        if anc_rank not in ranks:
-            continue
-
-        node = lineage[ranks.index(anc_rank)]
-
+        node = lineage[idx]
         if node["id"] is None:
             node.update({
                 "id": anc_id,
@@ -197,57 +195,44 @@ def get_taxonomy_tree(accessions):
                 "rank": anc_rank
             })
 
-        if acc in node["matches"]:
+        try:
             node["matches"][acc] += cnt
-        else:
+        except KeyError:
             node["matches"][acc] = cnt
 
     tree = {}
-
     for lineage in lineages.values():
         target = tree
 
-        for item in lineage:
-            if item["id"] is None:
+        for node in lineage:
+            if node["id"] is None:
                 continue
 
-            if item["id"] in target:
-                found = target[item["id"]]
-                for acc, cnt in item["matches"].items():
-                    found["matches"][acc] = found["matches"].get(acc, 0) + cnt
+            try:
+                obj = target[node["id"]]
+            except KeyError:
+                obj = target[node["id"]] = node
             else:
-                found = item
-                target[item["id"]] = found
+                for acc, cnt in node["matches"].items():
+                    obj["matches"][acc] = obj["matches"].get(acc, 0) + cnt
 
-                if item["rank"] == leaf_rank:
-                    found.pop("children", None)
-
-            if "children" in target[item["id"]]:
-                found = target[item["id"]]["children"]
-
-            target = found
-
-    tree = children_to_list(tree)
+            target = obj["children"]
 
     cur.close()
     con.close()
 
     return jsonify({
-        "results": tree,
+        "results": [format_node(n) for n in tree.values()],
         "integrated": get_sig2interpro(accessions)
     })
 
 
-def children_to_list(node):
-    node_list = []
-
-    for value in node.values():
-        # Recursively convert children
-        if "children" in value:
-            value["children"] = children_to_list(value["children"])
-        node_list.append(value)
-
-    return node_list
+def format_node(node: dict) -> dict:
+    children = node.pop("children", {})
+    return {
+        **node,
+        "children": [format_node(child) for child in children.values()]
+    }
 
 
 @bp.route("/<path:accessions>/taxon/<int:taxon_id>/")
