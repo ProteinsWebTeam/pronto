@@ -110,12 +110,20 @@ def get_taxonomy_origins(accessions, rank):
 @bp.route("/<path:accessions>/taxonomy/")
 def get_taxonomy_tree(accessions):
     leaf_rank = request.args.get("leaf", "species")
+    status = request.args.get("status")
 
     if leaf_rank not in RANKS:
         return jsonify({
             "error": {
                 "title": "Bad Request (invalid rank)",
                 "message": f"Available ranks: {', '.join(RANKS)}."
+            }
+        }), 400
+    elif status and status not in ("reviewed", "unreviewed"):
+        return jsonify({
+            "error": {
+                "title": "Bad Request (invalid status)",
+                "message": f"status must be 'reviewed' or 'unreviewed'."
             }
         }), 400
 
@@ -150,11 +158,16 @@ def get_taxonomy_tree(accessions):
             }), 400
         left_num, right_num = row
 
-    taxon_cond = ""
-    params = tuple(accessions)
+    cond = [f"sp.signature_acc IN ({','.join('%s' for _ in accessions)})"]
+    params = accessions
     if left_num is not None:
-        taxon_cond = "AND sp.taxon_left_num BETWEEN %s AND %s"
-        params += (left_num, right_num)
+        cond.append("sp.taxon_left_num BETWEEN %s AND %s")
+        params += [left_num, right_num]
+
+    if status == "reviewed":
+        cond.append("sp.is_reviewed IS TRUE")
+    elif status == "unreviewed":
+        cond.append("sp.is_reviewed IS FALSE")
 
     cur.execute(
         f"""
@@ -163,10 +176,10 @@ def get_taxonomy_tree(accessions):
           INNER JOIN taxon t ON sp.taxon_left_num = t.left_number
           INNER JOIN lineage l ON t.id = l.child_id
           INNER JOIN taxon t2 ON l.parent_id = t2.id
-        WHERE sp.signature_acc IN ({','.join('%s' for _ in accessions)})
-        {taxon_cond}
+        WHERE {' AND '.join(cond)}
         GROUP BY sp.signature_acc, t.id, t2.id, t2.rank, t2.name
-        """, params
+        """,
+        params
     )
 
     lineages = {}
