@@ -528,7 +528,11 @@ class Annotation {
             });
 
         if (previewMode)
-            return `<div id="annotation-text" class="ui attached segment center aligned"><i class="notched circle loading icon"></i></div>`
+            return `
+                <div id="${this.id}">    
+                    <div id="annotation-text" class="ui attached segment center aligned"><i class="notched circle loading icon"></i></div>
+                </div>
+            `
 
         let llmItem = '';
         if (this.isLLM) {
