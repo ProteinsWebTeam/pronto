@@ -194,24 +194,24 @@ executor = Executor()
 
 
 def connect_oracle() -> oracledb.Connection:
-    return oracledb.connect(current_app.config["ORACLE_IP"])
+    return oracledb.connect(current_app.config["ORACLE_IPR"])
 
 
 def connect_oracle_auth(user: dict) -> oracledb.Connection:
     # input format:  app_user/app_passwd@[host:port]/service
-    dsn = current_app.config["ORACLE_IP"].rsplit('@', 1)[-1]
+    dsn = current_app.config["ORACLE_IPR"].rsplit('@', 1)[-1]
     return oracledb.connect(user=user["dbuser"], 
                             password=user["password"], 
                             dsn=dsn)
 
 
 def get_oracle_url(user: dict) -> str:
-    dsn = current_app.config["ORACLE_IP"].rsplit('@', 1)[-1]
+    dsn = current_app.config["ORACLE_IPR"].rsplit('@', 1)[-1]
     return f"{user['dbuser']}/{user['password']}@{dsn}"
 
 
 def get_oracle_dsn():
-    return current_app.config["ORACLE_IP"].rsplit('@', 1)[-1]
+    return current_app.config["ORACLE_IPR"].rsplit('@', 1)[-1]
 
 
 def get_oracle_goa_url() -> str:
@@ -233,11 +233,11 @@ def connect_pg(url: str | None = None):
 
 
 def get_pg_url():
-    return current_app.config["POSTGRESQL"]
+    return current_app.config["PGSQL_PRONTO"]
 
 
 def connect_mysql():
-    url = current_app.config["MYSQL"]
+    url = current_app.config["MYSQL_IPR"]
     m = re.match(r'([^/]+)/([^@]+)@([^:]+):(\d+)/(\w+)', url)
     return MySQLdb.connect(
         user=m.group(1),
