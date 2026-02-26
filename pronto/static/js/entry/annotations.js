@@ -521,7 +521,7 @@ class Annotation {
         // Defer execution to load the rest of the page before replacing the text by the formatted text with links
         accessionsToLinks(text)
             .then((textWithLinks) => {
-                const annotationText = document.getElementById('annotation-text');
+                const annotationText = document.querySelector(`#${this.id} #annotation-text`);
                 annotationText.classList.remove('center', 'aligned');
                 annotationText.innerHTML = textWithLinks;
                 this.formattedText = textWithLinks;
