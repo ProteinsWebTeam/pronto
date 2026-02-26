@@ -102,34 +102,18 @@ def _standardise_citations(text: str) -> str:
 
 def _standardise_ec(text: str) -> str:
     pattern = re.compile(
-        r'\b\d+\.\d+\.\d+(?:\.\d+|\.-|\.x)?\b',
-        re.IGNORECASE
+        r'\b[Ee][Cc](?:\s+|:)\s*(\d+\.\d+\.\d+(?:\.\d+|\.-|\.x)?)\b'
     )
 
     def replacer(match: re.Match) -> str:
-        ec_number = match.group()
-        start, end = match.span()
-
-        window_start = max(0, start - 6)
-        window_end = min(len(text), end + 2)
-        snippet = text[window_start:window_end]
-        print(f"Window start: {window_start}, Window end: {window_end}, Text snippet: '{text[window_start:window_end]}'")
-
-
-
+        ec_number = match.group(1)
         if ec_number.endswith(".-") or ec_number.endswith(".x"):
             ec_number = ec_number[:-2]
 
-        already_formatted = re.search(
-            r'\[\s*ec\s*:\s*' + re.escape(ec_number) + r'\s*\]',
-            snippet,
-            re.IGNORECASE
-        )
-        if not already_formatted:
-            ec_formatted = f"[ec:{ec_number}]"
-            return ec_formatted
-
-        return ec_number
+        start, end = match.span()
+        if text[start-1] == '[' and text[end] == ']':
+            return f"ec:{ec_number}"
+        return f"[ec:{ec_number}]"
 
     return pattern.sub(replacer, text)
 
