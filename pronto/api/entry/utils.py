@@ -101,21 +101,23 @@ def _standardise_citations(text: str) -> str:
 
 
 def _standardise_ec(text: str) -> str:
-    pattern = re.compile(
-        r'\b[Ee][Cc](?:\s+|:)\s*(\d+\.\d+\.\d+(?:\.\d+|\.-|\.x)?)\b'
+    number_pattern = r'\d+\.\d+\.\d+(?:\.\d+)?(?:\.(?:x|-))?'
+    bracket_pattern = re.compile(
+        rf'\[\s*[Ee][Cc]\s*:?\s*({number_pattern})\s*\]'
     )
-
+    pattern = re.compile(
+        rf'(?<!\[)\b[Ee][Cc](?:\s+|:)\s*({number_pattern})\b'
+    )
     def replacer(match: re.Match) -> str:
-        ec_number = match.group(1)
-        if ec_number.endswith(".-") or ec_number.endswith(".x"):
-            ec_number = ec_number[:-2]
+        ec = match.group(1)
+        if ec.endswith((".x", ".-")):
+            ec = ec[:-2]
+        return f"[ec:{ec}]"
 
-        start, end = match.span()
-        if text[start-1] == '[' and text[end] == ']':
-            return f"ec:{ec_number}"
-        return f"[ec:{ec_number}]"
+    text = bracket_pattern.sub(replacer, text)
+    text = pattern.sub(replacer, text)
 
-    return pattern.sub(replacer, text)
+    return text
 
 
 def _capitalize_first(text) -> str:
