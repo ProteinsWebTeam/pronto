@@ -521,7 +521,7 @@ class Annotation {
         // Defer execution to load the rest of the page before replacing the text by the formatted text with links
         accessionsToLinks(text)
             .then((textWithLinks) => {
-                const annotationText = document.querySelector(`#${this.id} #annotation-text`);
+                const annotationText = document.querySelector(`#${this.id} .ui.segment`);
                 annotationText.classList.remove('center', 'aligned');
                 annotationText.innerHTML = textWithLinks;
                 this.formattedText = textWithLinks;
@@ -530,9 +530,9 @@ class Annotation {
         if (previewMode)
             return `
                 <div id="${this.id}">    
-                    <div id="annotation-text" class="ui attached segment center aligned"><i class="notched circle loading icon"></i></div>
+                    <div class="ui attached segment center aligned"><i class="notched circle loading icon"></i></div>
                 </div>
-            `
+            `;
 
         let llmItem = '';
         if (this.isLLM) {
