@@ -112,7 +112,7 @@ def _capitalize_first(text) -> str:
     return text[0].upper() + text[1:]
 
 
-def sanitize_domain(text):
+def sanitize_domain_description(text):
     if not text:
         return text
     safe_patterns = [
@@ -163,6 +163,14 @@ def sanitize_name(name: str) -> str:
     name = re.sub(r"-family proteins?\b", "-like", name, flags=re.I)
     name = _capitalize_first(name)
     return name
+
+
+def sanitize_domain_short_name(short_name: str, name: str) -> str:
+    if name.endswith(", C-terminal domain") or name.endswith(", N-terminal domain"):
+        if re.match(r"\b[-_][CN](terminal)?\b", short_name, flags=re.I):
+            short_name = re.sub(r"\b[-_](Cterm|CTERM)\b", "%_C", short_name, flags=re.I)
+            short_name = re.sub(r"\b[-_](Nterm|NTERM)\b", "%_N", short_name, flags=re.I)
+    return short_name
 
 
 def sanitize_short_name(short_name: str) -> str:
