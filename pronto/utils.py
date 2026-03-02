@@ -199,9 +199,21 @@ def connect_oracle() -> oracledb.Connection:
 
 def connect_oracle_auth(user: dict) -> oracledb.Connection:
     # input format:  app_user/app_passwd@[host:port]/service
+    parts = current_app.config["ORACLE_IP"].rsplit('@', 1)
+    proxy_user, proxy_password = parts[0].split("/")
+    dsn = parts[1]
+    session_user = user["dbuser"]
+    return oracledb.connect(
+        user=f"{proxy_user}[{session_user}]",
+        password=proxy_password,
+        dsn=dsn
+    )
+
+
+def connect_oracle_auth_noproxy(username: str, password: str) -> oracledb.Connection:
     dsn = current_app.config["ORACLE_IP"].rsplit('@', 1)[-1]
-    return oracledb.connect(user=user["dbuser"], 
-                            password=user["password"], 
+    return oracledb.connect(user=username,
+                            password=password,
                             dsn=dsn)
 
 
