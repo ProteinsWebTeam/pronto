@@ -593,7 +593,7 @@ class Annotation {
                     Associated to ${this.numEntries} ${this.numEntries === 1 ? 'entry' : 'entries'}</a>
                 </div>
             </div>
-            <div id="annotation-text" class="ui attached segment center aligned"><i class="notched circle loading icon"></i></div>
+            <div class="ui attached segment center aligned"><i class="notched circle loading icon"></i></div>
             <div class="hidden ui borderless bottom attached mini menu" data-id="${this.id}">
                 <div class="right menu">
                     <div class="item"><a data-action="cancel" class="ui basic secondary button">Cancel</a></div>
