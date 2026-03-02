@@ -101,7 +101,7 @@ def _standardise_citations(text: str) -> str:
 
 
 def _standardise_ec(text: str) -> str:
-    number_pattern = r'\d+\.\d+\.\d+(?:\.\d+)?(?:\.(?:x|-))?'
+    number_pattern = r'\d(?:\.(?:\d+|-|x)){3}'
     bracket_pattern = re.compile(
         rf'\[\s*EC\s*:?\s*({number_pattern})\s*\]', flags=re.IGNORECASE
     )
@@ -110,8 +110,8 @@ def _standardise_ec(text: str) -> str:
     )
     def replacer(match: re.Match) -> str:
         ec = match.group(1)
-        if ec.endswith((".x", ".-")):
-            ec = ec[:-2]
+        if ec.endswith(".x"):
+            ec = ec[:-1] + "-"
         return f"[ec:{ec}]"
 
     text = bracket_pattern.sub(replacer, text)
