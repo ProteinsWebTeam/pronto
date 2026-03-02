@@ -45,7 +45,7 @@ Run the following command, then copy the printed string
 and paste it into the config file.
 
 ```sh
-python -c "import os; print(os.urandom(16).hex())"
+python -c 'import secrets; print(secrets.token_hex())'
 ```
 
 ## Usage
