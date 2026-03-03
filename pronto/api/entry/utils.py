@@ -166,7 +166,9 @@ def sanitize_name(name: str) -> str:
 
 
 def sanitize_domain_short_name(short_name: str, name: str) -> str:
-    if name.endswith(", C-terminal domain") or name.endswith(", N-terminal domain"):
+    if name.endswith(("C-terminal region", "N-terminal region",
+                      "C-terminal domain", "N-terminal domain",
+                      "C-terminal-like domain", "N-terminal-like domain")):
         short_name = re.sub(
             r"[-_]([CN])term\b",
             lambda m: f"_{m.group(1).upper()}",
