@@ -100,6 +100,21 @@ def _standardise_citations(text: str) -> str:
     return text
 
 
+def _standardise_ec(text: str) -> str:
+    number_pattern = r'\d(?:\.(?:\d+|-|x)){3}'
+
+    def replacer(match: re.Match) -> str:
+        ec = match.group(1)
+        if ec.endswith(".x"):
+            ec = ec[:-1] + "-"
+        return f"[ec:{ec}]"
+
+    text = re.sub(rf"\[ec:({number_pattern})\]", r"EC \1", text, flags=re.I)
+    text = re.sub(rf"\bEC\s*:?\s*({number_pattern})", replacer, text, flags=re.I)
+
+    return text
+
+
 def _capitalize_first(text) -> str:
     con = connect_oracle()
     with con.cursor() as cur:
@@ -156,6 +171,7 @@ def sanitize_description(text: str) -> str:
     text = _replace_accessions(text)
     text = _replace_terms(text)
     text = _standardise_citations(text)
+    text = _standardise_ec(text)
     return text
 
 
