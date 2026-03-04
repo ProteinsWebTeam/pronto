@@ -5,7 +5,8 @@ from datetime import datetime
 import oracledb
 from flask import Blueprint, jsonify, request
 
-from pronto.api.entry.utils import sanitize_description, sanitize_name, sanitize_short_name, sanitize_domain
+from pronto.api.entry.utils import sanitize_description, sanitize_name, sanitize_short_name
+from pronto.api.entry.utils import sanitize_domain_description, sanitize_domain_short_name
 
 bp = Blueprint("api_entry", __name__, url_prefix="/api/entry")
 
@@ -832,8 +833,10 @@ def create_entry():
         if entry_name.endswith("domain") or has_region_expressions or is_pfam_repeat:
             entry_type = 'D'
 
-        entry_short_name = sanitize_short_name(entry_short_name)
         entry_name = sanitize_name(entry_name)
+        entry_short_name = sanitize_short_name(entry_short_name)
+        if entry_type == 'D':
+            entry_short_name = sanitize_domain_short_name(entry_short_name, entry_name)
 
     entry_var = cur.var(oracledb.STRING)
     try:
@@ -929,8 +932,8 @@ def create_entry():
                     anno_text += f"References: [{', '.join(cite_items)}]"
 
             anno_text = sanitize_description(anno_text)
-            if entry_type == 'Domain':
-                anno_text = sanitize_domain(anno_text)
+            if entry_type == 'D':
+                anno_text = sanitize_domain_description(anno_text)
 
             anno_id, response, code = annotation.insert_annotation(
                 anno_text,
