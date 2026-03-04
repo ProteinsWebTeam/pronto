@@ -34,13 +34,18 @@ Create a copy of `config.cfg` (e.g. `config.local.cfg`), and set the following o
 
 Format for connection strings: `<user>/<password>@<host>:<port>/<schema>`.
 
+> [!IMPORTANT]  
+> The InterPro Oracle connection (`ORACLE_IP`) must use the dedicated proxy account `PRONTO_PROXY`.
+> If a different user is configured, read-only queries will still work, 
+> but curator actions (creating or editing InterPro entries and annotations) will fail because proxy authentication will not be available.
+
 ### Generate secret key
 
 Run the following command, then copy the printed string 
 and paste it into the config file.
 
 ```sh
-python -c "import os; print(os.urandom(16).hex())"
+python -c 'import secrets; print(secrets.token_hex())'
 ```
 
 ## Usage

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from oracledb import DatabaseError
 from flask import redirect, render_template, request, session, url_for
 from flask import Blueprint
@@ -50,14 +48,15 @@ def logout():
     return redirect(request.referrer)
 
 
-def check_user(username, password):
+def check_user(username: str, password: str) -> dict | None:
     con = utils.connect_oracle()
     cur = con.cursor()
     cur.execute(
         """
-        SELECT USERNAME, NAME, DB_USER, IS_ACTIVE
+        SELECT USERNAME, NAME, DB_USER
         FROM INTERPRO.PRONTO_USER
         WHERE LOWER(USERNAME) = LOWER(:1)
+          AND IS_ACTIVE = 'Y'
         """,
         (username,)
     )
@@ -68,26 +67,33 @@ def check_user(username, password):
             "username": row[0],
             "name": row[1],
             "dbuser": row[2],
-            "active": row[3] == 'Y',
-            "password": password
         }
 
+        # Try connecting with the curator Oracle user
         try:
-            con2 = utils.connect_oracle_auth(user)
+            con2 = utils.connect_oracle_auth_noproxy(user["username"], password)
         except DatabaseError:
             user = None
         else:
             con2.close()
 
-            cur.execute(
-                """
-                UPDATE INTERPRO.PRONTO_USER
-                SET LAST_ACTIVITY = SYSDATE
-                WHERE USERNAME = :1
-                """,
-                (user["username"],)
-            )
-            con.commit()
+            # If successful, try connecting using the proxy user
+            try:
+                con2 = utils.connect_oracle_auth(user)
+            except DatabaseError:
+                user = None
+            else:
+                con2.close()
+
+                cur.execute(
+                    """
+                    UPDATE INTERPRO.PRONTO_USER
+                    SET LAST_ACTIVITY = SYSDATE
+                    WHERE USERNAME = :1
+                    """,
+                    (user["username"],)
+                )
+                con.commit()
     else:
         user = None
 

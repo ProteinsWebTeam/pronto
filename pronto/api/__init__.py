@@ -25,11 +25,6 @@ blueprints = [bp, annotation.bp, checks.bp, database.bp, databases.bp,
 @bp.route("/")
 def api_index():
     user = auth.get_user()
-    if user:
-        # Make a copy of the user dictionary and remove its password
-        user = user.copy()
-        del user["password"]
-
     con = utils.connect_pg()
     cur = con.cursor()
     cur.execute("SELECT version FROM interpro.database WHERE name='uniprot'")
