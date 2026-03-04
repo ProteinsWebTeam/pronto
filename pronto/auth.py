@@ -27,7 +27,7 @@ def login():
         remember = len(request.form.get("remember", "")) > 0
         user = check_user(username, password)
 
-        if user and user["active"]:
+        if user:
             session["user"] = user
             if remember:
                 session.permanent = True
@@ -71,7 +71,7 @@ def check_user(username: str, password: str) -> dict | None:
 
         # Try connecting with the curator Oracle user
         try:
-            con2 = utils.connect_oracle_auth_noproxy(user["username"], password)
+            con2 = utils.connect_oracle_auth_noproxy(user["dbuser"], password)
         except DatabaseError:
             user = None
         else:
