@@ -26,10 +26,10 @@ pip install .
 
 Create a copy of `config.cfg` (e.g. `config.local.cfg`), and set the following options:
 
-* `MYSQL_IPR` - Connection string for InterPro release MySQL database.
+* `MYSQL` - Connection string for InterPro release MySQL database.
 * `ORACLE_GOA` - Connection string for GOA production Oracle database.
-* `ORACLE_IPR` - Connection string for InterPro production Oracle database.
-* `PGSQL_PRONTO` - Connection string for Pronto PostgreSQL database.
+* `ORACLE_IP` - Connection string for InterPro production Oracle database.
+* `POSTGRESQL` - Connection string for Pronto PostgreSQL database.
 * `SECRET_KEY` - key used to sign cookies (prevent forgery).
 
 Format for connection strings: `<user>/<password>@<host>:<port>/<schema>`.
