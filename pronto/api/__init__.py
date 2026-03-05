@@ -8,7 +8,6 @@ from . import database
 from . import databases
 from . import entries
 from . import entry
-from . import interproscan
 from . import protein
 from . import search
 from . import signature
@@ -19,18 +18,13 @@ from . import proteome
 bp = Blueprint("api", __name__,  url_prefix="/api")
 
 blueprints = [bp, annotation.bp, checks.bp, database.bp, databases.bp,
-              entries.bp, entry.bp, interproscan.bp, protein.bp, search.bp,
+              entries.bp, entry.bp, protein.bp, search.bp,
               signature.bp, signatures.bp, proteome.bp]
 
 
 @bp.route("/")
 def api_index():
     user = auth.get_user()
-    if user:
-        # Make a copy of the user dictionary and remove its password
-        user = user.copy()
-        del user["password"]
-
     con = utils.connect_pg()
     cur = con.cursor()
     cur.execute("SELECT version FROM interpro.database WHERE name='uniprot'")

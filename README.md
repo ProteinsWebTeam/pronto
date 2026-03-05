@@ -26,13 +26,18 @@ pip install .
 
 Create a copy of `config.cfg` (e.g. `config.local.cfg`), and set the following options:
 
-* `ORACLE_IP` - Connection string for InterPro production Oracle database.
+* `MYSQL` - Connection string for InterPro release MySQL database.
 * `ORACLE_GOA` - Connection string for GOA production Oracle database.
-* `MYSQL` - Connection string for InterPro7 MySQL database.
+* `ORACLE_IP` - Connection string for InterPro production Oracle database.
 * `POSTGRESQL` - Connection string for Pronto PostgreSQL database.
 * `SECRET_KEY` - key used to sign cookies (prevent forgery).
 
 Format for connection strings: `<user>/<password>@<host>:<port>/<schema>`.
+
+> [!IMPORTANT]  
+> The InterPro Oracle connection (`ORACLE_IP`) must use the dedicated proxy account `PRONTO_PROXY`.
+> If a different user is configured, read-only queries will still work, 
+> but curator actions (creating or editing InterPro entries and annotations) will fail because proxy authentication will not be available.
 
 ### Generate secret key
 
@@ -40,7 +45,7 @@ Run the following command, then copy the printed string
 and paste it into the config file.
 
 ```sh
-python -c "import os; print(os.urandom(16).hex())"
+python -c 'import secrets; print(secrets.token_hex())'
 ```
 
 ## Usage
