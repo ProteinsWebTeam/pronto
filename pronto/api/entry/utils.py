@@ -13,7 +13,7 @@ def _replace_greek_letters(text):
     }
     sep = r"[\s\-\+/]+"
     replacements = "|".join(replacement_map.keys())
-    pattern = rf"\b({replacements})(?=(?:{sep}(?:{replacements}))?{sep}(?:{'|'.join(structural_terms)})s?\b)"
+    pattern = rf"\b({replacements})(?=(?:{sep}(?:{replacements}))*{sep}(?:{'|'.join(structural_terms)})s?\b)"
     return re.sub(pattern,
                   lambda m: replacement_map[m.group(1).lower()], text, flags=re.IGNORECASE)
 
