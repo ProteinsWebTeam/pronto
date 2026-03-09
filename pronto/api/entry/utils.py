@@ -6,7 +6,8 @@ from pronto.api.checks.utils import load_global_exceptions
 
 def _replace_greek_letters(text):
     structural_terms = ["helix", "helices", "sheet", "strand", "propeller", "barrel",
-                        "sandwich", "meander", "configuration", "structure", "fold"]
+                        "sandwich", "meander", "configuration", "structure", "fold",
+                        "helical"]
     replacement_map = {
         "alpha": "α",
         "beta": "β"
