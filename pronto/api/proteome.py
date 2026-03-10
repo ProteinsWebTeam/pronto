@@ -8,9 +8,9 @@ from pronto import auth, utils
 bp = Blueprint("api_proteome", __name__, url_prefix="/api/proteome")
 
 
-def _process_proteome(ora_url: str, pg_url: str, proteome_id: str,
+def _process_proteome(info: dict, pg_url: str, proteome_id: str,
                       proteome_name: str):
-    con = oracledb.connect(ora_url)
+    con = oracledb.connect(**info)
     cur = con.cursor()
     cur.execute(
         """
@@ -216,9 +216,9 @@ def submit_proteome(proteome_id):
 
     task_name = f"proteome:{proteome_id}"
 
-    ora_url = utils.get_oracle_url(user)
-    task = utils.executor.submit(ora_url, task_name, _process_proteome,
-                                 ora_url, utils.get_pg_url(), proteome_id,
+    info = utils.get_oracle_auth_info(user)
+    task = utils.executor.submit(info, task_name, _process_proteome,
+                                 info, utils.get_pg_url(), proteome_id,
                                  proteome_name)
 
     return jsonify({

@@ -469,17 +469,17 @@ def delete_entry(accession):
     cur.close()
     con.close()
 
-    url = utils.get_oracle_url(user)
-    task = utils.executor.submit(url, f"delete:{accession}", _delete_entry,
-                                 url, accession, delete_annotations)
+    info = utils.get_oracle_auth_info(user)
+    task = utils.executor.submit(info, f"delete:{accession}", _delete_entry,
+                                 info, accession, delete_annotations)
     return jsonify({
         "status": True,
         "task": task
     }), 202
 
 
-def _delete_entry(url: str, accession: str, delete_annotations: bool):
-    con = oracledb.connect(url)
+def _delete_entry(info: dict, accession: str, delete_annotations: bool):
+    con = oracledb.connect(**info)
     cur = con.cursor()
 
     if delete_annotations:

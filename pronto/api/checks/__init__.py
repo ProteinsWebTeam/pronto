@@ -120,13 +120,13 @@ def submit_checks():
             403,
         )
 
-    ora_ip_url = utils.get_oracle_url(user)
+    info = utils.get_oracle_auth_info(user)
     ora_goa_url = utils.get_oracle_goa_url()
     task = utils.executor.submit(
-        ora_ip_url,
+        info,
         "sanitychecks",
         run_checks,
-        ora_ip_url,
+        info,
         utils.get_pg_url(),
         ora_goa_url,
     )
@@ -134,10 +134,10 @@ def submit_checks():
     return jsonify({"status": True, "task": task}), 202
 
 
-def run_checks(ora_url: str, pg_url: str, ora_goa_url: str):
+def run_checks(info: dict, pg_url: str, ora_goa_url: str):
     run_id = uuid.uuid1().hex
 
-    con = oracledb.connect(ora_url)
+    con = oracledb.connect(**info)
     cur = con.cursor()
 
     counts = {}
