@@ -6,14 +6,15 @@ from pronto.api.checks.utils import load_global_exceptions
 
 def _replace_greek_letters(text):
     structural_terms = ["helix", "helices", "sheet", "strand", "propeller", "barrel",
-                        "sandwich", "meander", "configuration", "structure", "fold"]
+                        "sandwich", "meander", "configuration", "structure", "fold",
+                        "helical"]
     replacement_map = {
         "alpha": "α",
         "beta": "β"
     }
     sep = r"[\s\-\+/]+"
     replacements = "|".join(replacement_map.keys())
-    pattern = rf"\b({replacements})(?=(?:{sep}(?:{replacements}))?{sep}(?:{'|'.join(structural_terms)})s?\b)"
+    pattern = rf"\b({replacements})(?=(?:{sep}(?:{replacements}))*{sep}(?:{'|'.join(structural_terms)})s?\b)"
     return re.sub(pattern,
                   lambda m: replacement_map[m.group(1).lower()], text, flags=re.IGNORECASE)
 

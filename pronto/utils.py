@@ -57,7 +57,7 @@ class Executor:
         self._submit = self._executor.submit
 
     @staticmethod
-    def _run_task(url: str, task_id: str, fn: Callable, *args, **kwargs):
+    def _run_task(info: dict, task_id: str, fn: Callable, *args, **kwargs):
         result = None
         try:
             result = fn(*args, **kwargs)
@@ -68,7 +68,7 @@ class Executor:
 
         result_obj = gzip.compress(json.dumps(result).encode("utf-8"))
 
-        con = oracledb.connect(url)
+        con = oracledb.connect(**info)
         cur = con.cursor()
         cur.execute(
             """
@@ -149,27 +149,26 @@ class Executor:
         con.close()
         return tasks
 
-    def submit(self, url: str, name: str,
+    def submit(self, info: dict, name: str,
                fn: Callable, *args, **kwargs) -> dict:
         """
 
-        :param url: Oracle connection string/URL
+        :param info: Oracle connection information
         :param name: task name
         :param fn: function to execute
         :param args: positional arguments for `fn`
         :param kwargs: keywords arguments for `fn`
         :return: task
         """
-
         tasks = self.get_tasks(task_name=name, get_result=False)
         if tasks and tasks[-1]["end_time"] is None:
-            # Running task: we do not submit an other one
+            # Running task: we do not submit another one
             return tasks[-1]
 
         task_id = uuid.uuid1().hex
 
         # Insert task in database
-        con = oracledb.connect(url)
+        con = oracledb.connect(**info)
         cur = con.cursor()
         cur.execute(
             """
@@ -185,8 +184,7 @@ class Executor:
         tasks = self.get_tasks(task_name=name, get_result=False)
 
         # Submit task to thread pool
-        self._submit(self._run_task, url, task_id, fn, *args, **kwargs)
-
+        f = self._submit(self._run_task, info, task_id, fn, *args, **kwargs)
         return tasks[-1]
 
 
@@ -198,16 +196,20 @@ def connect_oracle() -> oracledb.Connection:
 
 
 def connect_oracle_auth(user: dict) -> oracledb.Connection:
+    return oracledb.connect(**get_oracle_auth_info(user))
+
+
+def get_oracle_auth_info(user: dict) -> dict:
     # input format:  app_user/app_passwd@[host:port]/service
     parts = current_app.config["ORACLE_IP"].rsplit('@', 1)
     proxy_user, proxy_password = parts[0].split("/")
     dsn = parts[1]
     session_user = user["dbuser"]
-    return oracledb.connect(
-        user=f"{proxy_user}[{session_user}]",
-        password=proxy_password,
-        dsn=dsn
-    )
+    return {
+        "user": f"{proxy_user}[{session_user}]",
+        "password": proxy_password,
+        "dsn": dsn,
+    }
 
 
 def connect_oracle_auth_noproxy(username: str, password: str) -> oracledb.Connection:
@@ -215,11 +217,6 @@ def connect_oracle_auth_noproxy(username: str, password: str) -> oracledb.Connec
     return oracledb.connect(user=username,
                             password=password,
                             dsn=dsn)
-
-
-def get_oracle_url(user: dict) -> str:
-    dsn = current_app.config["ORACLE_IP"].rsplit('@', 1)[-1]
-    return f"{user['dbuser']}/{user['password']}@{dsn}"
 
 
 def get_oracle_dsn():
