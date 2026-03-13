@@ -80,6 +80,106 @@ def _replace_terms(text):
     return text.replace("“", '"').replace("”", '"')
 
 
+def _replace_american_spelling(text):
+    replacement_map = {
+        # -er -> -re
+        "center": "centre",
+        "centers": "centres",
+        "fiber": "fibre",
+        "fibers": "fibres",
+        "liter": "litre",
+        "liters": "litres",
+        "meter": "metre",
+        "meters": "metres",
+        # -or -> -our
+        "color": "colour",
+        "colors": "colours",
+        "colored": "coloured",
+        "coloring": "colouring",
+        "favor": "favour",
+        "favors": "favours",
+        "favorite": "favourite",
+        "favorites": "favourites",
+        "flavor": "flavour",
+        "flavors": "flavours",
+        "honor": "honour",
+        "honors": "honours",
+        "labor": "labour",
+        "neighbor": "neighbour",
+        "neighbors": "neighbours",
+        "odor": "odour",
+        "odors": "odours",
+        "rumor": "rumour",
+        "rumors": "rumours",
+        "tumor": "tumour",
+        "tumors": "tumours",
+        # -ize -> -ise
+        "organize": "organise",
+        "organizes": "organises",
+        "organized": "organised",
+        "organizing": "organising",
+        "recognize": "recognise",
+        "recognizes": "recognises",
+        "recognized": "recognised",
+        "recognizing": "recognising",
+        "analyze": "analyse",
+        "analyzes": "analyses",
+        "analyzed": "analysed",
+        "analyzing": "analysing",
+        "catalyze": "catalyse",
+        "catalyzed": "catalysed",
+        "catalyzing": "catalysing",
+        "stabilize": "stabilise",
+        "stabilized": "stabilised",
+        "stabilizing": "stabilising",
+        "localize": "localise",
+        "localizes": "localises",
+        "localized": "localised",
+        "localizing": "localising",
+        "characterize": "characterise",
+        # doubled consonants
+        "signaling": "signalling",
+        "signaled": "signalled",
+        "modeling": "modelling",
+        "modeled": "modelled",
+        "traveling": "travelling",
+        "traveled": "travelled",
+        "canceling": "cancelling",
+        "canceled": "cancelled",
+        "labeling": "labelling",
+        "labeled": "labelled",
+        # misc scientific terms
+        "heme": "haem",
+        "ortholog": "ortologue",
+        "orthologs": "ortologues",
+        "paralog": "paralogue",
+        "paralogs": "paralogues",
+        "tumorigenesis": "tumourigenesis",
+        "tumorigenicity": "tumourigenicity",
+        "tumorigenic": "tumourigenic",
+        "sulfur": "sulphur",
+        "aluminum": "aluminium",
+        "aging": "ageing",
+        "artifact": "artefact",
+        "gray": "grey"
+    }
+
+    pattern = r"\b(" + "|".join(map(re.escape, replacement_map.keys())) + r")\b"
+
+    def replace(match):
+        original = match.group(0)
+        replacement = replacement_map[original.lower()]
+
+        if original.isupper():
+            return replacement.upper()
+        elif original[0].isupper():
+            return replacement.capitalize()
+        else:
+            return replacement
+
+    return re.sub(pattern, replace, text, flags=re.IGNORECASE)
+
+
 def _standardise_citations(text: str) -> str:
     def normalize(match):
         inner = match.group(0)
@@ -171,6 +271,7 @@ def sanitize_description(text: str) -> str:
     text = _replace_terminal(text)
     text = _replace_accessions(text)
     text = _replace_terms(text)
+    text = _replace_american_spelling(text)
     text = _standardise_citations(text)
     text = _standardise_ec(text)
     return text
