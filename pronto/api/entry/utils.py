@@ -177,7 +177,8 @@ def sanitize_description(text: str) -> str:
 
 
 def sanitize_name(name: str) -> str:
-    name = re.sub(r"-family proteins?\b", "-like", name, flags=re.I)
+    name = re.sub(r"(?:-|\s)family proteins?\b", "-like", name, flags=re.I)
+    name = re.sub(r"\s*family\s*$", "", name, flags=re.I)
     name = _capitalize_first(name)
     return name
 
